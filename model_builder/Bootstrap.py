@@ -315,7 +315,7 @@ class Bootstrap:
 
 
 
-    def bash_it(self, action, prefix, cmd, parname=None, group=None, cluster=None, H=20):
+    def bash_it(self, action, prefix, cmd, parname=None, group=None, H=20, parname2=None, group2=None, H2=1, cluster=None):
 
         """
         create a bash script to run the design
@@ -360,9 +360,14 @@ for (( h=0; h < $H; h++ )); do
 {% endautoescape %}
 """
 
+        if parname2:
+            parname = '--'.join([parname, parname2])
+        if group2:
+            group = '--'.join([group, group2])
+
         c = {}
         c['cluster'] = cluster
-        c['H'] = H
+        c['H'] = H*H2
         c['script_info'] = ':'.join([prefix, parname, group]) if (parname and group) else prefix
         c['path'] = {}
         c['path']['bin'] = os.path.join(self.path_rendered, 'bin')
