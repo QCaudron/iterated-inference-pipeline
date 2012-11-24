@@ -1,6 +1,6 @@
 {
- "meta": {"id": "my_id",
-          "comment": "my comment"},
+ "id": "my_id",
+ "comment": "my comment",
 
  "population": [{"id": "city1__all",
                  "size_t0": 1e6,

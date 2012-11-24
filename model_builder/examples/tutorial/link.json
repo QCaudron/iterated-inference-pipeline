@@ -1,6 +1,6 @@
 {
- "meta": {"id": "my_id",
-          "comment": "my comment"},
+ "id": "my_id",
+ "comment": "my comment",
 
  "observed": [{"id": "prev", "comment":"prevalence",
                "definition": ["I"],

@@ -463,8 +463,8 @@ def main():
 
         action = design['action']['id']
 
-        if 'meta' in design and 'id' in design['meta']:
-            design_id = design['meta']['id']
+        if 'id' in design :
+            design_id = design['id']
         else:
             design_id = action
 

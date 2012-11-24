@@ -102,8 +102,8 @@ def main():
         print('Creating the context template: {0}'.format(path_rendered))
 
         template = """{
- "meta": {"id": "my_context",
-          "comment": "my comments "},
+ "id": "my_context",
+ "comment": "my comments",
 
  "population": [{"id": "city1__all",
                  "size_t0": 1e6,
@@ -164,8 +164,8 @@ def main():
         print('Creating the process template: {0}'.format(path_rendered))
 
         template = """{
- "meta": {"id": "SIR",
-          "comment": "SIR model with birth and death processes, Erlang distributed duration of infection and noise on the transmission term"},
+ "id": "SIR",
+ "comment": "SIR model with birth and death processes, Erlang distributed duration of infection and noise on the transmission term",
 
  "state": [{"id": "S", "comment": "Susceptible"},
            {"id": "I", "comment": "Infectious"}],
@@ -229,8 +229,8 @@ def main():
 
 
         l = """{{% autoescape off %}
- "meta": {"id": "my_id",
-          "comment": "my comment"},
+ "id": "my_id",
+ "comment": "my comment",
 
  "observed": [{% if ts_prev %}{"id": "prev",
                "comment": "prevalence",
@@ -318,8 +318,8 @@ def main():
     if any([mycli.slice, mycli.profile, mycli.lhs, mycli.replicate]):
 
         template = """{% autoescape off %}{
- "meta": {"id": "{{ id }}",
-          "comment": "my design"},
+ "id": "{{ id }}",
+ "comment": "my design",
 
  "action": {"id": "{{ action }}",
             "H": {{ H }},
