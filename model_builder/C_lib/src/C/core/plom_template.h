@@ -63,6 +63,7 @@
 #define BUFFER_SIZE (5000 * 1024)  /**< 5000 KB buffer size for settings.json inputs */
 #define STR_BUFFSIZE 255 /**< buffer for log and error strings */
 #define DEFAULT_PATH "./" /**< default path for non JSON output (has to be slash appended) */
+#define PATH_SETTINGS "../settings/settings.json"
 
 /* automatically generated code: order of the parameters */
 {% for o in order.var %}
@@ -527,8 +528,9 @@ void load3u_var(unsigned int ***tab, int n, unsigned int *colbreaks1, unsigned i
 void load3u_varp1(unsigned int ***tab, int n, unsigned int *colbreaks1, unsigned int colbreaks2, char *filename);
 
 void load_const(json_t *json_root);
-void load_best(struct s_best *p_best, json_t *root, int update_guess);
+void load_best(struct s_best *p_best, struct s_data *p_data, json_t *settings, int update_guess);
 void load_covariance(gsl_matrix *covariance, json_t *array2d);
+json_t *load_settings(const char *path);
 
 /* build.c */
 struct s_iterator *build_iterator(struct s_router **routers, struct s_drift *p_drift, char *it_type);

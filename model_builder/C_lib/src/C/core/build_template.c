@@ -431,12 +431,12 @@ void clean_drift(struct s_drift *p_drift)
     FREE(p_drift);
 }
 
-struct s_data *build_data(json_t *root, int is_bayesian)
+struct s_data *build_data(json_t *settings, int is_bayesian)
 {
     int n, ts, cac, k;
     int tmp_n_data_nonan, count_n_nan;
 
-    json_t *json_data = fast_get_json_object(root, "data");
+    json_t *json_data = fast_get_json_object(settings, "data");
 
     struct s_data *p_data;
     p_data = malloc(sizeof(struct s_data));
@@ -449,10 +449,10 @@ struct s_data *build_data(json_t *root, int is_bayesian)
 
     //always present
     p_data->obs2ts = build_obs2ts(fast_get_json_array(json_data, "obs2ts"));
-    p_data->routers = build_routers(root, is_bayesian);
+    p_data->routers = build_routers(settings, is_bayesian);
 
     //ts names
-    json_t *ts_name = fast_get_json_array(fast_get_json_object(root, "orders"), "ts_id");
+    json_t *ts_name = fast_get_json_array(fast_get_json_object(settings, "orders"), "ts_id");
     p_data->ts_name = malloc(N_TS * sizeof(char *));
     if (p_data->ts_name == NULL) {
         char str[STR_BUFFSIZE];
@@ -468,7 +468,7 @@ struct s_data *build_data(json_t *root, int is_bayesian)
     }
 
     //cac names
-    json_t *cac_name = fast_get_json_array(fast_get_json_object(root, "orders"), "cac_id");
+    json_t *cac_name = fast_get_json_array(fast_get_json_object(settings, "orders"), "cac_id");
     p_data->cac_name = malloc(N_CAC * sizeof(char *));
     if (p_data->cac_name == NULL) {
         char str[STR_BUFFSIZE];
@@ -573,7 +573,7 @@ struct s_data *build_data(json_t *root, int is_bayesian)
 
     /*extra non fitted parameters (forcing parameters a.k.a par_fixed_values)*/
     if (N_PAR_FIXED) {
-        json_t *json_par_fixed = fast_get_json_array(fast_get_json_object(root, "orders"), "par_fixed");
+        json_t *json_par_fixed = fast_get_json_array(fast_get_json_object(settings, "orders"), "par_fixed");
         json_t *json_par_fixed_values = fast_get_json_object(json_data, "par_fixed_values");
 
         p_data->par_fixed = malloc(N_PAR_FIXED * sizeof(double **));
@@ -1126,7 +1126,7 @@ void clean_likelihood(struct s_likelihood *p_like)
     FREE(p_like);
 }
 
-struct s_best *build_best(struct s_data *p_data, json_t *json_root)
+struct s_best *build_best(struct s_data *p_data, json_t *settings)
 {
     struct s_best *p_best;
     p_best = malloc(sizeof(struct s_best));
@@ -1156,7 +1156,7 @@ struct s_best *build_best(struct s_data *p_data, json_t *json_root)
 
     p_best->to_be_estimated = init1u_set0(p_best->length);
 
-    load_best(p_best, json_root, 1);
+    load_best(p_best, p_data, settings, 1);
     gsl_vector_memcpy(p_best->proposed, p_best->mean);
 
     update_to_be_estimated(p_best);

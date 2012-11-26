@@ -63,7 +63,7 @@ void update_walk_rates(struct s_best *p_best,
 
     if(json_object_size(root)) { //we update sdt and priors
 
-        load_best(p_best, root, 0); //0 because we do not update guess component of s_best
+        load_best(p_best, p_data, root, 0); //0 because we do not update guess component of s_best
 
         transform_theta(p_best, f_transit_par, f_transit_state, p_data, 1);
 

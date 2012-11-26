@@ -171,8 +171,8 @@ int main(int argc, char *argv[])
     }
 
 
-    json_t *root = load_json();
-    load_const(root);
+    json_t *settings = load_settings(PATH_SETTINGS);
+    load_const(settings);
 
     if (has_dt_be_specified) {
         DT = dt_option;
@@ -195,15 +195,15 @@ int main(int argc, char *argv[])
 #endif
 
 
-    struct s_data *p_data = build_data(root, 0);
+    struct s_data *p_data = build_data(settings, 0);
     struct s_calc **calc = build_calc(GENERAL_ID, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_data);
     struct s_par *p_par = build_par(p_data);
     struct s_hat **D_p_hat = build_D_p_hat(p_data);
     struct s_X ***D_J_p_X = build_D_J_p_X(p_data);
     struct s_X ***D_J_p_X_tmp = build_D_J_p_X(p_data);
-    struct s_best *p_best = build_best(p_data, root);
+    struct s_best *p_best = build_best(p_data, settings);
     struct s_likelihood *p_like = build_likelihood();
-    json_decref(root);
+    json_decref(settings);
 
     FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
 

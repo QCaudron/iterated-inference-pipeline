@@ -483,61 +483,57 @@ void load_const(json_t *root)
 }
 
 
-void load_best(struct s_best *p_best, json_t *root, int update_guess)
+void load_best(struct s_best *p_best, struct s_data *p_data, json_t *settings, int update_guess)
 {
     /* integrate best data from the webApp */
 
-    int i, j, g, offset;
-    json_t *parameters = fast_get_json_object(root, "parameters");
-    json_t *partitions = fast_get_json_object(root, "partition");
-    json_t *orders = fast_get_json_object(root, "orders");
+    int i, g, offset;
+    struct s_router **routers = p_data->routers;
+    json_t *parameters = fast_get_json_object(settings, "parameters");
+    json_t *partitions = fast_get_json_object(settings, "partition");
 
     const char par_types[][10] = { "par_sv", "par_proc", "par_obs" };
 
     offset = 0;
-    for(i=0; i<3; i++) {
-        json_t *my_par_list = fast_get_json_array(orders, par_types[i]);
 
-        for(j=0; j< json_array_size(my_par_list); j++) {
+    for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
+        const char *par_key = routers[i]->name;
 
-            const char *par_key = fast_get_json_string_from_array(my_par_list, j, par_types[i]);
-            json_t *par = fast_get_json_object(parameters, par_key);
-            const char *partition_key = fast_get_json_string_from_object(par, "partition_id");
-            json_t *my_partitition = fast_get_json_object(partitions, partition_key);
-            json_t *groups = fast_get_json_array(my_partitition, "group");
+        json_t *par = fast_get_json_object(parameters, par_key);
+        const char *partition_key = fast_get_json_string_from_object(par, "partition_id");
+        json_t *my_partitition = fast_get_json_object(partitions, partition_key);
+        json_t *groups = fast_get_json_array(my_partitition, "group");
 
-            json_t *par_min = fast_get_json_object(par, "min");
-            json_t *par_max = fast_get_json_object(par, "max");
-            json_t *par_sd_transf = fast_get_json_object(par, "sd_transf");
-            json_t *par_guess = fast_get_json_object(par, "guess");
+        json_t *par_min = fast_get_json_object(par, "min");
+        json_t *par_max = fast_get_json_object(par, "max");
+        json_t *par_sd_transf = fast_get_json_object(par, "sd_transf");
+        json_t *par_guess = fast_get_json_object(par, "guess");
 
-            const char *prior = fast_get_json_string_from_object(par, "prior");
+        const char *prior = fast_get_json_string_from_object(par, "prior");
 
-            for (g=0; g < json_array_size(groups); g++) { //for each group
-                json_t *my_group = json_array_get(groups, g);
-                const char *my_group_id = fast_get_json_string_from_object(my_group, "id");
+        for (g=0; g < json_array_size(groups); g++) { //for each group
+            json_t *my_group = json_array_get(groups, g);
+            const char *my_group_id = fast_get_json_string_from_object(my_group, "id");
 
-                if (strcmp(prior, "normal") == 0) {
-                    p_best->prior[offset] = &normal_prior;
-                } else {
-                    //p_best->prior[offset] = &gsl_ran_flat_pdf;
-                    p_best->prior[offset] = &pseudo_unif_prior;
-                }
-
-                if (update_guess) {
-                    gsl_vector_set(p_best->mean, offset, fast_get_json_real_from_object(par_guess, my_group_id));
-                }
-                gsl_matrix_set(p_best->var, offset, offset, fast_get_json_real_from_object(par_sd_transf, my_group_id));
-
-                p_best->par_prior[offset][0] = fast_get_json_real_from_object(par_min, my_group_id);
-                p_best->par_prior[offset][1] = fast_get_json_real_from_object(par_max, my_group_id);
-
-                offset++;
+            if (strcmp(prior, "normal") == 0) {
+                p_best->prior[offset] = &normal_prior;
+            } else {
+                //p_best->prior[offset] = &gsl_ran_flat_pdf;
+                p_best->prior[offset] = &pseudo_unif_prior;
             }
+
+            if (update_guess) {
+                gsl_vector_set(p_best->mean, offset, fast_get_json_real_from_object(par_guess, my_group_id));
+            }
+            gsl_matrix_set(p_best->var, offset, offset, fast_get_json_real_from_object(par_sd_transf, my_group_id));
+
+            p_best->par_prior[offset][0] = fast_get_json_real_from_object(par_min, my_group_id);
+            p_best->par_prior[offset][1] = fast_get_json_real_from_object(par_max, my_group_id);
+
+            offset++;
         }
     }
 }
-
 
 
 void load_covariance(gsl_matrix *covariance, json_t *array2d)
@@ -568,4 +564,17 @@ void load_covariance(gsl_matrix *covariance, json_t *array2d)
             }
         }
     }
+}
+
+
+
+json_t *load_settings(const char *path)
+{
+    json_error_t settings_error;
+    json_t *settings = json_load_file(path, 0, &settings_error);
+    if(!settings) {
+        print_err(settings_error.text);
+        exit(EXIT_FAILURE);
+    }
+    return settings;
 }
