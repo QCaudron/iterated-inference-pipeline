@@ -156,7 +156,7 @@ void clean_common(struct s_common *p_common)
 
 
 
-struct s_kalman *build_kalman(json_t * root, int is_bayesian)
+struct s_kalman *build_kalman(json_t *settings, int is_bayesian, int update_covariance)
 {
     char str[STR_BUFFSIZE];
     int nt;
@@ -169,9 +169,9 @@ struct s_kalman *build_kalman(json_t * root, int is_bayesian)
         exit(EXIT_FAILURE);
     }
 
-    p_kalman->p_data = build_data(root, is_bayesian);
+    p_kalman->p_data = build_data(settings, is_bayesian);
     p_kalman->p_X = build_X(p_kalman->p_data);
-    p_kalman->p_best = build_best(p_kalman->p_data, root);
+    p_kalman->p_best = build_best(p_kalman->p_data, update_covariance);
 
     N_KAL = N_PAR_SV*N_CAC + N_TS + p_kalman->p_data->p_it_only_drift->nbtot;
     p_kalman->calc = build_calc(GENERAL_ID,

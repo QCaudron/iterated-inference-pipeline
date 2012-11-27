@@ -127,8 +127,7 @@ int main(int argc, char *argv[])
 
     struct s_simplex *p_simplex = build_simplex(GENERAL_ID);
 
-    //transform_theta(p_simplex->p_best, transit, transit, 0);
-    transform_theta(p_simplex->p_best, NULL, NULL, p_simplex->p_data, 0);
+    transform_theta(p_simplex->p_best, NULL, NULL, p_simplex->p_data, 1, 1);
 
     if (M == 0) {
         //simply return the sum of square or the log likelihood (can be used to do slices especially with least square where smc can't be used'...)

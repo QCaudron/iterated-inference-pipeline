@@ -58,18 +58,15 @@ void update_walk_rates(struct s_best *p_best,
 
     fflush(stderr); //just to be sure that ask_update has delivered its message
 
-    json_t *root = load_json();
+    json_t *theta = load_json();
 //	print_json_on_stdout(root);
 
-    if(json_object_size(root)) { //we update sdt and priors
-
-        load_best(p_best, p_data, root, 0); //0 because we do not update guess component of s_best
-
-        transform_theta(p_best, f_transit_par, f_transit_state, p_data, 1);
-
+    if(json_object_size(theta)) { //we update sdt and priors
+        load_best(p_best, p_data, theta, 0, 0);
+        transform_theta(p_best, f_transit_par, f_transit_state, p_data, 0, 1); //we transform only best->var (as the webApp send a standard deviation)
         print_err("data integrated");
     }
 
-    json_decref(root);
+    json_decref(theta);
 
 }

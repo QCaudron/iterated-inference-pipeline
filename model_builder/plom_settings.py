@@ -76,10 +76,6 @@ def make_settings_json(self):
 
     settings['POP_SIZE_EQ_SUM_SV'] = self.pop_size_eq_sum_sv
 
-    #######parameters settings
-    settings['parameters'] = self.values
-    settings['partition'] = self.partition
-
     #######data
     settings['data'] = {}
 

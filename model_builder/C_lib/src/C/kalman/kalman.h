@@ -64,7 +64,7 @@ struct s_kal
 {
   gsl_vector *xk;  /* [N_KAL]: concatenation of non-overlapping components of X->proj, X->obs and X->drift */
 
-  gsl_matrix *Ct;  /* [N_KAL][N_KAL] Covariance matrix of the joint density p(X_t|y_{1:i}) if i<=t<i */ 
+  gsl_matrix *Ct;  /* [N_KAL][N_KAL] Covariance matrix of the joint density p(X_t|y_{1:i}) if i<=t<i */
   gsl_matrix *Ft;  /* [N_KAL][N_KAL] Jacobian matrix of the drift f(X_t,\theta) of the SDE approximated with the EKF: dX_t = f(X_t,\theta)dt + Chol(Q)dB_t */
 
   gsl_vector *kt;  /* [N_KAL] Kalman Gain vector */
@@ -103,7 +103,7 @@ struct s_kal *build_kal(void);
 void clean_kal(struct s_kal *p_kal);
 struct s_common *build_common(void);
 void clean_common(struct s_common *p_common);
-struct s_kalman *build_kalman(json_t *root, int is_bayesian);
+struct s_kalman *build_kalman(json_t *settings, int is_bayesian, int update_covariance);
 void clean_kalman(struct s_kalman *p_kalman);
 
 /* kalman.c */

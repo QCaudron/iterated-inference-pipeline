@@ -94,5 +94,5 @@ void print_covariance(FILE *p_file_cov, gsl_matrix *covariance);
 struct s_pmcmc_calc_data *build_pmcmc_calc_data(struct s_best *p_best, double a, int m_switch, int m_eps);
 void clean_pmcmc_calc_data(struct s_pmcmc_calc_data *p_pmcmc_calc_data);
 
-struct s_pmcmc *build_pmcmc(json_t *root, int has_dt_be_specified, double dt_option, double a, int m_switch, int m_eps);
+struct s_pmcmc *build_pmcmc(json_t *root, int has_dt_be_specified, double dt_option, double a, int m_switch, int m_eps, int update_covariance);
 void clean_pmcmc(struct s_pmcmc *p_pmcmc);

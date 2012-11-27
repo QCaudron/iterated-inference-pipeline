@@ -172,8 +172,8 @@ int main(int argc, char *argv[])
     }
 
 
-    json_t *root = load_json();
-    load_const(root);
+    json_t *settings = load_settings(PATH_SETTINGS);
+    load_const(settings);
 
     if (has_dt_be_specified) {
         DT = dt_option;
@@ -183,24 +183,22 @@ int main(int argc, char *argv[])
     DELTA_STO = round(1.0/DT);
     DT = 1.0/ ((double) DELTA_STO);
 
-    struct s_kalman *p_kalman = build_kalman(root, 1);
+    int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?
+
+    struct s_kalman *p_kalman = build_kalman(settings, 1, update_covariance);
+    json_decref(settings);
 
     sanitize_best_to_prior(p_kalman->p_best, p_kalman->p_data);
 
-    transform_theta(p_kalman->p_best, NULL, NULL, p_kalman->p_data, 0);
+    transform_theta(p_kalman->p_best, NULL, NULL, p_kalman->p_data, 1, update_covariance);
     gsl_vector_memcpy(p_kalman->p_best->proposed, p_kalman->p_best->mean);
-
-    //overwrite p_best->var with the covariance matrix of settings.json (NO FILE AS INPUT TO RESPECT THE WEBAPP)
-    if ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)) {
-        load_covariance(p_kalman->p_best->var, fast_get_json_array(fast_get_json_object(root, "parameters"), "covariance"));
-    }
 
     struct s_likelihood *p_like = build_likelihood();
     struct s_pmcmc_calc_data *p_mcmc_calc_data = build_pmcmc_calc_data(p_kalman->p_best, a, m_switch,1);
 
     p_kalman->calc[0]->method_specific_shared_data = p_mcmc_calc_data; //needed to use ran_proposal_sequential in pmcmc
 
-    json_decref(root);
+
 
     kmcmc(p_kalman, p_like, p_mcmc_calc_data);
 

@@ -165,8 +165,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    json_t *root = load_json();
-    load_const(root);
+    json_t *settings = load_settings(PATH_SETTINGS);
+    load_const(settings);
 
     if (has_dt_be_specified) {
         DT = dt_option;
@@ -186,8 +186,8 @@ int main(int argc, char *argv[])
     print_log("memory allocation and inputs loading...\n");
 #endif
 
-    struct s_kalman *p_kalman = build_kalman(root, OPTION_PRIOR);
-    json_decref(root);
+    struct s_kalman *p_kalman = build_kalman(settings, OPTION_PRIOR, 0);
+    json_decref(settings);
 
 #if FLAG_VERBOSE
     print_log("starting computations of simplex_kalman...\n");
@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
         sanitize_best_to_prior(p_kalman->p_best, p_kalman->p_data);
     }
 
-    transform_theta(p_kalman->p_best, NULL, NULL, p_kalman->p_data, 0);
+    transform_theta(p_kalman->p_best, NULL, NULL, p_kalman->p_data, 1, 1);
 
     simplex(p_kalman->p_best, p_kalman->p_data, p_kalman, f_simplex_kalman, CONVERGENCE_STOP_SIMPLEX, M);
 

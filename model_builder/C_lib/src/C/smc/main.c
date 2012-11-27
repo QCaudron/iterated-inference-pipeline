@@ -196,14 +196,16 @@ int main(int argc, char *argv[])
 
 
     struct s_data *p_data = build_data(settings, 0);
+    json_decref(settings);
+
     struct s_calc **calc = build_calc(GENERAL_ID, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_data);
     struct s_par *p_par = build_par(p_data);
     struct s_hat **D_p_hat = build_D_p_hat(p_data);
     struct s_X ***D_J_p_X = build_D_J_p_X(p_data);
     struct s_X ***D_J_p_X_tmp = build_D_J_p_X(p_data);
-    struct s_best *p_best = build_best(p_data, settings);
+    struct s_best *p_best = build_best(p_data, 0);
     struct s_likelihood *p_like = build_likelihood();
-    json_decref(settings);
+
 
     FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
 
@@ -215,8 +217,7 @@ int main(int argc, char *argv[])
     time_begin = s_clock();
 #endif
 
-    //    transform_theta(p_best, transit, transit, 0);
-    transform_theta(p_best, NULL, NULL, p_data, 0);
+    transform_theta(p_best, NULL, NULL, p_data, 1, 1);
 
     back_transform_theta2par(p_par, p_best->mean, p_data->p_it_all, p_data);
     linearize_and_repeat(D_J_p_X[0][0], p_par, p_data, p_data->p_it_par_sv);

@@ -1126,7 +1126,7 @@ void clean_likelihood(struct s_likelihood *p_like)
     FREE(p_like);
 }
 
-struct s_best *build_best(struct s_data *p_data, json_t *settings)
+struct s_best *build_best(struct s_data *p_data, int update_covariance)
 {
     struct s_best *p_best;
     p_best = malloc(sizeof(struct s_best));
@@ -1156,7 +1156,10 @@ struct s_best *build_best(struct s_data *p_data, json_t *settings)
 
     p_best->to_be_estimated = init1u_set0(p_best->length);
 
-    load_best(p_best, p_data, settings, 1);
+    json_t *theta = load_json();
+    load_best(p_best, p_data, theta, 1, update_covariance);
+    json_decref(theta);
+
     gsl_vector_memcpy(p_best->proposed, p_best->mean);
 
     update_to_be_estimated(p_best);

@@ -29,14 +29,17 @@ struct s_simplex *build_simplex(int general_id)
         exit(EXIT_FAILURE);
     }
 
-  json_t *root = load_json();
-  load_const(root);
-  p_simplex->p_data = build_data(root, 0); //also build obs2ts
+
+  json_t *settings = load_settings(PATH_SETTINGS);
+  load_const(settings);
+  p_simplex->p_data = build_data(settings, 0); //also build obs2ts
+  json_decref(settings);
+
   p_simplex->calc = build_calc(general_id, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_simplex->p_data);
   p_simplex->p_par = build_par(p_simplex->p_data);
   p_simplex->p_X = build_X(p_simplex->p_data);
-  p_simplex->p_best = build_best(p_simplex->p_data, root);
-  json_decref(root);
+  p_simplex->p_best = build_best(p_simplex->p_data, 0);
+
 
   p_simplex->smallest_log_like = get_smallest_log_likelihood(p_simplex->p_data->data_ind);
 

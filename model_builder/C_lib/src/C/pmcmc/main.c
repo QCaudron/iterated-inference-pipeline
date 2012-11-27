@@ -188,22 +188,17 @@ int main(int argc, char *argv[])
 
 
 
-    json_t *root = load_json();
-    load_const(root);
+    json_t *settings = load_settings(PATH_SETTINGS);
+    load_const(settings);
 
-    struct s_pmcmc *p_pmcmc = build_pmcmc(root, has_dt_be_specified, dt_option, a, m_switch, m_eps);
+    int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?
+    struct s_pmcmc *p_pmcmc = build_pmcmc(settings, has_dt_be_specified, dt_option, a, m_switch, m_eps, update_covariance);
+    json_decref(settings);
 
     sanitize_best_to_prior(p_pmcmc->p_best, p_pmcmc->p_data);
 
-    transform_theta(p_pmcmc->p_best, NULL, NULL, p_pmcmc->p_data, 0);
+    transform_theta(p_pmcmc->p_best, NULL, NULL, p_pmcmc->p_data, 1, update_covariance);
     gsl_vector_memcpy(p_pmcmc->p_best->proposed, p_pmcmc->p_best->mean);
-
-    //overwrite p_best->var with the covariance matrix of settings.json (NO FILE AS INPUT TO RESPECT THE WEBAPP)
-    if ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)) {
-        load_covariance(p_pmcmc->p_best->var, fast_get_json_array(fast_get_json_object(root, "parameters"), "covariance"));
-    }
-
-    json_decref(root);
 
     pMCMC(p_pmcmc->p_best, p_pmcmc->D_J_p_X, p_pmcmc->D_J_p_X_tmp, p_pmcmc->p_par, &(p_pmcmc->D_p_hat_prev), &(p_pmcmc->D_p_hat_new), p_pmcmc->D_p_hat_best, p_pmcmc->p_like, p_pmcmc->p_data, p_pmcmc->calc);
 

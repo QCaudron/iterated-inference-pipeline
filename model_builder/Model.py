@@ -43,8 +43,7 @@ from django.template.loader import get_template
 def cmd_exists(cmd):
     """check if a command exists"""
 
-    return subprocess.call(["type", cmd],
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
+    return subprocess.call(["type", cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
 
 
 def fill_default_params(values, par_sv, par_proc, par_obs):
@@ -208,7 +207,7 @@ class Model(Context, Ccoder):
         ##########################
         ##Parameters
         ##########################
-        self.set_values(link)
+        #self.set_values(link)
 
         ##########################
         ##sort context

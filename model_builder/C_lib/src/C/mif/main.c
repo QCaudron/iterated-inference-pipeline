@@ -199,13 +199,12 @@ int main(int argc, char *argv[])
     print_log("starting computations...\n");
 #endif
 
-     if (OPTION_PRIOR) {
+    if (OPTION_PRIOR) {
         sanitize_best_to_prior(p_mif->p_best, p_mif->p_data);
     }
 
 
-    //    transform_theta(p_mif->p_best, transit_mif, transit, 0);
-    transform_theta(p_mif->p_best, transit_mif, NULL, p_mif->p_data, 0);
+    transform_theta(p_mif->p_best, transit_mif, NULL, p_mif->p_data, 1, 1);
     get_submatrix_var_theta_mif(p_mif->var_theta, p_mif->p_best, p_mif->p_data);
 
     mif(p_mif->calc, p_mif->p_data, p_mif->p_best, &(p_mif->J_p_X), &(p_mif->J_p_X_tmp), p_mif->J_p_par, p_mif->p_like, p_mif->var_theta, p_mif->J_theta, p_mif->J_theta_tmp, &(p_mif->J_IC_grouped), &(p_mif->J_IC_grouped_tmp), p_mif->D_theta_bart, p_mif->D_theta_Vt);

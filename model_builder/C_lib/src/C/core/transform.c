@@ -456,9 +456,12 @@ double transit_mif(double sd_x)
    are @c NULL, the initial standard deviation is let untransformed
    and just squared to a variance.
 
-   @param[in] webio a flag indicating if p_best comes from the
-   webApp. In this latter case only the property var of p_best will be
-   updated.
+   @param[in] transform_mean a flag indicating if p_best->mean should
+   be transformed
+
+   @param[in] transform_var a flag indicating if p_best->var should
+   be transformed
+
 
    @see transit_mif, update_walk_rates
 */
@@ -466,7 +469,7 @@ void transform_theta(struct s_best *p_best,
                      double (*f_transit_par) (double),
                      double (*f_transit_state) (double),
                      struct s_data *p_data,
-                     int webio)
+                     int transform_mean, int transform_var)
 {
 
     /* syntaxic shortcuts */
@@ -486,22 +489,25 @@ void transform_theta(struct s_best *p_best,
 
         for (k=0; k< r->n_gp; k++) {
 
-            if (gsl_matrix_get(var, p_it_mif->offset[i]+k, p_it_mif->offset[i]+k) > 0.0) { /*keep var to 0 if originaly 0...*/
+            if (transform_var) {
+                if (gsl_matrix_get(var, p_it_mif->offset[i]+k, p_it_mif->offset[i]+k) > 0.0) { /*keep var to 0 if originaly 0...*/
 
-                if (f_transit_par) {
-                    val_sd = (*f_transit_par)(gsl_matrix_get(var, p_it_mif->offset[i]+k, p_it_mif->offset[i]+k));
-                } else {
-                    val_sd = gsl_matrix_get(var, p_it_mif->offset[i]+k, p_it_mif->offset[i]+k);
+                    if (f_transit_par) {
+                        val_sd = (*f_transit_par)(gsl_matrix_get(var, p_it_mif->offset[i]+k, p_it_mif->offset[i]+k));
+                    } else {
+                        val_sd = gsl_matrix_get(var, p_it_mif->offset[i]+k, p_it_mif->offset[i]+k);
+                    }
+
+                    gsl_matrix_set(var,
+                                   p_it_mif->offset[i]+k,
+                                   p_it_mif->offset[i]+k,
+                                   pow(val_sd, 2)
+                                   );
+
                 }
-
-                gsl_matrix_set(var,
-                               p_it_mif->offset[i]+k,
-                               p_it_mif->offset[i]+k,
-                               pow(val_sd, 2)
-                               );
-
             }
-            if(!webio){
+
+            if (transform_mean) {
                 gsl_vector_set(x, p_it_mif->offset[i]+k,
                                (*(r->f))( gsl_vector_get(x, p_it_mif->offset[i]+k), r->multiplier_f, r->min[k], r->max[k] ) );
             }
@@ -514,23 +520,25 @@ void transform_theta(struct s_best *p_best,
         struct s_router *r = routers[ p_it_fls->ind[i] ];
 
         for (k=0; k< r->n_gp; k++) {
+            if (transform_var) {
+                if (gsl_matrix_get(var, p_it_fls->offset[i]+k, p_it_fls->offset[i]+k) > 0.0) { /*keep var to 0 if originaly 0...*/
+                    if (f_transit_state) {
+                        val_sd = (*f_transit_state)(gsl_matrix_get(var, p_it_fls->offset[i]+k, p_it_fls->offset[i]+k));
 
-            if (gsl_matrix_get(var, p_it_fls->offset[i]+k, p_it_fls->offset[i]+k) > 0.0) { /*keep var to 0 if originaly 0...*/
-                if (f_transit_state) {
-                    val_sd = (*f_transit_state)(gsl_matrix_get(var, p_it_fls->offset[i]+k, p_it_fls->offset[i]+k));
+                    } else {
+                        val_sd = gsl_matrix_get(var, p_it_fls->offset[i]+k, p_it_fls->offset[i]+k);
+                    }
 
-                } else {
-                    val_sd = gsl_matrix_get(var, p_it_fls->offset[i]+k, p_it_fls->offset[i]+k);
+                    gsl_matrix_set(var,
+                                   p_it_fls->offset[i]+k,
+                                   p_it_fls->offset[i]+k,
+                                   pow(val_sd,2)
+                                   );
+
                 }
-
-                gsl_matrix_set(var,
-                               p_it_fls->offset[i]+k,
-                               p_it_fls->offset[i]+k,
-                               pow(val_sd,2)
-                               );
-
             }
-            if(!webio){
+
+            if (transform_mean) {
                 gsl_vector_set(x, p_it_fls->offset[i]+k,
                                (*(r->f))( gsl_vector_get(x, p_it_fls->offset[i]+k), r->multiplier_f, r->min[k], r->max[k] ) );
             }

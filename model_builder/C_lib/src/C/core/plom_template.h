@@ -528,7 +528,7 @@ void load3u_var(unsigned int ***tab, int n, unsigned int *colbreaks1, unsigned i
 void load3u_varp1(unsigned int ***tab, int n, unsigned int *colbreaks1, unsigned int colbreaks2, char *filename);
 
 void load_const(json_t *json_root);
-void load_best(struct s_best *p_best, struct s_data *p_data, json_t *settings, int update_guess);
+void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int update_guess, int update_covariance);
 void load_covariance(gsl_matrix *covariance, json_t *array2d);
 json_t *load_settings(const char *path);
 
@@ -567,7 +567,7 @@ struct s_hat *build_hat(struct s_data *p_data);
 void clean_hat(struct s_hat *p_hat, struct s_data *p_data);
 struct s_likelihood *build_likelihood(void);
 void clean_likelihood(struct s_likelihood *p_like);
-struct s_best *build_best(struct s_data *p_data, json_t *json_root);
+struct s_best *build_best(struct s_data *p_data, int update_covariance);
 void clean_best(struct s_best *p_best);
 
 
@@ -680,8 +680,7 @@ void assign_f_transfo(double (**f_transfo) (double x, double mul, double a, doub
 void assign_f_derivative(double (**f_derivative) (double x, double mul, double a, double b), const char *f_transfo_name);
 void back_transform_theta2par(struct s_par *p_par, const theta_t *theta, const struct s_iterator *p_it, struct s_data *p_data);
 double transit_mif(double sd_x);
-void transform_theta(struct s_best *p_best, double (*f_transit_par) (double), double (*f_transit_state) (double), struct s_data *p_data, int webio);
-
+void transform_theta(struct s_best *p_best, double (*f_transit_par) (double), double (*f_transit_state) (double), struct s_data *p_data, int transform_mean, int transform_var);
 
 /* likelihood.c */
 double get_smallest_log_likelihood(struct s_data_ind **data_ind);

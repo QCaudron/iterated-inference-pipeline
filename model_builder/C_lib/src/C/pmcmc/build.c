@@ -73,7 +73,7 @@ void clean_pmcmc_calc_data(struct s_pmcmc_calc_data *p_pmcmc_calc_data)
 }
 
 
-struct s_pmcmc *build_pmcmc(json_t *root, int has_dt_be_specified, double dt_option, double a, int m_switch, int m_eps)
+struct s_pmcmc *build_pmcmc(json_t *root, int has_dt_be_specified, double dt_option, double a, int m_switch, int m_eps, int update_covariance)
 {
     char str[STR_BUFFSIZE];
 
@@ -110,7 +110,7 @@ struct s_pmcmc *build_pmcmc(json_t *root, int has_dt_be_specified, double dt_opt
 
     p_pmcmc->p_data = build_data(root, 1); //also build obs2ts
     p_pmcmc->calc = build_calc(GENERAL_ID, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_pmcmc->p_data);
-    p_pmcmc->p_best = build_best(p_pmcmc->p_data, root);
+    p_pmcmc->p_best = build_best(p_pmcmc->p_data, update_covariance);
 
     p_pmcmc->D_J_p_X = build_D_J_p_X(p_pmcmc->p_data);
     p_pmcmc->D_J_p_X_tmp = build_D_J_p_X(p_pmcmc->p_data);

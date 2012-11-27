@@ -483,14 +483,14 @@ void load_const(json_t *root)
 }
 
 
-void load_best(struct s_best *p_best, struct s_data *p_data, json_t *settings, int update_guess)
+void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int update_guess, int update_covariance)
 {
     /* integrate best data from the webApp */
 
     int i, g, offset;
     struct s_router **routers = p_data->routers;
-    json_t *parameters = fast_get_json_object(settings, "parameters");
-    json_t *partitions = fast_get_json_object(settings, "partition");
+    json_t *parameters = fast_get_json_object(theta, "value");
+    json_t *partitions = fast_get_json_object(theta, "partition");
 
     const char par_types[][10] = { "par_sv", "par_proc", "par_obs" };
 
@@ -533,6 +533,11 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *settings, i
             offset++;
         }
     }
+
+    if (update_covariance) {
+        load_covariance(p_best->var, fast_get_json_array(theta, "covariance"));
+    }
+
 }
 
 
