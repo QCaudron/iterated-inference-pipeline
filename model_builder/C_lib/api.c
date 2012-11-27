@@ -6,22 +6,23 @@ int main(int argc, char *argv[])
     omp_set_num_threads(N_THREADS);
 
     print_log("memory allocation and inputs loading...");
-    json_t *root = load_json();
-    load_const(root);
+    json_t *settings = load_settings(PATH_SETTINGS);
+    load_const(settings);
 
-    struct s_data *p_data = build_data(root, 0);
+    struct s_data *p_data = build_data(settings, 0);
+    json_decref(settings);
+
     struct s_calc **calc = build_calc(0, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_data);
     struct s_par *p_par = build_par(p_data);
     struct s_X **J_p_X = build_J_p_X(p_data);
     struct s_X **J_p_X_tmp = build_J_p_X(p_data);
-    struct s_best *p_best = build_best(p_data, root);
+    struct s_best *p_best = build_best(p_data, 0);
     struct s_likelihood *p_like = build_likelihood();
 
-    json_decref(root);
 
     print_log("starting computations...");
 
-    transform_theta(p_best, NULL, NULL, p_data, 0);
+    transform_theta(p_best, NULL, NULL, p_data, 1, 1);
     back_transform_theta2par(p_par, p_best->mean, p_data->p_it_all, p_data);
     linearize_and_repeat(J_p_X[0], p_par, p_data, p_data->p_it_par_sv);
     prop2Xpop_size(J_p_X[0], p_data, 1);
