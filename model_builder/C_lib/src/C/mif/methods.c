@@ -159,7 +159,7 @@ void print_mean_var_theta_theoretical_mif(FILE *p_file, double *theta_bart_n, do
     json_array_append_new(json_print, json_integer(m));
     json_array_append_new(json_print, json_integer(time));
 #else
-    fprintf(p_file,"%d\t%d\t", m, time);
+    fprintf(p_file,"%d,%d,", m, time);
 #endif
 
     for(k=0; k<N_THETA_MIF; k++) {
@@ -167,7 +167,7 @@ void print_mean_var_theta_theoretical_mif(FILE *p_file, double *theta_bart_n, do
         json_array_append_new(json_print, json_real(theta_bart_n[k]));
         json_array_append_new(json_print, json_real(theta_Vt_n[k]));
 #else
-        fprintf(p_file, "%g\t%g\t", theta_bart_n[k], theta_Vt_n[k]);
+        fprintf(p_file, "%g,%g,", theta_bart_n[k], theta_Vt_n[k]);
 #endif
     }
 
@@ -194,12 +194,12 @@ void header_mean_var_theoretical_mif(FILE *p_file, struct s_data *p_data)
     struct s_iterator *p_it = p_data->p_it_par_proc_par_obs_no_drift;
     struct s_router **routers = p_data->routers;
 
-    fprintf(p_file,"index\ttime\t");
+    fprintf(p_file,"index,time,");
     for(i=0; i<p_it->length; i++) {
         const char *name = routers[p_it->ind[i]]->name;
         for(g=0; g< routers[p_it->ind[i]]->n_gp; g++) {
             const char *group = routers[p_it->ind[i]]->group_name[g];
-            fprintf(p_file, "mean:%s:%s\tvar:%s:%s\t", name, group, name, group);
+            fprintf(p_file, "mean:%s:%s,var:%s:%s,", name, group, name, group);
         }
     }
     fprintf(p_file,"ess\n");

@@ -25,7 +25,7 @@ FILE *sfr_fopen(const char* path, const int general_id, const char* file_name, c
     return NULL;
 #else
     char str[STR_BUFFSIZE];
-    snprintf(str, STR_BUFFSIZE, "%s%s_%d.output", path, file_name, general_id);
+    snprintf(str, STR_BUFFSIZE, "%s%s_%d.csv", path, file_name, general_id);
 
     FILE *my_file = fopen(str, mode);
     if (header) {
@@ -45,17 +45,17 @@ void header_X(FILE *p_file, struct s_data *p_data)
     struct s_drift *p_drift = p_data->p_drift;
     struct s_router **routers = p_data->routers;
 
-    fprintf(p_file, "index\ttime\t");
+    fprintf(p_file, "index,time,");
     for(i=0; i<N_PAR_SV; i++) {
         const char *name = routers[i]->name;
         for(cac=0; cac < N_CAC; cac++) {
             const char *cac_name = p_data->cac_name[cac];
-            fprintf(p_file,"%s:%s\t", name, cac_name);
+            fprintf(p_file,"%s:%s,", name, cac_name);
         }
     }
 
     for(ts=0; ts<N_TS; ts++) {
-        fprintf(p_file, "obs_mean:%s\t", p_data->ts_name[ts]);
+        fprintf(p_file, "obs_mean:%s,", p_data->ts_name[ts]);
     }
 
     for(i=0; i< (N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS) ; i++) {
@@ -63,12 +63,12 @@ void header_X(FILE *p_file, struct s_data *p_data)
         const char *name = routers[ind_par_Xdrift_applied]->name;
         for(g=0; g< routers[ ind_par_Xdrift_applied ]->n_gp; g++) {
             const char *group = routers[ind_par_Xdrift_applied]->group_name[g];
-            fprintf(p_file, "drift:%s:%s\t", name, group);
+            fprintf(p_file, "drift:%s:%s,", name, group);
         }
     }
 
     for(ts=0; ts<N_TS; ts++) {
-        fprintf(p_file, "obs_real:%s\t", p_data->ts_name[ts]);
+        fprintf(p_file, "obs_real:%s%s", p_data->ts_name[ts], (ts < (N_TS-1)) ? ",": "");
     }
 
     fprintf(p_file, "\n");
@@ -79,13 +79,13 @@ void header_prediction_residuals(FILE *p_file, struct s_data *p_data)
 {
     int ts;
 
-    fprintf(p_file, "time\t");
+    fprintf(p_file, "time,");
 
     for(ts=0; ts<N_TS; ts++) {
-        fprintf(p_file, "mean:%s\tres:%s\t", p_data->ts_name[ts], p_data->ts_name[ts]);
+        fprintf(p_file, "mean:%s,res:%s,", p_data->ts_name[ts], p_data->ts_name[ts]);
     }
 
-    fprintf(p_file, "ess\tlog_like_t\n");
+    fprintf(p_file, "ess,log_like_t\n");
 }
 
 
@@ -96,20 +96,20 @@ void header_hat(FILE *p_file, struct s_data *p_data)
     struct s_drift *p_drift = p_data->p_drift;
     struct s_router **routers = p_data->routers;
 
-    fprintf(p_file, "time\t");
+    fprintf(p_file, "time,");
 
     /* par_sv */
     for(i=0; i<N_PAR_SV; i++) {
         const char *name = routers[i]->name;
         for(cac=0; cac < N_CAC; cac++) {
             const char *cac_name = p_data->cac_name[cac];
-            fprintf(p_file, "low95:%s:%s\t%s:%s\thigh95:%s:%s\t", name, cac_name, name, cac_name, name, cac_name);
+            fprintf(p_file, "low95:%s:%s,%s:%s,high95:%s:%s,", name, cac_name, name, cac_name, name, cac_name);
         }
     }
 
     /* ts */
     for(ts=0; ts<N_TS; ts++) {
-        fprintf(p_file, "low95:%s\t%s\thigh95:%s\t", p_data->ts_name[ts], p_data->ts_name[ts], p_data->ts_name[ts]);
+        fprintf(p_file, "low95:%s,%s,high95:%s%s", p_data->ts_name[ts], p_data->ts_name[ts], p_data->ts_name[ts], (ts< (N_TS-1))? ",": "");
     }
 
     /* drift */
@@ -118,7 +118,7 @@ void header_hat(FILE *p_file, struct s_data *p_data)
         const char *name = routers[ind_par_Xdrift_applied]->name;
         for(g=0; g< routers[ ind_par_Xdrift_applied ]->n_gp; g++) {
             const char *group = routers[ind_par_Xdrift_applied]->group_name[g];
-            fprintf(p_file, "low95:drift:%s:%s\tdrift:%s:%s\thigh95:drift:%s:%s\t", name, group, name, group, name, group);
+            fprintf(p_file, ",low95:drift:%s:%s,drift:%s:%s,high95:drift:%s:%s", name, group, name, group, name, group);
         }
     }
 
@@ -132,13 +132,13 @@ void header_best(FILE *p_file, struct s_data *p_data)
     int i, g;
     struct s_router **routers = p_data->routers;
 
-    fprintf(p_file, "index\t");
+    fprintf(p_file, "index,");
 
     for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
         const char *name = routers[i]->name;
         for(g=0; g<p_data->routers[i]->n_gp; g++) {
             const char *group = routers[i]->group_name[g];
-            fprintf(p_file, "%s:%s\t", name, group);
+            fprintf(p_file, "%s:%s,", name, group);
         }
     }
 
@@ -227,7 +227,7 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
     json_array_append_new(json_print_j, json_integer(j_or_m));
     json_array_append_new(json_print_j, json_real(time));
 #else
-    fprintf(p_file,"%d\t%g\t", j_or_m, time);
+    fprintf(p_file,"%d,%g,", j_or_m, time);
 #endif
 
     for(i=0; i<(N_PAR_SV*N_CAC); i++) {
@@ -235,7 +235,7 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
 #if FLAG_JSON
         json_array_append_new(json_print_j, json_real(x));
 #else
-        fprintf(p_file, "%g\t", x);
+        fprintf(p_file, "%g,", x);
 #endif
     }
 
@@ -246,7 +246,7 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
 #if FLAG_JSON
         json_array_append_new(json_print_j, json_real(x));
 #else
-        fprintf(p_file,"%g\t", x);
+        fprintf(p_file,"%g,", x);
 #endif
     }
 
@@ -257,7 +257,7 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
 #if FLAG_JSON
             json_array_append_new(json_print_j, json_real(x));
 #else
-            fprintf(p_file,"%g\t", x);
+            fprintf(p_file,"%g,", x);
 #endif
         }
     }
@@ -267,7 +267,7 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
 #if FLAG_JSON
         json_array_append_new(json_print_j, json_real(x));
 #else
-        fprintf(p_file,"%g\t", x);
+        fprintf(p_file,"%g%s", x, (ts< (N_TS-1)) ? ",": "");
 #endif
     }
 
@@ -338,7 +338,7 @@ void print_best(FILE *p_file_best, int m, struct s_best *p_best, struct s_data *
 #if FLAG_JSON
     json_array_append_new(json_print, json_integer(m));
 #else
-    fprintf(p_file_best, "%d\t", m);
+    fprintf(p_file_best, "%d,", m);
 #endif
 
     for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
@@ -347,7 +347,7 @@ void print_best(FILE *p_file_best, int m, struct s_best *p_best, struct s_data *
 #if FLAG_JSON
             json_array_append_new(json_print, json_real(x));
 #else
-            fprintf(p_file_best,"%g\t", x);
+            fprintf(p_file_best,"%g,", x);
 #endif
             offset++;
         }
@@ -380,7 +380,7 @@ void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s
     json_t *json_print_n = json_array();
     json_array_append_new(json_print_n, json_integer(n+1));
 #else
-    fprintf(p_file, "%d\t", n+1);
+    fprintf(p_file, "%d,", n+1);
 #endif
 
     /* par_sv */
@@ -389,21 +389,21 @@ void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s
 #if FLAG_JSON
         json_array_append_new(json_print_n, json_real(x));
 #else
-        fprintf(p_file,"%g\t", x);
+        fprintf(p_file,"%g,", x);
 #endif
 
         x = p_hat->state[i];
 #if FLAG_JSON
         json_array_append_new(json_print_n, json_real(x));
 #else
-        fprintf(p_file,"%g\t", x);
+        fprintf(p_file,"%g,", x);
 #endif
 
         x = p_hat->state_95[i][1];
 #if FLAG_JSON
         json_array_append_new(json_print_n, json_real(x));
 #else
-        fprintf(p_file,"%g\t", x);
+        fprintf(p_file,"%g,", x);
 #endif
     }
 
@@ -414,21 +414,21 @@ void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s
 #if FLAG_JSON
         json_array_append_new(json_print_n, json_real(x));
 #else
-        fprintf(p_file,"%g\t", x);
+        fprintf(p_file,"%g,", x);
 #endif
 
         x = p_hat->obs[i];
 #if FLAG_JSON
         json_array_append_new(json_print_n, json_real(x));
 #else
-        fprintf(p_file,"%g\t", x);
+        fprintf(p_file,"%g,", x);
 #endif
 
         x = p_hat->obs_95[i][1];
 #if FLAG_JSON
         json_array_append_new(json_print_n, json_real(x));
 #else
-        fprintf(p_file,"%g\t", x);
+        fprintf(p_file,"%g%s", x, (i< (N_TS-1)) ? ",": "");
 #endif
     }
 
@@ -438,21 +438,21 @@ void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s
 #if FLAG_JSON
         json_array_append_new(json_print_n, json_real(x));
 #else
-        fprintf(p_file,"%g\t", x);
+        fprintf(p_file,",%g,", x);
 #endif
 
         x = p_hat->drift[i];
 #if FLAG_JSON
         json_array_append_new(json_print_n, json_real(x));
 #else
-        fprintf(p_file,"%g\t", x);
+        fprintf(p_file,"%g,", x);
 #endif
 
         x = p_hat->drift_95[i][1];
 #if FLAG_JSON
         json_array_append_new(json_print_n, json_real(x));
 #else
-        fprintf(p_file,"%g\t", x);
+        fprintf(p_file,"%g", x);
 #endif
     }
 
@@ -556,7 +556,7 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
 #if FLAG_JSON
     json_array_append_new(json_print, json_integer(time));
 #else
-    fprintf(p_file_pred_res,"%d\t", time);
+    fprintf(p_file_pred_res,"%d,", time);
 #endif
 
     for(ts=0; ts<N_TS; ts++) {
@@ -590,7 +590,7 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
         json_array_append_new(json_print, json_real(mean_state));
         json_array_append_new(json_print, json_real(res));
 #else
-        fprintf(p_file_pred_res,"%g\t%g\t", mean_state, res);
+        fprintf(p_file_pred_res,"%g,%g,", mean_state, res);
 #endif
     }
 
@@ -599,7 +599,7 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
     json_array_append_new(json_print, json_real(ess_t));
     json_array_append_new(json_print, json_real(llike_t));
 #else
-    fprintf(p_file_pred_res,"%g\t%g\n", ess_t, llike_t);
+    fprintf(p_file_pred_res,"%g,%g\n", ess_t, llike_t);
 #endif
 
 
