@@ -76,5 +76,4 @@ model_builder/C_lib/src/C/smc/Makefile
 model_builder/C_lib/src/C/smc/main.c
 model_builder/C_lib/src/C/worker/Makefile
 model_builder/C_lib/src/C/worker/main.c
-scripts/plom
-scripts/sfi
+scripts/pmbuilder

@@ -90,7 +90,7 @@ void print_acceptance_rates(struct s_pmcmc_calc_data *p, int m_full_iteration)
 #if FLAG_JSON
             json_array_append_new(j_print, json_real(p->acceptance_rates[k]));
 #else
-            printf("%g%s", p->acceptance_rates[k], (k < (p->n_acceptance_rates-1) ? ",": "");
+            printf("%g%s", p->acceptance_rates[k], (k < (p->n_acceptance_rates-1)) ? ",": "");
 #endif
         }
     }
