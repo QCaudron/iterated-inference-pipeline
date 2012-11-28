@@ -168,10 +168,12 @@ struct s_kalman *build_kalman(json_t *settings, int is_bayesian, int update_cova
         print_err(str);
         exit(EXIT_FAILURE);
     }
+    json_t *theta = load_json();
 
-    p_kalman->p_data = build_data(settings, is_bayesian);
+    p_kalman->p_data = build_data(settings, theta, is_bayesian);
     p_kalman->p_X = build_X(p_kalman->p_data);
-    p_kalman->p_best = build_best(p_kalman->p_data, update_covariance);
+    p_kalman->p_best = build_best(p_kalman->p_data, theta, update_covariance);
+    json_decref(theta);
 
     N_KAL = N_PAR_SV*N_CAC + N_TS + p_kalman->p_data->p_it_only_drift->nbtot;
     p_kalman->calc = build_calc(GENERAL_ID,

@@ -206,6 +206,8 @@ int main(int argc, char *argv[])
 
 
     json_t *settings = load_settings(PATH_SETTINGS);
+    json_t *theta = load_json();
+
     load_const(settings);
 
     if((OPTION_BIF || OPTION_LYAP) && (J>1)) {
@@ -231,14 +233,14 @@ int main(int argc, char *argv[])
     print_log("memory allocation and inputs loading...");
 #endif
 
-    struct s_data *p_data = build_data(settings, 0);
+    struct s_data *p_data = build_data(settings, theta, 0);
     json_decref(settings);
 
     struct s_calc **calc = build_calc(GENERAL_ID, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_data);
     struct s_par *p_par = build_par(p_data);
     struct s_X **J_p_X = build_J_p_X(p_data);
-    struct s_best *p_best = build_best(p_data, 0);
-
+    struct s_best *p_best = build_best(p_data, theta, 0);
+    json_decref(theta);
 
 
 

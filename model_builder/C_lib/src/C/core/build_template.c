@@ -218,13 +218,13 @@ void clean_router(struct s_router *p_router)
 }
 
 
-struct s_router **build_routers(json_t *root, int is_bayesian)
+struct s_router **build_routers(json_t *settings, json_t *theta, int is_bayesian)
 {
     int i, j, offset;
-    json_t *parameters = fast_get_json_object(root, "parameters");
-    json_t *partitions = fast_get_json_object(root, "partition");
-    json_t *orders = fast_get_json_object(root, "orders");
-    const char *frequency = fast_get_json_string_from_object(fast_get_json_object(root, "cst"), "FREQUENCY");
+    json_t *parameters = fast_get_json_object(theta, "value");
+    json_t *partitions = fast_get_json_object(theta, "partition");
+    json_t *orders = fast_get_json_object(settings, "orders");
+    const char *frequency = fast_get_json_string_from_object(fast_get_json_object(settings, "cst"), "FREQUENCY");
 
     const char par_types[][10] = { "par_sv", "par_proc", "par_obs" };
     const char pop_ts_types[][20] = { "cac_id", "cac_id", "ts_id" };
@@ -431,7 +431,7 @@ void clean_drift(struct s_drift *p_drift)
     FREE(p_drift);
 }
 
-struct s_data *build_data(json_t *settings, int is_bayesian)
+struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian)
 {
     int n, ts, cac, k;
     int tmp_n_data_nonan, count_n_nan;
@@ -449,7 +449,7 @@ struct s_data *build_data(json_t *settings, int is_bayesian)
 
     //always present
     p_data->obs2ts = build_obs2ts(fast_get_json_array(json_data, "obs2ts"));
-    p_data->routers = build_routers(settings, is_bayesian);
+    p_data->routers = build_routers(settings, theta, is_bayesian);
 
     //ts names
     json_t *ts_name = fast_get_json_array(fast_get_json_object(settings, "orders"), "ts_id");
@@ -1126,7 +1126,7 @@ void clean_likelihood(struct s_likelihood *p_like)
     FREE(p_like);
 }
 
-struct s_best *build_best(struct s_data *p_data, int update_covariance)
+struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covariance)
 {
     struct s_best *p_best;
     p_best = malloc(sizeof(struct s_best));
@@ -1156,9 +1156,7 @@ struct s_best *build_best(struct s_data *p_data, int update_covariance)
 
     p_best->to_be_estimated = init1u_set0(p_best->length);
 
-    json_t *theta = load_json();
     load_best(p_best, p_data, theta, 1, update_covariance);
-    json_decref(theta);
 
     gsl_vector_memcpy(p_best->proposed, p_best->mean);
 

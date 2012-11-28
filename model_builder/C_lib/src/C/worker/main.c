@@ -265,6 +265,7 @@ int main(int argc, char *argv[])
 
 
     json_t *settings = load_settings(PATH_SETTINGS);
+    json_t *theta = load_json();
     load_const(settings);
 
     if (has_dt_be_specified) {
@@ -281,8 +282,9 @@ int main(int argc, char *argv[])
     print_log("shared memory allocation and inputs loading...");
 #endif
 
-    struct s_data *p_data = build_data(settings, 1);
+    struct s_data *p_data = build_data(settings, theta, 1);
     json_decref(settings);
+    json_decref(theta);
 
 #if FLAG_VERBOSE
     print_log("setting up zmq context...");

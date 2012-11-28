@@ -23,6 +23,7 @@ struct s_mif *build_mif(int has_dt_be_specified, double dt_option, double prop_L
     char str[STR_BUFFSIZE];
 
     json_t *settings = load_settings(PATH_SETTINGS);
+    json_t *theta = load_json();
     load_const(settings);
 
     if (has_dt_be_specified) {
@@ -49,7 +50,7 @@ struct s_mif *build_mif(int has_dt_be_specified, double dt_option, double prop_L
         exit(EXIT_FAILURE);
     }
 
-    p_mif->p_data = build_data(settings, OPTION_PRIOR); //also build obs2ts
+    p_mif->p_data = build_data(settings, theta, OPTION_PRIOR); //also build obs2ts
     json_decref(settings);
 
     //N_DATA_NONAN is set in build_data
@@ -60,7 +61,8 @@ struct s_mif *build_mif(int has_dt_be_specified, double dt_option, double prop_L
     }
 
     p_mif->calc = build_calc(GENERAL_ID, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_mif->p_data);
-    p_mif->p_best = build_best(p_mif->p_data, 0);
+    p_mif->p_best = build_best(p_mif->p_data, theta, 0);
+    json_decref(theta);
     p_mif->J_p_X = build_J_p_X(p_mif->p_data);
     p_mif->J_p_X_tmp = build_J_p_X(p_mif->p_data);
     p_mif->J_p_par = build_J_p_par(p_mif->p_data);

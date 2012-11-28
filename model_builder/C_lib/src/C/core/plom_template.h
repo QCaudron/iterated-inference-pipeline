@@ -537,7 +537,7 @@ struct s_iterator *build_iterator(struct s_router **routers, struct s_drift *p_d
 void clean_iterator(struct s_iterator *p_it);
 struct s_router *build_router(const json_t *par, const char *par_key, const json_t *partition, const json_t *order, const char *link_key, const char *u_data, int is_bayesian);
 void clean_router(struct s_router *p_router);
-struct s_router **build_routers(json_t *root, int is_bayesian);
+struct s_router **build_routers(json_t *settings, json_t *theta, int is_bayesian);
 void clean_routers(struct s_router **routers);
 unsigned int get_index(const json_t *array, const char *element, const char *array_name);
 struct s_par *build_par(struct s_data *p_data);
@@ -548,7 +548,7 @@ struct s_obs2ts **build_obs2ts(json_t *json_obs2ts);
 void clean_obs2ts(struct s_obs2ts **obs2ts);
 struct s_drift *build_drift(json_t *json_drift);
 void clean_drift(struct s_drift *p_drift);
-struct s_data *build_data(json_t *json_root, int is_bayesian);
+struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian);
 void clean_data(struct s_data *p_data);
 void build_markov(struct s_calc *p);
 struct s_calc *build_p_calc(int seed, int nt, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
@@ -567,7 +567,7 @@ struct s_hat *build_hat(struct s_data *p_data);
 void clean_hat(struct s_hat *p_hat, struct s_data *p_data);
 struct s_likelihood *build_likelihood(void);
 void clean_likelihood(struct s_likelihood *p_like);
-struct s_best *build_best(struct s_data *p_data, int update_covariance);
+struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covariance);
 void clean_best(struct s_best *p_best);
 
 

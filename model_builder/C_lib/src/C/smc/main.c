@@ -194,8 +194,8 @@ int main(int argc, char *argv[])
     int64_t time_begin, time_end;
 #endif
 
-
-    struct s_data *p_data = build_data(settings, 0);
+    json_t *theta = load_json();
+    struct s_data *p_data = build_data(settings, theta, 0);
     json_decref(settings);
 
     struct s_calc **calc = build_calc(GENERAL_ID, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_data);
@@ -203,7 +203,8 @@ int main(int argc, char *argv[])
     struct s_hat **D_p_hat = build_D_p_hat(p_data);
     struct s_X ***D_J_p_X = build_D_J_p_X(p_data);
     struct s_X ***D_J_p_X_tmp = build_D_J_p_X(p_data);
-    struct s_best *p_best = build_best(p_data, 0);
+    struct s_best *p_best = build_best(p_data, theta, 0);
+    json_decref(theta);
     struct s_likelihood *p_like = build_likelihood();
 
 
