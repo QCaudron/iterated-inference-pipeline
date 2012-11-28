@@ -46,105 +46,6 @@ def cmd_exists(cmd):
     return subprocess.call(["type", cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
 
 
-def fill_default_params(values, par_sv, par_proc, par_obs):
-    """add default values to values"""
-
-    ##################
-    #constraints
-    ##################
-
-    #par_sv default to 'logit'
-    for k in par_sv:
-        if 'transformation' not in values[k]:
-            values[k]['transformation'] = 'logit'
-
-    #par_proc and par_obs default to 'positive'
-    for k in par_proc + par_obs:
-        if 'transformation' not in values[k]:
-            values[k]['transformation'] = 'log'
-
-
-    ##################
-    #min max sd_transf prior
-    ##################
-    N_SV_PROC = len(par_sv) + len(par_proc)
-    for i, k in enumerate(par_sv + par_proc + par_obs):
-        if 'min' not in values[k]:
-            values[k]['min'] = copy.deepcopy(values[k]['guess']) #copy because works as well if guess is a value or a dict
-
-        if 'max' not in values[k]:
-            values[k]['max'] = copy.deepcopy(values[k]['guess'])
-
-        if 'sd_transf' not in values[k]:
-            if isinstance(values[k]['guess'], dict):
-                values[k]['sd_transf'] = {group:0.0 for group in  values[k]['guess']}
-            else:
-                values[k]['sd_transf'] = 0.0
-
-        if 'partition_id' not in values[k]:
-            values[k]['partition_id'] = 'identical_' + ('population' if i < N_SV_PROC else 'time_series')
-
-        if 'prior' not in values[k]:
-            values[k]['prior'] = 'uniform'
-
-
-
-def erlang_values(par_sv, values, unexpanded_proc_model):
-    """take into account erlang distribution of the waiting time and return **new** values"""
-
-    indg = [unexpanded_proc_model.index(reac) for reac in unexpanded_proc_model if reac['from']==reac['to']]
-    new_values = copy.deepcopy(values)
-
-    #update the states...
-    for i in indg:
-        s = unexpanded_proc_model[i]['from']
-
-        if s+'0' not in new_values: ##if not already erlang
-            oldState = values[s]
-            del new_values[s]
-
-            for j in range(unexpanded_proc_model[i]['tag'][0]['shape']):
-                new_values[s+str(j)] = copy.deepcopy(oldState)
-
-                for v in ['min', 'guess', 'max', 'sd_transf']:
-                    if isinstance(new_values[s+str(j)][v], dict):
-                        for k in new_values[s+str(j)][v]:
-                            new_values[s+str(j)][v][k] = float(new_values[s+str(j)][v][k])/float(unexpanded_proc_model[i]['tag'][0]['shape'])
-                    else:
-                        new_values[s+str(j)][v] = float(new_values[s+str(j)][v])/float(unexpanded_proc_model[i]['tag'][0]['shape'])
-
-    return new_values
-
-
-
-def repeat_group_values(partition, values, cac_id, ts_id):
-    """
-    1)repeat parameter value to respect grouping in case when a
-    single value for min, max, guest, sd_transf is provided.
-
-    2) extand partitions
-
-    modifies partition and values in place
-    """
-
-    #add default partition
-    partition['variable_population'] = {'group': [{'id': x, 'population_id': [x]} for x in cac_id]}
-    partition['identical_population'] = {'group': [{'id': 'all', 'population_id': copy.deepcopy(cac_id)}]}
-
-    partition['variable_time_series'] = {'group': [{'id': x, 'time_series_id': [x]} for x in ts_id]}
-    partition['identical_time_series'] = {'group': [{'id': 'all', 'time_series_id': copy.deepcopy(ts_id)}]}
-
-    for k, par in values.iteritems():
-        for p in ['min', 'guess', 'max', 'sd_transf']:
-            if not isinstance(par[p], dict):
-                my_value = par[p]
-                par[p] = {}
-
-                for group in partition[par['partition_id']]['group']:
-                    par[p][group['id']] = my_value
-
-    return values
-
 
 
 def prepare_model(path_rendered, path_templates, replace=True):
@@ -265,28 +166,6 @@ class Model(Context, Ccoder):
 
     def get_cac_id(self):
         return self.cac_id
-
-
-    ##########################
-    ##mutators
-    ##########################
-    def set_values(self, link):
-        """integrate val of the link dictionary"""
-
-        self.values = erlang_values(self.par_sv, link['value'], self.unexpanded_proc_model)
-
-        #contextualized parameters: add potentially missing parameters
-        #(parameters coming from context)
-        iotas = [x for x in self.par_proc if 'iota' in x]
-
-        for iota in iotas:
-            if iota not in self.values:
-                self.values[iota] = {'guess':0.0}
-
-        fill_default_params(self.values, self.par_sv, self.par_proc, self.par_obs)
-
-        #repeat values to match the grouping and extend partition
-        self.values = repeat_group_values(self.partition, self.values, self.cac_id, self.ts_id)
 
 
 
