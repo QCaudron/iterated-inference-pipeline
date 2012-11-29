@@ -370,26 +370,26 @@ double ***fast_load_fill_json_3d(json_t *array, char *array_name)
 
 json_t *load_json(void)
 {
-    char *tmp;
-    tmp = malloc(BUFFER_SIZE* sizeof(char));
+    char *buffer;
+    buffer = malloc(BUFFER_SIZE* sizeof(char));
 
-    fgets(tmp, BUFFER_SIZE, stdin);
-//    printf("%s\n", tmp);
+    fgets(buffer, BUFFER_SIZE, stdin);
+//    printf("%s\n", buffer);
 
     json_t *root;
     json_error_t error;
 
-    root = json_loads(tmp, 0, &error);
+    root = json_loads(buffer, 0, &error);
     if(!root) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "error: on line %d: %s\n", error.line, error.text);
+        sprintf(str, "could not parse theta.json\nerror: on line %d: %s\n", error.line, error.text);
         print_err(str);
         exit(EXIT_FAILURE);
     }
 
-    //  tmp = json_dumps(root, 0);
+    //  buffer = json_dumps(root, 0);
 
-    free(tmp);
+    free(buffer);
 
     return root;
 }
