@@ -5,7 +5,7 @@ EXEC=kalman ksimplex kmcmc
 ALL_SRC= $(wildcard *.c)
 SRC=$(filter-out main.c simplex_kalman.c kmcmc_main.c kmcmc.c, $(ALL_SRC))
 OBJ= $(SRC:.c=.o)
-BINDIR=../../../bin
+BINDIR=../../..
 
 all: $(EXEC)
 

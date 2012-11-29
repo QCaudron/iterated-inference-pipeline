@@ -63,7 +63,7 @@
 #define BUFFER_SIZE (5000 * 1024)  /**< 5000 KB buffer size for settings.json inputs */
 #define STR_BUFFSIZE 255 /**< buffer for log and error strings */
 #define DEFAULT_PATH "./" /**< default path for non JSON output (has to be slash appended) */
-#define PATH_SETTINGS "../settings/settings.json"
+#define PATH_SETTINGS "settings/settings.json"
 
 /* automatically generated code: order of the parameters */
 {% for o in order.var %}

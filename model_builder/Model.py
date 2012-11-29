@@ -62,10 +62,6 @@ def prepare_model(path_rendered, path_templates, replace=True):
     if not os.path.exists(path_rendered):
         shutil.copytree(path_templates, path_rendered)
 
-    #create bin directory (if needed)
-    path_bin = os.path.join(path_rendered, 'bin')
-    if not os.path.exists(path_bin):
-        os.makedirs(path_bin)
 
     #create settings directory (if needed)
     path_settings = os.path.join(path_rendered, 'settings')

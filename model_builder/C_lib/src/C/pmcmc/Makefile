@@ -4,7 +4,7 @@ LDFLAGS=-lplom -lm -lgsl -lgslcblas -ljansson -lzmq
 EXEC=pmcmc
 SRC= $(wildcard *.c)
 OBJ= $(SRC:.c=.o)
-BINDIR=../../../bin
+BINDIR=../../..
 
 all: $(EXEC)
 
