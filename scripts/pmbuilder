@@ -407,8 +407,7 @@ def main():
             p = cpl['process']
             l = cpl['link']
 
-
-        path_rendered = os.path.abspath(mycli.output) if mycli.output else os.path.join(os.path.expanduser("~"), 'my_model')
+        path_rendered = os.path.abspath(mycli.output) if mycli.output else os.path.join(os.getcwd(), 'my_plom_model')
 
         model = Model(path_rendered, c, p, l)
 
