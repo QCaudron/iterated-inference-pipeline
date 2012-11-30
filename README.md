@@ -23,7 +23,6 @@ Python:
 - Python 2.7.x: www.python.org/
 - Django: https://www.djangoproject.com/
 - SymPy: http://sympy.org/
-- NumPy: http://numpy.scipy.org/
 
 
 ##Creating and installing plom python package (containing the C code as package data)
