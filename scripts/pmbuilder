@@ -66,6 +66,7 @@ def main():
     parser.add_argument('-w', '--web',    action="store_true", default=False ,  help='Compile for the webApp')
     parser.add_argument('-s', '--simul',  action="store_true", default=False,   help='Compile only simulation methods')
     parser.add_argument('-i', '--input',  action="store",      default='files', help='Input type (used for the webApp)')
+    parser.add_argument('-z', '--zip',    action="store_true", default=False,   help='tar.gz the created model')
 
     ##generating templates
     template = parser.add_mutually_exclusive_group()
@@ -382,6 +383,7 @@ def main():
     ##############################################
     if mycli.input:
         from plom.Model import Model
+        from plom.Model import archive_model
 
         if mycli.input == 'files':
 
@@ -431,6 +433,10 @@ def main():
         print(OKBLUE + "settings written" + ENDC)
 
         print(OKGREEN + 'Successfully created!' + ENDC + ' in {0}'.format(path_rendered))
+
+        if mycli.zip:
+            archive_model(path_rendered, True)
+
 
 if __name__ == '__main__':
     main()
