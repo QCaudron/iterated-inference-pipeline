@@ -3,13 +3,14 @@ plom-sfi
 
 Simulation Forecasting and Inference methods for PLoM
 
-NOTE: This README is dedicated to Plom developers.  If you are
-interested in using Plom please go to http://www.plom.io/
-where you will find appropriate documentation.
+NOTE: This README is dedicated to plom-sfi developers.  If you are
+interested in using PLoM simulation, forecasting and inference methods
+please go to http://www.plom.io/ where you will find appropriate
+documentation.
 
-- plom command line tools. This code lives in script/
-- Python code to generate model in plain C. This code lives in model_builder/
-- C code to run models. This code lives in model_builder/C_lib/src/C/ The C code contain generic part and model specific part that are rendered using model_builder
+- pmbuilder command line tools. The code lives in script/
+- Python code to generate model in plain C. The code lives in model_builder/
+- C code to perform simulation, forecasting and inference. This code lives in model_builder/C_lib/src/C/ The C code contain generic part and model specific part that are rendered using model_builder
 
 ##Dependencies
 
@@ -25,7 +26,7 @@ Python:
 - SymPy: http://sympy.org/
 
 
-##Creating and installing plom python package (containing the C code as package data)
+##Creating and installing the python package (containing the C code as package data)
 
 At the root of the repo run:
 
