@@ -1,6 +1,6 @@
 {
- "id": "SIR",
- "comment": "SIR model with birth and death processes, Erlang distributed duration of infection and noise on the transmission term",
+ "name": "SIR",
+ "description": "SIR model with birth and death processes, Erlang distributed duration of infection and noise on the transmission term",
 
  "state": [{"id": "S", "comment": "Susceptible"},
            {"id": "I", "comment": "Infectious"}],
