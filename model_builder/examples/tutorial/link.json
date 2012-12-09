@@ -1,6 +1,7 @@
 {
  "name": "my_id",
  "description": "my comment",
+ "type": "link",
 
  "observed": [{"id": "prev", "comment":"prevalence",
                "definition": ["I"],

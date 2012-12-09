@@ -1,6 +1,7 @@
 {
  "name": "my_id",
  "description": "my comment",
+  "type": "theta",
 
  "partition": {"data_stream": {"group": [{"id": "CDC",    "time_series_id": ["all__CDC__inc", "city1__CDC__prev", "city2__CDC__inc"]},
                                          {"id": "google", "time_series_id": ["all__google__inc"]}],
