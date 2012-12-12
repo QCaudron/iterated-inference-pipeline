@@ -130,8 +130,8 @@ class Ccoder(Cmodel):
 
     def make_C_term(self, term, is_ode=False, derivate=None):
 
-        """transform a term into its simforence C expression OR the
-        simforence C expression of its derivate, differentiating
+        """transform a term into its plom C expression OR the
+        plom C expression of its derivate, differentiating
         against the derivate (if derivate not None)
 
         """
@@ -158,7 +158,7 @@ class Ccoder(Cmodel):
         #remove the plom___ prefix
         term = cterm.replace('plom___', '')
 
-        #make the simforence C expression
+        #make the plom C expression
 
         return ''.join(self.generator_C(term, is_ode=is_ode))
 
@@ -344,13 +344,12 @@ class Ccoder(Cmodel):
         for s in self.par_sv: ##stay in the same compartment
             myexit = [r for r in self.proc_model if r['from'] == s]
             if len(myexit)>0: ##only if you can exit from this compartment in this case the remaining has a sense
-                incDict[s] += 'p_calc->inc[ORDER_{0}][cac][{1}]'.format(s, len([r for r in self.proc_model if r['from']==s]))
+                incDict[s] += 'p_calc->inc[ORDER_{0}][cac][{1}]'.format(s, len(myexit))
             else:
                 incDict[s] += 'X[ORDER_{0}*N_CAC+cac]'.format(s)
 
-        for s in self.par_sv: #come in the from other compartments
+        for s in self.par_sv: #come in from other compartments
             myexit = [r for r in self.proc_model if r['from'] == s]
-            exitlist=[]
             for nbreac in range(len(myexit)):
                 if myexit[nbreac]['to'] not in self.universes: ##we exclude deaths or transitions to DU in the update
                     incDict[myexit[nbreac]['to']] += ' + p_calc->inc[ORDER_{0}][cac][{1}]'.format(myexit[nbreac]['from'], nbreac)
@@ -513,9 +512,14 @@ class Ccoder(Cmodel):
                                 sd.append(self.toC(terms[ind]))
                             ind +=1
 
-                res.append({'from':self.par_sv.index(reac['from']),
-                            'to': self.par_sv.index(reac['to']),
-                            'prod_sd': '*'.join(sd)})
+                ##TODO proper consideration of cases where from == DU or to == DU
+                if reac['from'] != 'DU' and reac['to'] != 'DU': #if to be removed ^^
+                    res.append({'from':self.par_sv.index(reac['from']),
+                                'to': self.par_sv.index(reac['to']),
+                                'prod_sd': '*'.join(sd)})
+                else:
+                    print("\033[91mDANGER!\033[0m: kalman methods won't work: eval_Q must be improved to take into account noise on reaction involving U or DU")
+
 
         return res
 

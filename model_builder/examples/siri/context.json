@@ -1,0 +1,28 @@
+{
+  "name": "test",
+  "description": "A strange disease, 2 cities, google and the CDC",
+
+  "population": [{"id": "city1__all",
+                  "size_t0": 1e6,
+                  "comment": "city 1, all age classes"},
+                 {"id": "city2__all",
+                  "size_t0": 1e6,
+                  "comment": "city 2, all age classes"}],
+
+  "disease": ["Disease name"],
+
+  "time_series": [{"id": "all__CDC__inc",
+                   "population_id": ["city1__all", "city2__all"],
+                   "comment": ""},
+                  {"id": "all__google__inc",
+                   "population_id": ["city1__all", "city2__all"],
+                   "comment": ""},
+                  {"id": "city2__CDC__inc",
+                   "population_id": ["city2__all"],
+                   "comment": ""},
+                  {"id": "city1__CDC__prev",
+                   "population_id": ["city1__all"],
+                   "comment": ""}],
+
+  "frequency": "W"
+}
