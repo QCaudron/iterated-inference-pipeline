@@ -340,6 +340,7 @@ void eval_Q(gsl_matrix *Q, const double *proj, struct s_par *p_par, struct s_dat
     for (cac=0; cac<N_CAC; cac++) {
 
         {% for x in noise_Q %}
+        {% if x.from != x.to %}
         gsl_matrix_set(Q,
                        {{ x.from }} * N_CAC + cac,
                        {{ x.to }} * N_CAC + cac,
@@ -354,6 +355,7 @@ void eval_Q(gsl_matrix *Q, const double *proj, struct s_par *p_par, struct s_dat
                        {{ x.to }} * N_CAC + cac,
                        {{ x.to }} * N_CAC + cac,
                        pow({{ x.prod_sd|safe }} , 2));
+        {% endif %}
 
         gsl_matrix_set(Q,
                        {{ x.from }} * N_CAC + cac,

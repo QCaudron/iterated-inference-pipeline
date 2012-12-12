@@ -124,7 +124,11 @@ void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_d
             {{ print_multinomial|safe }}
 
             /*4-update state variables (automaticaly generated code)*/
-            {{ print_update|safe }}
+            //use inc to cache the Poisson draw as thew might be re-used for the incidence computation
+            {% for draw in print_update.poisson %}
+            {{ draw|safe }};{% endfor %}
+
+            {{ print_update.Cstring|safe }}
 
         }/*end for on ac*/
     } /*end for on c*/
@@ -144,7 +148,7 @@ void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_d
 
             sum_inc += {{ eq.right_hand_side|safe }};
         }
-        {{ eq.left_hand_side|safe }} += sum_inc;
+        X[N_PAR_SV*N_CAC +offset] += sum_inc;
         offset++;
     }
 
@@ -214,7 +218,7 @@ int func(double t, const double X[], double f[], void *params)
             sum_inc += {{ eq.right_hand_side|safe }};
         }
 
-        {{ eq.left_hand_side|safe }} = sum_inc;
+        f[N_PAR_SV*N_CAC +offset] = sum_inc;
         offset++;
     }
     {% endfor %}

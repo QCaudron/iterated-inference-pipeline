@@ -23,8 +23,8 @@ import os
 import sys
 import argparse
 import copy
-from plom.Model import Model
-from plom.Model import archive_model
+from plom.Builder import PlomModelBuilder
+from plom.Builder import archive_model
 
 HEADER = '\033[95m'
 OKBLUE = '\033[94m'
@@ -97,7 +97,7 @@ def main():
 
     path_rendered = os.path.abspath(mycli.output) if mycli.output else os.path.join(os.getcwd(), 'my_plom_model')
 
-    model = Model(path_rendered, c, p, l)
+    model = PlomModelBuilder(path_rendered, c, p, l)
 
     print('preparing model...')
     model.prepare()

@@ -159,7 +159,6 @@ class Ccoder(Cmodel):
         term = cterm.replace('plom___', '')
 
         #make the plom C expression
-
         return ''.join(self.generator_C(term, is_ode=is_ode))
 
 
@@ -184,23 +183,17 @@ class Ccoder(Cmodel):
         **incidence** in case of stochastic models (euler multinomial)
         and put in into
 
-        Clist = [{'true_ind_obs':'i by opposition to
-        ii (i count both incidence and prevalence (N_OBS_ALL))',
-                 'left_hand_side':'dy[ii]/dt note that ii only indexes
-        incidence',
+        Clist = [{'true_ind_obs':'i (i count both incidence and prevalence (N_OBS_ALL))',
                   'right_hand_side':'f(X[i,c,ac]'}]
 
         """
         Clist = []
-
-        ii=0 ##index of observed incidences (N_OBS_INC)
 
         for i in range(len(self.obs_var_def)):
             true_ind_obs = str(i)
             right_hand_side=''
 
             if isinstance(self.obs_var_def[i][0], dict): ##incidence
-                left_hand_side = 'X[N_PAR_SV*N_CAC +{0}]'.format('offset')
 
                 for j in range(len(self.obs_var_def[i])):
                     id_out = [self.proc_model.index(r) for r in self.proc_model if ((r['from'] == self.obs_var_def[i][j]['from']) and (r['to'] == self.obs_var_def[i][j]['to']) and (r['rate'] == self.obs_var_def[i][j]['rate']))]
@@ -208,35 +201,34 @@ class Ccoder(Cmodel):
                         myexit = [r for r in self.proc_model if r['from']==self.proc_model[o]['from']]
                         right_hand_side += ' + p_calc->inc[ORDER_{0}][cac][{1}]'.format(self.obs_var_def[i][j]['from'], myexit.index(self.proc_model[o]))
 
-                ii += 1
-                Clist.append({'true_ind_obs':true_ind_obs, 'left_hand_side':left_hand_side, 'right_hand_side':right_hand_side})
+                Clist.append({'true_ind_obs':true_ind_obs, 'right_hand_side':right_hand_side})
 
         return Clist
 
 
     def print_obs_inc_ode(self):
         """generate C code to compute the dynamic of the observed **incidence** in case of ODE models and put in into a Clist
-        Clist = [{'true_ind_obs':'i by opposition to ii (i count both incidence and prevalence (N_OBS_ALL))', 'left_hand_side':'dy[ii]/dt note that ii only indexes incidence', 'right_hand_side':'f(X[i,c,ac]'}]
+        Clist = [{'true_ind_obs':'i (i count both incidence and prevalence (N_OBS_ALL))', 'right_hand_side':'f(X[i,c,ac]'}]
         """
 
         Clist = []
-        ii=0 ##index of observed incidences (N_OBS_INC)
 
         for i in range(len(self.obs_var_def)):
             true_ind_obs = str(i)
             right_hand_side=''
 
             if isinstance(self.obs_var_def[i][0], dict): ##incidence
-                left_hand_side = 'f[N_PAR_SV*N_CAC +{0}]'.format('offset')
 
                 for j in range(len(self.obs_var_def[i])):
                     id_out = [self.proc_model.index(r) for r in self.proc_model if ((r['from'] == self.obs_var_def[i][j]['from']) and (r['to'] == self.obs_var_def[i][j]['to']) and (r['rate'] == self.obs_var_def[i][j]['rate'])) ]
                     for o in id_out:
                         reaction = self.proc_model[o]
-                        right_hand_side += ' + (({0})*X[ORDER_{1}{2}])'.format(self.make_C_term(reaction['rate'], True), self.obs_var_def[i][j]['from'], '*N_CAC+cac')
+                        if self.obs_var_def[i][j]['from'] in self.universes:
+                            right_hand_side += ' + ({0})'.format(self.make_C_term(reaction['rate'], True))
+                        else:
+                            right_hand_side += ' + (({0})*X[ORDER_{1}{2}])'.format(self.make_C_term(reaction['rate'], True), self.obs_var_def[i][j]['from'], '*N_CAC+cac')
 
-                ii += 1
-                Clist.append({'true_ind_obs':true_ind_obs, 'left_hand_side':left_hand_side, 'right_hand_side':right_hand_side})
+                Clist.append({'true_ind_obs':true_ind_obs, 'right_hand_side':right_hand_side})
 
         return Clist
 
@@ -245,7 +237,7 @@ class Ccoder(Cmodel):
 
     def print_build_markov(self):
         Clist = []
-        for s in self.par_sv:
+        for s in self.par_sv + self.universes:
             nbreac = len([r for r in self.proc_model if r['from']==s]) +1 ##+1 to stay in the same compartment or to declare smtg in case of no reaction (not super clean but makes C code easier...)
             Clist.append({'state':s, 'nb_reaction': nbreac})
 
@@ -348,23 +340,28 @@ class Ccoder(Cmodel):
             else:
                 incDict[s] += 'X[ORDER_{0}*N_CAC+cac]'.format(s)
 
-        for s in self.par_sv: #come in from other compartments
-            myexit = [r for r in self.proc_model if r['from'] == s]
-            for nbreac in range(len(myexit)):
-                if myexit[nbreac]['to'] not in self.universes: ##we exclude deaths or transitions to DU in the update
-                    incDict[myexit[nbreac]['to']] += ' + p_calc->inc[ORDER_{0}][cac][{1}]'.format(myexit[nbreac]['from'], nbreac)
 
-        ##we add births (everything comming from U) or flow from DU
-        reac_with_births = [r for r in self.proc_model if r['from'] in self.universes]
-        for b in reac_with_births:
-            rate = '({rate}) * DT'.format(rate=self.make_C_term(b['rate']))
-            incDict[b['to']] += ' + gsl_ran_poisson(p_calc->randgsl, {0})'.format(rate)
+        for s in self.par_sv: #come in from other compartments
+            myinput = [r for r in self.proc_model if r['from'] == s]
+            for nbreac in range(len(myinput)):
+                if myinput[nbreac]['to'] not in self.universes: ##we exclude deaths or transitions to DU in the update
+                    incDict[myinput[nbreac]['to']] += ' + p_calc->inc[ORDER_{0}][cac][{1}]'.format(myinput[nbreac]['from'], nbreac)
+
+
+        ##we add flow from the universes (Poisson term). We want to cache those flow so that the incidences can be computed
+        poisson = []
+        for s in self.universes:
+            reac_from_univ = [r for r in self.proc_model if r['from'] == s]
+            for nbreac in range(len(reac_from_univ)):
+                poisson.append('p_calc->inc[ORDER_{0}][cac][{1}] = gsl_ran_poisson(p_calc->randgsl, ({2})*DT)'.format(s, nbreac, self.make_C_term(reac_from_univ[nbreac]['rate'])))
+                incDict[reac_from_univ[nbreac]['to']] += ' + p_calc->inc[ORDER_{0}][cac][{1}]'.format(s, nbreac)
+
 
         Cstring=''
         for s in self.par_sv:
             Cstring += 'X[ORDER_{0}*N_CAC+cac] = {1};\n'.format(s, incDict[s])
 
-        return Cstring
+        return {'poisson':poisson, 'Cstring': Cstring}
 
 
 
@@ -395,8 +392,12 @@ class Ccoder(Cmodel):
 
 
     def print_order(self):
+        order_univ = []
+        N_PAR_SV = len(self.par_sv)
+        for i, X in enumerate(self.universes):
+            order_univ.append({'name': X, 'order': N_PAR_SV+i})
 
-        return {'var': self.par_sv + self.par_proc + self.par_obs, 'drift': self.drift_var, 'data': self.par_fixed}
+        return {'var': self.par_sv + self.par_proc + self.par_obs, 'drift': self.drift_var, 'data': self.par_fixed, 'universe': order_univ}
 
 
     def print_like(self):
@@ -447,7 +448,10 @@ class Ccoder(Cmodel):
                     id_out = [self.proc_model.index(r) for r in self.proc_model if ((r['from'] == self.obs_var_def[i][j]['from']) and (r['to'] == self.obs_var_def[i][j]['to']) and (r['rate'] == self.obs_var_def[i][j]['rate'])) ]
                     for o in id_out:
                         reaction = my_model[o]
-                        eq += ' + (({0})*{1})'.format(reaction['rate'], self.obs_var_def[i][j]['from'])
+                        if self.obs_var_def[i][j]['from'] in self.universes:
+                            eq += ' + ({0})'.format(reaction['rate'])
+                        else:
+                            eq += ' + (({0})*{1})'.format(reaction['rate'], self.obs_var_def[i][j]['from'])
 
             obsList.append(eq)
 
@@ -512,14 +516,9 @@ class Ccoder(Cmodel):
                                 sd.append(self.toC(terms[ind]))
                             ind +=1
 
-                ##TODO proper consideration of cases where from == DU or to == DU
-                if reac['from'] != 'DU' and reac['to'] != 'DU': #if to be removed ^^
-                    res.append({'from':self.par_sv.index(reac['from']),
-                                'to': self.par_sv.index(reac['to']),
-                                'prod_sd': '*'.join(sd)})
-                else:
-                    print("\033[91mDANGER!\033[0m: kalman methods won't work: eval_Q must be improved to take into account noise on reaction involving U or DU")
-
+                res.append({'from': self.par_sv.index(reac['from']) if reac['from'] not in self.universes else self.par_sv.index(reac['to']),
+                            'to': self.par_sv.index(reac['to']) if reac['to'] not in self.universes else self.par_sv.index(reac['from']),
+                            'prod_sd': '*'.join(sd)})
 
         return res
 
@@ -629,6 +628,6 @@ class Ccoder(Cmodel):
 
 if __name__=="__main__":
 
-    """test model coder"""
+    """test PLoM model builder"""
 
-    print('see Model for test')
+    print('see Builder for test')

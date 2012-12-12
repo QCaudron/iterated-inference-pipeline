@@ -53,23 +53,20 @@ int func_kal(double t, const double X[], double f[], void *params)
 
 
     {% if current_p %}
-    for(c=0;c<N_C;c++)
-        {
-            for(ac=0;ac<N_AC;ac++)
-                p_par->current_p[c][ac]=get_current_pop_size(X,c,ac);
+    for (c=0;c<N_C;c++) {
+        for (ac=0;ac<N_AC;ac++) {
+            p_par->current_p[c][ac]=get_current_pop_size(X,c,ac);
         }
+    }
     {% endif %}
 
 
-    for(c=0;c<N_C;c++)
-        {
-            for(ac=0; ac<N_AC; ac++)
-                {
-                    cac = c*N_AC+ac;
-
-                    {{ print_ode|safe }}
-                }
+    for (c=0;c<N_C;c++) {
+        for(ac=0; ac<N_AC; ac++) {
+            cac = c*N_AC+ac;
+            {{ print_ode|safe }}
         }
+    }
 
     /*automaticaly generated code:*/
     /*compute incidence:integral between t and t+1*/
@@ -78,21 +75,19 @@ int func_kal(double t, const double X[], double f[], void *params)
     {% for eq in eq_obs_inc_ode %}
     o = {{ eq.true_ind_obs|safe }};
 
-    for(ts=0; ts<obs2ts[o]->n_ts_unique; ts++)
-        {
-            sum_inc = 0.0;
-            for(n_cac=0; n_cac<obs2ts[o]->n_cac[ts]; n_cac++)
-                {
-                    c = obs2ts[o]->cac[ts][n_cac][0];
-                    ac = obs2ts[o]->cac[ts][n_cac][1];
-                    cac = c*N_AC+ac;
+    for (ts=0; ts<obs2ts[o]->n_ts_unique; ts++) {
+        sum_inc = 0.0;
+        for(n_cac=0; n_cac<obs2ts[o]->n_cac[ts]; n_cac++) {
+            c = obs2ts[o]->cac[ts][n_cac][0];
+            ac = obs2ts[o]->cac[ts][n_cac][1];
+            cac = c*N_AC+ac;
 
-                    sum_inc += {{ eq.right_hand_side|safe }};
-                }
-
-            {{ eq.left_hand_side|safe }} = sum_inc;
-            offset++;
+            sum_inc += {{ eq.right_hand_side|safe }};
         }
+
+        f[N_PAR_SV*N_CAC +offset] = sum_inc;
+        offset++;
+    }
     {% endfor %}
 
     ////////////////
@@ -110,21 +105,17 @@ int func_kal(double t, const double X[], double f[], void *params)
 
     // compute Ft*Ct+Ct*Ft'+Q
     matrix_times_list_form(FtCt, Ft, X, offset);	// compute Ft*Ct (find Ct from X[offset])
-    for(row=0; row<N_KAL; row++)			// compute Ft*Ct+Ct*Ft'+Q
-        {
-            for(col=0; col<=row; col++)			// only fill inferior triangle (symetric matrix)
-                {
-                    data = gsl_matrix_get(FtCt, row, col)	// Ft*Ct
-                        +gsl_matrix_get(FtCt, col, row)		// Ct*Ft'
-                        +gsl_matrix_get(Q, row, col);		// Q
-                    gsl_matrix_set(res, row, col, data);	// fill res
-                }
+    for (row=0; row<N_KAL; row++) {			// compute Ft*Ct+Ct*Ft'+Q
+        for(col=0; col<=row; col++) {			// only fill inferior triangle (symetric matrix)
+            data = gsl_matrix_get(FtCt, row, col)	// Ft*Ct
+                +gsl_matrix_get(FtCt, col, row)		// Ct*Ft'
+                +gsl_matrix_get(Q, row, col);		// Q
+            gsl_matrix_set(res, row, col, data);	// fill res
         }
+    }
 
     // fill f
     sym_matrix2list(f, res, offset);
 
-
     return GSL_SUCCESS;
-
 }

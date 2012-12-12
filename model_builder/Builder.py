@@ -82,7 +82,7 @@ def archive_model(path_rendered, replace=True):
 
 
 
-class Model(Context, Ccoder):
+class PlomModelBuilder(Context, Ccoder):
     """Bind context to model and add link"""
 
     def __init__(self, path_rendered, context, process, link):
@@ -323,6 +323,11 @@ class Model(Context, Ccoder):
 if __name__=="__main__":
     ##tutorial example...
 
+##    c = json.load(open(os.path.join('examples', 'siri', 'context.json')))
+##    p = json.load(open(os.path.join('examples', 'siri', 'process.json')))
+##    l = json.load(open(os.path.join('examples', 'siri', 'link.json')))
+
+
     c = json.load(open(os.path.join('examples', 'tutorial', 'context.json')))
     p = json.load(open(os.path.join('examples', 'tutorial', 'process.json')))
     l = json.load(open(os.path.join('examples', 'tutorial', 'link.json')))
@@ -331,19 +336,19 @@ if __name__=="__main__":
     for x in c['data']:
         x['source'] = os.path.join('examples', 'tutorial', x['source'])
 
-    model = Model(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
+    model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
 
-    print model.par_fixed
-    print model.par_proc
-
-    print 'parameters: ', model.get_par_id()
-
-    print 'order of context elements: ', model.get_ts_id(), model.get_cac_id()
-
-    print model.ts_id
-    print model.cac_id
-    print model.obs_var
-    print model.map_ts_obs
+##    print model.par_fixed
+##    print model.par_proc
+##
+##    print 'parameters: ', model.get_par_id()
+##
+##    print 'order of context elements: ', model.get_ts_id(), model.get_cac_id()
+##
+##    print model.ts_id
+##    print model.cac_id
+##    print model.obs_var
+##    print model.map_ts_obs
 
     model.prepare()
     model.write_settings()

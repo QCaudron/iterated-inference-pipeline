@@ -711,14 +711,14 @@ void clean_data(struct s_data *p_data)
 
 void build_markov(struct s_calc *p)
 {
-    unsigned int tab[N_PAR_SV];
+    unsigned int tab[N_PAR_SV+2]; //+2 for U and DU of the universes
 
     /*automaticaly generated code: dimension of prob and inc*/
     {% for x in buildmarkov %}
     tab[ORDER_{{x.state|safe}}] = {{x.nb_reaction|safe}};{% endfor %}
 
-    p->prob = init2d_var_set0(N_PAR_SV, tab);
-    p->inc = init3u_varp2_set0(N_PAR_SV, N_CAC, tab);
+    p->prob = init2d_var_set0(N_PAR_SV+2, tab);
+    p->inc = init3u_varp2_set0(N_PAR_SV+2, N_CAC, tab);
 
     //  p->gravity = init1d_set0(N_C);
 }
@@ -864,8 +864,8 @@ void clean_p_calc(struct s_calc *p_calc)
 
     gsl_rng_free(p_calc->randgsl);
 
-    clean2d(p_calc->prob, N_PAR_SV);
-    clean3u(p_calc->inc, N_PAR_SV, N_CAC);
+    clean2d(p_calc->prob, N_PAR_SV+2); //+2 for U and DU of the universes
+    clean3u(p_calc->inc, N_PAR_SV+2, N_CAC); //+2 for U and DU of the universes
 
     gsl_odeiv2_step_free(p_calc->step);
     gsl_odeiv2_evolve_free(p_calc->evolve);

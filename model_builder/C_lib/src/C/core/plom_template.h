@@ -69,6 +69,9 @@
 {% for o in order.var %}
 #define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
 
+{% for o in order.universe %}
+#define ORDER_{{ o.name|safe }} {{ o.order }}{% endfor %}
+
 {% for o in order.drift %}
 #define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
 
