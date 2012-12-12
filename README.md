@@ -1,12 +1,7 @@
 plom-sfi
 ========
 
-Simulation Forecasting and Inference methods for PLoM
-
-NOTE: This README is dedicated to plom-sfi developers.  If you are
-interested in using PLoM simulation, forecasting and inference methods
-please go to http://www.plom.io/ where you will find appropriate
-documentation.
+Simulation Forecasting and Inference methods for http://www.plom.io/
 
 - pmbuilder command line tools. The code lives in script/
 - Python code to generate model in plain C. The code lives in model_builder/
@@ -37,8 +32,12 @@ At the root of the repo run:
 
 ##Usage
 
-See http://www.plom.io/doc/modeler/intro
+From the command line, run:
 
+    pmbuilder context.json process.json link.json -o path_model_coded_in_C
+
+
+In your script you can use:
 
     import json
     from plom.Builder import PlomModelBuilder
@@ -54,6 +53,9 @@ See http://www.plom.io/doc/modeler/intro
     model.code()
     model.compile()
 
+
+See http://www.plom.io/doc/modeler/intro for documentation on how to
+use the generated binaries.
 
 
 ##Contributing to the C library
