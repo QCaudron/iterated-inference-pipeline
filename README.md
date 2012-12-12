@@ -40,6 +40,22 @@ At the root of the repo run:
 See http://www.plom.io/doc/modeler/intro
 
 
+    import json
+    from plom.Builder import PlomModelBuilder
+
+    c = json.load(open('context.json'))
+    p = json.load(open('process.json'))
+    l = json.load(open('link.json'))
+
+    model = PlomModelBuilder('path_model_coded_in_C', c, p, l)
+
+    model.prepare()
+    model.write_settings()
+    model.code()
+    model.compile()
+
+
+
 ##Contributing to the C library
 
 First generate the documentation for the C code:
