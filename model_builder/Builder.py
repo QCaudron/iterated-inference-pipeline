@@ -26,7 +26,7 @@ import json
 from Ccoder import Ccoder
 from plom_settings import make_settings_json
 from django.conf import settings as django_settings
-
+import distutils.spawn
 
 from Context import Context
 
@@ -38,14 +38,6 @@ from django.template.loader import get_template
 #from datetime import datetime
 ##freq2rrule = {'D': rrule.DAILY, 'W': rrule.WEEKLY, 'M': rrule.MONTHLY, 'Y': rrule.YEARLY}
 ##self.dates = map(lambda x: x.strftime('%Y/%m/%d'), list(rrule.rrule(freq2rrule[self.frequency], count=self.N_DATA, dtstart=date_start) ))
-
-
-def cmd_exists(cmd):
-    """check if a command exists"""
-
-    return subprocess.call(["type", cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
-
-
 
 
 def prepare_model(path_rendered, path_templates, replace=True):
@@ -291,7 +283,7 @@ class PlomModelBuilder(Context, Ccoder):
 
         ##compile
 
-        cmd = 'make {0}; make install'.format('CC=gcc-4.7' if cmd_exists('gcc-4.7') else '')
+        cmd = 'make {0}; make install'.format('CC=gcc-4.7' if distutils.spawn.find_executable('gcc-4.7') else '')
 
         for d in dirs:
             os.chdir(os.path.join(path_src_C,  d))
