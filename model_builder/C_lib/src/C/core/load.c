@@ -492,8 +492,6 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int 
     json_t *parameters = fast_get_json_object(theta, "value");
     json_t *partitions = fast_get_json_object(theta, "partition");
 
-    const char par_types[][10] = { "par_sv", "par_proc", "par_obs" };
-
     offset = 0;
 
     for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {

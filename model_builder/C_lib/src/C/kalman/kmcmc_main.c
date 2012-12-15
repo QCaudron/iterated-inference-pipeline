@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
 
     sanitize_best_to_prior(p_kalman->p_best, p_kalman->p_data);
 
-    transform_theta(p_kalman->p_best, NULL, NULL, p_kalman->p_data, 1, update_covariance);
+    transform_theta(p_kalman->p_best, NULL, NULL, p_kalman->p_data, 1, !update_covariance);
     gsl_vector_memcpy(p_kalman->p_best->proposed, p_kalman->p_best->mean);
 
     struct s_likelihood *p_like = build_likelihood();
