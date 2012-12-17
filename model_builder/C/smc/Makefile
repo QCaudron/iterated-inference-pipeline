@@ -1,17 +1,17 @@
 CC=gcc
 CFLAGS=-fopenmp -std=gnu99 -Wall -O3 -I ../core/ -DGSL_RANGE_CHECK_OFF
 LDFLAGS=-lplom -lm -lgsl -lgslcblas -ljansson -lzmq
-EXEC=simul
+EXEC=smc
 SRC= $(wildcard *.c)
 OBJ= $(SRC:.c=.o)
-BINDIR=../../..
+BINDIR=../..
 
 all: $(EXEC)
 
 $(EXEC): $(OBJ)
-	$(CC) $(CFLAGS) -L../../../lib -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -L../../lib -o $@ $^ $(LDFLAGS)
 
-%.o: %.c simulation.h
+%.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 .PHONY: clean mrproper install

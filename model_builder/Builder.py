@@ -52,7 +52,7 @@ def prepare_model(path_rendered, path_templates, replace=True):
 
     #copy templates to uploads/rendered/user_name/model_id
     if not os.path.exists(path_rendered):
-        shutil.copytree(path_templates, path_rendered)
+        shutil.copytree(path_templates, os.path.join(path_rendered, 'C'))
 
 
     #create settings directory (if needed)
@@ -161,7 +161,7 @@ class PlomModelBuilder(Context, Ccoder):
     ##render model
     ##########################
 
-    def prepare(self, path_templates=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'C_lib'), replace=True):
+    def prepare(self, path_templates=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'C'), replace=True):
 
         prepare_model(self.path_rendered, path_templates, replace)
 
@@ -180,14 +180,14 @@ class PlomModelBuilder(Context, Ccoder):
         is_drift = True if len(self.drift_var) > 0 else False
 
         #core templates
-        t= get_template(os.path.join(self.path_rendered, 'src', 'C', 'core', 'plom_template.h'))
+        t= get_template(os.path.join(self.path_rendered, 'C', 'core', 'plom_template.h'))
         c = DjangoContext({'order':self.print_order()})
-        f = open(os.path.join(self.path_rendered, 'src', 'C', 'core', 'plom.h'),'w')
+        f = open(os.path.join(self.path_rendered, 'C', 'core', 'plom.h'),'w')
         f.write(t.render(c))
         f.close()
-        os.remove(os.path.join(self.path_rendered, 'src', 'C', 'core', 'plom_template.h'))
+        os.remove(os.path.join(self.path_rendered, 'C', 'core', 'plom_template.h'))
 
-        t= get_template(os.path.join(self.path_rendered, 'src', 'C', 'core', 'prediction_template.c'))
+        t= get_template(os.path.join(self.path_rendered, 'C', 'core', 'prediction_template.c'))
         c = DjangoContext({'gamma_noise': self.get_gamma_noise_terms(),
                      'print_prob': self.print_prob(),
                      'print_multinomial': self.print_multinomial(),
@@ -197,62 +197,62 @@ class PlomModelBuilder(Context, Ccoder):
                      'eq_obs_inc_markov': self.print_obs_inc_markov(),
                      'eq_obs_inc_ode': self.print_obs_inc_ode(),
                      'is_drift': is_drift})
-        f = open(os.path.join(self.path_rendered, 'src', 'C', 'core', 'prediction.c'),'w')
+        f = open(os.path.join(self.path_rendered, 'C', 'core', 'prediction.c'),'w')
         f.write(t.render(c))
         f.close()
-        os.remove(os.path.join(self.path_rendered, 'src', 'C', 'core', 'prediction_template.c'))
+        os.remove(os.path.join(self.path_rendered, 'C', 'core', 'prediction_template.c'))
 
-        t= get_template(os.path.join(self.path_rendered, 'src', 'C', 'core', 'build_template.c'))
+        t= get_template(os.path.join(self.path_rendered, 'C', 'core', 'build_template.c'))
         c = DjangoContext({'buildmarkov':self.print_build_markov()})
-        f = open(os.path.join(self.path_rendered, 'src', 'C', 'core', 'build.c'),'w')
+        f = open(os.path.join(self.path_rendered, 'C', 'core', 'build.c'),'w')
         f.write(t.render(c))
         f.close()
-        os.remove(os.path.join(self.path_rendered, 'src', 'C', 'core', 'build_template.c'))
+        os.remove(os.path.join(self.path_rendered, 'C', 'core', 'build_template.c'))
 
-        t= get_template(os.path.join(self.path_rendered, 'src', 'C', 'core', 'likelihood_template.c'))
+        t= get_template(os.path.join(self.path_rendered, 'C', 'core', 'likelihood_template.c'))
         c = DjangoContext({'proc_obs':self.print_like()})
-        f = open(os.path.join(self.path_rendered, 'src', 'C', 'core', 'likelihood.c'),'w')
+        f = open(os.path.join(self.path_rendered, 'C', 'core', 'likelihood.c'),'w')
         f.write(t.render(c))
         f.close()
-        os.remove(os.path.join(self.path_rendered, 'src', 'C', 'core', 'likelihood_template.c'))
+        os.remove(os.path.join(self.path_rendered, 'C', 'core', 'likelihood_template.c'))
 
-        t= get_template(os.path.join(self.path_rendered, 'src', 'C', 'core', 'observation_template.c'))
+        t= get_template(os.path.join(self.path_rendered, 'C', 'core', 'observation_template.c'))
         c = DjangoContext({'proc_obs':self.print_like()})
-        f = open(os.path.join(self.path_rendered, 'src', 'C', 'core', 'observation.c'),'w')
+        f = open(os.path.join(self.path_rendered, 'C', 'core', 'observation.c'),'w')
         f.write(t.render(c))
         f.close()
-        os.remove(os.path.join(self.path_rendered, 'src', 'C', 'core', 'observation_template.c'))
+        os.remove(os.path.join(self.path_rendered, 'C', 'core', 'observation_template.c'))
 
         #kalman templates
-        t= get_template(os.path.join(self.path_rendered, 'src', 'C', 'kalman', 'eval_ekf_update_mats_template.c'))
+        t= get_template(os.path.join(self.path_rendered, 'C', 'kalman', 'eval_ekf_update_mats_template.c'))
         c = DjangoContext({'jacobian':self.jac(),
                      'jac_proc_obs':self.jac_proc_obs,
                      'noise_Q': self.eval_Q(),
                      'stoichiometric':self.stoichiometric(),
                      'is_drift': is_drift})
-        f = open(os.path.join(self.path_rendered, 'src', 'C', 'kalman', 'eval_ekf_update_mats.c'),'w')
+        f = open(os.path.join(self.path_rendered, 'C', 'kalman', 'eval_ekf_update_mats.c'),'w')
         f.write(t.render(c))
         f.close()
-        os.remove(os.path.join(self.path_rendered, 'src', 'C', 'kalman', 'eval_ekf_update_mats_template.c'))
+        os.remove(os.path.join(self.path_rendered, 'C', 'kalman', 'eval_ekf_update_mats_template.c'))
 
-        t= get_template(os.path.join(self.path_rendered, 'src', 'C', 'kalman', 'prediction_template.c'))
+        t= get_template(os.path.join(self.path_rendered, 'C', 'kalman', 'prediction_template.c'))
         c = DjangoContext({'print_ode': self.print_ode(),
                      'eq_obs_inc_ode': self.print_obs_inc_ode(),
                      'is_drift': is_drift})
-        f = open(os.path.join(self.path_rendered, 'src', 'C', 'kalman', 'prediction.c'),'w')
+        f = open(os.path.join(self.path_rendered, 'C', 'kalman', 'prediction.c'),'w')
         f.write(t.render(c))
         f.close()
-        os.remove(os.path.join(self.path_rendered, 'src', 'C', 'kalman', 'prediction_template.c'))
+        os.remove(os.path.join(self.path_rendered, 'C', 'kalman', 'prediction_template.c'))
 
         #simulation templates
-        t= get_template(os.path.join(self.path_rendered, 'src', 'C', 'simulation', 'lyap_template.c'))
+        t= get_template(os.path.join(self.path_rendered, 'C', 'simulation', 'lyap_template.c'))
         c = DjangoContext({'jacobian':self.jac(),
                      'print_ode': self.print_ode(),
                      'is_drift': is_drift})
-        f = open(os.path.join(self.path_rendered, 'src', 'C', 'simulation', 'lyap.c'),'w')
+        f = open(os.path.join(self.path_rendered, 'C', 'simulation', 'lyap.c'),'w')
         f.write(t.render(c))
         f.close()
-        os.remove(os.path.join(self.path_rendered, 'src', 'C', 'simulation', 'lyap_template.c'))
+        os.remove(os.path.join(self.path_rendered, 'C', 'simulation', 'lyap_template.c'))
 
 
     def compile(self, web=False, simulation_only=False):
@@ -260,7 +260,7 @@ class PlomModelBuilder(Context, Ccoder):
         web is a flag indicating if outputs should be printed in JSON on stdout or in csv on FILE
         """
 
-        path_src_C = os.path.join(self.path_rendered, 'src','C')
+        path_src_C = os.path.join(self.path_rendered, 'C')
 
         dirs=['core', 'simulation']
         if not simulation_only:
@@ -315,18 +315,13 @@ class PlomModelBuilder(Context, Ccoder):
 if __name__=="__main__":
     ##tutorial example...
 
-##    c = json.load(open(os.path.join('examples', 'siri', 'context.json')))
-##    p = json.load(open(os.path.join('examples', 'siri', 'process.json')))
-##    l = json.load(open(os.path.join('examples', 'siri', 'link.json')))
-
-
-    c = json.load(open(os.path.join('examples', 'tutorial', 'context.json')))
-    p = json.load(open(os.path.join('examples', 'tutorial', 'process.json')))
-    l = json.load(open(os.path.join('examples', 'tutorial', 'link.json')))
+    c = json.load(open(os.path.join('example', 'context.json')))
+    p = json.load(open(os.path.join('example', 'process.json')))
+    l = json.load(open(os.path.join('example', 'link.json')))
 
     ##fix path (this is normally done by plom)
     for x in c['data']:
-        x['source'] = os.path.join('examples', 'tutorial', x['source'])
+        x['source'] = os.path.join('example', x['source'])
 
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
 

@@ -4,12 +4,12 @@ LDFLAGS=-lplom -lm -lgsl -lgslcblas -ljansson -lzmq
 EXEC=pmcmc
 SRC= $(wildcard *.c)
 OBJ= $(SRC:.c=.o)
-BINDIR=../../..
+BINDIR=../..
 
 all: $(EXEC)
 
 $(EXEC): $(OBJ)
-	$(CC) $(CFLAGS) -L../../../lib -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -L../../lib -o $@ $^ $(LDFLAGS)
 
 %.o: %.c pmcmc.h
 	$(CC) $(CFLAGS) -o $@ -c $<

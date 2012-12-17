@@ -5,7 +5,7 @@ Simulation Forecasting and Inference methods for http://www.plom.io/
 
 - pmbuilder command line tools. The code lives in script/
 - Python code to generate model in plain C. The code lives in model_builder/
-- C code to perform simulation, forecasting and inference. This code lives in model_builder/C_lib/src/C/ The C code contain generic part and model specific part that are rendered using model_builder
+- C code to perform simulation, forecasting and inference. This code lives in model_builder/C/ The C code contain generic part and model specific part that are rendered using model_builder
 
 ##Dependencies
 
@@ -42,9 +42,9 @@ In your script you can use:
     import json
     from plom.Builder import PlomModelBuilder
 
-    c = json.load(open('context.json'))
-    p = json.load(open('process.json'))
-    l = json.load(open('link.json'))
+    c = json.load(open('example/context.json'))
+    p = json.load(open('example/process.json'))
+    l = json.load(open('example/link.json'))
 
     model = PlomModelBuilder('path_model_coded_in_C', c, p, l)
 
@@ -61,7 +61,7 @@ use the generated binaries.
 ##Contributing to the C library
 
 First generate the documentation for the C code:
-in model_builder/C_lib/doc/ run: ```doxygen Doxyfile``` and open model_builder/C_lib/doc/html/index.html with
+in model_builder/doc/ run: ```doxygen Doxyfile``` and open model_builder/doc/html/index.html with
 a web browser.
 
 After having learned the basic structures involved in ```core```, we

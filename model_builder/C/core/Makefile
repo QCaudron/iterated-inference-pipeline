@@ -5,7 +5,7 @@ LIB=libplom.a
 SRC= $(wildcard *.c)
 #LIB_SRC=$(filter-out main.c, $(ALL_SRC))
 OBJ= $(SRC:.c=.o)
-LIBDIR=../../../lib
+LIBDIR=../../lib
 
 all: $(EXEC) $(LIB)
 

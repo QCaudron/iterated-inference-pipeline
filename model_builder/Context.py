@@ -126,10 +126,10 @@ class Context:
 
 if __name__ == '__main__':
 
-    c = json.load(open(os.path.join('examples', 'tutorial', 'context.json')))
+    c = json.load(open(os.path.join('example','context.json')))
     ##fix path (this is normally done by simforence)
     for x in c['data']:
-        x['source'] = os.path.join('examples', 'tutorial', x['source'])
+        x['source'] = os.path.join('example', x['source'])
 
     context = Context(c)
 

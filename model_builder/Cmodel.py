@@ -92,11 +92,10 @@ class Cmodel:
 
         ##undrift models and get drift_var
         self.unexpanded_proc_model, self.drift_par_proc, self.vol_par_proc = self.undrift_proc_model(process['model'])
-        self.obs_model, self.drift_par_obs, self.vol_par_obs = self.undrift_obs_model(link['model'])
+        self.obs_model, self.drift_par_obs, self.vol_par_obs = self.undrift_obs_model(link['model'][link['model'].keys()[0]]) ##TODO: different observation process models...
 
         self.drift_var = ['drift__par_proc__' + x for x in self.drift_par_proc]
         self.drift_var += ['drift__par_obs__' + x for x in self.drift_par_obs]
-
 
         ##resolve the population size: (replace 'N' by either 'sum_SV', 'p_0' or 'N')
         if self.pop_size_eq_sum_sv:
@@ -448,16 +447,16 @@ if __name__=="__main__":
 
     ##link elements needed for Cmodel
     l = {}
-    l['observed'] =  [{"id": "Prev",     "definition": ["I"]},
-                      {"id": "SI",       "definition": ["S", "I"]},
-                      {"id": "Inc_out",  "definition": [{"from":"I", "to":"DU"}, {"from":"I", "to":"U"}]},
-                      {"id": "Inc_in",   "definition": [{"from":"S", "to":"I"}]}]
+    l['observed'] =  [{"id": "Prev",     "definition": ["I"], "model_id": "common"},
+                      {"id": "SI",       "definition": ["S", "I"], "model_id": "common"},
+                      {"id": "Inc_out",  "definition": [{"from":"I", "to":"DU"}, {"from":"I", "to":"U"}], "model_id": "common"},
+                      {"id": "Inc_in",   "definition": [{"from":"S", "to":"I"}], "model_id": "common"}]
 
     l['parameter'] = [{"id": "rep"}, {"id": "phi"}]
 
-    l['model'] = {"distribution": "discretized_normal",
-                  "mean": "prop*rep*x",
-                  "var":  "rep*(1.0-rep)*prop*x + (rep*phi*prop*x)**2"}
+    l['model'] = {"common":{"distribution": "discretized_normal",
+                            "mean": "prop*rep*x",
+                            "var":  "rep*(1.0-rep)*prop*x + (rep*phi*prop*x)**2"}}
 
     test_model = Cmodel(c, m, l)
 
