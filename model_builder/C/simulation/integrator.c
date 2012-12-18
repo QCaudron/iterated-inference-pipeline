@@ -222,7 +222,7 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
         print_p_hat(p_file_hat, NULL, p_hat, p_data, k);
 
         if (OPTION_TRAJ && FLAG_JSON==0) {
-            print_X(p_file_X, &p_par, J_p_X, p_data, calc[thread_id], k+1, 1, 0, 0);
+            print_X(p_file_X, &p_par, J_p_X, p_data, calc[0], k+1, 1, 0, 0);
         }
     }
 

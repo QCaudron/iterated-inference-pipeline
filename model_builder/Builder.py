@@ -178,81 +178,53 @@ class PlomModelBuilder(Context, Ccoder):
 
 
         is_drift = True if len(self.drift_var) > 0 else False
+        order = self.print_order()
 
         #core templates
-        t= get_template(os.path.join(self.path_rendered, 'C', 'core', 'plom_template.h'))
-        c = DjangoContext({'order':self.print_order()})
-        f = open(os.path.join(self.path_rendered, 'C', 'core', 'plom.h'),'w')
-        f.write(t.render(c))
-        f.close()
-        os.remove(os.path.join(self.path_rendered, 'C', 'core', 'plom_template.h'))
+        t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'core_template.c'))
 
-        t= get_template(os.path.join(self.path_rendered, 'C', 'core', 'prediction_template.c'))
-        c = DjangoContext({'gamma_noise': self.get_gamma_noise_terms(),
-                     'print_prob': self.print_prob(),
-                     'print_multinomial': self.print_multinomial(),
-                     'print_update': self.print_update(),
-                     'print_ode': self.print_ode(),
-                     'list_obs_prev': self.print_obs_prev(),
-                     'eq_obs_inc_markov': self.print_obs_inc_markov(),
-                     'eq_obs_inc_ode': self.print_obs_inc_ode(),
-                     'is_drift': is_drift})
-        f = open(os.path.join(self.path_rendered, 'C', 'core', 'prediction.c'),'w')
+        c = DjangoContext({'order':order,
+                           'gamma_noise': self.get_gamma_noise_terms(),
+                           'print_prob': self.print_prob(),
+                           'print_multinomial': self.print_multinomial(),
+                           'print_update': self.print_update(),
+                           'print_ode': self.print_ode(),
+                           'list_obs_prev': self.print_obs_prev(),
+                           'eq_obs_inc_markov': self.print_obs_inc_markov(),
+                           'eq_obs_inc_ode': self.print_obs_inc_ode(),
+                           'is_drift': is_drift,
+                           'buildmarkov':self.print_build_markov(),
+                           'proc_obs':self.print_like()})
+        f = open(os.path.join(self.path_rendered, 'C', 'templates', 'core_tpl.c'),'w')
         f.write(t.render(c))
         f.close()
-        os.remove(os.path.join(self.path_rendered, 'C', 'core', 'prediction_template.c'))
-
-        t= get_template(os.path.join(self.path_rendered, 'C', 'core', 'build_template.c'))
-        c = DjangoContext({'buildmarkov':self.print_build_markov()})
-        f = open(os.path.join(self.path_rendered, 'C', 'core', 'build.c'),'w')
-        f.write(t.render(c))
-        f.close()
-        os.remove(os.path.join(self.path_rendered, 'C', 'core', 'build_template.c'))
-
-        t= get_template(os.path.join(self.path_rendered, 'C', 'core', 'likelihood_template.c'))
-        c = DjangoContext({'proc_obs':self.print_like()})
-        f = open(os.path.join(self.path_rendered, 'C', 'core', 'likelihood.c'),'w')
-        f.write(t.render(c))
-        f.close()
-        os.remove(os.path.join(self.path_rendered, 'C', 'core', 'likelihood_template.c'))
-
-        t= get_template(os.path.join(self.path_rendered, 'C', 'core', 'observation_template.c'))
-        c = DjangoContext({'proc_obs':self.print_like()})
-        f = open(os.path.join(self.path_rendered, 'C', 'core', 'observation.c'),'w')
-        f.write(t.render(c))
-        f.close()
-        os.remove(os.path.join(self.path_rendered, 'C', 'core', 'observation_template.c'))
-
-        #kalman templates
-        t= get_template(os.path.join(self.path_rendered, 'C', 'kalman', 'eval_ekf_update_mats_template.c'))
-        c = DjangoContext({'jacobian':self.jac(),
-                     'jac_proc_obs':self.jac_proc_obs,
-                     'noise_Q': self.eval_Q(),
-                     'stoichiometric':self.stoichiometric(),
-                     'is_drift': is_drift})
-        f = open(os.path.join(self.path_rendered, 'C', 'kalman', 'eval_ekf_update_mats.c'),'w')
-        f.write(t.render(c))
-        f.close()
-        os.remove(os.path.join(self.path_rendered, 'C', 'kalman', 'eval_ekf_update_mats_template.c'))
-
-        t= get_template(os.path.join(self.path_rendered, 'C', 'kalman', 'prediction_template.c'))
-        c = DjangoContext({'print_ode': self.print_ode(),
-                     'eq_obs_inc_ode': self.print_obs_inc_ode(),
-                     'is_drift': is_drift})
-        f = open(os.path.join(self.path_rendered, 'C', 'kalman', 'prediction.c'),'w')
-        f.write(t.render(c))
-        f.close()
-        os.remove(os.path.join(self.path_rendered, 'C', 'kalman', 'prediction_template.c'))
+        os.remove(os.path.join(self.path_rendered, 'C', 'templates', 'core_template.c'))
 
         #simulation templates
-        t= get_template(os.path.join(self.path_rendered, 'C', 'simulation', 'lyap_template.c'))
-        c = DjangoContext({'jacobian':self.jac(),
-                     'print_ode': self.print_ode(),
-                     'is_drift': is_drift})
-        f = open(os.path.join(self.path_rendered, 'C', 'simulation', 'lyap.c'),'w')
+        t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'simulation_template.c'))
+        c = DjangoContext({'order':order,
+                           'jacobian':self.jac(),
+                           'print_ode': self.print_ode(),
+                           'is_drift': is_drift})
+        f = open(os.path.join(self.path_rendered, 'C', 'templates', 'simulation_tpl.c'),'w')
         f.write(t.render(c))
         f.close()
-        os.remove(os.path.join(self.path_rendered, 'C', 'simulation', 'lyap_template.c'))
+        os.remove(os.path.join(self.path_rendered, 'C', 'templates', 'simulation_template.c'))
+
+        #kalman templates
+        t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_template.c'))
+        c = DjangoContext({'order':order,
+                           'jacobian':self.jac(),
+                           'jac_proc_obs':self.jac_proc_obs,
+                           'noise_Q': self.eval_Q(),
+                           'stoichiometric':self.stoichiometric(),
+                           'is_drift': is_drift,
+                           'print_ode': self.print_ode(),
+                           'eq_obs_inc_ode': self.print_obs_inc_ode()})
+        f = open(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_tpl.c'),'w')
+        f.write(t.render(c))
+        f.close()
+        os.remove(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_template.c'))
 
 
     def compile(self, web=False, simulation_only=False):
@@ -262,7 +234,7 @@ class PlomModelBuilder(Context, Ccoder):
 
         path_src_C = os.path.join(self.path_rendered, 'C')
 
-        dirs=['core', 'simulation']
+        dirs=['core', 'templates', 'simulation']
         if not simulation_only:
             dirs.extend(['smc', 'simplex', 'mif', 'pmcmc', 'worker', 'kalman'])
 
@@ -282,7 +254,6 @@ class PlomModelBuilder(Context, Ccoder):
         os.chdir(wd)
 
         ##compile
-
         cmd = 'make {0}; make install'.format('CC=gcc-4.7' if distutils.spawn.find_executable('gcc-4.7') else '')
 
         for d in dirs:
@@ -293,9 +264,7 @@ class PlomModelBuilder(Context, Ccoder):
             for line in p.readlines():
                 print line.rstrip()
 
-
         os.chdir(wd)
-
 
 
     ##########################

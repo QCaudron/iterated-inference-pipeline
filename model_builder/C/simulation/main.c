@@ -246,16 +246,9 @@ int main(int argc, char *argv[])
 
     double *y0 = init1d_set0(N_PAR_SV*N_CAC + N_TS_INC_UNIQUE);
 
-    //if t_transiant > N_DATA: mu_d = mu_b: we ensure constant pop size...
-    if ((t_transiant > N_DATA) && (ORDER_mu_b >= 0)  && (ORDER_mu_d >= 0)) {
-        print_warning("variable birth and death rate detected, death rates have been set to birth rates to ensure a constant population size to analyze the attractor");
-
-        int nn, cac;
-        for (nn=0; nn < N_DATA_PAR_FIXED; nn++) {
-            for (cac=0; cac < N_CAC; cac++) {
-                p_data->par_fixed[ORDER_mu_d][nn][cac] = p_data->par_fixed[ORDER_mu_b][nn][cac];
-            }
-        }
+    //if t_transiant > N_DATA: we ensure constant pop size by settings mu_d = mu_b in case of variable birth and death reates
+    if (t_transiant > N_DATA) {
+        ensure_cst_pop_size(p_data);
     }
 
     //setting p_calc->current_nn

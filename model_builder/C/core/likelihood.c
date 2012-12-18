@@ -71,39 +71,6 @@ double get_log_likelihood(struct s_X *p_X, struct s_par *p_par, struct s_data *p
 
 }
 
-double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
-{
-    /*x is the predicted value from the model that we contrast with a time serie ts.
-      Note: user should not use this function but get_log_likelihood
-     */
-
-    int n, nn;
-    double t;
-    n = p_calc->current_n;
-    nn = p_calc->current_nn;
-    t = (double) p_data->times[n];
-
-    struct s_router **routers = p_data->routers;
-
-    double like; /* likelihood value */
-
-    double y = p_data->data[nn][ts];
-
-    double **par = p_par->natural;
-    double ***covar = p_data->par_fixed;
-
-    /*automaticaly generated code*/
-    double gsl_mu = {{ proc_obs.mean|safe }};
-    double gsl_sd = sqrt( {{ proc_obs.var|safe }} );
-
-    if (y > 0.0) {
-        like=gsl_cdf_gaussian_P(y+0.5-gsl_mu, gsl_sd)-gsl_cdf_gaussian_P(y-0.5-gsl_mu, gsl_sd);
-    } else {
-        like=gsl_cdf_gaussian_P(y+0.5-gsl_mu, gsl_sd);
-    }
-
-    return sanitize_likelihood(like);
-}
 
 /**
  *  checks for numerical issues...

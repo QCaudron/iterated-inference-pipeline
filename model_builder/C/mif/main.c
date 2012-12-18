@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
         "--help             print the usage on stdout\n";
 
     int has_dt_be_specified = 0;
-    double dt_option;
+    double dt_option = 0.0;
     double prop_L_option = 0.75;
 
     GENERAL_ID =0;

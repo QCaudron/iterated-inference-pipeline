@@ -18,6 +18,39 @@
 
 #include "plom.h"
 
+/* automatically generated code: order of the parameters */
+{% for o in order.var %}
+#define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
+
+{% for o in order.universe %}
+#define ORDER_{{ o.name|safe }} {{ o.order }}{% endfor %}
+
+{% for o in order.drift %}
+#define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
+
+{% for o in order.data %}
+#define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
+
+{% if 'mu_b' not in order.data and 'mu_b' not in order.var %}
+#define ORDER_mu_b -1 {% endif %}
+{% if 'mu_d' not in order.data and 'mu_d' not in order.var %}
+#define ORDER_mu_d -1 {% endif %}
+
+
+void build_markov(struct s_calc *p)
+{
+unsigned int tab[N_PAR_SV+2]; //+2 for U and DU of the universes
+
+/*automaticaly generated code: dimension of prob and inc*/
+{% for x in buildmarkov %}
+tab[ORDER_{{x.state|safe}}] = {{x.nb_reaction|safe}};{% endfor %}
+
+p->prob = init2d_var_set0(N_PAR_SV+2, tab);
+p->inc = init3u_varp2_set0(N_PAR_SV+2, N_CAC, tab);
+
+//  p->gravity = init1d_set0(N_C);
+}
+
 
 void proj2obs(struct s_X *p_X, struct s_data *p_data)
 {
@@ -224,4 +257,108 @@ int func(double t, const double X[], double f[], void *params)
     {% endfor %}
 
     return GSL_SUCCESS;
+}
+
+
+double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
+{
+    /*x is the predicted value from the model that we contrast with a time serie ts.
+      Note: user should not use this function but get_log_likelihood
+    */
+
+    int n, nn;
+    double t;
+    n = p_calc->current_n;
+    nn = p_calc->current_nn;
+    t = (double) p_data->times[n];
+
+    struct s_router **routers = p_data->routers;
+
+    double like; /* likelihood value */
+
+    double y = p_data->data[nn][ts];
+
+    double **par = p_par->natural;
+    double ***covar = p_data->par_fixed;
+
+    /*automaticaly generated code*/
+    double gsl_mu = {{ proc_obs.mean|safe }};
+    double gsl_sd = sqrt( {{ proc_obs.var|safe }} );
+
+    if (y > 0.0) {
+        like=gsl_cdf_gaussian_P(y+0.5-gsl_mu, gsl_sd)-gsl_cdf_gaussian_P(y-0.5-gsl_mu, gsl_sd);
+    } else {
+        like=gsl_cdf_gaussian_P(y+0.5-gsl_mu, gsl_sd);
+    }
+
+    return sanitize_likelihood(like);
+}
+
+
+double obs_mean(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
+{
+  /*x is the predicted value from the model that we contrast with a time serie ts*/
+  struct s_router **routers = p_data->routers;
+
+  double mu;
+  int n, nn;
+  double t;
+  n = p_calc->current_n;
+  nn = p_calc->current_nn;
+  t = (double) (nn+1);
+
+  double **par = p_par->natural;
+  double ***covar = p_data->par_fixed;
+
+  /*automaticaly generated code*/
+  mu = {{ proc_obs.mean|safe }};
+
+  return mu;
+}
+
+double obs_var(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
+{
+  /*x is the predicted value from the model that we contrast with a time serie ts*/
+  struct s_router **routers = p_data->routers;
+
+  double var;
+  int n, nn;
+  double t;
+  n = p_calc->current_n;
+  nn = p_calc->current_nn;
+  t = (double) (nn+1);
+
+  double **par = p_par->natural;
+  double ***covar = p_data->par_fixed;
+
+  /*automaticaly generated code*/
+  var = {{ proc_obs.var|safe }};
+
+  return var;
+}
+
+
+double observation(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
+{
+  /*x is the predicted value from the model that we contrast with a time serie ts*/
+  struct s_router **routers = p_data->routers;
+
+  int n, nn;
+  double t;
+  n = p_calc->current_n;
+  nn = p_calc->current_nn;
+  t = (double) (nn+1);
+
+  double **par = p_par->natural;
+  double ***covar = p_data->par_fixed;
+
+  /*return an observation of the process model*/
+
+  /*automaticaly generated code*/
+  double gsl_mu= {{ proc_obs.mean|safe }};
+  double gsl_sd=sqrt({{ proc_obs.var|safe }});
+
+  double yobs= gsl_mu+gsl_ran_gaussian(p_calc->randgsl, gsl_sd);
+
+  return (yobs >0) ? yobs : 0.0;
 }

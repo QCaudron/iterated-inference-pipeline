@@ -16,7 +16,6 @@
  *    <http://www.gnu.org/licenses/>.
  *************************************************************************/
 
-
 #ifndef PLOM_H
 #define PLOM_H
 
@@ -64,25 +63,6 @@
 #define STR_BUFFSIZE 255 /**< buffer for log and error strings */
 #define DEFAULT_PATH "./" /**< default path for non JSON output (has to be slash appended) */
 #define PATH_SETTINGS "settings/settings.json"
-
-/* automatically generated code: order of the parameters */
-{% for o in order.var %}
-#define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
-
-{% for o in order.universe %}
-#define ORDER_{{ o.name|safe }} {{ o.order }}{% endfor %}
-
-{% for o in order.drift %}
-#define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
-
-{% for o in order.data %}
-#define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
-
-{% if 'mu_b' not in order.data and 'mu_b' not in order.var %}
-#define ORDER_mu_b -1 {% endif %}
-{% if 'mu_d' not in order.data and 'mu_d' not in order.var %}
-#define ORDER_mu_d -1 {% endif %}
-
 
 #define FLAG_PIPELINE 0 /**< zmq pipeline */
 
@@ -553,7 +533,6 @@ struct s_drift *build_drift(json_t *json_drift);
 void clean_drift(struct s_drift *p_drift);
 struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian);
 void clean_data(struct s_data *p_data);
-void build_markov(struct s_calc *p);
 struct s_calc *build_p_calc(int seed, int nt, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
 struct s_calc **build_calc(int general_id, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
 void clean_p_calc(struct s_calc *p_calc);
@@ -627,10 +606,6 @@ void *jac;
 
 double foi(double *X_c, double *waifw_ac);
 
-/*prediction_template.c*/
-void proj2obs(struct s_X *p_X, struct s_data *p_data);
-void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
-int func (double t, const double X[], double f[], void *params);
 
 /* special_functions.c */
 double terms_forcing(double amplitude, double time, struct s_data *p_data, int cac);
@@ -689,13 +664,8 @@ void transform_theta(struct s_best *p_best, double (*f_transit_par) (double), do
 double get_smallest_log_likelihood(struct s_data_ind **data_ind);
 double get_log_likelihood(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 double get_sum_square(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
-double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
 double sanitize_likelihood(double like);
 
-/* observation.c */
-double obs_mean(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
-double obs_var(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
-double observation(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
 
 /* swap.c */
 void swap_1d(double **A, double **tmp_A);
@@ -792,6 +762,19 @@ double dmvnorm(const int n, const gsl_vector *x, const gsl_vector *mean, const g
 void sfr_rmvnorm(theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc);
 double sfr_dmvnorm(struct s_best *p_best, theta_t *proposed, gsl_vector *mean, double sd_fac);
 void eval_var_emp(struct s_best *p_best, double m);
+
+/* templated */
+void build_markov(struct s_calc *p);
+
+double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
+
+double obs_mean(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
+double obs_var(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
+double observation(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
+
+void proj2obs(struct s_X *p_X, struct s_data *p_data);
+void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+int func (double t, const double X[], double f[], void *params);
 
 
 #endif

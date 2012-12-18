@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
         "--help             print the usage on stdout\n";
 
     int has_dt_be_specified = 0;
-    double dt_option;
+    double dt_option = 0.0;
     int load_cov = 0;
     int m_switch = -1;
     int m_eps = 50;

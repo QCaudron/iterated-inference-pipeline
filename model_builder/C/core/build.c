@@ -709,19 +709,6 @@ void clean_data(struct s_data *p_data)
 }
 
 
-void build_markov(struct s_calc *p)
-{
-    unsigned int tab[N_PAR_SV+2]; //+2 for U and DU of the universes
-
-    /*automaticaly generated code: dimension of prob and inc*/
-    {% for x in buildmarkov %}
-    tab[ORDER_{{x.state|safe}}] = {{x.nb_reaction|safe}};{% endfor %}
-
-    p->prob = init2d_var_set0(N_PAR_SV+2, tab);
-    p->inc = init3u_varp2_set0(N_PAR_SV+2, N_CAC, tab);
-
-    //  p->gravity = init1d_set0(N_C);
-}
 
 
 struct s_calc *build_p_calc(int seed, int nt, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data)

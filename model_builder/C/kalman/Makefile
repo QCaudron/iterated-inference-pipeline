@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-fopenmp -std=gnu99 -Wall -O3 -I ../core/ -I ../pmcmc/ -DGSL_RANGE_CHECK_OFF
-LDFLAGS=-lplom -lm -lgsl -lgslcblas -ljansson -lzmq
+LDFLAGS=-lplom -lplomtpl -lm -lgsl -lgslcblas -ljansson -lzmq
 EXEC=kalman ksimplex kmcmc
 ALL_SRC= $(wildcard *.c)
 SRC=$(filter-out main.c simplex_kalman.c kmcmc_main.c kmcmc.c, $(ALL_SRC))

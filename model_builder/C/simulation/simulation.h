@@ -28,6 +28,9 @@ double PRECISION;
 double DELTA_STO_PRINT;  //how many points to we print for one data unit (NOTE that the incidence is resetted to 0 every DELTA_STO_PRINT
 int N_BLOC; //used for max and min determination. We check if the middle cell of N_BLOC is the max or min. => has to be an odd number
 
+
+void ensure_cst_pop_size(struct s_data *p_data);
+
 /* integrator.c */
 int has_failed(double *y);
 int integrator(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par *p_par, double abs_tol, double rel_tol, struct s_calc *p_calc);
