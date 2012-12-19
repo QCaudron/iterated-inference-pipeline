@@ -111,16 +111,16 @@ class Cmodel:
 
         ##resolve the population size: (replace 'N' by either 'sum_SV', 'p_0' or 'N')
         if self.pop_size_eq_sum_sv:
-            myN = 'N' if 'N' in self.par_fixed else 'sum_SV'
+            self.myN = 'N' if 'N' in self.par_fixed else 'sum_SV'
         else:
-            myN = 'N' if 'N' in self.par_fixed else 'p_0'
+            self.myN = 'N' if 'N' in self.par_fixed else 'p_0'
 
         for i, m in enumerate(self.unexpanded_proc_model):
-            self.unexpanded_proc_model[i]['rate'] = m['rate'].replace('N', myN)
+            self.unexpanded_proc_model[i]['rate'] = m['rate'].replace('N', self.myN)
 
         for k, v in self.obs_model.iteritems():
             if k != 'dist':
-                self.obs_model[k] = v.replace('N', myN)
+                self.obs_model[k] = v.replace('N', self.myN)
 
 
         self.proc_model = self.expand_proc_model(self.unexpanded_proc_model)

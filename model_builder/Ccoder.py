@@ -580,6 +580,8 @@ class Ccoder(Cmodel):
                 rate = '({0})*{1}'.format(r['rate'], r['from'])
             else:
                 rate = r['rate']
+        
+            rate += '/' + self.myN
 
             F[rInd] = self.make_C_term(rate, True)
 
