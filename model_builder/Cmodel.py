@@ -94,6 +94,18 @@ class Cmodel:
         self.unexpanded_proc_model, self.drift_par_proc, self.vol_par_proc = self.undrift_proc_model(process['model'])
         self.obs_model, self.drift_par_obs, self.vol_par_obs = self.undrift_obs_model(link['model'][link['model'].keys()[0]]) ##TODO: different observation process models...
 
+
+        #get par_fixed involved in the obs_model (par_fixed_obs):
+        self.par_fixed_obs = []
+        for k, v in self.obs_model.iteritems():
+            if k != 'distribution' and k != 'comment':
+                elements = self.change_user_input(v)
+                for e in elements:
+                    if e in self.par_fixed:
+                        self.par_fixed_obs.append(e)
+
+        self.par_fixed_obs = set(self.par_fixed_obs)
+
         self.drift_var = ['drift__par_proc__' + x for x in self.drift_par_proc]
         self.drift_var += ['drift__par_obs__' + x for x in self.drift_par_obs]
 
@@ -186,7 +198,7 @@ class Cmodel:
         vol_par_obs = []
 
         for k, v in obs_model.iteritems():
-            if k != 'dist':
+            if k != 'distribution' and k != 'comment':
                 if 'drift(' in v:
                     rl = self.change_user_input(v)
                     ind_drift = rl.index('drift')

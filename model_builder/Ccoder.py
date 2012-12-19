@@ -43,6 +43,8 @@ class Ccoder(Cmodel):
                 return  'sum_SV(X, cac)'
             elif term == 'prop':
                 return 'p_data->rep1[nn][ts]'
+            elif term in self.par_fixed_obs:
+                return 'covar[ORDER_{0}][nn][ts]'.format(term)
             else:
                 return 'covar[ORDER_{0}][nn][cac]'.format(term)
 

@@ -24,37 +24,8 @@ import os
 #from dateutil import rrule
 #from datetime import datetime
 
-def handle_context_data(source, context_header):
-    """
-    Takes into account that source can be a path to a csv or a native array and check that the header match the context header.
-    """
-
-    #if source is a string : read from csv and replace source by the read array
-    if isinstance(source, str) or isinstance(source, unicode):
-        try :
-            f = open(source, 'r')
-        except IOError:
-            sys.stderr.write('\033[91m' + 'FAILURE! ' + '\033[0m' + source + ' from ' + os.getcwd() + ' could not be found\n')
-            sys.exit(1)
-        else:
-            reader = csv.reader(f, delimiter=',', quotechar='"')
-            header = [next(reader)] #skip header
-            source = header + [[row[0]] + map(lambda x: float(x) if x!='null' else None, row[1:]) for row in reader if row!=[]]
-            f.close()
-
-    #source is now an array (it was or it has been transformed into one with csv)
-    if source:
-        if source[0][0] == 'date' and source[0][1:] == context_header:
-            data = {'header': source[0],
-                    'values': [x[1:] for x in source[1:]],
-                    'dates': [x[0] for x in source[1:]]}
-        else:
-            sys.stderr.write('\033[91m' + 'FAILURE! ' + '\033[0m' + " data header doesn't match context description\n")
-            sys.exit(1)
-    else:
-        data = {'header':[], 'values':[], 'dates':[]}
-
-    return data
+class PlomContextError(Exception):
+    pass
 
 
 class Context:
@@ -105,13 +76,13 @@ class Context:
 
             for d in context['data']:
                 if d['id'] == 'data':
-                    mydata = handle_context_data(d['source'], self.ts_id)
+                    mydata = self.handle_context_data(d['source'])
                     self.data = mydata['values']
                     self.dates = mydata['dates']
                 elif d['id'] == 'prop':
-                    self.prop = handle_context_data(d['source'], self.ts_id)['values']
+                    self.prop = self.handle_context_data(d['source'])['values']
                 else:
-                    self.par_fixed_values[d['id']] = handle_context_data(d['source'], self.cac_id)['values']
+                    self.par_fixed_values[d['id']] = self.handle_context_data(d['source'])['values']
 
         self.N_DATA = len(self.data)
 
@@ -122,6 +93,42 @@ class Context:
 
         ##TO DO:
         ##self.school_terms = copy.deepcopy(school_terms)
+
+
+    def handle_context_data(self, source):
+        """
+        Takes into account that source can be a path to a csv or a native array and check that the header match the context header.
+        """
+
+        #if source is a string : read from csv and replace source by the read array
+        if isinstance(source, str) or isinstance(source, unicode):
+            try :
+                f = open(source, 'r')
+            except IOError:
+                raise PlomContextError('\033[91m' + 'FAILURE! ' + '\033[0m' + source + ' from ' + os.getcwd() + ' could not be found')
+            else:
+                reader = csv.reader(f, delimiter=',', quotechar='"')
+                header = [next(reader)] #skip header
+                source = header + [[row[0]] + map(lambda x: float(x) if x!='null' else None, row[1:]) for row in reader if row!=[]]
+                f.close()
+
+        #source is now an array (it was or it has been transformed into one with csv)
+        if source:
+            if source[0][0] != 'date':
+                raise PlomContextError("\033[91mFAIL:\033[0m data header doesn't match context description {0} != date".format(source[0][0]))
+            if source[0][1:] != self.cac_id and source[0][1:] !=self.ts_id:
+                raise PlomContextError("\033[91mFAIL:\033[0m data header doesn't match context description")
+
+            data = {'header': source[0],
+                    'values': [x[1:] for x in source[1:]],
+                    'dates': [x[0] for x in source[1:]]}
+
+        else:
+            data = {'header':[], 'values':[], 'dates':[]}
+
+        return data
+
+
 
 
 if __name__ == '__main__':

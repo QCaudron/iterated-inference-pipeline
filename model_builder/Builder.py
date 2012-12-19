@@ -93,10 +93,6 @@ class PlomModelBuilder(Context, Ccoder):
 
         self.partition = copy.deepcopy(link.get('partition', {}))
 
-        ##########################
-        ##Parameters
-        ##########################
-        #self.set_values(link)
 
         ##########################
         ##sort context
@@ -127,17 +123,9 @@ class PlomModelBuilder(Context, Ccoder):
         if self.data:
             self.data = [ [ y[x] for x in ind_sorted ] for y in self.data ]
 
-        #get par_fixed involved in the obs_model (par_fixed_to_be_sorted):
-        par_fixed_to_be_sorted = []
-        for x in self.obs_model:
-            elements = self.change_user_input(x)
-            for e in elements:
-                if e in self.par_fixed:
-                    par_fixed_to_be_sorted.append(e)
-
-        #sort par_fixed_to_be_sorted
-        if par_fixed_to_be_sorted:
-            for p in par_fixed_to_be_sorted:
+        #sort self.par_fixed_obs
+        if self.par_fixed_obs:
+            for p in self.par_fixed_obs:
                 self.par_fixed_values[p] = [ [ y[x] for x in ind_sorted ] for y in self.par_fixed_values[p] ]
 
 
@@ -259,6 +247,9 @@ class PlomModelBuilder(Context, Ccoder):
         link('simul')
 
         if not simulation_only:
+            os.chdir(os.path.join(path_src_C,  'smc'))
+            link('smc')
+
             os.chdir(os.path.join(path_src_C,  'simplex'))
             link('simplex')
 
