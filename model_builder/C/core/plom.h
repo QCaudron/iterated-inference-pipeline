@@ -733,7 +733,7 @@ void clean_groups_compo(struct s_group **compo, int n_gp);
 
 /* simplex.c */
 void transfer_estimated(struct s_best *p_best, const gsl_vector *x);
-void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simplex, double (*f_simplex)(const gsl_vector *, void *), double CONVERGENCE_STOP_SIMPLEX, int M);
+void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simplex, double (*f_simplex)(const gsl_vector *, void *), double CONVERGENCE_STOP_SIMPLEX, int M, const int option_no_trace);
 
 /* zhelpers.c */
 int sfr_send(void *socket, char *string);

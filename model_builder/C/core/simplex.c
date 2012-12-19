@@ -32,7 +32,7 @@ void transfer_estimated(struct s_best *p_best, const gsl_vector *x)
 
 }
 
-void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simplex, double (*f_simplex)(const gsl_vector *, void *), double CONVERGENCE_STOP_SIMPLEX, int M)
+void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simplex, double (*f_simplex)(const gsl_vector *, void *), double CONVERGENCE_STOP_SIMPLEX, int M, const int option_no_trace)
 {
   /* simplex algo using GSL. Straightforward adaptation of the GSL doc
      example */
@@ -43,7 +43,7 @@ void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simple
 
   FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
 
-  double log_like;
+  double log_like = 0.0;
 
   const gsl_multimin_fminimizer_type *T = gsl_multimin_fminimizer_nmsimplex2;
   gsl_multimin_fminimizer *simp = NULL;
@@ -94,9 +94,16 @@ void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simple
 #endif
 
       transfer_estimated(p_best, gsl_multimin_fminimizer_x(simp));
-      print_best(p_file_best, iter-1, p_best, p_data, log_like);
+
+      if(!option_no_trace) {
+          print_best(p_file_best, iter-1, p_best, p_data, log_like);
+      }
 
     } while (status == GSL_CONTINUE && iter < M);
+
+  if(option_no_trace) {
+      print_best(p_file_best, iter-1, p_best, p_data, log_like);
+  }
 
   sfr_fclose(p_file_best);
 

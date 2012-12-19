@@ -60,6 +60,7 @@ int main(int argc, char *argv[])
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-M, --iter         maximum number of iterations\n"
         "-S, --size         simplex size used as a stopping criteria\n"
+        "-b, --no_traces    do not write the traces\n"
         "--help             print the usage on stdout\n";
 
 
@@ -82,6 +83,8 @@ int main(int argc, char *argv[])
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
 
+    int option_no_trace = 0;
+
 
     // commands
     COMMAND_DETER = 0;
@@ -89,6 +92,8 @@ int main(int argc, char *argv[])
 
     static struct option long_options[] = {
         {"help",       no_argument,       0, 'e'},
+        {"no_trace",   no_argument,  0, 'b'},
+
         {"path",       required_argument, 0, 'p'},
         {"id",         required_argument, 0, 'i'},
 
@@ -107,7 +112,7 @@ int main(int argc, char *argv[])
     N_THREADS = 1; //not an option
 
     int option_index = 0;
-    while ((ch = getopt_long (argc, argv, "i:l:s:p:S:M:", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long (argc, argv, "i:l:s:p:S:M:b", long_options, &option_index)) != -1) {
         switch (ch) {
         case 0:
             break;
@@ -115,6 +120,10 @@ int main(int argc, char *argv[])
         case 'e':
             print_log(sfr_help_string);
             return 1;
+
+        case 'b':
+            option_no_trace = 1;
+            break;
 
         case 'p':
             snprintf(SFR_PATH, STR_BUFFSIZE, "%s", optarg);
@@ -199,7 +208,7 @@ int main(int argc, char *argv[])
 
     transform_theta(p_kalman->p_best, NULL, NULL, p_kalman->p_data, 1, 1);
 
-    simplex(p_kalman->p_best, p_kalman->p_data, p_kalman, f_simplex_kalman, CONVERGENCE_STOP_SIMPLEX, M);
+    simplex(p_kalman->p_best, p_kalman->p_data, p_kalman, f_simplex_kalman, CONVERGENCE_STOP_SIMPLEX, M, option_no_trace);
 
 #if FLAG_VERBOSE
     print_log("clean up...\n");

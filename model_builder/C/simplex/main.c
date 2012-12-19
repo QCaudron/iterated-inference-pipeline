@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
         "-l, --LIKE_MIN       likelihood smaller that LIKE_MIN are considered 0.0\n"
         "-M, --iter           maximum number of iterations\n"
         "-S, --size           simplex size used as a stopping criteria\n"
+        "-b, --no_traces      do not write the traces\n"
         "--help               print the usage on stdout\n";
 
 
@@ -52,7 +53,7 @@ int main(int argc, char *argv[])
     LOG_LIKE_MIN = log(1e-17);
     OPTION_LEAST_SQUARE = 0;
     N_THREADS = 1; //not an option
-
+    int option_no_trace = 0;
 
     while (1) {
         static struct option long_options[] =
@@ -60,6 +61,7 @@ int main(int argc, char *argv[])
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
                 {"help", no_argument,  0, 'e'},
                 {"least_square", no_argument,  0, 's'},
+                {"no_trace", no_argument,  0, 'b'},
                 {"path",    required_argument, 0, 'p'},
                 {"id",    required_argument, 0, 'i'},
                 {"LIKE_MIN",     required_argument,   0, 'l'},
@@ -71,7 +73,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "si:l:M:S:p:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "si:l:M:S:p:b", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -89,6 +91,9 @@ int main(int argc, char *argv[])
             print_log(sfr_help_string);
             return 1;
 
+        case 'b':
+            option_no_trace = 1;
+            break;
         case 's':
             OPTION_LEAST_SQUARE = 1;
             break;
@@ -143,7 +148,7 @@ int main(int argc, char *argv[])
         sfr_fclose(p_file_best);
     } else {
         //run the simplex algo
-        simplex(p_simplex->p_best, p_simplex->p_data, p_simplex, f_simplex, CONVERGENCE_STOP_SIMPLEX, M);
+        simplex(p_simplex->p_best, p_simplex->p_data, p_simplex, f_simplex, CONVERGENCE_STOP_SIMPLEX, M, option_no_trace);
     }
 
 
