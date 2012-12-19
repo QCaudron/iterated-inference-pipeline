@@ -429,15 +429,17 @@ int eval_G(gsl_matrix *G, const double *X, struct s_par *p_par, struct s_data *p
     return status;
 }
 
-void eval_Q(gsl_matrix *Q, const double *proj, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_kalman_specific_data *p_kalman_specific_data, double t)
+void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_kalman_specific_data *p_kalman_specific_data, double t)
 {
 
     struct s_router **routers = p_data->routers;
     struct s_iterator *p_it = p_data->p_it_only_drift;
 
     int i, k, cac, offset;
-
+    const int nn = p_calc->current_nn;
+    
     double **par = p_par->natural;
+    double ***covar = p_data->par_fixed;
 
     // reset Q
     gsl_matrix_set_zero(Q);
@@ -467,23 +469,23 @@ void eval_Q(gsl_matrix *Q, const double *proj, struct s_par *p_par, struct s_dat
         gsl_matrix_set(Q,
                        {{ x.from }} * N_CAC + cac,
                        {{ x.to }} * N_CAC + cac,
-                       -pow({{ x.prod_sd|safe }} , 2));
+                       -pow({{ x.prod_sd|safe }} * DT * {{ x.rate|safe }}, 2));
 
         gsl_matrix_set(Q,
                        {{ x.to }} * N_CAC + cac,
                        {{ x.from }} * N_CAC + cac,
-                       -pow({{ x.prod_sd|safe }} , 2));
+                       -pow({{ x.prod_sd|safe }} * DT * {{ x.rate|safe }}, 2));
 
         gsl_matrix_set(Q,
                        {{ x.to }} * N_CAC + cac,
                        {{ x.to }} * N_CAC + cac,
-                       pow({{ x.prod_sd|safe }} , 2));
+                       pow({{ x.prod_sd|safe }} * DT * {{ x.rate|safe }}, 2));
         {% endif %}
 
         gsl_matrix_set(Q,
                        {{ x.from }} * N_CAC + cac,
                        {{ x.from }} * N_CAC + cac,
-                       pow({{ x.prod_sd|safe }} , 2));
+                       pow({{ x.prod_sd|safe }} * DT * {{ x.rate|safe }}, 2));
 
         {% endfor %}
     }
@@ -497,7 +499,7 @@ void eval_Q(gsl_matrix *Q, const double *proj, struct s_par *p_par, struct s_dat
     // if demographic stochasticity is taken into account
     if(!COMMAND_DETER) {
         gsl_matrix *G = p_kalman_specific_data->G;
-        eval_G(G, proj, p_par, p_data, p_calc, p_kalman_specific_data, t);
+        eval_G(G, X, p_par, p_data, p_calc, p_kalman_specific_data, t);
         gsl_matrix_add(Q, G); // Q <- Q+G
     }
 }

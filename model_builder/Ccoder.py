@@ -518,9 +518,14 @@ class Ccoder(Cmodel):
                                 sd.append(self.toC(terms[ind]))
                             ind +=1
 
-                res.append({'from': self.par_sv.index(reac['from']) if reac['from'] not in self.universes else self.par_sv.index(reac['to']),
-                            'to': self.par_sv.index(reac['to']) if reac['to'] not in self.universes else self.par_sv.index(reac['from']),
-                            'prod_sd': '*'.join(sd)})
+                if reac['from'] not in self.universes:
+                    rate = '({0})*{1}'.format(reac['rate'], reac['from'])
+                else:
+                    rate = reac['rate']
+                    res.append({'from': self.par_sv.index(reac['from']) if reac['from'] not in self.universes else self.par_sv.index(reac['to']),
+                               'to': self.par_sv.index(reac['to']) if reac['to'] not in self.universes else self.par_sv.index(reac['from']),
+                               'prod_sd': '*'.join(sd),
+                               'rate' : self.make_C_term(rate, True)})
 
         return res
 
