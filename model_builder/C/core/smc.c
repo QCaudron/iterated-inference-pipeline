@@ -168,6 +168,23 @@ void resample_X(unsigned int *select, struct s_X ***J_p_X, struct s_X ***J_p_X_t
 
 
 /**
+ * load X_0 for the J-1 other particles
+ */
+void replicate_J_p_X_0(struct s_X **J_p_X, struct s_data *p_data)
+{
+    int i, j;
+
+    for(j=1; j<J; j++) {
+        memcpy(J_p_X[j]->proj, J_p_X[0]->proj, J_p_X[j]->size_proj * sizeof(double));
+        for (i=0; i<p_data->p_it_only_drift->length; i++) {
+            memcpy(J_p_X[j]->drift[i], J_p_X[0]->drift[i], p_data->routers[ p_data->p_it_only_drift->ind[i] ]->n_gp *sizeof(double) );
+        }
+    }
+}
+
+
+
+/**
    run an SMC algorithm.
 
    D_J_p_X is [N_DATA+1][J]. The "+1" is for initial condition (one

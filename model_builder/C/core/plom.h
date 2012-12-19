@@ -679,7 +679,7 @@ void weight(struct s_likelihood *p_like, int n);
 void systematic_sampling(struct s_likelihood *p_like, struct s_calc *p_calc, int n);
 void multinomial_sampling(struct s_likelihood *p_like, struct s_calc *p_calc, int n);
 void resample_X(unsigned int *select, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_data *p_data);
-
+void replicate_J_p_X_0(struct s_X **J_p_X, struct s_data *p_data);
 void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, void (*f_pred) (struct s_X *, double, double, struct s_par *, struct s_data *, struct s_calc *), int option_filter, FILE *p_file_X, FILE *p_file_pred_res);
 void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, void (*f_pred) (struct s_X *, double, double, struct s_par *, struct s_data *, struct s_calc *), int Jchunk, void *sender, void *receiver, void *controller);
 

@@ -19,22 +19,6 @@
 #include "pmcmc.h"
 
 /**
- * load X_0 for J-1 other particles
- */
-void copy_X_0(struct s_X ***D_J_p_X, struct s_data *p_data)
-{
-    int i,j;
-
-    for(j=1; j<J; j++) {
-        memcpy(D_J_p_X[0][j]->proj, D_J_p_X[0][0]->proj, (N_PAR_SV*N_CAC + N_TS_INC_UNIQUE) * sizeof(double));
-        for (i=0; i<p_data->p_it_only_drift->length; i++) {
-            memcpy(D_J_p_X[0][j]->drift[i], D_J_p_X[0][0]->drift[i], p_data->routers[ p_data->p_it_only_drift->ind[i] ]->n_gp *sizeof(double) );
-        }
-    }
-
-}
-
-/**
  * run SMC
  */
 void run_propag(
@@ -248,7 +232,7 @@ void pMCMC(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     theta_driftIC2Xdrift(D_J_p_X[0][0], p_best->proposed, p_data);
 
     //load X_0 for the J-1 other particles
-    copy_X_0(D_J_p_X, p_data);
+    replicate_J_p_X_0(D_J_p_X[0], p_data);
 
     //run SMC
     run_propag(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat_new, p_like, p_data, calc, sender, receiver, controller);
@@ -299,7 +283,7 @@ void pMCMC(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         propose_new_theta_and_load_X0(&sd_fac, p_best, D_J_p_X[0][0], p_par, p_data, p_pmcmc_calc_data, calc[0], m);
 
         //load X_0 for the J-1 other particles
-        copy_X_0(D_J_p_X, p_data);
+        replicate_J_p_X_0(D_J_p_X[0], p_data);
 
         back_transform_theta2par(p_par, p_best->proposed, p_data->p_it_par_proc_par_obs_no_drift, p_data);
 

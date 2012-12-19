@@ -65,7 +65,6 @@ struct s_pmcmc
 
 
 /* pmcmc.c */
-void copy_X_0(struct s_X ***D_J_p_X, struct s_data *p_data);
 void run_propag(
                 struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_new,
                 struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc,

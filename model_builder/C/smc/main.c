@@ -225,12 +225,7 @@ int main(int argc, char *argv[])
     prop2Xpop_size(D_J_p_X[0][0], p_data, COMMAND_STO);
     theta_driftIC2Xdrift(D_J_p_X[0][0], p_best->mean, p_data);
 
-    for(j=1; j<J; j++) {  //load X_0 for the J-1 other particles
-        memcpy(D_J_p_X[0][j]->proj, D_J_p_X[0][0]->proj, D_J_p_X[0][j]->size_proj * sizeof(double));
-        for (i=0; i<p_data->p_it_only_drift->length; i++) {
-            memcpy(D_J_p_X[0][j]->drift[i], D_J_p_X[0][0]->drift[i], p_data->routers[ p_data->p_it_only_drift->ind[i] ]->n_gp *sizeof(double) );
-        }
-    }
+    replicate_J_p_X_0(D_J_p_X[0], p_data);
 
     if (COMMAND_DETER) {
         run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, f_prediction_with_drift_deter, filter, p_file_X, p_file_pred_res);
