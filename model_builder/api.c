@@ -9,16 +9,17 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
     load_const(settings);
 
-    struct s_data *p_data = build_data(settings, 0);
-    json_decref(settings);
-
-    struct s_calc **calc = build_calc(0, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_data);
+    json_t *theta = load_json();
+    struct s_data *p_data = build_data(settings, theta, 0);
+    struct s_calc **calc = build_calc(GENERAL_ID, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_data);
     struct s_par *p_par = build_par(p_data);
     struct s_X **J_p_X = build_J_p_X(p_data);
     struct s_X **J_p_X_tmp = build_J_p_X(p_data);
-    struct s_best *p_best = build_best(p_data, 0);
+    struct s_best *p_best = build_best(p_data, theta, 0);
     struct s_likelihood *p_like = build_likelihood();
 
+    json_decref(settings);
+    json_decref(theta);
 
     print_log("starting computations...");
 
@@ -29,7 +30,7 @@ int main(int argc, char *argv[])
     theta_driftIC2Xdrift(J_p_X[0], p_best->mean, p_data);
 
     //load X_0 for the J-1 other particles
-    copy_J_p_X_0(J_p_X, p_data); //TO DO FROM SMC AND BACKPORT TO PMCMC
+    replicate_J_p_X_0(J_p_X, p_data);
 
     int j, n, nn, nnp1, t0, t1, thread_id;
     t0=0;

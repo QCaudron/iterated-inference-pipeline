@@ -32,7 +32,6 @@ struct s_simplex *build_simplex(int general_id)
 
   json_t *settings = load_settings(PATH_SETTINGS);
   json_t *theta = load_json();
-  load_const(settings);
   p_simplex->p_data = build_data(settings, theta, 0); //also build obs2ts
   json_decref(settings);
 

@@ -24,7 +24,6 @@ struct s_mif *build_mif(int has_dt_be_specified, double dt_option, double prop_L
 
     json_t *settings = load_settings(PATH_SETTINGS);
     json_t *theta = load_json();
-    load_const(settings);
 
     if (has_dt_be_specified) {
         DT = dt_option;

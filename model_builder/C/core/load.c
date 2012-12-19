@@ -441,45 +441,55 @@ void load3u_varp1(unsigned int ***tab, int n, unsigned int *colbreaks1, unsigned
 }
 
 
-void load_const(json_t *root)
+/**
+ *load constants defined as global variable
+ */
+json_t *load_settings(const char *path)
 {
-  /*load constants defined as global variable*/
+    json_error_t settings_error;
+    json_t *settings = json_load_file(path, 0, &settings_error);
+    if(!settings) {
+        print_err(settings_error.text);
+        exit(EXIT_FAILURE);
+    }
 
 #if FLAG_VERBOSE
-  print_log("load Simforence constants...");
+    print_log("load plom settings...");
 #endif
 
-  POP_SIZE_EQ_SUM_SV = fast_get_json_boolean(root, "POP_SIZE_EQ_SUM_SV");
+    POP_SIZE_EQ_SUM_SV = fast_get_json_boolean(settings, "POP_SIZE_EQ_SUM_SV");
 
-  json_t *cst = fast_get_json_object(root, "cst");
+    json_t *cst = fast_get_json_object(settings, "cst");
 
-  /*dimensions parameters*/
-  N_C = fast_get_json_integer(cst, "N_C");
-  N_AC = fast_get_json_integer(cst, "N_AC");
-  N_CAC = N_C*N_AC;
-  N_PAR_PROC = fast_get_json_integer(cst, "N_PAR_PROC");
-  N_PAR_OBS = fast_get_json_integer(cst, "N_PAR_OBS");
-  N_PAR_SV = fast_get_json_integer(cst, "N_PAR_SV");
-  N_PAR_FIXED = fast_get_json_integer(cst, "N_PAR_FIXED");
-  N_TS = fast_get_json_integer(cst, "N_TS");
-  N_TS_INC = fast_get_json_integer(cst, "N_TS_INC");
-  N_TS_INC_UNIQUE = fast_get_json_integer(cst, "N_TS_INC_UNIQUE");
-  N_DATA = fast_get_json_integer(cst, "N_DATA");
-  N_DATA_PAR_FIXED = fast_get_json_integer(cst, "N_DATA_PAR_FIXED");
-  //N_DATA_NONAN is computed and assigned in build_data
-  N_OBS_ALL = fast_get_json_integer(cst, "N_OBS_ALL");
-  N_OBS_INC = fast_get_json_integer(cst, "N_OBS_INC");
-  N_OBS_PREV = fast_get_json_integer(cst, "N_OBS_PREV");
+    /*dimensions parameters*/
+    N_C = fast_get_json_integer(cst, "N_C");
+    N_AC = fast_get_json_integer(cst, "N_AC");
+    N_CAC = N_C*N_AC;
+    N_PAR_PROC = fast_get_json_integer(cst, "N_PAR_PROC");
+    N_PAR_OBS = fast_get_json_integer(cst, "N_PAR_OBS");
+    N_PAR_SV = fast_get_json_integer(cst, "N_PAR_SV");
+    N_PAR_FIXED = fast_get_json_integer(cst, "N_PAR_FIXED");
+    N_TS = fast_get_json_integer(cst, "N_TS");
+    N_TS_INC = fast_get_json_integer(cst, "N_TS_INC");
+    N_TS_INC_UNIQUE = fast_get_json_integer(cst, "N_TS_INC_UNIQUE");
+    N_DATA = fast_get_json_integer(cst, "N_DATA");
+    N_DATA_PAR_FIXED = fast_get_json_integer(cst, "N_DATA_PAR_FIXED");
+    //N_DATA_NONAN is computed and assigned in build_data
+    N_OBS_ALL = fast_get_json_integer(cst, "N_OBS_ALL");
+    N_OBS_INC = fast_get_json_integer(cst, "N_OBS_INC");
+    N_OBS_PREV = fast_get_json_integer(cst, "N_OBS_PREV");
 
-  N_DRIFT_PAR_PROC = fast_get_json_integer(cst, "N_DRIFT_PAR_PROC");
-  N_DRIFT_PAR_OBS = fast_get_json_integer(cst, "N_DRIFT_PAR_OBS");
+    N_DRIFT_PAR_PROC = fast_get_json_integer(cst, "N_DRIFT_PAR_PROC");
+    N_DRIFT_PAR_OBS = fast_get_json_integer(cst, "N_DRIFT_PAR_OBS");
 
-  IS_SCHOOL_TERMS = fast_get_json_integer(cst, "IS_SCHOOL_TERMS");
+    IS_SCHOOL_TERMS = fast_get_json_integer(cst, "IS_SCHOOL_TERMS");
 
-  /*numerical integration parameters*/
-  DELTA_STO = fast_get_json_real(cst, "DELTA_STO");
-  DT = 1.0 / DELTA_STO;
-  ONE_YEAR_IN_DATA_UNIT = fast_get_json_real(cst, "ONE_YEAR_IN_DATA_UNIT");
+    /*numerical integration parameters*/
+    DELTA_STO = fast_get_json_real(cst, "DELTA_STO");
+    DT = 1.0 / DELTA_STO;
+    ONE_YEAR_IN_DATA_UNIT = fast_get_json_real(cst, "ONE_YEAR_IN_DATA_UNIT");
+
+    return settings;
 }
 
 
@@ -567,17 +577,4 @@ void load_covariance(gsl_matrix *covariance, json_t *array2d)
             }
         }
     }
-}
-
-
-
-json_t *load_settings(const char *path)
-{
-    json_error_t settings_error;
-    json_t *settings = json_load_file(path, 0, &settings_error);
-    if(!settings) {
-        print_err(settings_error.text);
-        exit(EXIT_FAILURE);
-    }
-    return settings;
 }

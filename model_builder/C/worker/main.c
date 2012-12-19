@@ -266,7 +266,6 @@ int main(int argc, char *argv[])
 
     json_t *settings = load_settings(PATH_SETTINGS);
     json_t *theta = load_json();
-    load_const(settings);
 
     if (has_dt_be_specified) {
         DT = dt_option;

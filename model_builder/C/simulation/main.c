@@ -208,8 +208,6 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
     json_t *theta = load_json();
 
-    load_const(settings);
-
     if((OPTION_BIF || OPTION_LYAP) && (J>1)) {
         J=1;
         print_log("for bifurcation analysis and Lyapunov exp. comupations, J must be 1 !!");

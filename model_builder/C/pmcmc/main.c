@@ -187,9 +187,7 @@ int main(int argc, char *argv[])
     }
 
 
-
     json_t *settings = load_settings(PATH_SETTINGS);
-    load_const(settings);
 
     int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?
     struct s_pmcmc *p_pmcmc = build_pmcmc(settings, has_dt_be_specified, dt_option, a, m_switch, m_eps, update_covariance);

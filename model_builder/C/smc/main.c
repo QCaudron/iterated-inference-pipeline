@@ -22,7 +22,6 @@ int main(int argc, char *argv[])
 {
     int ch;
     char str[STR_BUFFSIZE];
-    int i,j;
 
     /* set default values for the options */
 
@@ -172,7 +171,6 @@ int main(int argc, char *argv[])
 
 
     json_t *settings = load_settings(PATH_SETTINGS);
-    load_const(settings);
 
     if (has_dt_be_specified) {
         DT = dt_option;
