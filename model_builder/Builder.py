@@ -91,8 +91,6 @@ class PlomModelBuilder(Context, Ccoder):
             for ts in x['time_series_id']:
                 self.map_ts_obs[ts] = x['id']
 
-        self.partition = copy.deepcopy(link.get('partition', {}))
-
 
         ##########################
         ##sort context
