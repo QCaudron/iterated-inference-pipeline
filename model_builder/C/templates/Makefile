@@ -4,7 +4,7 @@ LDFLAGS=-lm -lgsl -lgslcblas -ljansson -lzmq
 LIB=libplomtpl.a
 SRC= $(wildcard *.c)
 OBJ= $(SRC:.c=.o)
-LIBDIR=../../lib
+LIBDIR=../lib
 
 all: $(EXEC) $(LIB)
 

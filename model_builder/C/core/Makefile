@@ -1,11 +1,9 @@
 CC=gcc
 CFLAGS=-fopenmp -std=gnu99 -Wall -O3 -DGSL_RANGE_CHECK_OFF
-LDFLAGS=-lm -lgsl -lgslcblas -ljansson -lzmq
 LIB=libplom.a
 SRC= $(wildcard *.c)
-#LIB_SRC=$(filter-out main.c, $(ALL_SRC))
 OBJ= $(SRC:.c=.o)
-LIBDIR=../../lib
+LIBDIR=../lib
 
 all: $(EXEC) $(LIB)
 

@@ -59,7 +59,6 @@ def main():
     parser.add_argument('-o', '--output', action="store", default=None, help='Path of the created element')
 
     ##generating model
-    parser.add_argument('-w', '--web',    action="store_true", default=False ,  help='Compile for the webApp')
     parser.add_argument('-s', '--simul',  action="store_true", default=False,   help='Compile only simulation methods')
     parser.add_argument('-i', '--input',  action="store",      default='files', help='Input type (used for the webApp)')
     parser.add_argument('-z', '--zip',    action="store_true", default=False,   help='tar.gz the created model')
@@ -112,7 +111,7 @@ def main():
 
     print("compiling")
 
-    model.compile(web=mycli.web, simulation_only=mycli.simul)
+    model.compile(simulation_only=mycli.simul)
     print(OKBLUE + "model compiled" + ENDC)
     print('writting settings...')
     model.write_settings()

@@ -11,7 +11,7 @@ setup(name='plom',
       packages=['plom'],
       package_dir={'plom': 'model_builder'},
       scripts=['scripts/pmbuilder'],
-      package_data={'plom': ['C/core/*',
+      package_data={'plom': ['C/lib/*',
                              'C/templates/*',
                              'C/kalman/*',
                              'C/mif/*',
@@ -19,6 +19,5 @@ setup(name='plom',
                              'C/simplex/*',
                              'C/simulation/*',
                              'C/smc/*',
-                             'C/worker/*',
-                             'doc/Doxyfile']}
+                             'C/worker/*']}
 )

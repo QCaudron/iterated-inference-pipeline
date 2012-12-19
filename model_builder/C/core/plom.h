@@ -69,7 +69,7 @@
 #define FLAG_DEBUG 0
 #define FLAG_VERBOSE 1
 #define FLAG_WARNING 0
-#define FLAG_JSON 1 /**< webApp */
+#define FLAG_JSON 0 /**< webApp */
 
 #define ABS_TOL 1e-6 /**< absolute error control for ODE*/
 #define REL_TOL 1e-6 /**< relative error control for ODE*/

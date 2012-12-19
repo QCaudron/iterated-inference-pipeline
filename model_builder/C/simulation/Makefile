@@ -8,8 +8,10 @@ BINDIR=../..
 
 all: $(EXEC)
 
+obj: $(OBJ)
+
 $(EXEC): $(OBJ)
-	$(CC) $(CFLAGS) -L../../lib -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -L../lib -o $@ $^ $(LDFLAGS)
 
 %.o: %.c simulation.h
 	$(CC) $(CFLAGS) -o $@ -c $<

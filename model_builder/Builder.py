@@ -227,45 +227,54 @@ class PlomModelBuilder(Context, Ccoder):
         os.remove(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_template.c'))
 
 
-    def compile(self, web=False, simulation_only=False):
+    def compile(self, simulation_only=False):
         """compiles the generated code.
         web is a flag indicating if outputs should be printed in JSON on stdout or in csv on FILE
         """
 
         path_src_C = os.path.join(self.path_rendered, 'C')
-
-        dirs=['core', 'templates', 'simulation']
-        if not simulation_only:
-            dirs.extend(['smc', 'simplex', 'mif', 'pmcmc', 'worker', 'kalman'])
-
-        if web:
-            cmd = 'sed -ie "s/#define FLAG_JSON \([0-9]*\)/#define FLAG_JSON 1/" plom.h'
-        else:
-            cmd = 'sed -ie "s/#define FLAG_JSON \([0-9]*\)/#define FLAG_JSON 0/" plom.h'
-
         wd = os.getcwd()
 
-        ##set correct FLAG_JSON
-        os.chdir(os.path.join(path_src_C, 'core'))
-
+        ##compile the templates and create libplomtpl
+        cmd = 'make {0} && make install'.format('CC=gcc-4.7' if distutils.spawn.find_executable('gcc-4.7') else '')
+        print('\033[94m  compiling the templates (running {0})...\033[0m'.format(cmd))
+        os.chdir(os.path.join(path_src_C,  'templates'))
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
         for line in p.readlines():
             print(line.rstrip())
         os.chdir(wd)
 
-        ##compile
-        cmd = 'make {0}; make install'.format('CC=gcc-4.7' if distutils.spawn.find_executable('gcc-4.7') else '')
-
-        for d in dirs:
-            os.chdir(os.path.join(path_src_C,  d))
-            print('\033[94m  compiling : {0} (running {1})...\033[0m'.format(d, cmd))
+        ##linking
+        def link(target, install=True):
+            print('\033[94m linking {0}...\033[0m'.format(target))
+            cmd = 'make {0} {1}'.format('CC=gcc-4.7' if distutils.spawn.find_executable('gcc-4.7') else '', target)
+            if install:
+                 cmd += ' && make install'
 
             p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
             for line in p.readlines():
-                print line.rstrip()
+                print(line.rstrip())
 
-        os.chdir(wd)
+        os.chdir(os.path.join(path_src_C,  'simulation'))
+        link('simul')
 
+        if not simulation_only:
+            os.chdir(os.path.join(path_src_C,  'simplex'))
+            link('simplex')
+
+            os.chdir(os.path.join(path_src_C,  'mif'))
+            link('mif')
+
+            os.chdir(os.path.join(path_src_C,  'pmcmc'))
+            link('pmcmc')
+
+            os.chdir(os.path.join(path_src_C,  'worker'))
+            link('worker')
+
+            os.chdir(os.path.join(path_src_C,  'kalman'))
+            link('kalman', False)
+            link('kmcmc', False)
+            link('ksimplex')
 
     ##########################
     ##write
