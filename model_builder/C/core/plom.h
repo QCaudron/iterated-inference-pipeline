@@ -425,8 +425,7 @@ struct s_likelihood
 
     unsigned int **select;      /**< N_DATA_NONAN][J] select is a vector with the indexes of the resampled particles. Note that we keep @c N_DATA_NONAN values to keep genealogies */
 
-    int all_fail;               /**< In a given time of a given iteration, every particles had like < LIKE_MIN */
-    int n_all_fail;             /**< number of times with all_fail within one iteration */
+    int n_all_fail;             /**< number of times when every particles had like < LIKE_MIN within one iteration */
 
     /* for bayesian methods */
     int accept;                 /**< number of proposed values of the parameters accepted by Metropolis Hastings */
@@ -674,7 +673,7 @@ void swap_X(struct s_X ***X, struct s_X ***tmp_X);
 void swap_D_p_hat(struct s_hat ***D_phat, struct s_hat ***tmp_D_p_hat);
 
 /* smc.c */
-void weight(struct s_likelihood *p_like, int n);
+int weight(struct s_likelihood *p_like, int n);
 void systematic_sampling(struct s_likelihood *p_like, struct s_calc *p_calc, int n);
 void multinomial_sampling(struct s_likelihood *p_like, struct s_calc *p_calc, int n);
 void resample_X(unsigned int *select, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_data *p_data);

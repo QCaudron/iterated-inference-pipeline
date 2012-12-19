@@ -19,11 +19,12 @@
 #include "plom.h"
 
 /**
-   Computes the weight of the particles.
-   Note that p_like->weights already contains the likelihood
+* Computes the weight of the particles.
+* Note that p_like->weights already contains the likelihood
+* @return the sucess status (sucess if some particles have a likelihood > LIKE_MIN)
 */
 
-void weight(struct s_likelihood *p_like, int n)
+int weight(struct s_likelihood *p_like, int n)
 {
 
 #if FLAG_WARNING
@@ -34,11 +35,11 @@ void weight(struct s_likelihood *p_like, int n)
 
     double like_tot_n = 0.0;
     int nfailure_n = 0;
+    int success = 1;
 
     p_like->ess_n = 0.0;
 
     for(j=0;j<J;j++) {
-
         /*compute first part of weights (non divided by sum likelihood)*/
         if (p_like->weights[j] <= LIKE_MIN) {
             p_like->weights[j] = 0.0;
@@ -52,7 +53,7 @@ void weight(struct s_likelihood *p_like, int n)
 
     /*compute second part of weights (divided by sum likelihood)*/
     if(nfailure_n == J) {
-        p_like->all_fail = 1;
+        success = 0;
         p_like->n_all_fail += 1;
 #if FLAG_WARNING
         sprintf(str,"warning: nfailure = %d, at n=%d we keep all particles and assign equal weights", nfailure_n , n);
@@ -68,8 +69,6 @@ void weight(struct s_likelihood *p_like, int n)
         p_like->ess_n = 0.0;
 
     } else {
-        p_like->all_fail = 0;
-
         for(j=0;j<J;j++) {
             p_like->weights[j] /= like_tot_n;
         }
@@ -79,7 +78,10 @@ void weight(struct s_likelihood *p_like, int n)
     }
 
     p_like->Llike_best += p_like->Llike_best_n;
+
+    return success;
 }
+
 
 /**
    Systematic sampling.  Systematic sampling is faster than
@@ -258,9 +260,8 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
                 //round_inc(D_J_p_X[nnp1][j]);
                 proj2obs(D_J_p_X[nnp1][j], p_data); //note that if we don't want to compute hat nor sample trajectories this can be moved outside the for loop on nn
 
-
                 if(N_DRIFT_PAR_OBS) {
-                    compute_drift(D_J_p_X[nnp1][j], p_par, p_data, calc[thread_id], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS, DT);
+                    compute_drift(D_J_p_X[nnp1][j], p_par, p_data, calc[thread_id], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS, 1.0); //1.0 is delta_t (nnp1-nn)
                 }
                 if(nnp1 == t1) {
                     drift_par(calc[thread_id], p_par, p_data, D_J_p_X[nnp1][j], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
@@ -277,9 +278,7 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
 
         if(option_filter) {
 
-            weight(p_like, n);
-
-            if(!p_like->all_fail) {
+            if(weight(p_like, n)) {
                 systematic_sampling(p_like, calc[0], n);
             }
             compute_hat(D_J_p_X, p_par, p_data, calc, D_p_hat, p_like->weights, t0, t1);
@@ -350,7 +349,7 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
                 proj2obs(D_J_p_X[nnp1][ the_j ], p_data);
 
                 if(N_DRIFT_PAR_OBS) {
-                    compute_drift(D_J_p_X[nnp1][ the_j ], p_par, p_data, calc[0], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC+N_DRIFT_PAR_OBS, DT);
+                    compute_drift(D_J_p_X[nnp1][ the_j ], p_par, p_data, calc[0], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC+N_DRIFT_PAR_OBS, 1.0); //1.0 is delta_t (nnp1-nn)
                 }
                 if(nnp1 == t1) {
                     drift_par(calc[0], p_par, p_data, D_J_p_X[nnp1][ the_j ], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
@@ -360,9 +359,7 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
 
         } /* end for on nn */
 
-        weight(p_like, n);
-
-        if (!p_like->all_fail) {
+        if (weight(p_like, n)) {
             systematic_sampling(p_like, calc[0], n);
         }
 

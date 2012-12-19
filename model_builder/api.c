@@ -7,9 +7,8 @@ int main(int argc, char *argv[])
 
     print_log("memory allocation and inputs loading...");
     json_t *settings = load_settings(PATH_SETTINGS);
-    load_const(settings);
-
     json_t *theta = load_json();
+
     struct s_data *p_data = build_data(settings, theta, 0);
     struct s_calc **calc = build_calc(GENERAL_ID, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_data);
     struct s_par *p_par = build_par(p_data);
@@ -47,7 +46,7 @@ int main(int argc, char *argv[])
                 thread_id = omp_get_thread_num();
                 reset_inc(J_p_X[j]);
                 f_prediction_with_drift_sto(J_p_X[j], nn, nnp1, p_par, p_data, calc[thread_id]);
-                compute_drift_par_obs(J_p_X[j], p_par, p_data, calc[thread_id], DT); ////TODO compute_drift_par_obs instead of only compute_drift to abstract N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS FIX DT: BUG DT... change to compute_drift_par_obs(J_p_X[j], nn, nnp1, p_par, p_data, calc[thread_id])
+                compute_drift_par_obs(J_p_X[j], p_par, p_data, calc[thread_id], 1.0); ////TODO compute_drift_par_obs instead of only compute_drift to abstract N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS FIX DT: change to compute_drift_par_obs(J_p_X[j], nn, nnp1, p_par, p_data, calc[thread_id])
 
                 if(nnp1 == t1) {
                     proj2obs(J_p_X[j], p_data);

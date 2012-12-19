@@ -219,7 +219,7 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
     int ind_par_Xdrift_applied;
 
     /* makes sure that p_calc contains the natural values of the drifted obs process parameters */
-    drift_par(p_calc, p_par, p_data,  p_X, N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
+    drift_par(p_calc, p_par, p_data, p_X, N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
 
 
 #if FLAG_JSON

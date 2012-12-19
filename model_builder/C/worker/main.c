@@ -94,7 +94,7 @@ void *worker_routine (void *params) {
 //		if we want that the worker compute the likelihood
 //                proj2obs(p_X);
 //                if(N_DRIFT_PAR_OBS) {
-//                    compute_drift(p_X, p_par, p_data, p_calc, N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC+N_DRIFT_PAR_OBS);
+//                    compute_drift(p_X, p_par, p_data, p_calc, N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC+N_DRIFT_PAR_OBS, 1.0);
 //                }
 //                if(nnp1 == t1) {
 //                    drift_par(p_calc, p_par, p_data, p_X, N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);

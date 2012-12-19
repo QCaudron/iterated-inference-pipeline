@@ -166,7 +166,7 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
 void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc)
 {
 
-    int i, j, k, nn;
+    int j, k, nn;
     int thread_id;
 
     FILE *p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
@@ -176,12 +176,7 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
 
     //if deter, only the first particle was used to skip the transiant
     if (COMMAND_DETER && (t_transiant > 0.0) ) {
-        for(j=1; j<J; j++) {  //load X_0 for the J-1 other particles
-            memcpy(J_p_X[j]->proj, J_p_X[0]->proj, J_p_X[j]->size_proj * sizeof(double));
-            for (i=0; i<p_data->p_it_only_drift->length; i++) {
-                memcpy(J_p_X[j]->drift[i], J_p_X[0]->drift[i], p_data->routers[ p_data->p_it_only_drift->ind[i] ]->n_gp *sizeof(double) );
-            }
-        }
+        replicate_J_p_X_0(J_p_X, p_data);
     }
 
     for (k= (int) t0 ; k< (int) t_end ; k++) {
@@ -214,7 +209,7 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
             proj2obs(J_p_X[j], p_data);
 
             if(N_DRIFT_PAR_OBS) {
-                compute_drift(J_p_X[j], p_par, p_data, calc[thread_id], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS, DT);
+                compute_drift(J_p_X[j], p_par, p_data, calc[thread_id], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS, 1.0);
             }
         }
 

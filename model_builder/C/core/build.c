@@ -1087,7 +1087,6 @@ struct s_likelihood *build_likelihood(void)
 
     p_like->select = init2u_set0(N_DATA_NONAN, J);
 
-    p_like->all_fail = 0;
     p_like->n_all_fail = 0;
 
     /* for bayesian methods */

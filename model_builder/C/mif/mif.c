@@ -94,7 +94,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
                     //round_inc((*J_p_X)[j]->proj);
                     proj2obs((*J_p_X)[j], p_data);
                     if(N_DRIFT_PAR_OBS) {
-                        compute_drift((*J_p_X)[j], J_p_par[j], p_data, calc[thread_id], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC+N_DRIFT_PAR_OBS, DT);
+                        compute_drift((*J_p_X)[j], J_p_par[j], p_data, calc[thread_id], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC+N_DRIFT_PAR_OBS, 1.0); //1.0 is delta_t (nnp1-nn)
                     }
                     if(nnp1 == t1) {
                         p_like->weights[j] = exp(get_log_likelihood((*J_p_X)[j], J_p_par[j], p_data, calc[thread_id]));
@@ -106,13 +106,13 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
                 patch_likelihood_prior(p_like, p_best, J_theta, J_IC_grouped, p_data, n_max, n, L);
             }
 
-            weight(p_like, n);
+            int success = weight(p_like, n);
             mean_var_theta_theoretical_mif(D_theta_bart[n+1], D_theta_Vt[n+1], J_theta, var_theta, p_like, m, ((double) (t1-t0)));
             if (OPTION_TRAJ) {
                 print_mean_var_theta_theoretical_mif(p_file_mif, D_theta_bart[n+1], D_theta_Vt[n+1], p_like, m, t1);
             }
 
-            if(!p_like->all_fail) {
+            if(success) {
                 systematic_sampling(p_like, calc[0], n);
             }
 
