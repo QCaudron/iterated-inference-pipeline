@@ -469,23 +469,23 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
         gsl_matrix_set(Q,
                        {{ x.from }} * N_CAC + cac,
                        {{ x.to }} * N_CAC + cac,
-                       -pow({{ x.prod_sd|safe }} * DT * {{ x.rate|safe }}, 2));
+                       -pow({{ x.prod_sd|safe }} * {{ x.rate|safe }}, 2));
 
         gsl_matrix_set(Q,
                        {{ x.to }} * N_CAC + cac,
                        {{ x.from }} * N_CAC + cac,
-                       -pow({{ x.prod_sd|safe }} * DT * {{ x.rate|safe }}, 2));
+                       -pow({{ x.prod_sd|safe }} * {{ x.rate|safe }}, 2));
 
         gsl_matrix_set(Q,
                        {{ x.to }} * N_CAC + cac,
                        {{ x.to }} * N_CAC + cac,
-                       pow({{ x.prod_sd|safe }} * DT * {{ x.rate|safe }}, 2));
+                       pow({{ x.prod_sd|safe }} * {{ x.rate|safe }}, 2));
         {% endif %}
 
         gsl_matrix_set(Q,
                        {{ x.from }} * N_CAC + cac,
                        {{ x.from }} * N_CAC + cac,
-                       pow({{ x.prod_sd|safe }} * DT * {{ x.rate|safe }}, 2));
+                       pow({{ x.prod_sd|safe }} * {{ x.rate|safe }}, 2));
 
         {% endfor %}
     }
