@@ -3,6 +3,8 @@
 ##NOTES: for the webApp: set FLAG_JSON to 1
 ## on OSX, gcc shipped with Xcode is broken so brew install gcc-4.7
 
+./clean.sh
+
 cd model_builder/C/core
 
 sed -ie "s/#define FLAG_JSON \([0-9]*\)/#define FLAG_JSON 0/" plom.h
