@@ -1,8 +1,8 @@
-#include "simforence.h"
+#include "plom.h"
 
 int main(int argc, char *argv[])
 {
-    J = 1; N_THREADS =2;
+    J = 1; N_THREADS =2; GENERAL_ID = 0;
     omp_set_num_threads(N_THREADS);
 
     print_log("memory allocation and inputs loading...");
@@ -46,18 +46,21 @@ int main(int argc, char *argv[])
                 thread_id = omp_get_thread_num();
                 reset_inc(J_p_X[j]);
                 f_prediction_with_drift_sto(J_p_X[j], nn, nnp1, p_par, p_data, calc[thread_id]);
-                compute_drift_par_obs(J_p_X[j], p_par, p_data, calc[thread_id], 1.0); ////TODO compute_drift_par_obs instead of only compute_drift to abstract N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS FIX DT: change to compute_drift_par_obs(J_p_X[j], nn, nnp1, p_par, p_data, calc[thread_id])
+
+                if(N_DRIFT_PAR_OBS) {
+                    compute_drift(J_p_X[j], p_par, p_data, calc[thread_id], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS, 1.0); //1.0 is delta_t (nnp1-nn)
+                }
 
                 if(nnp1 == t1) {
                     proj2obs(J_p_X[j], p_data);
-                    drift_par_obs(calc[thread_id], p_par, p_data, J_p_X[j]); //TODO drift_par_obs instead of only drift_par to abstract N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS
+                    drift_par(calc[thread_id], p_par, p_data, J_p_X[j], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
                     p_like->weights[j] = exp(get_log_likelihood(J_p_X[j], p_par, p_data, calc[thread_id]));
                 }
             }
 
         } /* end for on nn */
 
-        if (weight(p_like, n)) { //TODO weight return success status
+        if (weight(p_like, n)) {
             systematic_sampling(p_like, calc[0], n);
         }
         resample_X(p_like->select[n], &J_p_X, &J_p_X_tmp, p_data);

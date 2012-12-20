@@ -122,6 +122,7 @@ int main(int argc, char *argv[])
             break;
         case 'Z':
             OPTION_PIPELINE = 1;
+            break;
         case 'p':
             snprintf(SFR_PATH, STR_BUFFSIZE, "%s", optarg);
             break;

@@ -30,11 +30,11 @@ double get_smallest_log_likelihood(struct s_data_ind **data_ind)
   return smallest_log_like * LOG_LIKE_MIN;
 }
 
-
+/**
+ *   Return sum of square (used for least square). The sum is computed **only** on ts != NaN
+ */
 double get_sum_square(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
-    /* Return sum of square (used for least square). The sum is computed **only** on ts != NaN */
-
     int ts, ts_nonan;
     double ss = 0.0;
 
@@ -50,11 +50,11 @@ double get_sum_square(struct s_X *p_X, struct s_par *p_par, struct s_data *p_dat
     return ss;
 }
 
-
+/**
+ * Return sum log likelihood. The sum is computed **only** on ts != NaN
+ */
 double get_log_likelihood(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
-  /* Return sum log likelihood. The sum is computed **only** on ts != NaN */
-
   int ts, ts_nonan;
   double loglike = 0.0;
 
@@ -68,8 +68,8 @@ double get_log_likelihood(struct s_X *p_X, struct s_par *p_par, struct s_data *p
   }
 
   return loglike;
-
 }
+
 
 
 /**

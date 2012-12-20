@@ -343,18 +343,7 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
             for (j=0; j<J; j++) {
                 the_j = recv_int(receiver);
                 recv_X(D_J_p_X[nnp1][ the_j ], p_data, receiver);
-                //if we want that the worker compute the likelihood
-                //p_like->weights[the_j] = recv_double(receiver);
-
-                proj2obs(D_J_p_X[nnp1][ the_j ], p_data);
-
-                if(N_DRIFT_PAR_OBS) {
-                    compute_drift(D_J_p_X[nnp1][ the_j ], p_par, p_data, calc[0], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC+N_DRIFT_PAR_OBS, 1.0); //1.0 is delta_t (nnp1-nn)
-                }
-                if(nnp1 == t1) {
-                    drift_par(calc[0], p_par, p_data, D_J_p_X[nnp1][ the_j ], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
-                    p_like->weights[ the_j ] = exp(get_log_likelihood(D_J_p_X[nnp1][ the_j ], p_par, p_data, calc[0]));
-                }
+                p_like->weights[the_j] = recv_double(receiver);
             }
 
         } /* end for on nn */

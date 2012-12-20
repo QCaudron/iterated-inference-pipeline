@@ -121,9 +121,9 @@ int send_X(void *socket, const struct s_X *p_X, struct s_data *p_data, int zmq_o
                               ZMQ_SNDMORE);
         }
     }
-    //if we want that the worker compute the likelihood
+
     //send obs
-    //    rc = send_array_d(socket, p_X->obs, p_X->size_obs, ZMQ_SNDMORE);
+    rc = send_array_d(socket, p_X->obs, p_X->size_obs, ZMQ_SNDMORE);
 
     //send proj
     rc = send_array_d(socket, p_X->proj, p_X->size_proj, zmq_options);
@@ -144,9 +144,8 @@ void recv_X(struct s_X *p_X, struct s_data *p_data, void *socket)
         }
     }
 
-    //if we want that the worker compute the likelihood
     //obs
-    //    recv_array_d(p_X->obs, p_X->size_obs, socket);
+    recv_array_d(p_X->obs, p_X->size_obs, socket);
 
     //proj
     recv_array_d(p_X->proj, p_X->size_proj, socket);
