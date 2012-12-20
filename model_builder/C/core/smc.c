@@ -258,13 +258,15 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
                 reset_inc(D_J_p_X[nnp1][j]);
                 (*f_pred)(D_J_p_X[nnp1][j], nn, nnp1, p_par, p_data, calc[thread_id]);
                 //round_inc(D_J_p_X[nnp1][j]);
-                proj2obs(D_J_p_X[nnp1][j], p_data); //note that if we don't want to compute hat nor sample trajectories this can be moved outside the for loop on nn
 
                 if(N_DRIFT_PAR_OBS) {
                     compute_drift(D_J_p_X[nnp1][j], p_par, p_data, calc[thread_id], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS, 1.0); //1.0 is delta_t (nnp1-nn)
                 }
+
+                proj2obs(D_J_p_X[nnp1][j], p_data);
+
                 if(nnp1 == t1) {
-                    drift_par(calc[thread_id], p_par, p_data, D_J_p_X[nnp1][j], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
+                    drift_par(calc[thread_id], p_data, D_J_p_X[nnp1][j], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
                     p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[nnp1][j], p_par, p_data, calc[thread_id]));
                 }
             }

@@ -61,6 +61,10 @@ use the generated binaries.
 ##Contributing to the C library
 
 First generate the documentation for the C code:
+A general introduction:
+in model_builder/doc/ run: ```docco api.c``` and open docs/api.html with
+a web browser.
+
 in model_builder/doc/ run: ```doxygen Doxyfile``` and open model_builder/doc/html/index.html with
 a web browser.
 

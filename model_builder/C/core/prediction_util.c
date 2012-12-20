@@ -92,11 +92,11 @@ void linearize_and_repeat(struct s_X *p_X, struct s_par *p_par, struct s_data *p
 }
 
 /**
-   From proportion of initial conditons to population size.  If
-   @c POP_SIZE_EQ_SUM_SV the last state is replaced by
-   pop_size - sum_every_state_except_the_last.
-
-   *Note that we round in case of stochastic models.*
+*   From proportion of initial conditons to population size.  If
+*   @c POP_SIZE_EQ_SUM_SV the last state is replaced by
+*   pop_size - sum_every_state_except_the_last.
+*
+*   need_rounding should be set to 1 for stochastic model
 */
 void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, int need_rounding)
 {
@@ -195,7 +195,7 @@ void f_prediction_with_drift_deter(struct s_X *p_X, double t0, double t1, struct
 
         if(N_DRIFT_PAR_PROC) {
             compute_drift(p_X, p_par, p_data, p_calc, 0, N_DRIFT_PAR_PROC, DT);
-            drift_par(p_calc, p_par, p_data, p_X, 0, N_DRIFT_PAR_PROC);
+            drift_par(p_calc, p_data, p_X, 0, N_DRIFT_PAR_PROC);
         }
 
         f_prediction_ode_rk(p_X->proj, t, t+DT, p_par,  p_calc);
@@ -214,7 +214,7 @@ void f_prediction_with_drift_sto(struct s_X *p_X, double t0, double t1, struct s
 
         if (N_DRIFT_PAR_PROC) {
             compute_drift(p_X, p_par, p_data, p_calc, 0, N_DRIFT_PAR_PROC, DT);
-            drift_par(p_calc, p_par, p_data, p_X, 0, N_DRIFT_PAR_PROC);
+            drift_par(p_calc, p_data, p_X, 0, N_DRIFT_PAR_PROC);
         }
 
         step_euler_multinomial(p_X->proj, t, p_par, p_data, p_calc);

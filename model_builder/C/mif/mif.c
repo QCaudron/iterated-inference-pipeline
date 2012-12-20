@@ -91,12 +91,14 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
                     } else {
                         f_prediction_with_drift_sto((*J_p_X)[j], nn, nnp1, J_p_par[j], p_data, calc[thread_id]);
                     }
-                    //round_inc((*J_p_X)[j]->proj);
-                    proj2obs((*J_p_X)[j], p_data);
-                    if(N_DRIFT_PAR_OBS) {
-                        compute_drift((*J_p_X)[j], J_p_par[j], p_data, calc[thread_id], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC+N_DRIFT_PAR_OBS, 1.0); //1.0 is delta_t (nnp1-nn)
-                    }
+
                     if(nnp1 == t1) {
+                        if(N_DRIFT_PAR_OBS) {
+                            compute_drift((*J_p_X)[j], J_p_par[j], p_data, calc[thread_id], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC+N_DRIFT_PAR_OBS, t1-t0);
+                            drift_par(calc[thread_id], p_data, (*J_p_X)[j], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
+                        }
+                        proj2obs((*J_p_X)[j], p_data);
+
                         p_like->weights[j] = exp(get_log_likelihood((*J_p_X)[j], J_p_par[j], p_data, calc[thread_id]));
                     }
                 }

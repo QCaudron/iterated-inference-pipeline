@@ -219,7 +219,7 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
     int ind_par_Xdrift_applied;
 
     /* makes sure that p_calc contains the natural values of the drifted obs process parameters */
-    drift_par(p_calc, p_par, p_data, p_X, N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
+    drift_par(p_calc, p_data, p_X, N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
 
 
 #if FLAG_JSON
@@ -238,8 +238,6 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
         fprintf(p_file, "%g,", x);
 #endif
     }
-
-
 
     for(ts=0; ts<N_TS; ts++) {
         x = obs_mean(p_X->obs[ts], p_par, p_data, p_calc, ts);
@@ -568,7 +566,7 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
         for(j=0;j<J;j++) {
 
             /* makes sure that p_calc contains the natural values of the drifted obs process parameters */
-            drift_par(p_calc, J_p_par[*fake_j], p_data, J_p_X[j], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
+            drift_par(p_calc, p_data, J_p_X[j], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
 
             kn += 1.0;
             x = obs_mean(J_p_X[j]->obs[ts], J_p_par[*fake_j], p_data, p_calc, ts);

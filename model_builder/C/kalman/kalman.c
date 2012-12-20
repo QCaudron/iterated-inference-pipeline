@@ -313,9 +313,10 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
         }
 #endif
 
-        t1=p_data->times[n];	// find corresponding time
+        t1=p_data->times[n];
 
-        drift_par(calc[0], p_par, p_data, p_X, 0, p_data->p_it_only_drift->length);
+        //drifted parameters are stored in p_calc->natural_drifted_safe. We initialize the values from p_X->drift[i][k]
+        drift_par(calc[0], p_data, p_X, 0, p_data->p_it_only_drift->length);
 
         /////////////////////////
         // for every time unit //
@@ -350,7 +351,6 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 
             proj2obs(p_X, p_data);
 
-            // append to X output file
             if (OPTION_TRAJ) {
                 print_X(p_file_X, &p_par, &p_X, p_data, calc[0], nn+1, 1, 1, m);
             }

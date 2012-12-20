@@ -38,7 +38,6 @@ int integrate(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par
 
 double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc);
-void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat);
 
 /* bif.c */
 double nextpow2(double x);

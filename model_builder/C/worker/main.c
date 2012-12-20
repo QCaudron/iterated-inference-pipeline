@@ -90,13 +90,16 @@ void *worker_routine (void *params) {
                     f_prediction_with_drift_sto(p_X, nn, nnp1, p_par, p_data, p_calc);
                 }
 
-
-                proj2obs(p_X, p_data);
                 if(N_DRIFT_PAR_OBS) {
                     compute_drift(p_X, p_par, p_data, p_calc, N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC+N_DRIFT_PAR_OBS, 1.0);
                 }
+
+                proj2obs(p_X, p_data);
+
                 if(nnp1 == t1) {
-                    drift_par(p_calc, p_par, p_data, p_X, N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
+                    if(N_DRIFT_PAR_OBS) {
+                        drift_par(p_calc, p_data, p_X, N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
+                    }
                     like = exp(get_log_likelihood(p_X, p_par, p_data, p_calc));
                 }
 

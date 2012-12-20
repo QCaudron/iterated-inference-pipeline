@@ -700,6 +700,7 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
 /* hat.c */
 void get_CI95(double *hat_95, const double *to_be_sorted, size_t *index_sorted, double *weights);
 void compute_hat(struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat **D_p_hat, double *weights, int t0, int t1);
+void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat);
 
 /* json.c */
 json_t *fast_get_json_object(const json_t *container, const char *obj_name);
@@ -722,7 +723,7 @@ void print_json_on_stdout(json_t *root);
 
 /* drift.c */
 void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ind_drift_start, int ind_drift_end, double delta_t);
-void drift_par(struct s_calc *p_calc, struct s_par *p_par, struct s_data *p_data, struct s_X *p_X, int ind_drift_start, int ind_drift_end);
+void drift_par(struct s_calc *p_calc, struct s_data *p_data, struct s_X *p_X, int ind_drift_start, int ind_drift_end);
 
 /* group.c */
 void get_c_ac(int cac, int *c, int *ac);
