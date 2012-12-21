@@ -40,7 +40,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 
     FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
 
-    FILE *p_file_mif;
+    FILE *p_file_mif = NULL;
     if (OPTION_TRAJ) {
         p_file_mif = sfr_fopen(SFR_PATH, GENERAL_ID, "mif", "w", header_mean_var_theoretical_mif, p_data);
     }

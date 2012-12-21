@@ -169,7 +169,10 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
     int j, k, nn;
     int thread_id;
 
-    FILE *p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
+    FILE *p_file_X = NULL;
+    if (OPTION_TRAJ) {
+        p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
+    }
     FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
 
     struct s_hat *p_hat = build_hat(p_data);
@@ -222,7 +225,8 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
     }
 
     clean_hat(p_hat, p_data);
-
-    sfr_fclose(p_file_X);
+    if (OPTION_TRAJ) {
+        sfr_fclose(p_file_X);
+    }
     sfr_fclose(p_file_hat);
 }

@@ -56,12 +56,13 @@ int main(int argc, char *argv[])
         "--help             print the usage on stdout\n";
 
 
-    double t0 = 0.0, t_end = 10.0, t_transiant = 0.0;
+    double t0 = 0.0, t_end = 0.0, t_transiant = 0.0;
     int nn0 = 0; //for PAR_FIXED: t can be > N_DATA_PAR_FIXED: For transiant and lyap, we use p_calc->current_nn = t0 if t0 < N_DATA_PAR_FIXED. For traj_obs, we let p_calc->current_nn vary starting from nn0 and up to N_DATA_PAR_FIXED. After N_DATA_PAR_FIXED, the last value is recycled
 
     int has_dt_be_specified = 0;
     double dt_option;
 
+    OPTION_TRAJ = 0;
     int OPTION_LYAP = 0;
     int OPTION_BIF = 0;
     int OPTION_PERIOD_DYNAMICAL_SYTEM = 0;
@@ -278,12 +279,8 @@ int main(int argc, char *argv[])
     linearize_and_repeat(J_p_X[0], p_par, p_data, p_data->p_it_par_sv);
     prop2Xpop_size(J_p_X[0], p_data, COMMAND_STO);
     theta_driftIC2Xdrift(J_p_X[0], p_best->mean, p_data);
-    for(j=1; j<J; j++) {  //load X_0 for the J-1 other particles
-        memcpy(J_p_X[j]->proj, J_p_X[0]->proj, J_p_X[j]->size_proj * sizeof(double));
-        for (i=0; i<p_data->p_it_only_drift->length; i++) {
-            memcpy(J_p_X[j]->drift[i], J_p_X[0]->drift[i], p_data->routers[ p_data->p_it_only_drift->ind[i] ]->n_gp *sizeof(double) );
-        }
-    }
+
+    replicate_J_p_X_0(J_p_X, p_data);
 
     for (i=0; i<(N_PAR_SV*N_CAC); i++){
         y0[i] = J_p_X[0]->proj[i];
@@ -325,13 +322,8 @@ int main(int argc, char *argv[])
     /*************ONLY INITIAL CONDITIONS****/
     /****************************************/
     if(!(OPTION_BIF || OPTION_LYAP) && (t_end==0)) {
-        FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
-        struct s_hat *p_hat = build_hat(p_data);
-        if (COMMAND_DETER) J = 1;
-        compute_hat_nn(J_p_X, p_par, p_data, calc, p_hat);
-        print_p_hat(p_file_hat, NULL, p_hat, p_data, -1);
-        clean_hat(p_hat, p_data);
-        sfr_fclose(p_file_hat);
+        //we need to integrate for at least 1 time step so that incidence is reset to 0 after transiant (transiant did not reset incidences every week in case of DETER)
+        traj(J_p_X, t0, t0+1, t_transiant, p_par, p_data, calc);
     }
 
     /****************************************/

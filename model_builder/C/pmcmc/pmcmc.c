@@ -184,7 +184,7 @@ void pMCMC(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 
     // open output files
     FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
-    FILE *p_file_X;
+    FILE *p_file_X = NULL;
     if (OPTION_TRAJ){
         p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
     }
