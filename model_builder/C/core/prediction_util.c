@@ -167,9 +167,10 @@ void f_prediction_ode_rk(double *y, double t0, double t1, struct s_par *p_par,  
 
         if (h< h_min) { //to avoid wasting a long time when integration is hard we finish with a fixed time step...
             char str[STR_BUFFSIZE];
+#if FLAG_WARNING
             sprintf(str, "h = %g is lower than h_min (%g) trying to finish the integration from t=%g to t=%g with a fixed time step", h, h_min, t, t1);
             print_warning(str);
-
+#endif
             status = gsl_odeiv2_step_apply (p_calc->step, t, (t1-t), y, p_calc->yerr, NULL, NULL, &(p_calc->sys));
             if (status != GSL_SUCCESS) {
                 sprintf(str, "error (%d) unable to compute the requested step", status);
