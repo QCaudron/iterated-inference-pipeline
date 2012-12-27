@@ -123,6 +123,7 @@ double f_inv_logit_ab(double x, double multiplier, double a, double b)
 }
 
 
+
 /**
  * ...
  **/
@@ -142,6 +143,7 @@ double f_inv_logit_ab_duration2rate(double x, double multiplier, double a, doubl
         return (1.0/(0.0001+ ((b*exp(x)+a)/(1.0+exp(x)))* multiplier));
     }
 }
+
 
 
 
@@ -180,6 +182,39 @@ double f_der_logit_ab(double x, double multiplier, double a, double b)
 
 
 
+
+/**
+ * Scaling functions: transformation is operated at the f_inv level **only**
+ **/
+
+double f_inv_scale_pow10(double x, double multiplier, double a, double b)
+{
+    return pow(10.0, x)*multiplier;
+}
+
+double f_inv_scale_pow10_duration2rate(double x, double multiplier, double a, double b)
+{
+    return (1.0/(0.0001+pow(10.0, x)*multiplier));
+}
+
+
+double f_inv_logit_ab_scale_pow10(double x, double multiplier, double a, double b)
+{
+    if (a == b) {
+        return pow(10.0, x) * multiplier ;// nothing will happen in the transformed space for_ab)
+    } else {
+        return pow(10.0, ((b*exp(x)+a)/(1.0+exp(x)))) * multiplier;
+    }
+}
+
+double f_inv_logit_ab_scale_pow10_duration2rate(double x, double multiplier, double a, double b)
+{
+    if (a == b) {
+        return (1.0/(0.0001+pow(10.0, x)*multiplier));
+    } else {
+        return (1.0/(0.0001+pow(10.0, (b*exp(x)+a)/(1.0+exp(x)))*multiplier));
+    }
+}
 
 
 
@@ -330,13 +365,19 @@ int is_duration(const json_t *par)
 void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_data, int is_bayesian)
 {
     const char *prior_type = fast_get_json_string_from_object(par, "prior");
+    json_t *transf = json_object_get(par, "transformation");
+    const char *mytransf = json_string_value(transf);
 
     if ( is_bayesian && (strcmp(prior_type, "uniform") == 0)) {
 
         p_router->f = &f_logit_ab;
         p_router->multiplier_f = 1.0; //logit_ab doesn't see the multiplier...
 
-        p_router->f_inv = is_duration(par) ? &f_inv_logit_ab_duration2rate :  &f_inv_logit_ab;
+        if (strcmp(mytransf, "scale_pow10")==0) {
+            p_router->f_inv = is_duration(par) ? &f_inv_logit_ab_scale_pow10_duration2rate :  &f_inv_logit_ab_scale_pow10;
+        } else {
+            p_router->f_inv = is_duration(par) ? &f_inv_logit_ab_duration2rate :  &f_inv_logit_ab;
+        }
         p_router->multiplier_f_inv = get_multiplier(u_data, par, 0);
 
         p_router->f_inv_print = &f_inv_logit_ab;
@@ -347,45 +388,35 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
 
     } else {
 
-        json_t *transf = json_object_get(par, "transformation");
+        if (strcmp(mytransf, "log")==0) {
 
-        if (transf) {
-            const char *mytransf = json_string_value(transf);
+            p_router->f = &f_log;
+            p_router->multiplier_f = get_multiplier(u_data, par, 0);
 
-            if (strcmp(mytransf, "log")==0) {
+            p_router->f_inv = is_duration(par) ? &f_inv_log_duration2rate :  &f_inv_log;
+            p_router->multiplier_f_inv = 1.0;
 
-                p_router->f = &f_log;
-                p_router->multiplier_f = get_multiplier(u_data, par, 0);
+            p_router->f_inv_print = &f_inv_log;
+            p_router->multiplier_f_inv_print = get_multiplier(u_data, par, 1);
 
-                p_router->f_inv = is_duration(par) ? &f_inv_log_duration2rate :  &f_inv_log;
-                p_router->multiplier_f_inv = 1.0;
+            p_router->f_derivative = &f_der_log;
+            p_router->multiplier_f_derivative = p_router->multiplier_f;
 
-                p_router->f_inv_print = &f_inv_log;
-                p_router->multiplier_f_inv_print = get_multiplier(u_data, par, 1);
+        } else if (strcmp(mytransf, "logit")==0) {
 
-                p_router->f_derivative = &f_der_log;
-                p_router->multiplier_f_derivative = p_router->multiplier_f;
+            p_router->f =  &f_logit;
+            p_router->multiplier_f = 1.0;
 
-            } else if (strcmp(mytransf, "logit")==0) {
+            p_router->f_inv = &f_inv_logit;
+            p_router->multiplier_f_inv = 1.0;
 
-                p_router->f =  &f_logit;
-                p_router->multiplier_f = 1.0;
+            p_router->f_inv_print = &f_inv_logit;
+            p_router->multiplier_f_inv_print = 1.0;
 
-                p_router->f_inv = &f_inv_logit;
-                p_router->multiplier_f_inv = 1.0;
+            p_router->f_derivative = &f_der_logit;
+            p_router->multiplier_f_derivative = p_router->multiplier_f;
 
-                p_router->f_inv_print = &f_inv_logit;
-                p_router->multiplier_f_inv_print = 1.0;
-
-                p_router->f_derivative = &f_der_logit;
-                p_router->multiplier_f_derivative = p_router->multiplier_f;
-
-            } else {
-                print_err("error transf != log or logit");
-                exit(EXIT_FAILURE);
-            }
-
-        } else { //no transf
+        } else if (strcmp(mytransf, "identity")==0) {
 
             p_router->f = &f_id;
             p_router->multiplier_f = get_multiplier(u_data, par, 0);
@@ -398,8 +429,25 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
 
             p_router->f_derivative = &f_der_id;
             p_router->multiplier_f_derivative = p_router->multiplier_f;
-        }
 
+        } else if (strcmp(mytransf, "scale_pow10")==0) {
+
+            p_router->f =  &f_id;
+            p_router->multiplier_f = 1.0;
+
+            p_router->f_inv = is_duration(par) ? &f_inv_scale_pow10_duration2rate :  &f_inv_scale_pow10;
+            p_router->multiplier_f_inv = get_multiplier(u_data, par, 0);
+
+            p_router->f_inv_print = &f_id;
+            p_router->multiplier_f_inv_print = 1.0;
+
+            p_router->f_derivative = &f_der_id;
+            p_router->multiplier_f_derivative = p_router->multiplier_f;
+
+        } else {
+            print_err("error transf != log, logit, scale_pow10");
+            exit(EXIT_FAILURE);
+        }
     }
 
 }

@@ -644,6 +644,10 @@ double f_der_log(double x, double multiplier, double a, double b);
 double f_der_logit(double x, double multiplier, double a, double b);
 double f_der_logit_ab(double x, double multiplier, double a, double b);
 
+double f_inv_scale_pow10(double x, double multiplier, double a, double b);
+double f_inv_scale_pow10_duration2rate(double x, double multiplier, double a, double b);
+double f_inv_logit_ab_scale_pow10(double x, double multiplier, double a, double b);
+double f_inv_logit_ab_scale_pow10_duration2rate(double x, double multiplier, double a, double b);
 
 
 double u_duration_par2u_data(const char *u_par, const char *u_data);
