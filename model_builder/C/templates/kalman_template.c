@@ -31,12 +31,6 @@
 {% for o in order.data %}
 #define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
 
-{% if 'mu_b' not in order.data and 'mu_b' not in order.var %}
-#define ORDER_mu_b -1 {% endif %}
-{% if 'mu_d' not in order.data and 'mu_d' not in order.var %}
-#define ORDER_mu_d -1 {% endif %}
-
-
 
 /**
  * the function used by f_prediction_ode_rk:
@@ -437,7 +431,7 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
 
     int i, k, cac, offset;
     const int nn = p_calc->current_nn;
-    
+
     double **par = p_par->natural;
     double ***covar = p_data->par_fixed;
 

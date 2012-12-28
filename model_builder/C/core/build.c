@@ -571,7 +571,7 @@ struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian)
         p_data->data_ind = data_ind;
     }
 
-    /*extra non fitted parameters (forcing parameters a.k.a par_fixed_values)*/
+    /*covariates (non fitted parameters) (forcing parameters a.k.a par_fixed_values)*/
     if (N_PAR_FIXED) {
         json_t *json_par_fixed = fast_get_json_array(fast_get_json_object(settings, "orders"), "par_fixed");
         json_t *json_par_fixed_values = fast_get_json_object(json_data, "par_fixed_values");

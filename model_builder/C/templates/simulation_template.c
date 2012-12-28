@@ -31,24 +31,19 @@
 {% for o in order.data %}
 #define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
 
-{% if 'mu_b' not in order.data and 'mu_b' not in order.var %}
-#define ORDER_mu_b -1 {% endif %}
-{% if 'mu_d' not in order.data and 'mu_d' not in order.var %}
-#define ORDER_mu_d -1 {% endif %}
-
 void ensure_cst_pop_size(struct s_data *p_data)
 {
     int nn, cac;
-    if ((ORDER_mu_b >= 0)  && (ORDER_mu_d >= 0)) {
-        print_warning("variable birth and death rate detected, death rates have been set to birth rates to ensure a constant population size to analyze the attractor");
 
+    {% if 'mu_b' in order.data and 'mu_d' in order.data %}
+    print_warning("variable birth and death rate (mu_b and mu_d) detected in covariates. mu_d have been set to mu_b to ensure a constant population size to analyze the attractor");
 
-        for (nn=0; nn < N_DATA_PAR_FIXED; nn++) {
-            for (cac=0; cac < N_CAC; cac++) {
-                p_data->par_fixed[ORDER_mu_d][nn][cac] = p_data->par_fixed[ORDER_mu_b][nn][cac];
-            }
+    for (nn=0; nn < N_DATA_PAR_FIXED; nn++) {
+        for (cac=0; cac < N_CAC; cac++) {
+            p_data->par_fixed[ORDER_mu_d][nn][cac] = p_data->par_fixed[ORDER_mu_b][nn][cac];
         }
     }
+    {% endif %}
 }
 
 

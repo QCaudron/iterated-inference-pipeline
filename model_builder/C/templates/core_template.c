@@ -31,11 +31,6 @@
 {% for o in order.data %}
 #define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
 
-{% if 'mu_b' not in order.data and 'mu_b' not in order.var %}
-#define ORDER_mu_b -1 {% endif %}
-{% if 'mu_d' not in order.data and 'mu_d' not in order.var %}
-#define ORDER_mu_d -1 {% endif %}
-
 
 void build_markov(struct s_calc *p)
 {
