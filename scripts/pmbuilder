@@ -82,8 +82,9 @@ def main():
 
         ##sanitize path data in context: if not absolute path relative path from context file
         for x in c.get('data', []):
-            if not os.path.isabs(x['source']):
-                x['source'] = os.path.join(os.path.dirname(os.path.abspath(mycli.context_file)), x['source'])
+            if isinstance(x['source'], str) or isinstance(x['source'], unicode):
+                if not os.path.isabs(x['source']):
+                    x['source'] = os.path.join(os.path.dirname(os.path.abspath(mycli.context_file)), x['source'])
 
 
     elif mycli.input == 'stdin': #get **one** JSON object containing context model and link objects (used by node.js)

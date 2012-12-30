@@ -183,7 +183,7 @@ void print_warning(char *msg)
     json_decref(root);
 
 #else
-    printf("\033[93m%s\033[0m\n", msg);
+    printf("\033[93mWARNING\033[0m: %s\n", msg);
 #endif
 }
 
