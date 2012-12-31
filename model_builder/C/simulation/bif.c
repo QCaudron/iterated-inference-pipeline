@@ -27,7 +27,7 @@ double nextpow2(double x)
 void fourrier_power_spectrum(double *traj_obs_ts, int length_traj_obs_ts, int ts)
 {
   char filename[255];
-  sprintf(filename,"power_spectrum_%d", ts);
+  sprintf(filename, "power_spectrum_%d", ts);
   FILE *fpower = sfr_fopen(SFR_PATH, GENERAL_ID, filename, "w", NULL, NULL);
 
   /*FFT of traj_obs_ts. Note that length_traj_obs_ts is power of 2
@@ -45,9 +45,9 @@ void fourrier_power_spectrum(double *traj_obs_ts, int length_traj_obs_ts, int ts
   //DC and Nyquist component are unique so we do not multipy by 2
   fft[0] = pow(fabs(fft[0]),2);
   fft[length_traj_obs_ts/2] = pow(fabs(fft[length_traj_obs_ts/2]),2);
-  for(k=1; k< (length_traj_obs_ts/2); k++) //Note that we start at 1 and stop before length_traj_obs_ts/2 to discardDC and Nyquist comp
-    fft[k] = (fft[k]*fft[k] +fft[length_traj_obs_ts-k]*fft[length_traj_obs_ts-k])*2;
-
+  for(k=1; k< (length_traj_obs_ts/2); k++) { //Note that we start at 1 and stop before length_traj_obs_ts/2 to discardDC and Nyquist comp
+      fft[k] = (fft[k]*fft[k] +fft[length_traj_obs_ts-k]*fft[length_traj_obs_ts-k])*2;
+  }
   /* link components to frequencies (see GSL doc for details):
      index  frequency
      0      0
@@ -55,10 +55,13 @@ void fourrier_power_spectrum(double *traj_obs_ts, int length_traj_obs_ts, int ts
      2      2/(length * DT_PRINT)
      ...
      length/2  1/(2*DT_PRINT)
+
+     in our case DT_PRINT is 1
   */
 
-  for(k=0; k< (1+length_traj_obs_ts/2); k++)
-    fprintf(fpower, "%g\t%g\n", ((double) k) /(((double) length_traj_obs_ts)), fft[k]);
+  for(k=0; k< (1+length_traj_obs_ts/2); k++) {
+      fprintf(fpower, "%g,%g\n", ((double) k) /(((double) length_traj_obs_ts)), fft[k]);
+  }
 
   sfr_fclose(fpower);
 }
@@ -133,8 +136,8 @@ void max_min(double *traj_obs_ts, struct s_par *p_par, struct s_data *p_data, st
   traj_max = get_max(traj_obs_ts, length_traj_obs_ts);
   if(fabs(traj_max - traj_min) < PRECISION)
     {
-      fprintf(fmin, "%g\tNaN\n", (traj_min+traj_max)/ ((double) 2.0));
-      fprintf(fmax, "%g\tNaN\n",  (traj_min+traj_max)/ ((double) 2.0));
+      fprintf(fmin, "%g,NaN\n", (traj_min+traj_max)/ ((double) 2.0));
+      fprintf(fmax, "%g,NaN\n",  (traj_min+traj_max)/ ((double) 2.0));
     }
   else //there is an extrema
     {
@@ -147,14 +150,14 @@ void max_min(double *traj_obs_ts, struct s_par *p_par, struct s_data *p_data, st
           if(max > -10.0) //there is a max in bloc
             {
               t_max=(i+1+(N_BLOC-1)/2);
-              fprintf(fmax, "%g\t%g\n", obs_mean(max, p_par, p_data, p_calc, ts), t0+ t_max);
+              fprintf(fmax, "%g,%g\n", obs_mean(max, p_par, p_data, p_calc, ts), t0+ t_max);
             }
 
           min = b_min(bloc, N_BLOC);
           if(min > -10.0) //there is a min in bloc
             {
               t_min=(i+1+(N_BLOC-1)/2);
-              fprintf(fmin, "%g\t%g\n", obs_mean(min, p_par, p_data, p_calc, ts), t0+ t_min);
+              fprintf(fmin, "%g,%g\n", obs_mean(min, p_par, p_data, p_calc, ts), t0+ t_min);
             }
         }
     }

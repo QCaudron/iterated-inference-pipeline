@@ -69,9 +69,9 @@ void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0,
     //write results
     FILE *p_lyap = sfr_fopen(SFR_PATH, GENERAL_ID, "lyap", "w", NULL, NULL);
 
-    fprintf(p_lyap, "%g\t", lyap[0]/t);
+    fprintf(p_lyap, "%g,", lyap[0]/t);
     for(k=1; k<((N_PAR_SV*N_CAC)-1); k++)
-        fprintf(p_lyap, "%g\t", lyap[k]/t );
+        fprintf(p_lyap, "%g,", lyap[k]/t );
     fprintf(p_lyap, "%g\n", lyap[(N_PAR_SV*N_CAC)-1]/t );
 
     sfr_fclose(p_lyap);

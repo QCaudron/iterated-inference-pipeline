@@ -32,13 +32,14 @@ int main(int argc, char *argv[])
         "Plom Simulation\n"
         "usage:\n"
         "simul <command> [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
-        "                [-s, --DT <float>] [-b, --bif] [-l, --lyap]\n"
+        "                [-s, --DT <float>] [-b, --bif] [--continue] [-l, --lyap]\n"
         "                [-o, --t0 <integer>] [-D, --tend <integer>] [-T --transiant <integer>]\n"
         "                [-B, --block <integer>] [-x, --precision <float>] [-J <integer>]\n"
         "                [--help]\n"
         "where command is 'deter' or 'sto'\n"
         "options:\n"
         "--traj             print the trajectories\n"
+        "--continue         print the final states in a bifurcation analysis to allow continuation\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-P, --N_THREAD     number of threads to be used (default to the number of cores)\n"
@@ -65,10 +66,11 @@ int main(int argc, char *argv[])
     OPTION_TRAJ = 0;
     int OPTION_LYAP = 0;
     int OPTION_BIF = 0;
+    static int OPTION_CONTINUE = 0;
     int OPTION_PERIOD_DYNAMICAL_SYTEM = 0;
     int OPTION_FFT = 0;
 
-    PRECISION = 1.0e-6;
+    PRECISION = 1.0e-2;
     N_BLOC = 5;
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
@@ -84,6 +86,7 @@ int main(int argc, char *argv[])
             {
                 /* These options set a flag. */
                 {"traj", no_argument,       &OPTION_TRAJ, 1},
+                {"continue", no_argument,   &OPTION_CONTINUE, 1},
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
                 {"help", no_argument,  0, 'e'},
                 {"path",    required_argument, 0, 'p'},
@@ -391,8 +394,17 @@ int main(int argc, char *argv[])
         }
 
         clean2d(traj_obs, N_TS);
-    }
 
+        //print hat for continuation
+        if(OPTION_CONTINUE) {
+            struct s_hat *p_hat = build_hat(p_data);
+            compute_hat_nn(J_p_X, p_par, p_data, calc, p_hat);
+            FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
+            print_p_hat(p_file_hat, NULL, p_hat, p_data, 0);
+            sfr_fclose(p_file_hat);
+            clean_hat(p_hat, p_data);
+        }
+    }
 
     /****************************************/
     /*************LYAP***********************/

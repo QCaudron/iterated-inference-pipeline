@@ -94,15 +94,13 @@ int integrate(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par
  */
 double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
-    /*
-       fine grained integration (store trajectory every DT) to do bif analysis. NOTE that incidence is computed on DT.
-       return traj_obs [N_TS][(t_end-t0)*DELTA_STO];
-    */
-
     int i, ts, k;
     double **traj_obs = init2d_set0(N_TS, (int) (t_end-t0));
 
-    FILE *p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
+    FILE *p_file_X = NULL;
+    if (OPTION_TRAJ) {
+        p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
+    }
 
     /* initialize with initial conditions and reset incidence */
     for (i=0; i< (N_PAR_SV*N_CAC) ; i++){
@@ -110,15 +108,6 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
     }
 
     for (k= (int) t0 ; k< (int) t_end ; k++) {
-
-
-#if FLAG_JSON //for the webApp, we block at every iterations to prevent the client to be saturated with msg
-        if (OPTION_TRAJ) {
-            if(k % 10 == 0){
-                block();
-            }
-        }
-#endif
 
         //in bif analysis, we don't want effect of variable pop sizes or birth rates so with stick with nn0
         if ( t_transiant <= N_DATA ) {
@@ -144,28 +133,17 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
         }
     }
 
-    //if non traj version we print only the last point (used for continuation)
-    if (!OPTION_TRAJ) {
-        print_X(p_file_X, &p_par, &p_X, p_data, p_calc, k+1, 1, 0, 0);
+    if (OPTION_TRAJ) {
+        sfr_fclose(p_file_X);
     }
-
-    sfr_fclose(p_file_X);
 
     return traj_obs;
 }
 
 
 
-/*
- * Fine grained integration (print trajectory every DT (by default DT=frequency)).
- *
- * NOTE that incidence is computed on DT.  return traj_obs
- * [N_TS][(t_end-t0)*DELTA_STO];
- */
-
 void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc)
 {
-
     int j, k, nn;
     int thread_id;
 
