@@ -41,7 +41,10 @@ void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simple
   char str[255];
 #endif
 
-  FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
+  FILE *p_file_best = NULL;
+  if(!option_no_trace) { //if option_no_trace we only open the file when the simplex is done (useful when chaining methods with walltime on clusters)
+      p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
+  }
 
   double log_like = 0.0;
 
@@ -102,6 +105,7 @@ void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simple
     } while (status == GSL_CONTINUE && iter < M);
 
   if(option_no_trace) {
+      p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
       print_best(p_file_best, iter-1, p_best, p_data, log_like);
   }
 

@@ -152,7 +152,7 @@ void f_prediction_ode_rk(double *y, double t0, double t1, struct s_par *p_par,  
 {
     double t=t0;
     double h = DT; //h is the initial integration step size
-    double h_min = DT/10.0;
+    //    double h_min = DT/10.0;
     int status;
     p_calc->p_par = p_par; //pass the ref to p_par so that it is available wihtin the function to integrate
 
@@ -165,21 +165,22 @@ void f_prediction_ode_rk(double *y, double t0, double t1, struct s_par *p_par,  
             exit(EXIT_FAILURE);
         }
 
-        if (h< h_min) { //to avoid wasting a long time when integration is hard we finish with a fixed time step...
-            char str[STR_BUFFSIZE];
-#if FLAG_WARNING
-            sprintf(str, "h = %g is lower than h_min (%g) trying to finish the integration from t=%g to t=%g with a fixed time step", h, h_min, t, t1);
-            print_warning(str);
-#endif
-            status = gsl_odeiv2_step_apply (p_calc->step, t, (t1-t), y, p_calc->yerr, NULL, NULL, &(p_calc->sys));
-            if (status != GSL_SUCCESS) {
-                sprintf(str, "error (%d) unable to compute the requested step", status);
-                print_err(str);
-                exit(EXIT_FAILURE);
-            } else {
-                break;
-            }
-        }
+//        if (h< h_min) { //to avoid wasting a long time when integration is hard we finish with a fixed time step...
+//            char str[STR_BUFFSIZE];
+//#if FLAG_WARNING
+//            sprintf(str, "h = %g is lower than h_min (%g) trying to finish the integration from t=%g to t=%g with a fixed time step", h, h_min, t, t1);
+//            print_warning(str);
+//#endif
+//            status = gsl_odeiv2_step_apply (p_calc->step, t, (t1-t), y, p_calc->yerr, NULL, NULL, &(p_calc->sys));
+//            if (status != GSL_SUCCESS) {
+//                sprintf(str, "error (%d) unable to compute the requested step", status);
+//                print_err(str);
+//                exit(EXIT_FAILURE);
+//            } else {
+//                break;
+//            }
+//        }
+
     }
 }
 
