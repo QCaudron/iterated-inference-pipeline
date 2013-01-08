@@ -33,7 +33,7 @@ double f_simplex(const gsl_vector *x, void *params)
     struct s_par *p_par = p_params_simplex->p_par;
     struct s_X *p_X = p_params_simplex->p_X;
 
-    transfer_estimated(p_best, x);
+    transfer_estimated(p_best, x, p_data);
 
     back_transform_theta2par(p_par, p_best->mean, p_data->p_it_all, p_data);
     linearize_and_repeat(p_X, p_par, p_data, p_data->p_it_par_sv);

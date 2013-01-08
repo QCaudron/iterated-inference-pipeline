@@ -363,6 +363,10 @@ struct s_best {
     int n_to_be_estimated;         /**< nb of parameters that have to be estimated (parameters with jump_size > 0.0) */
     unsigned int *to_be_estimated; /**< [self.length] index of self.mean component that have to be estimated. Note: [self.length] and not [self.n_to_be_estimated] because in the webApp, user can uleash jump_sizes set to 0.0 > 0.0  */
 
+    int n_follow;
+    unsigned int *follower;        /**< [self.n_follow] index of follower */
+    unsigned int *follow;          /**< [self.n_follow] index of parameter being followed by the follower */
+
     /* used to store states necessary for computation of the sampling covariance in MCMC algo */
     double *mean_sampling;         /**< [self.length] Em(X) 1st order mean needed to compute the sampling covariance */
     gsl_matrix *var_sampling;      /**< [self.length][self.length] Sampling covariance */
@@ -700,6 +704,7 @@ void ran_proposal(theta_t *proposed, struct s_best *p_best, double sd_fac, struc
 
 int check_IC(struct s_X *p_X, struct s_data *p_data);
 double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean, double sd_fac, struct s_data *p_data, int is_mvn);
+void apply_following_constraints(theta_t *proposed, struct s_best *p_best, struct s_data *p_data);
 
 /* hat.c */
 void get_CI95(double *hat_95, const double *to_be_sorted, size_t *index_sorted, double *weights);
@@ -735,7 +740,7 @@ struct s_group **get_groups_compo(struct s_router *p_router);
 void clean_groups_compo(struct s_group **compo, int n_gp);
 
 /* simplex.c */
-void transfer_estimated(struct s_best *p_best, const gsl_vector *x);
+void transfer_estimated(struct s_best *p_best, const gsl_vector *x, struct s_data *p_data);
 void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simplex, double (*f_simplex)(const gsl_vector *, void *), double CONVERGENCE_STOP_SIMPLEX, int M, const int option_no_trace);
 
 /* zhelpers.c */

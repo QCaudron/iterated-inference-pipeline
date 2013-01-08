@@ -19,7 +19,7 @@
 #include "plom.h"
 
 
-void transfer_estimated(struct s_best *p_best, const gsl_vector *x)
+void transfer_estimated(struct s_best *p_best, const gsl_vector *x, struct s_data *p_data)
 {
     /* transfer estimated parameters from x (required by the simplex algo) to p_best->mean */
 
@@ -29,8 +29,9 @@ void transfer_estimated(struct s_best *p_best, const gsl_vector *x)
                        p_best->to_be_estimated[k],
                        gsl_vector_get(x, k));
     }
-
+    apply_following_constraints(p_best->mean, p_best, p_data);
 }
+
 
 void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simplex, double (*f_simplex)(const gsl_vector *, void *), double CONVERGENCE_STOP_SIMPLEX, int M, const int option_no_trace)
 {
@@ -96,7 +97,7 @@ void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simple
       print_log(str);
 #endif
 
-      transfer_estimated(p_best, gsl_multimin_fminimizer_x(simp));
+      transfer_estimated(p_best, gsl_multimin_fminimizer_x(simp), p_data);
 
       if(!option_no_trace) {
           print_best(p_file_best, iter-1, p_best, p_data, log_like);

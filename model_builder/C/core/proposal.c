@@ -18,6 +18,22 @@
 
 #include "plom.h"
 
+void apply_following_constraints(theta_t *proposed, struct s_best *p_best, struct s_data *p_data)
+{
+    int i, k;
+    unsigned int *offset = p_data->p_it_all->offset;
+
+    for(i=0; i<p_best->n_follow; i++){
+        for(k=0; k<p_data->routers[p_best->follower[i]]->n_gp; k++){
+            gsl_vector_set(proposed,
+                           offset[p_best->follower[i]] + k,
+                           gsl_vector_get(proposed, offset[p_best->follow[i]] + k)
+                           );
+        }
+    }
+}
+
+
 /**
    generate a new value of theta that respects the constraints on
    the initial conditions.
@@ -26,9 +42,13 @@ void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, do
                                     void (*ran_proposal) (theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc),
                                     int need_rounding)
 {
+
     do
         {
             (*ran_proposal)(proposed, p_best, sd_fac, p_calc);
+
+            //take into account following constraints
+            apply_following_constraints(proposed, p_best, p_data);
 
             //load_X0 (p_X->proj)
             back_transform_theta2par(p_par, proposed, p_data->p_it_par_sv, p_data);

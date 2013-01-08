@@ -501,13 +501,20 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int 
     struct s_router **routers = p_data->routers;
     json_t *parameters = fast_get_json_object(theta, "value");
     json_t *partitions = fast_get_json_object(theta, "partition");
+    struct s_iterator *p_it = p_data->p_it_all;
 
     offset = 0;
 
-    for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
+    for(i=0; i<p_it->length; i++) {
         const char *par_key = routers[i]->name;
 
         json_t *par = fast_get_json_object(parameters, par_key);
+        json_t *follow = json_object_get(par, "follow");
+        if(follow){
+            const char *par_follow_key = fast_get_json_string_from_object(par, "follow");
+            par = fast_get_json_object(parameters, par_follow_key);
+        }
+
         const char *partition_key = fast_get_json_string_from_object(par, "partition_id");
         json_t *my_partitition = fast_get_json_object(partitions, partition_key);
         json_t *groups = fast_get_json_array(my_partitition, "group");
@@ -533,7 +540,8 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int 
             if (update_guess) {
                 gsl_vector_set(p_best->mean, offset, fast_get_json_real_from_object(par_guess, my_group_id));
             }
-            gsl_matrix_set(p_best->var, offset, offset, fast_get_json_real_from_object(par_sd_transf, my_group_id));
+
+            gsl_matrix_set(p_best->var, offset, offset, (follow) ? 0.0 : fast_get_json_real_from_object(par_sd_transf, my_group_id));
 
             p_best->par_prior[offset][0] = fast_get_json_real_from_object(par_min, my_group_id);
             p_best->par_prior[offset][1] = fast_get_json_real_from_object(par_max, my_group_id);

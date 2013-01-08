@@ -1114,6 +1114,9 @@ void clean_likelihood(struct s_likelihood *p_like)
 
 struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covariance)
 {
+    int i,j;
+    struct s_router **routers = p_data->routers;
+
     struct s_best *p_best;
     p_best = malloc(sizeof(struct s_best));
     if (p_best==NULL) {
@@ -1142,6 +1145,40 @@ struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covar
 
     p_best->to_be_estimated = init1u_set0(p_best->length);
 
+    p_best->n_follow = 0;
+    for(i=0; i<p_data->p_it_all->length; i++) {
+        const char *par_key = routers[i]->name;
+        json_t *par = fast_get_json_object(fast_get_json_object(theta, "value"), par_key);
+        if(json_object_get(par, "follow")){
+            const char *par_follow_key = fast_get_json_string_from_object(par, "follow");
+
+            p_best->n_follow++;
+            if (p_best->n_follow == 1) {
+                p_best->follower = init1u_set0(1);
+                p_best->follow = init1u_set0(1);
+            } else {
+                unsigned int *tmp, *tmp2;
+                tmp = realloc(p_best->follower, p_best->n_follow * sizeof(unsigned int) );
+                tmp2 = realloc(p_best->follow, p_best->n_follow * sizeof(unsigned int) );
+                if ( tmp == NULL || tmp2 == NULL ) {
+                    print_err("Reallocation impossible");
+                    FREE(p_best->follower); FREE(p_best->follow);
+                    exit(EXIT_FAILURE);
+                } else {
+                    p_best->follower = tmp;
+                    p_best->follow = tmp2;
+                }
+            }
+            p_best->follower[p_best->n_follow-1] = i;
+
+            j=0;
+            while(strcmp(par_follow_key, routers[i]->name) != 0){
+                j++;
+            }
+            p_best->follow[p_best->n_follow-1] = j;
+        }
+    }
+
     load_best(p_best, p_data, theta, 1, update_covariance);
 
     gsl_vector_memcpy(p_best->proposed, p_best->mean);
@@ -1168,6 +1205,11 @@ void clean_best(struct s_best *p_best)
     gsl_matrix_free(p_best->var_sampling);
 
     FREE(p_best->to_be_estimated);
+
+    if(p_best->n_follow){
+        FREE(p_best->follower);
+        FREE(p_best->follow);
+    }
 
     FREE(p_best);
 }

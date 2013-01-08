@@ -22,7 +22,7 @@ double f_simplex_kalman(const gsl_vector *x, void *params)
 {
     struct s_kalman *p = (struct s_kalman *) params;
 
-    transfer_estimated(p->p_best, x); //needed for simplex_kalman (simplex take only into account parameter whith jump_size >0.0 (all stored in x)
+    transfer_estimated(p->p_best, x, p->p_data);
 
     reset_kalman(p->p_kal, p->p_common);
 
