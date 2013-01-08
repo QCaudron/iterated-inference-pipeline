@@ -28,7 +28,7 @@ struct s_iterator *build_iterator(struct s_router **routers, struct s_drift *p_d
     p_it = malloc(sizeof(struct s_iterator));
     if (p_it==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -131,7 +131,7 @@ struct s_router *build_router(const json_t *par, const char *par_key, const json
     struct s_router *p_router;
     p_router = malloc(sizeof(struct s_router));
     if (p_router == NULL) {
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -152,7 +152,7 @@ struct s_router *build_router(const json_t *par, const char *par_key, const json
     //alloc for group_name
     p_router->group_name = malloc(p_router->n_gp * sizeof(char *));
     if (p_router->group_name == NULL) {
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -174,31 +174,22 @@ struct s_router *build_router(const json_t *par, const char *par_key, const json
 
         json_t *compo = fast_get_json_array(my_group, link_key); //link_key is population_id or time_series_id
         for (k = 0; k< json_array_size(compo); k++) {
-            p_router->map[get_index(order, fast_get_json_string_from_array(compo, k, link_key), link_key)] = g;
+            const char * element = fast_get_json_string_from_array(compo, k, link_key);
+            int index = index_of_json_array(order, element);
+            if(index != -1){
+                p_router->map[index] = g;
+            } else {
+                char str[STR_BUFFSIZE];
+                snprintf(str, STR_BUFFSIZE, "could not find element '%s' in array: '%s'", element, link_key);
+                print_err(str);
+                exit(EXIT_FAILURE);
+            }
         }
     }
 
     set_f_trans(p_router, par, u_data, is_bayesian);
 
     return p_router;
-}
-
-
-unsigned int get_index(const json_t *array, const char *element, const char *array_name){
-
-    int k = 0;
-    while((k < json_array_size(array)) && strcmp(json_string_value(json_array_get(array, k)), element)) {
-        k++;
-    }
-
-    if(k == json_array_size(array)) {
-        char str[STR_BUFFSIZE];
-        sprintf("could not find element '%s' in array: '%s'", element, array_name);
-        print_err(str);
-        exit(EXIT_FAILURE);
-    }
-
-    return k;
 }
 
 
@@ -230,13 +221,11 @@ struct s_router **build_routers(json_t *settings, json_t *theta, int is_bayesian
     const char pop_ts_types[][20] = { "cac_id", "cac_id", "ts_id" };
     const char link_types[][20] = { "population_id", "population_id", "time_series_id" };
 
-
-
     struct s_router **routers;
     routers = malloc((N_PAR_SV+N_PAR_PROC+N_PAR_OBS)*sizeof(struct s_router *));
     if (routers==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -249,6 +238,25 @@ struct s_router **build_routers(json_t *settings, json_t *theta, int is_bayesian
 
             const char *par_key = fast_get_json_string_from_array(my_par_list, j, par_types[i]);
             json_t *par = fast_get_json_object(parameters, par_key);
+
+            //overwrite par if follower
+            if(json_object_get(par, "follow")){
+                const char *par_follow_key = fast_get_json_string_from_object(par, "follow");
+
+                //check that parameter types of follower and follow are compatibles
+                int is_par = ((index_of_json_array(fast_get_json_array(orders, "par_sv"), par_follow_key) != -1) || (index_of_json_array(fast_get_json_array(orders, "par_proc"), par_follow_key) != -1));
+                int is_obs = (index_of_json_array(fast_get_json_array(orders, "par_obs"), par_follow_key) != -1);
+
+                if( (!is_par && !is_obs) || ((i==0) && is_obs) || ((i==1) && is_obs) || ((i==2) && is_par) ){
+                    char str[STR_BUFFSIZE];
+                    snprintf(str, STR_BUFFSIZE, "invalid parameter type between %s (follower) and %s (follow)", par_key, par_follow_key);
+                    print_err(str);
+                    exit(EXIT_FAILURE);
+                } else {
+                    par = fast_get_json_object(parameters, par_follow_key);
+                }
+            }
+
             const char *partition_key = fast_get_json_string_from_object(par, "partition_id");
             routers[offset] = build_router(par, par_key,
                                            fast_get_json_object(partitions, partition_key),
@@ -257,18 +265,11 @@ struct s_router **build_routers(json_t *settings, json_t *theta, int is_bayesian
                                            frequency,
                                            is_bayesian);
             offset++;
-
         }
     }
 
     return routers;
 }
-
-
-
-
-
-
 
 
 
@@ -290,7 +291,7 @@ struct s_par *build_par(struct s_data *p_data)
     p_par = malloc(sizeof(struct s_par));
     if (p_par==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -299,7 +300,7 @@ struct s_par *build_par(struct s_data *p_data)
 
     p_par->natural = malloc(p_par->size_natural* sizeof (double *));
     if (p_par->natural==NULL) {
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -328,7 +329,7 @@ struct s_par **build_J_p_par(struct s_data *p_data)
     J_p_par = malloc(J * sizeof(struct s_par *));
     if (J_p_par==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -368,7 +369,7 @@ struct s_obs2ts **build_obs2ts(json_t *json_obs2ts)
         obs2ts[o] = malloc(sizeof(struct s_obs2ts));
         if (obs2ts[o]==NULL) {
             char str[STR_BUFFSIZE];
-            sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+            snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
             print_err(str);
             exit(EXIT_FAILURE);
         }
@@ -407,7 +408,7 @@ struct s_drift *build_drift(json_t *json_drift)
     p_drift = malloc(sizeof(struct s_drift));
     if (p_drift==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -442,7 +443,7 @@ struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian)
     p_data = malloc(sizeof(struct s_data));
     if (p_data==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -456,7 +457,7 @@ struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian)
     p_data->ts_name = malloc(N_TS * sizeof(char *));
     if (p_data->ts_name == NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -472,7 +473,7 @@ struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian)
     p_data->cac_name = malloc(N_CAC * sizeof(char *));
     if (p_data->cac_name == NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -538,7 +539,7 @@ struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian)
         data_ind = malloc(N_DATA_NONAN * sizeof(struct s_data_ind *));
         if (data_ind==NULL) {
             char str[STR_BUFFSIZE];
-            sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+            snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
             print_err(str);
             exit(EXIT_FAILURE);
         }
@@ -547,7 +548,7 @@ struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian)
             data_ind[n] = malloc(sizeof(struct s_data_ind));
             if (data_ind[n]==NULL) {
                 char str[STR_BUFFSIZE];
-                sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+                snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
                 print_err(str);
                 exit(EXIT_FAILURE);
             }
@@ -579,7 +580,7 @@ struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian)
         p_data->par_fixed = malloc(N_PAR_FIXED * sizeof(double **));
         if (p_data->par_fixed==NULL) {
             char str[STR_BUFFSIZE];
-            sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+            snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
             print_err(str);
             exit(EXIT_FAILURE);
         }
@@ -591,7 +592,7 @@ struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian)
 
             if (!json_is_string(tmp_str)) {
                 char str[STR_BUFFSIZE];
-                sprintf(str, "error: par_fixed[%d] is not a string\n", k);
+                snprintf(str, STR_BUFFSIZE, "error: par_fixed[%d] is not a string\n", k);
                 print_err(str);
                 exit(EXIT_FAILURE);
             }
@@ -611,7 +612,7 @@ struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian)
             json_t *json_school_cac = json_array_get(json_school, cac);
             if (!json_is_array(json_school_cac)) {
                 char str[STR_BUFFSIZE];
-                sprintf(str, "error: json_school[%d] is not an array\n", cac);
+                snprintf(str, STR_BUFFSIZE, "error: json_school[%d] is not an array\n", cac);
                 print_err(str);
                 exit(EXIT_FAILURE);
             }
@@ -723,7 +724,7 @@ struct s_calc *build_p_calc(int seed, int nt, int dim_ode, int (*func_ode) (doub
     struct s_calc *p_calc = malloc(sizeof(struct s_calc));
     if (p_calc==NULL) {
 
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -790,7 +791,7 @@ struct s_calc *build_p_calc(int seed, int nt, int dim_ode, int (*func_ode) (doub
 
         p_calc->natural_drifted_safe = malloc((N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS) * sizeof(double *));
         if (p_calc->natural_drifted_safe==NULL) {
-            sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+            snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
             print_err(str);
             exit(EXIT_FAILURE);
         }
@@ -812,7 +813,7 @@ struct s_calc **build_calc(int general_id, int dim_ode, int (*func_ode) (double,
     struct s_calc **calc;
     calc=malloc(N_THREADS*sizeof (struct s_calc *));
     if (calc==NULL) {
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -820,7 +821,7 @@ struct s_calc **build_calc(int general_id, int dim_ode, int (*func_ode) (double,
     for(nt=0; nt<N_THREADS; nt++) {
         calc[nt]=malloc(sizeof (struct s_calc));
         if (calc[nt]==NULL) {
-            sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+            snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
             print_err(str);
             exit(EXIT_FAILURE);
         }
@@ -834,7 +835,7 @@ struct s_calc **build_calc(int general_id, int dim_ode, int (*func_ode) (double,
 #endif
     seed += general_id; /*we ensure uniqueness of seed in case of parrallel runs*/
 
-    sprintf(str, "seed=%ld", seed);
+    snprintf(str, STR_BUFFSIZE, "seed=%ld", seed);
     print_log(str);
 
     /* we create as many rng as parallel threads *but* note that for the operations not prarallelized, we always use cacl[0].randgsl */
@@ -892,7 +893,7 @@ struct s_X *build_X(struct s_data *p_data)
     p_X = malloc(sizeof(struct s_X));
     if (p_X==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -909,7 +910,7 @@ struct s_X *build_X(struct s_data *p_data)
     p_X->drift = malloc(p_X->size_drift * sizeof (double *));
     if(p_X->drift==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -939,7 +940,7 @@ struct s_X **build_J_p_X(struct s_data *p_data)
     J_p_X = malloc(J *sizeof(struct s_X *));
     if (J_p_X==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -970,7 +971,7 @@ struct s_X ***build_D_J_p_X(struct s_data *p_data)
     D_J_p_X = malloc((N_DATA+1) *sizeof(struct s_X **));
     if (D_J_p_X==NULL){
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -999,7 +1000,7 @@ struct s_hat *build_hat(struct s_data *p_data)
     struct s_hat *p_hat = malloc(sizeof (struct s_hat));
     if (p_hat==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -1043,7 +1044,7 @@ struct s_hat **build_D_p_hat(struct s_data *p_data)
     struct s_hat **D_p_hat = malloc(N_DATA * sizeof (struct s_hat *));
     if (D_p_hat==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -1075,7 +1076,7 @@ struct s_likelihood *build_likelihood(void)
     struct s_likelihood *p_like = malloc(sizeof (struct s_likelihood));
     if (p_like==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -1121,7 +1122,7 @@ struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covar
     p_best = malloc(sizeof(struct s_best));
     if (p_best==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -1138,7 +1139,7 @@ struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covar
 
     if (p_best->prior==NULL) {
         char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }

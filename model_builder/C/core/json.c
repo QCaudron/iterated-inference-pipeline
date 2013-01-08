@@ -407,3 +407,21 @@ void print_json_on_stdout(json_t *root)
 
     free(tmp);
 }
+
+
+/**
+ * return index of element in the json array of string array
+ */
+int index_of_json_array(const json_t *array, const char *element){
+
+    int k = 0;
+    while((k < json_array_size(array)) && strcmp(json_string_value(json_array_get(array, k)), element)) {
+        k++;
+    }
+
+    if(k == json_array_size(array)) {
+        return -1;
+    }
+
+    return k;
+}

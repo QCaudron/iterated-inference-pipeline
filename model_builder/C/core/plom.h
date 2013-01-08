@@ -363,9 +363,28 @@ struct s_best {
     int n_to_be_estimated;         /**< nb of parameters that have to be estimated (parameters with jump_size > 0.0) */
     unsigned int *to_be_estimated; /**< [self.length] index of self.mean component that have to be estimated. Note: [self.length] and not [self.n_to_be_estimated] because in the webApp, user can uleash jump_sizes set to 0.0 > 0.0  */
 
+
+
+    /* "follow" property of theta.json
+       E.g.
+       value: {
+         I0: {guess: 0.1},
+         I1: {follow: "I0"},
+       }
+
+       A follower will inherit from all the property of the parameter
+        it follows (prior, transformation, **grouping**, guess, min,
+        max) but its sd_transf will be set to 0.0.  However a
+        parameter can only follow a parameter of the same category
+        (categories are process model parameters (including initial
+        conditions) and observation process parameters) the reason is
+        that the groups are different between process model parameters
+        and observation process parameters.
+    */
     int n_follow;
     unsigned int *follower;        /**< [self.n_follow] index of follower */
     unsigned int *follow;          /**< [self.n_follow] index of parameter being followed by the follower */
+
 
     /* used to store states necessary for computation of the sampling covariance in MCMC algo */
     double *mean_sampling;         /**< [self.length] Em(X) 1st order mean needed to compute the sampling covariance */
@@ -524,7 +543,7 @@ struct s_router *build_router(const json_t *par, const char *par_key, const json
 void clean_router(struct s_router *p_router);
 struct s_router **build_routers(json_t *settings, json_t *theta, int is_bayesian);
 void clean_routers(struct s_router **routers);
-unsigned int get_index(const json_t *array, const char *element, const char *array_name);
+int index_of_json_array(const json_t *array, const char *element);
 struct s_par *build_par(struct s_data *p_data);
 void clean_par(struct s_par *p_par);
 struct s_par **build_J_p_par(struct s_data *p_data);
