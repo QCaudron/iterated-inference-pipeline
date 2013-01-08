@@ -1171,11 +1171,18 @@ struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covar
             }
             p_best->follower[p_best->n_follow-1] = i;
 
-            j=0;
-            while(strcmp(par_follow_key, routers[i]->name) != 0){
-                j++;
+            for(j=0; j< p_data->p_it_all->length; j++){
+                if(strcmp(par_follow_key, routers[j]->name) == 0){
+                    p_best->follow[p_best->n_follow-1] = j;
+                    break;
+                }
             }
-            p_best->follow[p_best->n_follow-1] = j;
+            if(j==p_data->p_it_all->length){
+                char str[STR_BUFFSIZE];
+                snprintf(str, STR_BUFFSIZE, "parameters to follow could not be found (%s -> %s)", routers[i]->name, par_follow_key);
+                print_err(str);
+                exit(EXIT_FAILURE);
+            }
         }
     }
 
