@@ -342,7 +342,6 @@ class Ccoder(Cmodel):
             else:
                 incDict[s] += 'X[ORDER_{0}*N_CAC+cac]'.format(s)
 
-
         for s in self.par_sv: #come in from other compartments
             myinput = [r for r in self.proc_model if r['from'] == s]
             for nbreac in range(len(myinput)):

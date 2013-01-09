@@ -17,6 +17,7 @@
 #########################################################################
 
 import copy
+import sys
 
 def contextualize(par_proc, proc_model, obs_var_def=[]):
     """add iotas: modify par_proc, proc_model and obs_var_def in place"""
@@ -289,38 +290,47 @@ class Cmodel:
                 ##expand by of transmission tags
                 model_expanded[i]['tag'][0]['by'] = self.expand_par_sv(r['tag'][0]['by'], proc_model)
 
-        model_erlang = []
 
         ###v -> v*k
         for i in range(len(model_expanded)):
-            for j in indg:
-                if (proc_model[j]['rate'] in model_expanded[i]['rate']) and (model_expanded[i]['from'] in state_erlang) :
-                    model_expanded[i]['rate'] = model_expanded[i]['rate'].replace(proc_model[j]['rate'], '({0})*{1}.0'.format(proc_model[j]['rate'], proc_model[j]['tag'][0]['shape'] ))
+            rate_to_replace = set([ proc_model[j]['rate'] for j in indg if proc_model[j]['rate'] in model_expanded[i]['rate']])
+            for rate in rate_to_replace:
+                if model_expanded[i]['from'] in state_erlang:
+                    model_expanded[i]['rate'] = model_expanded[i]['rate'].replace(rate, '({0})*{1}.0'.format(rate, proc_model[j]['tag'][0]['shape'] ))
+
+
+        model_erlang = []
 
         for i in indg:
             reac = model_expanded[i]
-
-            myexit = [i for i, exitreac in enumerate(model_expanded) if exitreac['from'] == reac['from'] and exitreac != reac]
+            myexit = [ind for ind, exitreac in enumerate(model_expanded) if exitreac['from'] == reac['from'] and exitreac != reac]
             for e in myexit:
                 if (reac['rate'] in model_expanded[e]['rate']) and (model_expanded[e]['to'] != 'U' ):
+                    #I0->I1, I1->I2 ...
                     for j in range(reac['tag'][0]['shape'] - 1):
                         model_erlang.append({'from': reac['from'] + str(j), 'to': reac['from'] + str(j+1), 'rate': model_expanded[e]['rate']})
                 else:
-                    for j in range(reac['tag'][0]['shape'] - 1):
-                        model_erlang.append({'from':reac['from'] + str(j), 'to':model_expanded[e]['to'], 'rate': model_expanded[e]['rate']})
+                    #I0->U, I1->U, ...
+                    if (model_expanded[e]['to'] in ['U', 'DU']) or (model_expanded[e]['to'] not in state_erlang):
+                        for j in range(reac['tag'][0]['shape'] - 1):
+                            model_erlang.append({'from': reac['from'] + str(j), 'to': model_expanded[e]['to'], 'rate': model_expanded[e]['rate']})
+
+                    #elif model_expanded[e]['to'] in state_erlang: We don't know what to do...
+                    ##TODO handle this case
+                    ##vicious case : IR and IS are erlang (with different shapes) and flow IR->IS...
+                    if (model_expanded[e]['to'] in state_erlang):
+                        sys.stderr.write('\033[93mWARNING\033[0m: {rfrom}->{rto} are both Erlang distributed, {rfrom}->{rto} has been expanded to {rfrom}{rshape}->{rto}0 only\n'.format(rfrom=reac['from'], rto=model_expanded[e]['to'], rshape= reac['tag'][0]['shape']))
 
 
-            #overwrite exit (from) state variable
+            #overwrite exit (from) state variable I->R becomes I{shape-1}->R
             for e in myexit:
                 model_expanded[e]['from'] = reac['from']+str(reac['tag'][0]['shape'] - 1)
 
 
-        ####overwrite arrival (to) state variable e.g S->I becomes S->I0 or I->R becomes I{shape-1}->R
+        ####overwrite arrival (to) state variable e.g S->I becomes S->I0
         for i in range(len(model_expanded)):
-
-            if model_expanded[i]['from'] != model_expanded[i]['to']:
-                if model_expanded[i]['to'] in state_erlang:
-                    model_expanded[i]['to'] = model_expanded[i]['to']+str(0)
+            if ((model_expanded[i]['from'] != model_expanded[i]['to']) and (model_expanded[i]['to'] in state_erlang)):
+                model_expanded[i]['to'] = model_expanded[i]['to']+str(0)
 
 
         ##delete the erlang reaction and add the expanded one to model...
@@ -329,7 +339,6 @@ class Cmodel:
         model_expanded.extend(model_erlang)
 
         #fix the rates e.g. I -> (I0+I1+I2)
-
         for i in range(len(model_expanded)):
             model_expanded[i]['rate'] = self.change_rate_erlang(model_expanded[i]['rate'], state_shape_erlang)
 
@@ -373,9 +382,10 @@ class Cmodel:
                     myobs[i][j]['rate'] = self.change_rate_erlang(myobs[i][j]['rate'], state_shape_erlang)
 
                     ###v -> v*k
-                    for k in indg:
-                        if (proc_model[k]['rate'] in myobs[i][j]['rate']) and (myobs[i][j]['from'] in state_erlang):
-                            myobs[i][j]['rate'] = myobs[i][j]['rate'].replace(proc_model[k]['rate'], '({0})*{1}.0'.format(proc_model[k]['rate'], proc_model[k]['tag'][0]['shape'] ))
+                    rate_to_replace = set([proc_model[k]['rate'] for k in indg if proc_model[k]['rate'] in myobs[i][j]['rate']])
+                    for rate in rate_to_replace:
+                        if myobs[i][j]['from'] in state_erlang:
+                            myobs[i][j]['rate'] = myobs[i][j]['rate'].replace(rate, '({0})*{1}.0'.format(rate, proc_model[k]['tag'][0]['shape'] ))
 
 
         ##################################################
@@ -438,12 +448,18 @@ if __name__=="__main__":
     #full model
     m = {}
     m['state'] = [{'id':'S'}, {'id':'I'}]
-    m['parameter'] = [{'id':'r0'}, {'id':'v'}, {'id':'e'}, {'id':'d'}, {'id':'sto'}, {'id':'alpha'}, {'id':'mu_b'}, {'id':'mu_d'}, {'id':'vol'}]
+    m['parameter'] = [{'id':'r0'}, {'id':'v'}, {'id':'l'}, {'id':'e'}, {'id':'d'}, {'id':'sto'}, {'id':'alpha'}, {'id':'mu_b'}, {'id':'mu_d'}, {'id':'vol'}, {'id':'g'}]
 
     m['model'] = [ {'from': 'U', 'to': 'S',  'rate': 'mu_b*N'},
-                   {'from': 'S', 'to': 'I',  'rate': 'noise__trans(sto)*drift(r0, vol_r0)/N*v*sinusoidal_forcing(e,d)*I', "tag":[{"id": "transmission", "by":["I"]}]},
+                   {'from': 'S', 'to': 'E',  'rate': 'noise__trans(sto)*drift(r0, vol_r0)/N*v*sinusoidal_forcing(e,d)*I', "tag":[{"id": "transmission", "by":["I"]}]},
+
+                   {'from': 'E', 'to': 'I', 'rate': '(1-alpha)*correct_rate(l)'},
+                   {'from': 'E', 'to': 'U',  'rate': 'alpha*correct_rate(l) + mu_d'},
+
                    {'from': 'S', 'to': 'U',  'rate': 'mu_d'},
-                   {'from': 'I', 'to': 'I',  'rate': 'correct_rate(v)', "tag": [{"id": "erlang", "shape":3}], 'desc':'NOTE that the rate is correct_rate(v) and **not** (1-alpha)*correct_rate(v)'},
+                   {'from': 'I', 'to': 'I',  'rate': 'correct_rate(v)', "tag": [{"id": "erlang", "shape":3}], 'comment':'NOTE that the rate is correct_rate(v) and **not** (1-alpha)*correct_rate(v)'},
+                   {'from': 'E', 'to': 'E',  'rate': 'correct_rate(l)', "tag": [{"id": "erlang", "shape":3}]},
+                   {'from': 'DU', 'to': 'S',  'rate': 'g*(N-S-I)'},
                    {'from': 'I', 'to': 'DU', 'rate': '(1-alpha)*correct_rate(v)'},
                    {'from': 'I', 'to': 'U',  'rate': 'alpha*correct_rate(v) + mu_d'} ]
 
@@ -462,7 +478,7 @@ if __name__=="__main__":
     l['observed'] =  [{"id": "Prev",     "definition": ["I"], "model_id": "common"},
                       {"id": "SI",       "definition": ["S", "I"], "model_id": "common"},
                       {"id": "Inc_out",  "definition": [{"from":"I", "to":"DU"}, {"from":"I", "to":"U"}], "model_id": "common"},
-                      {"id": "Inc_in",   "definition": [{"from":"S", "to":"I"}], "model_id": "common"}]
+                      {"id": "Inc_in",   "definition": [{"from":"S", "to":"E"}], "model_id": "common"}]
 
     l['parameter'] = [{"id": "rep"}, {"id": "phi"}]
 
@@ -494,7 +510,8 @@ if __name__=="__main__":
     print "\nexpanded process model"
     tmp_print = test_model.proc_model
     for line in tmp_print:
-        print line
+        print line['from'], line['to'], line['rate']
+
 
     print "\ntest_model.unexpanded_obs_var_def"
     tmp_print = test_model.unexpanded_obs_var_def
@@ -508,3 +525,20 @@ if __name__=="__main__":
 
     print "\ntest_model.obs_model"
     print test_model.obs_model
+
+
+##    print "SIRS multi strain"
+##    import json
+##    test_model = Cmodel(json.load(open('/Users/seb/hfmd/hfmd_sirs_hbrs_2/context.json')), json.load(open('/Users/seb/hfmd/hfmd_sirs_hbrs_2/process.json')), json.load(open('/Users/seb/hfmd/hfmd_sirs_hbrs_2/link.json')))
+##
+##    print "\nexpanded process model"
+##    tmp_print = test_model.proc_model
+##    for line in tmp_print:
+##        #if line['rate'] == 'g':
+##        print line['from'], line['to'], line['rate']
+##
+##
+##    print "\nexpanded observed variable definition"
+##    tmp_print = test_model.obs_var_def
+##    for line in tmp_print:
+##        print line
