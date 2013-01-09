@@ -111,6 +111,7 @@ double f_simplex_kalman(const gsl_vector *x, void *params);
 void reset_kalman(struct s_kal *p_kal, struct s_common *p_common);
 void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data);
 void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data);
+int X2xc(double *xc, struct s_X *p_X);
 int list2sym_matrix(gsl_matrix *mat, double *vect, int offset);
 int sym_matrix2list(double *vect, gsl_matrix *mat, int offset);
 void find_cell_from_vector_form(int *cell, int idx);

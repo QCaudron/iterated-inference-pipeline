@@ -40,7 +40,6 @@
  */
 int func_kal(double t, const double X[], double f[], void *params)
 {
-
     struct s_calc *p_calc = (struct s_calc *) params;
     struct s_par *p_par = p_calc->p_par;  /* syntaxic shortcut */
     struct s_data *p_data = p_calc->p_data;
@@ -126,7 +125,7 @@ int func_kal(double t, const double X[], double f[], void *params)
     gsl_matrix_add(&res2.matrix,FtCt);
     gsl_matrix_add(&res2.matrix,Q);
 
-    
+
 
     return GSL_SUCCESS;
 }

@@ -211,7 +211,6 @@ int matrix_times_list_form(gsl_matrix *res, gsl_matrix *mat, const double *vect,
  * concatenate X->proj and covariance matrix into an "xc" list
  * @param xc the concatenated list
  * @param p_X the X vector
- * @param Ct the covariance matrix
  * @return an error code (0 if no error)
  */
 int X2xc(double *xc, struct s_X *p_X)
@@ -278,8 +277,8 @@ double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **ro
 }
 
 /**
-   run an extended Kalman filter and returns the log likelihood
-*/
+ *   run an extended Kalman filter and returns the log likelihood
+ */
 double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kal *p_kal, struct s_common *p_common, struct s_data *p_data, struct s_calc **calc, FILE *p_file_X, int m)
 {
     // loops indices
@@ -298,10 +297,10 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
     log_lik = 0.0;
 
     double xc[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE + N_KAL*N_KAL];
-    gsl_matrix_view Ct = gsl_matrix_view_array(&xc[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE],N_KAL,N_KAL); 
+    gsl_matrix_view Ct = gsl_matrix_view_array(&xc[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE],N_KAL,N_KAL);
     gsl_matrix_set_zero(&Ct.matrix);
-       
-       
+
+
     //////////////////
     // for all data //
     //////////////////
@@ -333,7 +332,7 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
             reset_inc(p_X);	// reset incidence to 0
             reset_inc_Cov(&Ct.matrix);	// reset incidence covariance to 0
 
-            
+
             X2xc(xc, p_X);
 
             // propagate xc (X->proj and Ct) if populations not exploding

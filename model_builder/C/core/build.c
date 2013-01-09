@@ -715,7 +715,7 @@ void clean_data(struct s_data *p_data)
 struct s_calc *build_p_calc(int seed, int nt, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data)
 {
     /*dim_ode is:
-      N_PAR_SV*N_CAC +N_TS_INC_UNIQUE (X size) + (N_KAL*(N_KAL+1)/2) (Ct size) for kalman and
+      N_PAR_SV*N_CAC +N_TS_INC_UNIQUE (X size) + (N_KAL*N_KAL) (Ct size) for kalman and
       N_PAR_SV*N_CAC +N_TS_INC_UNIQUE (X size) only for everything else
     */
     char str[STR_BUFFSIZE];

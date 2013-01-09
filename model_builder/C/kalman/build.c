@@ -175,9 +175,8 @@ struct s_kalman *build_kalman(json_t *settings, int is_bayesian, int update_cova
 
     N_KAL = N_PAR_SV*N_CAC + N_TS + p_kalman->p_data->p_it_only_drift->nbtot;
     p_kalman->calc = build_calc(GENERAL_ID,
-                                N_PAR_SV*N_CAC +N_TS_INC_UNIQUE //(X size)
-                                + N_KAL*N_KAL,
-                                func_kal, //(Ct size)
+                                ((N_PAR_SV*N_CAC + N_TS_INC_UNIQUE) + (N_KAL*N_KAL)), //(X size) + (Ct size)
+                                func_kal,
                                 p_kalman->p_data);
     p_kalman->p_par = build_par(p_kalman->p_data);
 
