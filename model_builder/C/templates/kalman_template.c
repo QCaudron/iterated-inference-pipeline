@@ -55,6 +55,8 @@ int func_kal(double t, const double X[], double f[], void *params)
     struct s_group ***compo_groups_drift_par_proc = p_kalman_specific_data->compo_groups_drift_par_proc;
     gsl_matrix *FtCt = p_kalman_specific_data->FtCt;
     gsl_matrix *res = p_kalman_specific_data->res;
+    gsl_matrix_view Ct   = gsl_matrix_view_array(&X[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE],N_KAL,N_KAL);
+    gsl_matrix_view res2 = gsl_matrix_view_array(&f[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE],N_KAL,N_KAL);
 
     int c, ac, cac, n_cac, ts, o;
     double sum_inc = 0.0;
@@ -117,18 +119,14 @@ int func_kal(double t, const double X[], double f[], void *params)
     eval_jac(Ft, X, p_par, p_data, p_calc, compo_groups_drift_par_proc, t);
 
     // compute Ft*Ct+Ct*Ft'+Q
-    matrix_times_list_form(FtCt, Ft, X, offset);	// compute Ft*Ct (find Ct from X[offset])
-    for (row=0; row<N_KAL; row++) {			// compute Ft*Ct+Ct*Ft'+Q
-        for(col=0; col<=row; col++) {			// only fill inferior triangle (symetric matrix)
-            data = gsl_matrix_get(FtCt, row, col)	// Ft*Ct
-                +gsl_matrix_get(FtCt, col, row)		// Ct*Ft'
-                +gsl_matrix_get(Q, row, col);		// Q
-            gsl_matrix_set(res, row, col, data);	// fill res
-        }
-    }
+    gsl_matrix_set_zero(&res2.matrix);
+    gsl_blas_dgemm (CblasNoTrans, CblasNoTrans, 1.0, Ft, &Ct.matrix, 0.0, FtCt);
+    gsl_matrix_add(&res2.matrix,FtCt);
+    gsl_matrix_transpose (FtCt);
+    gsl_matrix_add(&res2.matrix,FtCt);
+    gsl_matrix_add(&res2.matrix,Q);
 
-    // fill f
-    sym_matrix2list(f, res, offset);
+    
 
     return GSL_SUCCESS;
 }

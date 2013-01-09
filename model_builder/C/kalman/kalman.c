@@ -214,16 +214,13 @@ int matrix_times_list_form(gsl_matrix *res, gsl_matrix *mat, const double *vect,
  * @param Ct the covariance matrix
  * @return an error code (0 if no error)
  */
-int X2xc(double *xc, struct s_X *p_X, gsl_matrix *Ct)
+int X2xc(double *xc, struct s_X *p_X)
 {
     int i;
 
     // copy X->proj in xc
     for(i=0; i<N_PAR_SV*N_CAC+N_TS_INC_UNIQUE; i++)
         xc[i] = p_X->proj[i];
-
-    // copy Ct (vectorized) in xc
-    sym_matrix2list(xc, Ct, i);
 
     // TODO errors
     return 0;
@@ -300,6 +297,11 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
     t0=0;
     log_lik = 0.0;
 
+    double xc[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE + N_KAL*N_KAL];
+    gsl_matrix_view Ct = gsl_matrix_view_array(&xc[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE],N_KAL,N_KAL); 
+    gsl_matrix_set_zero(&Ct.matrix);
+       
+       
     //////////////////
     // for all data //
     //////////////////
@@ -329,11 +331,10 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
             store_state_current_n_nn(calc, n, nn);
 
             reset_inc(p_X);	// reset incidence to 0
-            reset_inc_Cov(p_kal->Ct);	// reset incidence covariance to 0
+            reset_inc_Cov(&Ct.matrix);	// reset incidence covariance to 0
 
-            // create xc for propagation: contains X->proj and Ct as a list
-            double xc[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE + N_KAL*(N_KAL+1)/2];
-            X2xc(xc, p_X, p_kal->Ct);
+            
+            X2xc(xc, p_X);
 
             // propagate xc (X->proj and Ct) if populations not exploding
             if (get_total_pop(xc)<WORLD_POP) {
@@ -347,7 +348,6 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
             for (i=0; i<N_PAR_SV*N_CAC+N_TS_INC_UNIQUE; i++) {
                 p_X->proj[i]  = xc[i];
             }
-            list2sym_matrix(p_kal->Ct, xc, i);
 
             proj2obs(p_X, p_data);
 
@@ -375,10 +375,10 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
             // compute gain
             ekf_gain_computation(obs_mean(gsl_vector_get(p_kal->xk, N_PAR_SV*N_CAC +ts_nonan), p_par, p_data, calc[0], ts_nonan),
                                  p_data->data[calc[0]->current_nn][ts_nonan],
-                                 p_kal->Ct, p_common->ht, p_kal->kt, p_kal->sc_rt,
+                                 &Ct.matrix, p_common->ht, p_kal->kt, p_kal->sc_rt,
                                  &(p_kal->sc_st), &(p_kal->sc_pred_error)); //scalar sc_st and sc_pred_error will be modified so we pass their address
 
-            like = ekf_update(p_kal->xk, p_kal->Ct, p_common->ht, p_kal->kt, p_kal->sc_st, p_kal->sc_pred_error);
+            like = ekf_update(p_kal->xk, &Ct.matrix, p_common->ht, p_kal->kt, p_kal->sc_st, p_kal->sc_pred_error);
             log_lik_temp += log(like);
         }
 
@@ -408,7 +408,6 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 */
 void reset_kalman(struct s_kal *p_kal, struct s_common *p_common)
 {
-    gsl_matrix_set_zero(p_kal->Ct);
     gsl_matrix_set_zero(p_kal->Ft);
     gsl_vector_set_zero(p_kal->kt);
     p_kal->sc_st = 0.0;

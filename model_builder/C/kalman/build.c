@@ -103,7 +103,6 @@ struct s_kal *build_kal(void)
 
     p_kal->xk = gsl_vector_calloc(N_KAL);
 
-    p_kal->Ct = gsl_matrix_calloc(N_KAL, N_KAL);
     p_kal->Ft = gsl_matrix_calloc(N_KAL, N_KAL);
 
     p_kal->kt = gsl_vector_calloc(N_KAL);
@@ -119,7 +118,6 @@ void clean_kal(struct s_kal *p_kal)
 {
     gsl_vector_free(p_kal->xk);
 
-    gsl_matrix_free(p_kal->Ct);
     gsl_matrix_free(p_kal->Ft);
 
     gsl_vector_free(p_kal->kt);
@@ -178,7 +176,7 @@ struct s_kalman *build_kalman(json_t *settings, int is_bayesian, int update_cova
     N_KAL = N_PAR_SV*N_CAC + N_TS + p_kalman->p_data->p_it_only_drift->nbtot;
     p_kalman->calc = build_calc(GENERAL_ID,
                                 N_PAR_SV*N_CAC +N_TS_INC_UNIQUE //(X size)
-                                + (N_KAL*(N_KAL+1)/2),
+                                + N_KAL*N_KAL,
                                 func_kal, //(Ct size)
                                 p_kalman->p_data);
     p_kalman->p_par = build_par(p_kalman->p_data);

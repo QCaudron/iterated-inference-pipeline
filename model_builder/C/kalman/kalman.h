@@ -64,7 +64,6 @@ struct s_kal
 {
   gsl_vector *xk;  /* [N_KAL]: concatenation of non-overlapping components of X->proj, X->obs and X->drift */
 
-  gsl_matrix *Ct;  /* [N_KAL][N_KAL] Covariance matrix of the joint density p(X_t|y_{1:i}) if i<=t<i */
   gsl_matrix *Ft;  /* [N_KAL][N_KAL] Jacobian matrix of the drift f(X_t,\theta) of the SDE approximated with the EKF: dX_t = f(X_t,\theta)dt + Chol(Q)dB_t */
 
   gsl_vector *kt;  /* [N_KAL] Kalman Gain vector */
