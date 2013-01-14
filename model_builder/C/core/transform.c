@@ -181,6 +181,8 @@ double f_der_logit_ab(double x, double multiplier, double a, double b)
 
 
 
+//1/derivative
+
 
 
 /**
@@ -384,7 +386,7 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
         p_router->multiplier_f_inv_print = 1.0; //logit_ab did not change the unit...
 
         p_router->f_derivative = &f_der_logit_ab;
-        p_router->multiplier_f_derivative = 1.0;
+        p_router->multiplier_f_derivative = p_router->multiplier_f;
 
     } else {
 
