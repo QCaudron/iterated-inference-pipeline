@@ -113,7 +113,7 @@ double f_inv_logit_ab(double x, double multiplier, double a, double b)
 {
 
     if (a == b) {
-        return x * multiplier ;// nothing will happen in the transformed space for_ab)
+        return x * multiplier ;// nothing will happen in the transformed space for _ab
     } else {
         //x is logit_ab
         //1) unlogit ab it
@@ -131,7 +131,7 @@ double f_inv_logit_ab_duration2rate(double x, double multiplier, double a, doubl
 {
 
     if (a == b) {
-        // nothing will happen in the transformed space for
+        // nothing will happen in the transformed space for _ab
         return (1.0/(0.0001+x* multiplier));
 
     } else {
@@ -176,6 +176,7 @@ double f_der_logit(double x, double multiplier, double a, double b)
  */
 double f_der_logit_ab(double x, double multiplier, double a, double b)
 {
+    //multiplier is here to ensure that x is in the same scale as a and b
     return (b-a)/((x-a)*(b-x));
 }
 
