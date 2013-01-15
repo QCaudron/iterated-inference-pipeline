@@ -19,78 +19,42 @@
 #include "plom.h"
 
 
-/*
- * Transformation functions these function **MUST** have a prototype of the form:
- * double f_(double x, double multiplier, double a, double b)
- * even if a and b won't be used
- */
 
-
-double f_id(double x, double multiplier, double a, double b)
+double f_id(double x, double a, double b)
 {
-
-    //change unit first to the data unit and then transform
-    return x*multiplier;
+    return x;
 }
 
 
-double f_log(double x, double multiplier, double a, double b)
+double f_log(double x, double a, double b)
 {
-    double safe = ( (x*multiplier) > ZERO_LOG ) ? x*multiplier : ZERO_LOG; //change unit to the data unit and sanatize
-
-    return log(safe); //transform
+    double safe = ( x > ZERO_LOG ) ? x : ZERO_LOG;
+    return log(safe);
 }
 
-double f_inv_log(double x, double multiplier, double a, double b)
+double f_inv_log(double x, double a, double b)
 {
-    return exp(x)*multiplier; //back transform and then rescale from the data unit to another unit
-}
-
-
-double f_inv_log_duration2rate(double x, double multiplier, double a, double b)
-{
-    //x is a duration (in the data unit) log transformed.
-    //First we unlog,
-    //then we make it a rate
-    //then, we rescale the rate from the data unit to another unit
-
-    return (1.0/(0.0001+exp(x))) * multiplier;
+    return exp(x);
 }
 
 
-double f_inv_duration2rate(double x, double multiplier, double a, double b)
-{
-    return (1.0/(0.0001+x)) * multiplier; //x is a duration (in the data unit) non transformed. We make it a rate and then, we rescale the rate from the data unit to another unit
-}
-
-
-
-/**
- * logit transfo: we use logit transfor only for proportion (ie parameter that are **unit less**)
- */
-double f_logit(double x, double multiplier, double a, double b)
+double f_logit(double x, double a, double b)
 {
     //sanatize
     double safe = ( x > ZERO_LOG ) ? x : ZERO_LOG;
     safe = (safe < ONE_LOGIT ) ? safe : ONE_LOGIT;
 
-    return log(safe/(1.0-safe)); //transform
+    return log(safe/(1.0-safe));
 }
 
-/**
- * inverse of the logit transfo: NOTE that we use logit transfor only for proportion (ie parameter that are **unit less**)
- */
-double f_inv_logit(double x, double multiplier, double a, double b)
+
+double f_inv_logit(double x, double a, double b)
 {
-    return (1.0/(1.0+exp(-x))); //unlogit
+    return (1.0/(1.0+exp(-x)));
 }
 
 
-/**
- * logit_ab transformation. logit_ab looses the units so we don't do
- * any unit transformation here. It has to be done at the f_inv
- * level!!
- */
+
 double f_logit_ab(double x, double multiplier, double a, double b)
 {
     //sanititize
@@ -101,121 +65,93 @@ double f_logit_ab(double x, double multiplier, double a, double b)
     if (a == b)
         return x; // nothing will happen in the transformed space for x, so no need to transform it
     else
-        return log((safe-a)/(b-safe)); //transform
+        return log((safe-a)/(b-safe));
 }
 
-/**
- * inverse of the logit_ab transformation. This function also ensure
- * that the return value is in the unit of the data or the user (depending if called as f_inv of f_inv_print) as we lost the
- * unit when we used f_logit_ab
- */
-double f_inv_logit_ab(double x, double multiplier, double a, double b)
+double f_inv_logit_ab(double x, double a, double b)
 {
-
     if (a == b) {
-        return x * multiplier ;// nothing will happen in the transformed space for_ab)
+        return x ;
     } else {
-        //x is logit_ab
-        //1) unlogit ab it
-        //2) rescale to the unit of the data as that could not be achieved in f_logit_ab
-        return ((b*exp(x)+a)/(1.0+exp(x))) * multiplier;
+        return (b*exp(x)+a)/(1.0+exp(x));
     }
 }
 
 
 
-/**
- * ...
- **/
-double f_inv_logit_ab_duration2rate(double x, double multiplier, double a, double b)
+double f_scale_pow10(double x, double a, double b)
 {
+    return pow(10.0, x);
+}
 
+double f_scale_logit_ab_pow10(double x, double a, double b)
+{
     if (a == b) {
-        // nothing will happen in the transformed space for
-        return (1.0/(0.0001+x* multiplier));
-
+        return pow(10.0, x) ;
     } else {
-        //x is a duration (in the data unit) logit_ab transformed.
-        //First we unlogit_ab,
-        //then, we rescale the duration to another unit as this could not be achieved by f_logit_ab but should have taken place there.
-        //then we make it a rate by taking 1/duration
-
-        return (1.0/(0.0001+ ((b*exp(x)+a)/(1.0+exp(x)))* multiplier));
+        return pow(10.0, ((b*exp(x)+a)/(1.0+exp(x))));
     }
 }
 
-
-
-
 /**
- * derivative of f_id
+ * Fit proportion in log10 scale (ensures that the exponent is positive with a log transfo)
  */
-double f_der_id(double x, double multiplier, double a, double b)
+double f_scale_log_pow10_prop(double x, double a, double b)
 {
-    return multiplier;
+    return pow(10.0, -exp(x));
 }
+
 
 /**
  * derivative of f_log
  */
-double f_der_log(double x, double multiplier, double a, double b)
+double f_der_log(double x, double a, double b)
 {
     return 1.0/x;
 }
 
+
+
+
+/**
+ * derivative of f_inv_log
+ */
+double f_der_inv_log(double x, double a, double b)
+{
+    return exp(x);
+}
+
+
 /**
  * derivative of f_logit
  */
-double f_der_logit(double x, double multiplier, double a, double b)
+double f_der_logit(double x, double a, double b)
 {
-    return 1.0/(x-multiplier*x*x);
+    return 1.0/(x-x*x);
+}
+
+/**
+ * derivative of f_inv_logit
+ */
+double f_der_inv_logit(double x, double a, double b)
+{
+    return exp(-x)/pow(1.0 + exp(-x), 2.0);
 }
 
 /**
  * derivative of f_logit_ab
  */
-double f_der_logit_ab(double x, double multiplier, double a, double b)
+double f_der_logit_ab(double x, double a, double b)
 {
     return (b-a)/((x-a)*(b-x));
 }
 
-
-
-//1/derivative
-
-
-
 /**
- * Scaling functions: transformation is operated at the f_inv level **only**
- **/
-
-double f_inv_scale_pow10(double x, double multiplier, double a, double b)
+ * derivative of f_inv_logit_ab
+ */
+double f_der_inv_logit_ab(double x, double a, double b)
 {
-    return pow(10.0, x)*multiplier;
-}
-
-double f_inv_scale_pow10_duration2rate(double x, double multiplier, double a, double b)
-{
-    return (1.0/(0.0001+pow(10.0, x)*multiplier));
-}
-
-
-double f_inv_logit_ab_scale_pow10(double x, double multiplier, double a, double b)
-{
-    if (a == b) {
-        return pow(10.0, x) * multiplier ;// nothing will happen in the transformed space for_ab)
-    } else {
-        return pow(10.0, ((b*exp(x)+a)/(1.0+exp(x)))) * multiplier;
-    }
-}
-
-double f_inv_logit_ab_scale_pow10_duration2rate(double x, double multiplier, double a, double b)
-{
-    if (a == b) {
-        return (1.0/(0.0001+pow(10.0, x)*multiplier));
-    } else {
-        return (1.0/(0.0001+pow(10.0, (b*exp(x)+a)/(1.0+exp(x)))*multiplier));
-    }
+    return b*exp(x)/(exp(x) + 1.0) - (a + b*exp(x))*exp(x)/pow(exp(x) + 1.0, 2.0);
 }
 
 
@@ -469,7 +405,18 @@ void back_transform_theta2par(struct s_par *p_par, const theta_t *theta, const s
     for(i=0; i<p_it->length; i++){
         struct s_router *r = routers[p_it->ind[i]];
         for(k=0; k< r->n_gp; k++) {
+
+            //back transform
             p_par->natural[ p_it->ind[i] ][k] = (*(r->f_inv))( gsl_vector_get(theta, p_it->offset[i]+k), r->multiplier_f_inv, r->min[k], r->max[k]);
+
+            //convert unit
+            p_par->natural[ p_it->ind[i] ][k] *= r->multiplier;
+
+            //convert to rate (if relevant) Note the 0.00001 to remain on the safe side if duration -> 0.0
+            if(r->is_duration){
+                p_par->natural[ p_it->ind[i] ][k] = 1.0/(0.00001 +p_par->natural[ p_it->ind[i] ][k]);
+            }
+
         }
     }
 }

@@ -186,15 +186,14 @@ struct s_router /* [ N_PAR_SV + N_PAR_PROC + N_PAR_OBS ] */
     char **group_name; /**< [self.n_gp] name of the groups */
 
     /* transformations */
-    double (*f) (double, double, double, double);           /**< from parameters in a human readable scale (for instance duration instead of rates) and a human readable unit to the constraint version in the data unit: e.g log, logit transfo **after** unit conversion */
-    double (*f_inv) (double, double, double, double);       /**< from parameters transformed by @c f and scaled to the time unit of the data by multiplier_f to parameters used by the model. For instance duration to rate ... */
-    double (*f_inv_print) (double, double, double, double); /** from the transformed scale (transformed by @c f) (in the unit of data) to the intuitive scale (possible in another unit) */
-    double (*f_derivative) (double, double, double, double);
+    double (*f) (double, double, double, double); /**< transformation (log, logit...) */
+    double (*f_inv) (double, double, double); /**< inverse of f (f*f_inv=identity) */
 
-    double multiplier_f;            /**< multiplier to go from the intuitive scale to the unit of data *before* the transformation operated by @c f */
-    double multiplier_f_inv;        /**< multiplier to go from the unit of the data to another scale after the transformation operated by @c f_inv */
-    double multiplier_f_inv_print;  /**< multiplier to go from the unit of the data to an intuitive unit after the transformation operated by @c f_inv_print */
-    double multiplier_f_derivative; /**< just here for ease of use: same multiplier as multiplier_f */
+    double (*f_derivative) (double, double, double); /**< derivative of f */
+    double (*f_inv_derivative) (double, double, double); /**< derivative of f_inv */
+
+    double multiplier; /**< multiplier to go from the intuitive scale to the unit of data *before*  duration as been converted to rates (if relevant) */
+    int is_duration; /**< boolean specifying if a duration has to be converted into a rate */
 
     //used for logit_ab transfo
     double *min;  /**< minimum (currently set by value min) */
