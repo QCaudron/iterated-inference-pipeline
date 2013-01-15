@@ -176,7 +176,6 @@ double f_der_logit(double x, double multiplier, double a, double b)
  */
 double f_der_logit_ab(double x, double multiplier, double a, double b)
 {
-    //multiplier is here to ensure that x is in the same scale as a and b
     return (b-a)/((x-a)*(b-x));
 }
 
