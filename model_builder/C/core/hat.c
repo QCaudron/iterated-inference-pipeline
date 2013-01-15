@@ -171,7 +171,7 @@ void compute_hat(struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_da
             D_p_hat[t1-1]->drift[offset+k] = 0.0;
 
             for (j=0; j<J; j++) {
-                calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv_print))( D_J_p_X[t1][j]->drift[i][k] , routers[ind_par_Xdrift_applied]->multiplier_f_inv_print,routers[ind_par_Xdrift_applied]->min[k],routers[ind_par_Xdrift_applied]->max[k]);
+                calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))( D_J_p_X[t1][j]->drift[i][k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
                 D_p_hat[t1-1]->drift[offset+k] += calc[thread_id]->to_be_sorted[j]*weights[j];
             }
             get_CI95(D_p_hat[t1-1]->drift_95[offset+k], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, weights);
@@ -183,7 +183,7 @@ void compute_hat(struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_da
 
                 D_p_hat[nn-1]->drift[offset+k] = 0.0;
                 for(j=0; j<J; j++) {
-                    calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv_print))( D_J_p_X[nn][j]->drift[i][k] , routers[ind_par_Xdrift_applied]->multiplier_f_inv_print, routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
+                    calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))( D_J_p_X[nn][j]->drift[i][k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
                     D_p_hat[nn-1]->drift[offset+k] += calc[thread_id]->to_be_sorted[j];
                 }
                 D_p_hat[nn-1]->drift[offset+k] /= ((double) J);
@@ -258,7 +258,7 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_da
 
             p_hat->drift[offset+k] = 0.0;
             for(j=0; j<J; j++) {
-                calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv_print))( J_p_X[j]->drift[i][k] , routers[ind_par_Xdrift_applied]->multiplier_f_inv_print, routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
+                calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))(J_p_X[j]->drift[i][k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
                 p_hat->drift[offset+k] += calc[thread_id]->to_be_sorted[j];
             }
             p_hat->drift[offset+k] /= ((double) J);

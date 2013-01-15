@@ -650,26 +650,22 @@ void sanitize_best_to_prior(struct s_best *p_best, struct s_data *p_data);
 int in_u(int i, unsigned int *tab, int length);
 
 /* transform.c */
-double f_id(double x, double multiplier, double a, double b);
-double f_log(double x, double multiplier, double a, double b);
-double f_inv_log(double x, double multiplier, double a, double b);
-double f_inv_duration2rate(double x, double multiplier, double a, double b);
-double f_inv_log_duration2rate(double x, double multiplier, double a, double b);
-double f_inv_logit_ab_duration2rate(double x, double multiplier, double a, double b);
-double f_logit(double x, double multiplier, double a, double b);
-double f_inv_logit(double x, double multiplier, double a, double b);
+double f_id(double x, double a, double b);
+double f_log(double x, double a, double b);
+double f_inv_log(double x, double a, double b);
+double f_logit(double x, double a, double b);
+double f_inv_logit(double x, double a, double b);
 double f_logit_ab(double x, double multiplier, double a, double b);
-double f_inv_logit_ab(double x, double multiplier, double a, double b);
-
-double f_der_id(double x, double multiplier, double a, double b);
-double f_der_log(double x, double multiplier, double a, double b);
-double f_der_logit(double x, double multiplier, double a, double b);
-double f_der_logit_ab(double x, double multiplier, double a, double b);
-
-double f_inv_scale_pow10(double x, double multiplier, double a, double b);
-double f_inv_scale_pow10_duration2rate(double x, double multiplier, double a, double b);
-double f_inv_logit_ab_scale_pow10(double x, double multiplier, double a, double b);
-double f_inv_logit_ab_scale_pow10_duration2rate(double x, double multiplier, double a, double b);
+double f_inv_logit_ab(double x, double a, double b);
+double f_scale_pow10(double x, double a, double b);
+double f_scale_logit_ab_pow10(double x, double a, double b);
+double f_scale_log_pow10_prop(double x, double a, double b);
+double f_der_log(double x, double a, double b);
+double f_der_inv_log(double x, double a, double b);
+double f_der_logit(double x, double a, double b);
+double f_der_inv_logit(double x, double a, double b);
+double f_der_logit_ab(double x, double a, double b);
+double f_der_inv_logit_ab(double x, double a, double b);
 
 
 double u_duration_par2u_data(const char *u_par, const char *u_data);
@@ -681,6 +677,7 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
 void assign_f_transfo(double (**f_transfo) (double x, double mul, double a, double b), const char *f_transfo_name);
 void assign_f_derivative(double (**f_derivative) (double x, double mul, double a, double b), const char *f_transfo_name);
 void back_transform_theta2par(struct s_par *p_par, const theta_t *theta, const struct s_iterator *p_it, struct s_data *p_data);
+double back_transform_x(double x, int g, struct s_router *r);
 double transit_mif(double sd_x);
 void transform_theta(struct s_best *p_best, double (*f_transit_par) (double), double (*f_transit_state) (double), struct s_data *p_data, int transform_mean, int transform_var);
 

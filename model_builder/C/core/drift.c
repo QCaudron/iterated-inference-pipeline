@@ -42,7 +42,6 @@ void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, 
 
 
 
-
 /**
    apply drift on par (stored in natural_drifted_safe)
 */
@@ -55,9 +54,9 @@ void drift_par(struct s_calc *p_calc, struct s_data *p_data, struct s_X *p_X, in
     struct s_router **routers = p_data->routers;
 
     for(i=ind_drift_start; i<ind_drift_end; i++) {
-        int ind_par_Xdrift_applied = p_drift->ind_par_Xdrift_applied[i];
-        for(k=0; k< routers[ind_par_Xdrift_applied]->n_gp; k++) {
-            p_calc->natural_drifted_safe[i][k] = (*(routers[ind_par_Xdrift_applied]->f_inv))( p_X->drift[i][k] , routers[ind_par_Xdrift_applied]->multiplier_f_inv,routers[ind_par_Xdrift_applied]->min[k],routers[ind_par_Xdrift_applied]->max[k]);
+        struct s_router *r = routers[p_drift->ind_par_Xdrift_applied[i]];
+        for(k=0; k< r->n_gp; k++) {
+            back_transform_x(p_X->drift[i][k], k, r);
         }
     }
 }

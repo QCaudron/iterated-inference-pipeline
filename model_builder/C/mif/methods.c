@@ -305,12 +305,12 @@ void back_transform_theta2par_mif(struct s_par *p_par, gsl_vector *theta_mif, st
 
     offset = 0;
     for(i=0; i<p_it->length; i++){
-        for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++){
-            p_par->natural[ p_it->ind[i] ][k] = (*(routers[ p_it->ind[i] ]->f_inv))( gsl_vector_get(theta_mif, offset), routers[ p_it->ind[i] ]->multiplier_f_inv, routers[ p_it->ind[i] ]->min[k], routers[ p_it->ind[i] ]->max[k]);
+        struct s_router *r = routers[p_it->ind[i]];
+        for(k=0; k< r->n_gp; k++){
+            back_transform_x(gsl_vector_get(theta_mif, offset), k, r);
             offset++;
         }
     }
-
 }
 
 
@@ -386,7 +386,7 @@ void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, 
 
     gsl_matrix *var = p_best->var;
 
-    double back_transformed_print; //prior are on the natural scale with an intuitive time unit (not necessarily the data unit), so we transform the parameter into this unit...
+    double back_transformed; //prior are on the natural scale , so we transform the parameter into this scale...
     double p_tmp;
 
     int offset_best;
@@ -401,8 +401,8 @@ void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, 
 
             if (gsl_matrix_get(var, offset_best, offset_best) > 0.0) { //only for the parameter that we want to estimate
                 for(j=0; j<J; j++) {
-                    back_transformed_print = (*(p_router->f_inv_print))(gsl_vector_get( J_theta[j], offset), p_router->multiplier_f_inv_print, p_router->min[k], p_router->max[k]);
-                    p_tmp = (*(p_best->prior[offset_best]))(back_transformed_print, p_best->par_prior[offset_best][0], p_best->par_prior[offset_best][1]);
+                    back_transformed = (*(p_router->f_inv))(gsl_vector_get( J_theta[j], offset), p_router->min[k], p_router->max[k]);
+                    p_tmp = (*(p_best->prior[offset_best]))(back_transformed, p_best->par_prior[offset_best][0], p_best->par_prior[offset_best][1]);
                     p_tmp = sanitize_likelihood(p_tmp);
 
                     p_like->weights[j] *= pow(p_tmp, 1.0/n_max);
@@ -425,8 +425,8 @@ void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, 
 
                 if (gsl_matrix_get(var, offset_best, offset_best) > 0.0) {
                     for(j=0; j<J; j++) {
-                        back_transformed_print = (*(p_router->f_inv_print))((*J_IC_grouped)[j][offset], p_router->multiplier_f_inv_print, p_router->min[k], p_router->max[k]);
-                        p_tmp = (*(p_best->prior[offset_best]))(back_transformed_print, p_best->par_prior[offset_best][0], p_best->par_prior[offset_best][1]);
+                        back_transformed = (*(p_router->f_inv))((*J_IC_grouped)[j][offset], p_router->min[k], p_router->max[k]);
+                        p_tmp = (*(p_best->prior[offset_best]))(back_transformed, p_best->par_prior[offset_best][0], p_best->par_prior[offset_best][1]);
                         p_tmp = sanitize_likelihood(p_tmp);
 
                         p_like->weights[j] *= pow(p_tmp, 1.0/lag);
