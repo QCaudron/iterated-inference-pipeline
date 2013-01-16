@@ -56,7 +56,7 @@ void drift_par(struct s_calc *p_calc, struct s_data *p_data, struct s_X *p_X, in
     for(i=ind_drift_start; i<ind_drift_end; i++) {
         struct s_router *r = routers[p_drift->ind_par_Xdrift_applied[i]];
         for(k=0; k< r->n_gp; k++) {
-            back_transform_x(p_X->drift[i][k], k, r);
+            p_calc->natural_drifted_safe[i][k] = back_transform_x(p_X->drift[i][k], k, r);
         }
     }
 }

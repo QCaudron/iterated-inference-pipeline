@@ -307,7 +307,7 @@ void back_transform_theta2par_mif(struct s_par *p_par, gsl_vector *theta_mif, st
     for(i=0; i<p_it->length; i++){
         struct s_router *r = routers[p_it->ind[i]];
         for(k=0; k< r->n_gp; k++){
-            back_transform_x(gsl_vector_get(theta_mif, offset), k, r);
+            p_par->natural[ p_it->ind[i] ][k] = back_transform_x(gsl_vector_get(theta_mif, offset), k, r);
             offset++;
         }
     }
