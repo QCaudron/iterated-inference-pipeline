@@ -186,7 +186,7 @@ struct s_router /* [ N_PAR_SV + N_PAR_PROC + N_PAR_OBS ] */
     char **group_name; /**< [self.n_gp] name of the groups */
 
     /* transformations */
-    double (*f) (double, double, double, double); /**< transformation (log, logit...) */
+    double (*f) (double, double, double); /**< transformation (log, logit...) */
     double (*f_inv) (double, double, double); /**< inverse of f (f*f_inv=identity) */
 
     double (*f_derivative) (double, double, double); /**< derivative of f */
@@ -655,7 +655,7 @@ double f_log(double x, double a, double b);
 double f_inv_log(double x, double a, double b);
 double f_logit(double x, double a, double b);
 double f_inv_logit(double x, double a, double b);
-double f_logit_ab(double x, double multiplier, double a, double b);
+double f_logit_ab(double x, double a, double b);
 double f_inv_logit_ab(double x, double a, double b);
 
 double f_scale_pow10(double x, double a, double b);

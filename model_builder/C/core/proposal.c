@@ -149,14 +149,12 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
                 //check for numerical issues
                 if((isinf(p_tmp)==1) || (isnan(p_tmp)==1)) {
 #if FLAG_VERBOSE
-                    sprintf(str, "error prob_prior computation, p=%g", p_tmp);
+                    snprintf(str, STR_BUFFSIZE, "error prob_prior computation, p=%g", p_tmp);
                     print_err(str);
 #endif
                     p_tmp=LIKE_MIN;
-                } else{
-                    if(p_tmp <= LIKE_MIN) {
+                } else if(p_tmp <= LIKE_MIN) {
                         p_tmp = LIKE_MIN ;
-                    }
                 }
                 Lp += log(p_tmp);
             }

@@ -55,7 +55,7 @@ double f_inv_logit(double x, double a, double b)
 
 
 
-double f_logit_ab(double x, double multiplier, double a, double b)
+double f_logit_ab(double x, double a, double b)
 {
     //sanititize
     //NOTE that if a and b given in same unit as x, no need to rescale, the logit_ab transform will always have the same value
@@ -344,7 +344,7 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
         } else if (strcmp(mytransf, "scale_pow10")==0) {
 
             p_router->f =  &f_id;
-            p_router->f_inv = &f_inv_scale_pow10;
+            p_router->f_inv = &f_scale_pow10;
             p_router->f_derivative = &f_id;
             p_router->f_inv_derivative = &f_id;
 
@@ -383,14 +383,14 @@ double back_transform_x(double x, int g, struct s_router *r)
 {
     double trans;
     //back transform
-    trans= (*(r->f_inv))( x, r->multiplier_f_inv, r->min[g], r->max[g]);
+    trans= (*(r->f_inv))(x, r->min[g], r->max[g]);
 
     //convert unit
     trans *= r->multiplier;
 
     //convert to rate (if relevant) Note the 0.00001 to remain on the safe side if duration -> 0.0
     if(r->is_duration){
-        trans = 1.0/(0.00001 + p_par->natural[ p_it->ind[i] ][g]);
+        trans = 1.0/(0.00001 + trans);
     }
 
     return trans;
@@ -481,7 +481,7 @@ void transform_theta(struct s_best *p_best,
 
             if (transform_mean) {
                 gsl_vector_set(x, p_it_mif->offset[i]+k,
-                               (*(r->f))( gsl_vector_get(x, p_it_mif->offset[i]+k), r->multiplier_f, r->min[k], r->max[k] ) );
+                               (*(r->f))( gsl_vector_get(x, p_it_mif->offset[i]+k), r->min[k], r->max[k] ) );
             }
         }
     }
@@ -512,7 +512,7 @@ void transform_theta(struct s_best *p_best,
 
             if (transform_mean) {
                 gsl_vector_set(x, p_it_fls->offset[i]+k,
-                               (*(r->f))( gsl_vector_get(x, p_it_fls->offset[i]+k), r->multiplier_f, r->min[k], r->max[k] ) );
+                               (*(r->f))( gsl_vector_get(x, p_it_fls->offset[i]+k), r->min[k], r->max[k] ) );
             }
         }
     }

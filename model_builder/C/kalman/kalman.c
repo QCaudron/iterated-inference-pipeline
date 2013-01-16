@@ -255,12 +255,12 @@ double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **ro
         for(k=0; k<routers[i]->n_gp; k++) {
             if(gsl_matrix_get(var, offset, offset) >0.0) {
 
-                p_tmp = 1./((*(routers[i]->f_derivative))(gsl_vector_get(mean, offset), routers[i]->multiplier_f, routers[i]->min[k], routers[i]->max[k]));
+                p_tmp = 1./((*(routers[i]->f_inv_derivative))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]));
 
                 //check for numerical issues
                 if((isinf(p_tmp)==1) || (isnan(p_tmp)==1)) {
 #if FLAG_VERBOSE
-                    sprintf(str, "error prob_prior computation, p=%g\n", p_tmp);
+                    snprintf(str, STR_BUFFSIZE, "error prob_prior computation, p=%g\n", p_tmp);
                     print_err(str);
 #endif
                     p_tmp=LIKE_MIN;
