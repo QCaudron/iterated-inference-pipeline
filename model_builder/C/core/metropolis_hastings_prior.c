@@ -52,7 +52,7 @@ int check_prior(struct s_best *p_best, gsl_vector *mean, struct s_data *p_data)
 
   int i, k;
   double p=0.0;
-  double back_transformed_print; //prior are on the natural scale with an intuitive time unit (not necessarily the data unit), so we transform the parameter into this unit...
+  double back_transformed; //prior are on the natural scale, so we transform the parameter
 
   struct s_router **routers = p_data->routers;
   int offset = 0;
@@ -60,9 +60,9 @@ int check_prior(struct s_best *p_best, gsl_vector *mean, struct s_data *p_data)
   for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
       for(k=0; k<routers[i]->n_gp; k++) {
           if(gsl_matrix_get(p_best->var, offset, offset) >0.0) {
-              back_transformed_print = (*(routers[i]->f_inv_print))(gsl_vector_get(mean, offset), routers[i]->multiplier_f_inv_print,routers[i]->min[k],routers[i]->max[k]);
+              back_transformed = (*(routers[i]->f_inv))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]);
 
-              p = (*(p_best->prior[offset]))(back_transformed_print, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);
+              p = (*(p_best->prior[offset]))(back_transformed, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);
               if(p==0.0) {
                   return 0; //FALSE
               }
@@ -75,14 +75,13 @@ int check_prior(struct s_best *p_best, gsl_vector *mean, struct s_data *p_data)
 }
 
 
-
 double log_prob_prior(struct s_best *p_best, gsl_vector *mean, struct s_data *p_data)
 {
     int i, k;
 
     double p_tmp, Lp;
     p_tmp=0.0, Lp=0.0;
-    double back_transformed_print; //prior are on the natural scale with an intuitive time unit (not necessarily the data unit), so we transform the parameter into this unit...
+    double back_transformed; //prior are on the natural scale, so we transform the parameter
 
     struct s_router **routers = p_data->routers;
     int offset = 0;
@@ -90,8 +89,8 @@ double log_prob_prior(struct s_best *p_best, gsl_vector *mean, struct s_data *p_
     for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
         for(k=0; k<routers[i]->n_gp; k++) {
             if(gsl_matrix_get(p_best->var, offset, offset) >0.0) {
-                back_transformed_print = (*(routers[i]->f_inv_print))(gsl_vector_get(mean, offset), routers[i]->multiplier_f_inv_print, routers[i]->min[k], routers[i]->max[k]);
-                p_tmp = (*(p_best->prior[offset]))(back_transformed_print, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);
+                back_transformed = (*(routers[i]->f_inv))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]);
+                p_tmp = (*(p_best->prior[offset]))(back_transformed, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);
                 Lp += log(sanitize_likelihood(p_tmp));
             }
             offset++;

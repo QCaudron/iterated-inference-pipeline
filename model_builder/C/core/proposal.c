@@ -99,6 +99,7 @@ int check_IC(struct s_X *p_X, struct s_data *p_data)
 }
 
 
+
 double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean, double sd_fac, struct s_data *p_data, int is_mvn)
 {
     gsl_matrix *var = p_best->var;
@@ -124,19 +125,36 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
                     p_tmp = gsl_ran_gaussian_pdf((gsl_vector_get(proposed, offset)-gsl_vector_get(mean, offset))/sd_fac*sqrt(gsl_matrix_get(var, offset, offset)),1);
                 }
 
-                p_tmp /= (*(routers[i]->f_derivative))(gsl_vector_get(proposed, offset), routers[i]->multiplier_f_derivative, routers[i]->min[k], routers[i]->max[k]);
+
+                /*
+                  Change of variable formula:
+                  Y = r(X) (r is assumed to be increasing) with inverse r_inv
+                  X has f for density
+                  Y has g for density
+
+                  g(y) = f (r_inv (y)) * d r_inv(y)/dy
+                  In our case, the proposal takes place on a transformed scale router.f. We know g(y) but we want f(r_inv(y))
+
+                  we therefore divide g(y) by d r_inv(y)/dy.
+
+                  Note that in the multivariate case, we need to
+                  divide by the determinant of the Jacobian
+                  matrix. However in our case the Jacobian is
+                  diagonal so the determinant is the product of the
+                  diagonal terms so everything generalizes nicely
+                */
+
+                p_tmp /= (*(routers[i]->f_inv_derivative))(gsl_vector_get(proposed, offset), routers[i]->min[k], routers[i]->max[k]);
 
                 //check for numerical issues
                 if((isinf(p_tmp)==1) || (isnan(p_tmp)==1)) {
 #if FLAG_VERBOSE
-                    sprintf(str, "error prob_prior computation, p=%g", p_tmp);
+                    snprintf(str, STR_BUFFSIZE, "error prob_prior computation, p=%g", p_tmp);
                     print_err(str);
 #endif
                     p_tmp=LIKE_MIN;
-                } else{
-                    if(p_tmp <= LIKE_MIN) {
+                } else if(p_tmp <= LIKE_MIN) {
                         p_tmp = LIKE_MIN ;
-                    }
                 }
                 Lp += log(p_tmp);
             }

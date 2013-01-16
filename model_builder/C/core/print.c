@@ -251,7 +251,7 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
     for(i=0; i< (N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS) ; i++) {
         ind_par_Xdrift_applied = p_drift->ind_par_Xdrift_applied[i];
         for(k=0; k< routers[ ind_par_Xdrift_applied ]->n_gp; k++) {
-            x = (*(routers[ ind_par_Xdrift_applied ]->f_inv_print))( p_X->drift[i][k] , routers[ind_par_Xdrift_applied]->multiplier_f_inv_print, routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
+            x = (*(routers[ ind_par_Xdrift_applied ]->f_inv))( p_X->drift[i][k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
 #if FLAG_JSON
             json_array_append_new(json_print_j, json_real(x));
 #else
@@ -341,7 +341,7 @@ void print_best(FILE *p_file_best, int m, struct s_best *p_best, struct s_data *
 
     for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
         for(k=0; k<p_data->routers[i]->n_gp; k++) {
-            x = (*(p_data->routers[i]->f_inv_print))(gsl_vector_get(p_best->mean, offset), p_data->routers[i]->multiplier_f_inv_print, p_data->routers[i]->min[k], p_data->routers[i]->max[k]);
+            x = (*(p_data->routers[i]->f_inv))(gsl_vector_get(p_best->mean, offset), p_data->routers[i]->min[k], p_data->routers[i]->max[k]);
 #if FLAG_JSON
             json_array_append_new(json_print, json_real(x));
 #else

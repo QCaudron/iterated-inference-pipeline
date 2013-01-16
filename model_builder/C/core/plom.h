@@ -186,15 +186,14 @@ struct s_router /* [ N_PAR_SV + N_PAR_PROC + N_PAR_OBS ] */
     char **group_name; /**< [self.n_gp] name of the groups */
 
     /* transformations */
-    double (*f) (double, double, double, double);           /**< from parameters in a human readable scale (for instance duration instead of rates) and a human readable unit to the constraint version in the data unit: e.g log, logit transfo **after** unit conversion */
-    double (*f_inv) (double, double, double, double);       /**< from parameters transformed by @c f and scaled to the time unit of the data by multiplier_f to parameters used by the model. For instance duration to rate ... */
-    double (*f_inv_print) (double, double, double, double); /** from the transformed scale (transformed by @c f) (in the unit of data) to the intuitive scale (possible in another unit) */
-    double (*f_derivative) (double, double, double, double);
+    double (*f) (double, double, double); /**< transformation (log, logit...) */
+    double (*f_inv) (double, double, double); /**< inverse of f (f*f_inv=identity) */
 
-    double multiplier_f;            /**< multiplier to go from the intuitive scale to the unit of data *before* the transformation operated by @c f */
-    double multiplier_f_inv;        /**< multiplier to go from the unit of the data to another scale after the transformation operated by @c f_inv */
-    double multiplier_f_inv_print;  /**< multiplier to go from the unit of the data to an intuitive unit after the transformation operated by @c f_inv_print */
-    double multiplier_f_derivative; /**< just here for ease of use: same multiplier as multiplier_f */
+    double (*f_derivative) (double, double, double); /**< derivative of f */
+    double (*f_inv_derivative) (double, double, double); /**< derivative of f_inv */
+
+    double multiplier; /**< multiplier to go from the intuitive scale to the unit of data *before*  duration as been converted to rates (if relevant) */
+    int is_duration; /**< boolean specifying if a duration has to be converted into a rate */
 
     //used for logit_ab transfo
     double *min;  /**< minimum (currently set by value min) */
@@ -651,26 +650,24 @@ void sanitize_best_to_prior(struct s_best *p_best, struct s_data *p_data);
 int in_u(int i, unsigned int *tab, int length);
 
 /* transform.c */
-double f_id(double x, double multiplier, double a, double b);
-double f_log(double x, double multiplier, double a, double b);
-double f_inv_log(double x, double multiplier, double a, double b);
-double f_inv_duration2rate(double x, double multiplier, double a, double b);
-double f_inv_log_duration2rate(double x, double multiplier, double a, double b);
-double f_inv_logit_ab_duration2rate(double x, double multiplier, double a, double b);
-double f_logit(double x, double multiplier, double a, double b);
-double f_inv_logit(double x, double multiplier, double a, double b);
-double f_logit_ab(double x, double multiplier, double a, double b);
-double f_inv_logit_ab(double x, double multiplier, double a, double b);
+double f_id(double x, double a, double b);
+double f_log(double x, double a, double b);
+double f_inv_log(double x, double a, double b);
+double f_logit(double x, double a, double b);
+double f_inv_logit(double x, double a, double b);
+double f_logit_ab(double x, double a, double b);
+double f_inv_logit_ab(double x, double a, double b);
 
-double f_der_id(double x, double multiplier, double a, double b);
-double f_der_log(double x, double multiplier, double a, double b);
-double f_der_logit(double x, double multiplier, double a, double b);
-double f_der_logit_ab(double x, double multiplier, double a, double b);
+double f_scale_pow10(double x, double a, double b);
+double f_scale_logit_ab_pow10(double x, double a, double b);
+double f_scale_log_pow10_prop(double x, double a, double b);
 
-double f_inv_scale_pow10(double x, double multiplier, double a, double b);
-double f_inv_scale_pow10_duration2rate(double x, double multiplier, double a, double b);
-double f_inv_logit_ab_scale_pow10(double x, double multiplier, double a, double b);
-double f_inv_logit_ab_scale_pow10_duration2rate(double x, double multiplier, double a, double b);
+double f_der_log(double x, double a, double b);
+double f_der_inv_log(double x, double a, double b);
+double f_der_logit(double x, double a, double b);
+double f_der_inv_logit(double x, double a, double b);
+double f_der_logit_ab(double x, double a, double b);
+double f_der_inv_logit_ab(double x, double a, double b);
 
 
 double u_duration_par2u_data(const char *u_par, const char *u_data);
@@ -682,6 +679,7 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
 void assign_f_transfo(double (**f_transfo) (double x, double mul, double a, double b), const char *f_transfo_name);
 void assign_f_derivative(double (**f_derivative) (double x, double mul, double a, double b), const char *f_transfo_name);
 void back_transform_theta2par(struct s_par *p_par, const theta_t *theta, const struct s_iterator *p_it, struct s_data *p_data);
+double back_transform_x(double x, int g, struct s_router *r);
 double transit_mif(double sd_x);
 void transform_theta(struct s_best *p_best, double (*f_transit_par) (double), double (*f_transit_state) (double), struct s_data *p_data, int transform_mean, int transform_var);
 
