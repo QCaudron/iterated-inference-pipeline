@@ -106,6 +106,7 @@ struct s_kalman *build_kalman(json_t *settings, int is_bayesian, int update_cova
 void clean_kalman(struct s_kalman *p_kalman);
 
 /* kalman.c */
+double drift_derivative(double jac_tpl, double jac_der, struct s_router *r, int cac);
 double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kal *p_kal, struct s_common *p_common, struct s_data *p_data, struct s_calc **calc, FILE *p_file_X, int m);
 double f_simplex_kalman(const gsl_vector *x, void *params);
 void reset_kalman(struct s_kal *p_kal, struct s_common *p_common);

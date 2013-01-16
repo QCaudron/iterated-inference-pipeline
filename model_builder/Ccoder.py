@@ -468,9 +468,11 @@ class Ccoder(Cmodel):
             for sy in self.par_sv:
                 jac[s].append(self.make_C_term(odeDict[self.par_sv[s]], is_ode=True, derivate=sy))
 
+            #see doc of kalman.c drift_derivative()
             for sy in self.drift_par_proc:
-                jac_drift[s].append('{0}*{1}'.format(self.make_C_term(odeDict[self.par_sv[s]], is_ode=True, derivate=sy),
-                                                     self.make_C_term(sy, is_ode=True))) ##WARNING 'the *sy' ({1}) was suggested by Joseph to take into account the log transfo of the drift. Right now this only works with log transfo, has to be generalized
+                jac_drift[s].append({'value': self.make_C_term(odeDict[self.par_sv[s]], is_ode=True, derivate=sy),
+                                     'der': self.make_C_term(sy, is_ode=True),
+                                     'name': sy})
 
         ##derive observation equations (obsList) per par_sv
         jac_obs = []
@@ -484,10 +486,11 @@ class Ccoder(Cmodel):
             for sy in self.par_sv:
                 jac_obs[o].append(self.make_C_term(obsList[o], is_ode=True, derivate=sy))
 
+            #see doc of kalman.c drift_derivative()
             for sy in self.drift_par_proc:
-                jac_obs_drift[o].append('{0}*{1}'.format(self.make_C_term(obsList[o], is_ode=True, derivate=sy),
-                                                         self.make_C_term(sy, is_ode=True))) ##WARNING 'the *sy' ({1}) was suggested by Joseph to take into account the log transfo of the drift. Right now this only works with log transfo, has to be generalized
-
+                jac_obs_drift[o].append({'value': self.make_C_term(obsList[o], is_ode=True, derivate=sy),
+                                         'der': self.make_C_term(sy, is_ode=True),
+                                         'name': sy})
 
         return {'jac':jac, 'jac_obs':jac_obs, 'jac_drift':jac_drift, 'jac_obs_drift':jac_obs_drift}
 

@@ -20,21 +20,40 @@
 
 
 
-#if 0
+
 /**
  * For eval_jac
  */
-double drift_derivative(double jac_tpl, struct s_router *r, int i, int cac)
+double drift_derivative(double jac_tpl, double jac_der, struct s_router *r, int cac)
 {
+
+    /*
+      Rational basis
+      we have an equation (for instance dI/dt) named eq and let's say that we are interested in its derivative against v (we assume that v follows a diffusion)'
+      The template gives us d eq/d v (jac_tpl)
+      However, as v can be transform (let's say log here) we want d eq / d log(v)
+      The chain rule gives us:
+      d eq/ dv = d eq / d log(v) * d log(v)/dv = jac_tpl
+      so
+      d eq / d log(v) = ( d eq / dv ) / ( d log(v) / dv)
+
+      so in term of C:
+      d eq / d log(v) = jac_tpl / r->f_derivative(v, ..)
+      jac_der is the C term of v, provided by the template
+
+      As v (jac_der) is in the scale of s_par, in case of logit_ab
+      transfo, we need to provide a and b in the scale of s_par, that
+      is router min_z and max_z
+     */
+
 
     if(jac_tpl){
         int g = r->map[cac];
-        return jac_tpl / r->f_derivative(s_par->natural[i][g], r->min_z[g], r->max_z[g]);
+        return jac_tpl / r->f_derivative(jac_der, r->min_z[g], r->max_z[g]);
     }
 
     return 0.0;
 }
-#endif
 
 
 
