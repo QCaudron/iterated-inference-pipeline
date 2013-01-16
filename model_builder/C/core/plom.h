@@ -657,9 +657,11 @@ double f_logit(double x, double a, double b);
 double f_inv_logit(double x, double a, double b);
 double f_logit_ab(double x, double multiplier, double a, double b);
 double f_inv_logit_ab(double x, double a, double b);
+
 double f_scale_pow10(double x, double a, double b);
 double f_scale_logit_ab_pow10(double x, double a, double b);
 double f_scale_log_pow10_prop(double x, double a, double b);
+
 double f_der_log(double x, double a, double b);
 double f_der_inv_log(double x, double a, double b);
 double f_der_logit(double x, double a, double b);

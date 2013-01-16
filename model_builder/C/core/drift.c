@@ -19,9 +19,9 @@
 #include "plom.h"
 
 /**
-   Euler Maruyama
-   ind_drift_start and ind_drift_end are used to separate (if needed) in between drift on par_proc and drift on par_obs
-*/
+ *   Euler Maruyama
+ *   ind_drift_start and ind_drift_end are used to separate (if needed) in between drift on par_proc and drift on par_obs
+ */
 
 void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ind_drift_start, int ind_drift_end, double delta_t)
 {
@@ -43,8 +43,8 @@ void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, 
 
 
 /**
-   apply drift on par (stored in natural_drifted_safe)
-*/
+ *   apply drift on par (stored in natural_drifted_safe)
+ */
 
 void drift_par(struct s_calc *p_calc, struct s_data *p_data, struct s_X *p_X, int ind_drift_start, int ind_drift_end)
 {
