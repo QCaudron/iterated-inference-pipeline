@@ -18,6 +18,36 @@
 
 #include "kalman.h"
 
+
+
+#if 0
+/**
+ * For eval_jac
+ */
+double drift_derivative(double jac_ij, struct s_router *r, int g, ...)
+{
+
+    if(jac_ij){
+        double a, b;
+
+        if(r->is_duration){
+            //we exchange a and b we take the inverse
+            a = 1.0 / (r->max[g]*r->multiplier);
+            b = 1.0 / (r->min[g]*r->multiplier);
+        } else {
+            a = r->min[g]*r->multiplier;
+            b = r->max[g]*r->multiplier;
+        }
+
+        return jac_ij / r->f_derivative(s_par->natural[][], a, b);
+    }
+
+    return 0.0;
+}
+#endif
+
+
+
 /**
  * transform p_X to x_k: concatenation of non-overlapping components of:
  * - X->proj
