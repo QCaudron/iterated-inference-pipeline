@@ -196,8 +196,11 @@ struct s_router /* [ N_PAR_SV + N_PAR_PROC + N_PAR_OBS ] */
     int is_duration; /**< boolean specifying if a duration has to be converted into a rate */
 
     //used for logit_ab transfo
-    double *min;  /**< minimum (currently set by value min) */
-    double *max;  /**< maximum (currently set by value max) */
+    double *min;  /**< [self.n_gp] @c a of logit_ab (minimum) in the user unit (and discarding rate_as_duration or pow10 scaling) */
+    double *max;  /**< [self.n_gp] @c b of logit_ab (maximum) same scale as min  */
+
+    double *min_z;  /**< [self.n_gp] @c a of logit_ab in the data unit and the prediction function scale (i.e rate_as_duration has been applied...) */
+    double *max_z;  /**< [self.n_gp] @c b of logit_ab same scale as min_z */
 };
 
 
@@ -674,7 +677,7 @@ double u_duration_par2u_data(const char *u_par, const char *u_data);
 double get_multiplier(const char *u_data, const json_t *par, int is_print);
 int is_duration(const json_t *par);
 void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_data, int is_bayesian);
-
+void set_ab_z(struct s_router *r);
 
 void assign_f_transfo(double (**f_transfo) (double x, double mul, double a, double b), const char *f_transfo_name);
 void assign_f_derivative(double (**f_derivative) (double x, double mul, double a, double b), const char *f_transfo_name);

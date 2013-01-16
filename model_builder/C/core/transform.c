@@ -358,7 +358,36 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
 
 }
 
+void set_ab_z(struct s_router *r)
+{
+    double a, b;
+    int g;
+    //convert into data unit;
+    for(g=0; g<r->n_gp; g++){
 
+        if(r->f_inv == &f_scale_pow10){
+            a = f_scale_pow10(r->min[g], r->min[g], r->max[g]);
+            b = f_scale_pow10(r->max[g], r->min[g], r->max[g]);
+        } else {
+            a = r->min[g];
+            b = r->max[g];
+        }
+
+        //to data unit
+        a *= r->multiplier;
+        b *= r->multiplier;
+
+        //make rate (if needed)
+        if(r->is_duration){
+            a = 1.0/a;
+            b = 1.0/b;
+        }
+
+        //be sure that a < b
+        r->min_z[g] = GSL_MIN(a, b);
+        r->max_z[g] = GSL_MAX(a, b);
+    }
+}
 
 
 /**

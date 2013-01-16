@@ -148,6 +148,9 @@ struct s_router *build_router(const json_t *par, const char *par_key, const json
     p_router->map = init1u_set0(p_router->p);
     p_router->min = init1d_set0(p_router->n_gp);
     p_router->max = init1d_set0(p_router->n_gp);
+    p_router->min_z = init1d_set0(p_router->n_gp);
+    p_router->max_z = init1d_set0(p_router->n_gp);
+
 
     //alloc for group_name
     p_router->group_name = malloc(p_router->n_gp * sizeof(char *));
@@ -188,6 +191,7 @@ struct s_router *build_router(const json_t *par, const char *par_key, const json
     }
 
     set_f_trans(p_router, par, u_data, is_bayesian);
+    set_ab_z(p_router);
 
     return p_router;
 }
@@ -204,6 +208,8 @@ void clean_router(struct s_router *p_router)
 
     FREE(p_router->min);
     FREE(p_router->max);
+    FREE(p_router->min_z);
+    FREE(p_router->max_z);
     FREE(p_router->map);
     FREE(p_router);
 }
