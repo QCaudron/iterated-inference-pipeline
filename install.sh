@@ -1,15 +1,19 @@
 #!/bin/bash
 
-##NOTES: for the webApp: set FLAG_JSON to 1
-## on OSX, gcc shipped with Xcode is broken so brew install gcc-4.7
 
 ./clean.sh
 
 cd model_builder/C/core
 
+##NOTES: for the webApp: set FLAG_JSON to 1
 sed -ie "s/#define FLAG_JSON \([0-9]*\)/#define FLAG_JSON 0/" plom.h
 
-make CC=gcc-4.7 ##remove CC=gcc-4.7 on linux
+##compile with gcc-4.7  (on OSX, gcc shipped with Xcode is broken so brew install gcc-4.7)
+mygcc=gcc-4.7
+#if gcc-4.7 doesn't exists, then use gcc
+type gcc-4.7 >/dev/null 2>&1 || mygcc=gcc;
+
+make CC=$mygcc
 make install
 cd ../
 
@@ -19,7 +23,7 @@ for i in "${paths[@]}"
 do
     echo building $i
     cd $i
-    make CC=gcc-4.7 obj ##remove CC=gcc-4.7 on linux
+    make CC=$mygcc obj
     cd ..
 done
 
