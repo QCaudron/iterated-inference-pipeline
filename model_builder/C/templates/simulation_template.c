@@ -63,22 +63,25 @@ int func_lyap (double t, const double X[], double f[], void *params)
     struct s_router **routers = p_data->routers;  /* syntaxic shortcut */
 
     {% if current_p %}
-    for(c=0;c<N_C;c++)
-        {
-            for(ac=0;ac<N_AC;ac++)
-                p_par->current_p[c][ac]=get_current_pop_size(X,c,ac);
+    for(c=0;c<N_C;c++){
+        for(ac=0;ac<N_AC;ac++){
+            p_par->current_p[c][ac]=get_current_pop_size(X,c,ac);
         }
+    }
     {% endif %}
 
     /* non linear system (automaticaly generated code)*/
+
+
+    double _r[N_CAC][{{print_ode.caches|length}}];
+    for(cac=0;cac<N_CAC;cac++) {
+        {% for cache in print_ode.caches %}
+        _r[cac][{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
+    }
+
     for(c=0;c<N_C;c++){
         for(ac=0; ac<N_AC; ac++){
             cac = c*N_AC+ac;
-            double _r[{{print_ode.caches|length}}];
-            {% for cache in print_ode.caches %}
-            _r[{{ forloop.counter0 }}] = {{ cache|safe }};
-            {% endfor %}
-
             {{ print_ode.sys|safe }}
         }
     }

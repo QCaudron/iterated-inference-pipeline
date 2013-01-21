@@ -208,35 +208,6 @@ class Ccoder(Cmodel):
         return Clist
 
 
-    def print_obs_inc_ode(self):
-        """generate C code to compute the dynamic of the observed **incidence** in case of ODE models and put in into a Clist
-        Clist = [{'true_ind_obs':'i (i count both incidence and prevalence (N_OBS_ALL))', 'right_hand_side':'f(X[i,c,ac]'}]
-        """
-
-        Clist = []
-
-        for i in range(len(self.obs_var_def)):
-            true_ind_obs = str(i)
-            right_hand_side=''
-
-            if isinstance(self.obs_var_def[i][0], dict): ##incidence
-
-                for j in range(len(self.obs_var_def[i])):
-                    id_out = [self.proc_model.index(r) for r in self.proc_model if ((r['from'] == self.obs_var_def[i][j]['from']) and (r['to'] == self.obs_var_def[i][j]['to']) and (r['rate'] == self.obs_var_def[i][j]['rate'])) ]
-                    for o in id_out:
-                        reaction = self.proc_model[o]
-                        if self.obs_var_def[i][j]['from'] in self.universes:
-                            right_hand_side += ' + ({0})'.format(self.make_C_term(reaction['rate'], True))
-                        else:
-                            right_hand_side += ' + (({0})*X[ORDER_{1}{2}])'.format(self.make_C_term(reaction['rate'], True), self.obs_var_def[i][j]['from'], '*N_CAC+cac')
-
-                Clist.append({'true_ind_obs':true_ind_obs, 'right_hand_side':right_hand_side})
-
-        return Clist
-
-
-
-
     def print_build_markov(self):
         Clist = []
         for s in self.par_sv + self.universes:
@@ -377,24 +348,49 @@ class Ccoder(Cmodel):
         ##outputs
         for r in self.proc_model:
             if r['from'] not in self.universes:
-                rate= ' - _r[{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
+                rate= ' - _r[cac][{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
                 odeDict[r['from']] += rate
 
         ##inputs
         for r in self.proc_model:
             if r['to'] not in self.universes:
                 if r['from'] not in self.universes:
-                    rate= ' + _r[{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
+                    rate= ' + _r[cac][{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
                     odeDict[r['to']] += rate
                 else:
-                    rate= ' + _r[{0}]'.format(r['ind_cache'])
+                    rate= ' + _r[cac][{0}]'.format(r['ind_cache'])
                     odeDict[r['to']] += rate
 
         ##output the system...
         Cstring=''
         for s in self.par_sv:
             Cstring += 'f[ORDER_{0}{2}] = {1};\n'.format(s, odeDict[s], '*N_CAC+cac')
-        return {'sys': Cstring, 'caches': caches}
+
+        #################
+        ##generate C code to compute the dynamic of the observed **incidence** in case of ODE models and put in into a Clist
+        ##Clist = [{'true_ind_obs':'i (i count both incidence and prevalence (N_OBS_ALL))', 'right_hand_side':'f(X[i,c,ac]'}]
+        #################
+
+        Clist = []
+
+        for i in range(len(self.obs_var_def)):
+            true_ind_obs = str(i)
+            right_hand_side=''
+
+            if isinstance(self.obs_var_def[i][0], dict): ##incidence
+
+                for j in range(len(self.obs_var_def[i])):
+                    id_out = [self.proc_model.index(r) for r in self.proc_model if ((r['from'] == self.obs_var_def[i][j]['from']) and (r['to'] == self.obs_var_def[i][j]['to']) and (r['rate'] == self.obs_var_def[i][j]['rate'])) ]
+                    for o in id_out:
+                        reaction = self.proc_model[o]
+                        if self.obs_var_def[i][j]['from'] in self.universes:
+                            right_hand_side += ' + _r[cac][{0}]'.format(reaction['ind_cache'])
+                        else:
+                            right_hand_side += ' + _r[cac][{0}]*X[ORDER_{1}{2}]'.format(reaction['ind_cache'], self.obs_var_def[i][j]['from'], '*N_CAC+cac')
+
+                Clist.append({'true_ind_obs':true_ind_obs, 'right_hand_side':right_hand_side})
+
+        return {'sys': Cstring, 'caches': caches, 'obs':Clist}
 
 
     def print_order(self):

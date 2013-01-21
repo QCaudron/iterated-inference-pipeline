@@ -177,7 +177,6 @@ class PlomModelBuilder(Context, Ccoder):
                            'print_ode': self.print_ode(),
                            'list_obs_prev': self.print_obs_prev(),
                            'eq_obs_inc_markov': self.print_obs_inc_markov(),
-                           'eq_obs_inc_ode': self.print_obs_inc_ode(),
                            'is_drift': is_drift,
                            'buildmarkov':self.print_build_markov(),
                            'proc_obs':self.print_like()})
@@ -205,8 +204,7 @@ class PlomModelBuilder(Context, Ccoder):
                            'noise_Q': self.eval_Q(),
                            'stoichiometric':self.stoichiometric(),
                            'is_drift': is_drift,
-                           'print_ode': self.print_ode(),
-                           'eq_obs_inc_ode': self.print_obs_inc_ode()})
+                           'print_ode': self.print_ode()})
         f = open(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_tpl.c'),'w')
         f.write(t.render(c))
         f.close()

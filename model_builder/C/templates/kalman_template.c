@@ -75,14 +75,16 @@ int func_kal(double t, const double X[], double f[], void *params)
     {% endif %}
 
 
+    double _r[N_CAC][{{print_ode.caches|length}}];
+    for(cac=0;cac<N_CAC;cac++) {
+        {% for cache in print_ode.caches %}
+        _r[cac][{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
+    }
+
+
     for (c=0;c<N_C;c++) {
         for(ac=0; ac<N_AC; ac++) {
             cac = c*N_AC+ac;
-
-            double _r[{{print_ode.caches|length}}];
-            {% for cache in print_ode.caches %}
-            _r[{{ forloop.counter0 }}] = {{ cache|safe }};
-            {% endfor %}
 
             {{ print_ode.sys|safe }}
         }
@@ -92,7 +94,7 @@ int func_kal(double t, const double X[], double f[], void *params)
     /*compute incidence:integral between t and t+1*/
 
     offset=0;
-    {% for eq in eq_obs_inc_ode %}
+    {% for eq in print_ode.obs %}
     o = {{ eq.true_ind_obs|safe }};
 
     for (ts=0; ts<obs2ts[o]->n_ts_unique; ts++) {
