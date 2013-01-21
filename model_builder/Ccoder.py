@@ -369,27 +369,32 @@ class Ccoder(Cmodel):
     def print_ode(self):
         odeDict = dict([(x,'') for x in self.par_sv])
 
+        rates = list(set(r['rate'] for r in self.proc_model))
+        caches = map(lambda x: self.make_C_term(x, True), rates)
+        for r in self.proc_model:
+            r['ind_cache'] = rates.index(r['rate'])
+
         ##outputs
         for r in self.proc_model:
             if r['from'] not in self.universes:
-                rate= ' - (({0})*X[ORDER_{1}{2}])'.format(self.make_C_term(r['rate'], True), r['from'], '*N_CAC+cac')
+                rate= ' - _r[{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
                 odeDict[r['from']] += rate
 
         ##inputs
         for r in self.proc_model:
             if r['to'] not in self.universes:
                 if r['from'] not in self.universes:
-                    rate= ' + (({0})*X[ORDER_{1}{2}])'.format(self.make_C_term(r['rate'], True), r['from'], '*N_CAC+cac')
+                    rate= ' + _r[{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
                     odeDict[r['to']] += rate
                 else:
-                    rate= ' + ({0})'.format(self.make_C_term(r['rate'], True))
+                    rate= ' + _r[{0}]'.format(r['ind_cache'])
                     odeDict[r['to']] += rate
 
         ##output the system...
         Cstring=''
         for s in self.par_sv:
             Cstring += 'f[ORDER_{0}{2}] = {1};\n'.format(s, odeDict[s], '*N_CAC+cac')
-        return Cstring
+        return {'sys': Cstring, 'caches': caches}
 
 
     def print_order(self):

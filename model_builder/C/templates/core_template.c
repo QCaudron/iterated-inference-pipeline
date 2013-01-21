@@ -211,6 +211,11 @@ int func(double t, const double X[], double f[], void *params)
         for(ac=0; ac<N_AC; ac++) {
             cac = c*N_AC+ac;
 
+            double _r[{{print_ode.caches|length}}];
+            {% for cache in print_ode.caches %}
+            _r[{{ forloop.counter0 }}] = {{ cache|safe }};
+            {% endfor %}
+
             //      /*compute sum i !=j N_j^nu/d_ij^gamma*I^j */
             //      gravity=0.0;
             //      for(cc=0;cc<N_C;cc++)
@@ -225,7 +230,7 @@ int func(double t, const double X[], double f[], void *params)
             /*automaticaly generated code:*/
             /*ODE system*/
 
-            {{ print_ode|safe }}
+            {{ print_ode.sys|safe }}
         }
     }
 

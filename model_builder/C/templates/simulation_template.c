@@ -71,15 +71,17 @@ int func_lyap (double t, const double X[], double f[], void *params)
     {% endif %}
 
     /* non linear system (automaticaly generated code)*/
-    for(c=0;c<N_C;c++)
-        {
-            for(ac=0; ac<N_AC; ac++)
-                {
-                    cac = c*N_AC+ac;
+    for(c=0;c<N_C;c++){
+        for(ac=0; ac<N_AC; ac++){
+            cac = c*N_AC+ac;
+            double _r[{{print_ode.caches|length}}];
+            {% for cache in print_ode.caches %}
+            _r[{{ forloop.counter0 }}] = {{ cache|safe }};
+            {% endfor %}
 
-                    {{ print_ode|safe }}
-                }
+            {{ print_ode.sys|safe }}
         }
+    }
 
 
     /* linear system: product of jacobian matrix (DIM*DIM) per

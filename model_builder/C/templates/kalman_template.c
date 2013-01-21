@@ -78,7 +78,13 @@ int func_kal(double t, const double X[], double f[], void *params)
     for (c=0;c<N_C;c++) {
         for(ac=0; ac<N_AC; ac++) {
             cac = c*N_AC+ac;
-            {{ print_ode|safe }}
+
+            double _r[{{print_ode.caches|length}}];
+            {% for cache in print_ode.caches %}
+            _r[{{ forloop.counter0 }}] = {{ cache|safe }};
+            {% endfor %}
+
+            {{ print_ode.sys|safe }}
         }
     }
 
