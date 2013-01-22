@@ -463,22 +463,39 @@ class Ccoder(Cmodel):
             obsList.append(eq)
 
 
+        ####################
+        ### Jacobian
+        ####################
+
         ##derive process model equations (odeDict) per par_sv
+        caches = []
+        caches_jac_only = []
+
         jac = []
+        jac_only = []
         jac_drift = []
+
         for s in range(len(self.par_sv)):
             jac.append([])
+            jac_only.append([])
+
             if self.drift_var:
                 jac_drift.append([])
 
             for sy in self.par_sv:
-                jac[s].append(self.make_C_term(odeDict[self.par_sv[s]], is_ode=True, derivate=sy))
+                Cterm = self.make_C_term(odeDict[self.par_sv[s]], is_ode=True, derivate=sy)
+                jac[s].append(Cterm)
+                jac_only[s].append(Cterm)
+                caches.append(Cterm)
+                caches_jac_only.append(Cterm)
 
             #see doc of kalman.c drift_derivative()
             for sy in self.drift_par_proc:
-                jac_drift[s].append({'value': self.make_C_term(odeDict[self.par_sv[s]], is_ode=True, derivate=sy),
+                Cterm = self.make_C_term(odeDict[self.par_sv[s]], is_ode=True, derivate=sy)
+                jac_drift[s].append({'value': Cterm,
                                      'der': self.make_C_term(sy, is_ode=True),
                                      'name': sy})
+                caches.append(Cterm)
 
         ##derive observation equations (obsList) per par_sv
         jac_obs = []
@@ -490,15 +507,48 @@ class Ccoder(Cmodel):
                 jac_obs_drift.append([])
 
             for sy in self.par_sv:
-                jac_obs[o].append(self.make_C_term(obsList[o], is_ode=True, derivate=sy))
+                Cterm = self.make_C_term(obsList[o], is_ode=True, derivate=sy)
+                jac_obs[o].append(Cterm)
+                caches.append(Cterm)
 
             #see doc of kalman.c drift_derivative()
             for sy in self.drift_par_proc:
-                jac_obs_drift[o].append({'value': self.make_C_term(obsList[o], is_ode=True, derivate=sy),
+                Cterm = self.make_C_term(obsList[o], is_ode=True, derivate=sy)
+                jac_obs_drift[o].append({'value': Cterm,
                                          'der': self.make_C_term(sy, is_ode=True),
                                          'name': sy})
+                caches.append(Cterm)
 
-        return {'jac':jac, 'jac_obs':jac_obs, 'jac_drift':jac_drift, 'jac_obs_drift':jac_obs_drift}
+
+        caches = list(set(caches))
+        caches_jac_only = list(set(caches_jac_only))
+
+        ##replace with index of caches (will be _r[index] in C)
+        for s in range(len(self.par_sv)):
+            for i in range(len(self.par_sv)):
+                Cterm = jac[s][i]
+                jac[s][i] = caches.index(Cterm)
+                jac_only[s][i] = caches_jac_only.index(Cterm)
+
+            for i in range(len(self.drift_par_proc)):
+                jac_drift[s][i]['value'] = caches.index(jac_drift[s][i]['value'])
+
+        for o in range(len(obsList)):
+            for i in range(len(self.par_sv)):
+                jac_obs[o][i] = caches.index(jac_obs[o][i])
+
+            for i in range(len(self.drift_par_proc)):
+                jac_obs_drift[o][i]['value'] = caches.index(jac_obs_drift[o][i]['value'])
+
+
+        return {'jac_only':jac_only,
+                'jac':jac,
+                'jac_obs':jac_obs,
+                'jac_drift':jac_drift,
+                'jac_obs_drift':jac_obs_drift,
+                'caches': caches,
+                'caches_jac_only': caches_jac_only}
+
 
 
     def jac_proc_obs(self):

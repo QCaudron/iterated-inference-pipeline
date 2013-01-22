@@ -166,6 +166,8 @@ class PlomModelBuilder(Context, Ccoder):
         is_drift = True if len(self.drift_var) > 0 else False
         order = self.print_order()
 
+        jac = self.jac()
+
         #core templates
         t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'core_template.c'))
 
@@ -188,7 +190,7 @@ class PlomModelBuilder(Context, Ccoder):
         #simulation templates
         t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'simulation_template.c'))
         c = DjangoContext({'order':order,
-                           'jacobian':self.jac(),
+                           'jacobian':jac,
                            'print_ode': self.print_ode(),
                            'is_drift': is_drift})
         f = open(os.path.join(self.path_rendered, 'C', 'templates', 'simulation_tpl.c'),'w')
@@ -199,7 +201,7 @@ class PlomModelBuilder(Context, Ccoder):
         #kalman templates
         t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_template.c'))
         c = DjangoContext({'order':order,
-                           'jacobian':self.jac(),
+                           'jacobian':jac,
                            'jac_proc_obs':self.jac_proc_obs,
                            'noise_Q': self.eval_Q(),
                            'stoichiometric':self.stoichiometric(),

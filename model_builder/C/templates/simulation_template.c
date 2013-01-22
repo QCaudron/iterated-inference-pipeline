@@ -71,8 +71,6 @@ int func_lyap (double t, const double X[], double f[], void *params)
     {% endif %}
 
     /* non linear system (automaticaly generated code)*/
-
-
     double _r[N_CAC][{{print_ode.caches|length}}];
     for(cac=0;cac<N_CAC;cac++) {
         {% for cache in print_ode.caches %}
@@ -86,7 +84,6 @@ int func_lyap (double t, const double X[], double f[], void *params)
         }
     }
 
-
     /* linear system: product of jacobian matrix (DIM*DIM) per
 
        | y[1*DIM+0]       y[1*DIM+1] ...     y[1*DIM+(DIM-1)]   |
@@ -97,14 +94,19 @@ int func_lyap (double t, const double X[], double f[], void *params)
        (automaticaly generated code)
     */
 
+    double _rj[N_CAC][{{jacobian.caches_jac_only|length}}];
+    for(cac=0; cac<N_CAC; cac++){
+        {% for cache in jacobian.caches_jac_only %}
+        _rj[cac][{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
+    }
 
-    {% for jac_n in jacobian.jac %}
+    {% for jac_n in jacobian.jac_only %}
     for(c=0; c<N_C; c++) {
         for(ac=0; ac<N_AC; ac++) {
             cac = c*N_AC+ac;
             for(i=0; i<(N_PAR_SV*N_CAC); i++) {
                 //printf("%d %d %d %d\n", N_PAR_SV*N_CAC, ({{ forloop.counter0 }}*N_CAC+ cac)*N_PAR_SV*N_CAC, i,  N_PAR_SV*N_CAC+ ({{ forloop.counter0 }}*N_CAC+ cac)*N_PAR_SV*N_CAC +i);
-                f[N_PAR_SV*N_CAC+ ({{ forloop.counter0 }}*N_CAC+ cac)*N_PAR_SV*N_CAC +i] = {% for jac_np in jac_n %}+({{ jac_np|safe }})*X[N_PAR_SV*N_CAC+ ({{ forloop.counter0 }}*N_CAC+ cac)*N_PAR_SV*N_CAC +i]{% endfor %};
+                f[N_PAR_SV*N_CAC+ ({{ forloop.counter0 }}*N_CAC+ cac)*N_PAR_SV*N_CAC +i] = {% for jac_np in jac_n %}+(_rj[cac][{{ jac_np|safe }}])*X[N_PAR_SV*N_CAC+ ({{ forloop.counter0 }}*N_CAC+ cac)*N_PAR_SV*N_CAC +i]{% endfor %};
             }
         }
     }
