@@ -138,6 +138,8 @@ void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_d
     //	}
 
     double _r[{{print_prob.caches|length}}];
+    {% if print_prob.sf %}
+    double _sf[{{print_prob.sf|length}}];{% endif %}
 
     for(c=0;c<N_C;c++) {
         for(ac=0;ac<N_AC;ac++) {
@@ -148,6 +150,9 @@ void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_d
             {{ n.0|safe }} = gsl_ran_gamma(p_calc->randgsl, (DT)/ pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2), pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2))/DT;{% endfor %}
 
             /*2-generate process increments (automaticaly generated code)*/
+            {% for sf in print_prob.sf %}
+            _sf[{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
+
             {% for cache in print_prob.caches %}
             _r[{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
 
@@ -213,7 +218,12 @@ int func(double t, const double X[], double f[], void *params)
     //  int cc;
 
     double _r[N_CAC][{{print_ode.caches|length}}];
+    {% if print_ode.sf %}
+    double _sf[N_CAC][{{print_ode.sf|length}}];{% endif %}
     for(cac=0;cac<N_CAC;cac++) {
+        {% for sf in print_ode.sf %}
+        _sf[cac][{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
+
         {% for cache in print_ode.caches %}
         _r[cac][{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
     }

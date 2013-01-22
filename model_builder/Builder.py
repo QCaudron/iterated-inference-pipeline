@@ -286,9 +286,15 @@ if __name__=="__main__":
     p = json.load(open(os.path.join('example', 'noise', 'process.json')))
     l = json.load(open(os.path.join('example', 'noise', 'link.json')))
 
+    c = json.load(open('/Users/sebastian/hfmd/hfmd_sir_hbrs/context.json'))
+    p = json.load(open('/Users/sebastian/hfmd/hfmd_sir_hbrs/process.json'))
+    l = json.load(open('/Users/sebastian/hfmd/hfmd_sir_hbrs/link.json'))
+
+
     ##fix path (this is normally done by plom)
     for x in c['data']:
-        x['source'] = os.path.join('example', 'noise', x['source'])
+        x['source'] = os.path.join('/Users/sebastian/hfmd/hfmd_sir_hbrs/', x['source'])
+        ##x['source'] = os.path.join('example', 'noise', x['source'])
 
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
 

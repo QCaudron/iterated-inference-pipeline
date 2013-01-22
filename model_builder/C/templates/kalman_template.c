@@ -76,7 +76,12 @@ int func_kal(double t, const double X[], double f[], void *params)
 
 
     double _r[N_CAC][{{print_ode.caches|length}}];
+    {% if print_ode.sf %}
+    double _sf[N_CAC][{{print_ode.sf|length}}];{% endif %}
     for(cac=0;cac<N_CAC;cac++) {
+        {% for sf in print_ode.sf %}
+        _sf[cac][{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
+
         {% for cache in print_ode.caches %}
         _r[cac][{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
     }

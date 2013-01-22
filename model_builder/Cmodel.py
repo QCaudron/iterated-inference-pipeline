@@ -71,6 +71,8 @@ class Cmodel:
         self.op = set(['+', '-', '*', '/', ',', '(', ')']) ##!!!CAN'T contain square bracket '[' ']'
         self.reserved = set(['p_0', 'sum_SV', 'N', 'prop', 'x'])
         self.special_functions = set(['terms_forcing', 'sinusoidal_forcing', 'step', 'step_lin', 'noise', 'drift', 'correct_rate'])
+        ##special functions that need to be cached for performance issues
+        self.cached = ['terms_forcing', 'sinusoidal_forcing', 'step', 'step_lin', 'correct_rate']
         self.universes = ['U', 'DU']
 
 

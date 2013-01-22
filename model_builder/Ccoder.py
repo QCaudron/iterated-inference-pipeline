@@ -87,6 +87,7 @@ class Ccoder(Cmodel):
 
                     elif (pos_closing_bracket == (len(terms)-1)) and terms[pos_start-1] == '*': ##noise__ is the last term
                         terms[pos_start-1] = ''
+
                     elif (pos_start > 0) and (pos_closing_bracket != (len(terms)-1)): ##noise is surounded by other terms. In this case we remove the operator that is '*'
                         op_left = terms[pos_start-1]
                         op_right = terms[pos_closing_bracket+1]
@@ -111,15 +112,15 @@ class Ccoder(Cmodel):
                         yield self.toC(terms[ind], is_ode)
                         ind +=1
 
-                ##add extra terms
+                ##add extra terms (no whitespace)
                 if myf[0] == 'sinusoidal_forcing':
-                    yield ', t'
+                    yield ',t'
                 elif myf[0] == 'terms_forcing':
-                    yield ', t, p_data, cac'
+                    yield ',t,p_data,cac'
                 elif myf[0] == 'step':
-                    yield ', t'
+                    yield ',t'
                 elif myf[0] == 'step_lin':
-                    yield ', t'
+                    yield ',t'
 
                 ##close bracket
                 if myf[0] != 'noise':
@@ -264,6 +265,8 @@ class Ccoder(Cmodel):
         for r in self.proc_model:
             r['ind_cache'] = rates.index(r['rate'])
 
+        sf = self.cache_special_function_C(caches)
+
         Ccode=''
 
         for s in self.par_sv:
@@ -295,7 +298,7 @@ class Ccoder(Cmodel):
 
                 Ccode += Celse
 
-        return {'code': Ccode, 'caches': caches}
+        return {'code': Ccode, 'caches': caches, 'sf': sf}
 
 
     def print_multinomial(self):
@@ -341,6 +344,43 @@ class Ccoder(Cmodel):
         return {'poisson':poisson, 'Cstring': Cstring}
 
 
+    def cache_special_function_C(self, caches_C, sf=None, prefix='_sf'):
+        """caches_C: List of cached expression in C
+        caches_C is modified in place
+        sf: an optional list of unique special function to be cached
+        returns sf (created if sf input is None)
+        """
+
+        if not sf:
+            sf = []
+            for term in caches_C:
+                if any([x in term for x in self.cached]):
+                    terms = self.change_user_input(term)
+                    for x in terms:
+                        if x in self.cached:
+                            f = x + '('
+                            ind = terms.index(x)+2 #skip first parenthesis
+                            pos = 1 #counter for open parenthesis
+                            while terms[ind] != ')' and pos > 0:
+                                if terms[ind] == '(':
+                                    pos += 1
+                                    if terms[ind] == ')':
+                                        pos -= 1
+
+                                f += terms[ind]
+                                ind +=1
+                            f += terms[ind]
+
+                            sf.append(f)
+
+            sf = list(set(sf))
+
+        for i, term in enumerate(caches_C):
+            if any([x in term for x in self.cached]):
+                for s in sf:
+                    caches_C[i] = caches_C[i].replace(s, prefix + '[{0}]'.format(sf.index(s)))
+
+        return sf
 
     def print_ode(self):
         odeDict = dict([(x,'') for x in self.par_sv])
@@ -349,6 +389,8 @@ class Ccoder(Cmodel):
         caches = map(lambda x: self.make_C_term(x, True), rates)
         for r in self.proc_model:
             r['ind_cache'] = rates.index(r['rate'])
+
+        sf = self.cache_special_function_C(caches, prefix='_sf[cac]')
 
         ##outputs
         for r in self.proc_model:
@@ -395,7 +437,7 @@ class Ccoder(Cmodel):
 
                 Clist.append({'true_ind_obs':true_ind_obs, 'right_hand_side':right_hand_side})
 
-        return {'sys': Cstring, 'caches': caches, 'obs':Clist}
+        return {'sys': Cstring, 'caches': caches, 'obs':Clist, 'sf': sf}
 
 
     def print_order(self):
