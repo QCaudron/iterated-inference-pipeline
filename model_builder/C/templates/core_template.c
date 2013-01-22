@@ -137,6 +137,8 @@ void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_d
     //    p_calc->gravity[c] *= p_par->proc[ORDER_iota][c][ac]*pow(p_data->p_t[n][c], p_par->proc[ORDER_g_mu][c][ac]);
     //	}
 
+    double _r[{{print_prob.caches|length}}];
+
     for(c=0;c<N_C;c++) {
         for(ac=0;ac<N_AC;ac++) {
             cac = c*N_AC+ac;
@@ -146,7 +148,10 @@ void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_d
             {{ n.0|safe }} = gsl_ran_gamma(p_calc->randgsl, (DT)/ pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2), pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2))/DT;{% endfor %}
 
             /*2-generate process increments (automaticaly generated code)*/
-            {{ print_prob|safe }}
+            {% for cache in print_prob.caches %}
+            _r[{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
+
+            {{ print_prob.code|safe }}
 
             /*3-multinomial drawn (automaticaly generated code)*/
             {{ print_multinomial|safe }}

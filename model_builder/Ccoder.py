@@ -259,6 +259,11 @@ class Ccoder(Cmodel):
         we need the if statement to avoid division by 0
         """
 
+        rates = list(set(r['rate'] for r in self.proc_model))
+        caches = map(lambda x: self.make_C_term(x), rates)
+        for r in self.proc_model:
+            r['ind_cache'] = rates.index(r['rate'])
+
         Ccode=''
 
         for s in self.par_sv:
@@ -268,7 +273,7 @@ class Ccoder(Cmodel):
             if len(myexit)>0:
 
                 for e in myexit:
-                    exitlist.append('({rate}) * DT'.format(rate=self.make_C_term(e['rate'])))
+                    exitlist.append('_r[{0}]*DT'.format(e['ind_cache']))
 
                 Csum= 'sum = ' + '+'.join(exitlist) + ';\n' #.join() doesn't add '+' if len(list)==1
                 Ccode += Csum+ 'if(sum>0.0){\none_minus_exp_sum = (1.0-exp(-sum));\n'
@@ -290,7 +295,7 @@ class Ccoder(Cmodel):
 
                 Ccode += Celse
 
-        return Ccode
+        return {'code': Ccode, 'caches': caches}
 
 
     def print_multinomial(self):
