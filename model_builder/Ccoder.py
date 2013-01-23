@@ -643,7 +643,13 @@ class Ccoder(Cmodel):
                            'prod_sd': '*'.join(sd),
                            'rate' : self.make_C_term(rate, True)}) #note: True ensure that noise__ terms are removed from the rate
 
-        return res
+        rates = [x['rate'] for x in res]
+        sf = self.cache_special_function_C(rates, prefix='_sf')
+
+        for i, r in enumerate(res):
+            res[i]['rate'] = rates[i]
+
+        return {'Q':res, 'sf': sf}
 
 
 

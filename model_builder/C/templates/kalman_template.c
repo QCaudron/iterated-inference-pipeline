@@ -202,16 +202,17 @@ void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_da
     }
 
     //first non null part of the jacobian matrix: derivative of the ODE (excluding the observed variable) against the state variable only ( automaticaly generated code )
-    {% for jac_i in jacobian.jac %}
     for(c=0; c<N_C; c++) {
         for(ac=0; ac<N_AC; ac++) {
             cac = c*N_AC+ac;
+            {% for jac_i in jacobian.jac %}
             {% for jac_ii in jac_i %}
             gsl_matrix_set(jac, {{ forloop.parentloop.counter0 }}*N_CAC+cac, {{ forloop.counter0 }}*N_CAC+cac, _rj[cac][{{ jac_ii|safe }}]);
             {% endfor %}
+            {% endfor %}
         }
     }
-    {% endfor %}
+
 
 
     //second non null part of the jacobian matrix: derivative of the dynamic of the observed variable against the state variable only ( automaticaly generated code )
@@ -478,11 +479,13 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
     ///////////////////////////////
     // non-correlated noise term //
     ///////////////////////////////
-
-    {% if noise_Q %}
+    {% if noise_Q.Q %}
     for (cac=0; cac<N_CAC; cac++) {
+        double _sf[{{ noise_Q.sf|length }}];
+        {% for sf in noise_Q.sf %}
+        _sf[{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
 
-        {% for x in noise_Q %}
+        {% for x in noise_Q.Q %}
         {% if x.from != x.to %}
         gsl_matrix_set(Q,
                        {{ x.from }} * N_CAC + cac,
