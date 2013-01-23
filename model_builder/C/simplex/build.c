@@ -18,7 +18,7 @@
 
 #include "simplex.h"
 
-struct s_simplex *build_simplex(int general_id)
+struct s_simplex *build_simplex(int general_id, int is_bayesian)
 {
   struct s_simplex *p_simplex;
   p_simplex = malloc(sizeof(struct s_simplex));
@@ -32,7 +32,7 @@ struct s_simplex *build_simplex(int general_id)
 
   json_t *settings = load_settings(PATH_SETTINGS);
   json_t *theta = load_json();
-  p_simplex->p_data = build_data(settings, theta, 0); //also build obs2ts
+  p_simplex->p_data = build_data(settings, theta, is_bayesian); //also build obs2ts
   json_decref(settings);
 
   p_simplex->calc = build_calc(general_id, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_simplex->p_data);

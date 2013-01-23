@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         "Plom Simplex\n"
         "usage:\n"
         "simplex [-p, --path <path>] [-i, --id <integer>]\n"
-        "        [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>]\n"
+        "        [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>] [--prior]\n"
         "        [--help]\n"
         "options:\n"
         "-s, --least_square   optimize the sum of square instead of the likelihood\n"
@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
         "-M, --iter           maximum number of iterations\n"
         "-S, --size           simplex size used as a stopping criteria\n"
         "-b, --no_traces      do not write the traces\n"
+        "--prior              add log(prior) to the estimated loglik\n"
         "--help               print the usage on stdout\n";
 
 
@@ -52,6 +53,7 @@ int main(int argc, char *argv[])
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
     OPTION_LEAST_SQUARE = 0;
+    OPTION_PRIOR = 0;
     N_THREADS = 1; //not an option
     int option_no_trace = 0;
 
@@ -62,6 +64,7 @@ int main(int argc, char *argv[])
                 {"help", no_argument,  0, 'e'},
                 {"least_square", no_argument,  0, 's'},
                 {"no_trace", no_argument,  0, 'b'},
+                {"prior", no_argument, &OPTION_PRIOR, 1},
                 {"path",    required_argument, 0, 'p'},
                 {"id",    required_argument, 0, 'i'},
                 {"LIKE_MIN",     required_argument,   0, 'l'},
@@ -130,7 +133,7 @@ int main(int argc, char *argv[])
     sprintf(str, "Starting Plom-simplex with the following options: i = %d, LIKE_MIN = %g, M = %d, CONVERGENCE_STOP_SIMPLEX = %g", GENERAL_ID, LIKE_MIN, M, CONVERGENCE_STOP_SIMPLEX);
     print_log(str);
 
-    struct s_simplex *p_simplex = build_simplex(GENERAL_ID);
+    struct s_simplex *p_simplex = build_simplex(GENERAL_ID,OPTION_PRIOR);
 
     transform_theta(p_simplex->p_best, NULL, NULL, p_simplex->p_data, 1, 1);
 
