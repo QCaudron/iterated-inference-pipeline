@@ -171,7 +171,6 @@ class Cmodel:
 
         pm = copy.deepcopy(proc_model)
         drift_par_proc = []
-        vol_par_proc = []
 
         for i, r in enumerate(proc_model):
             if 'drift(' in r['rate']:
@@ -180,13 +179,16 @@ class Cmodel:
                 ind_arg1 = ind_drift + 2 #skip (
                 ind_arg2 = ind_drift + 4 #skip ,
 
-                drift_par_proc.append(rl[ind_arg1])
-                vol_par_proc.append(rl[ind_arg2])
+                drift_par_proc.append((rl[ind_arg1], rl[ind_arg2]))
                 pm[i]['rate'] = r['rate'].replace(' ', '') #remove spaces
                 pm[i]['rate'] = pm[i]['rate'].replace('drift({0},{1})'.format(rl[ind_arg1], rl[ind_arg2]), rl[ind_arg1])
 
-
-        return (pm, drift_par_proc, vol_par_proc)
+        #get rid of repetitions
+        if drift_par_proc:
+            drift_vol = zip(*list(set(drift_par_proc)))
+            return (pm, list(drift_vol[0]), list(drift_vol[1]))
+        else:
+            return (pm, [], [])
 
 
     def undrift_obs_model(self, obs_model):
@@ -198,7 +200,6 @@ class Cmodel:
 
         om = copy.deepcopy(obs_model)
         drift_par_obs = []
-        vol_par_obs = []
 
         for k, v in obs_model.iteritems():
             if k != 'distribution' and k != 'comment':
@@ -208,15 +209,18 @@ class Cmodel:
                     ind_arg1 = ind_drift + 2 #skip (
                     ind_arg2 = ind_drift + 4 #skip ,
 
-                    drift_par_obs.append(rl[ind_arg1])
-                    vol_par_obs.append(rl[ind_arg2])
+
+                    drift_par_obs.append((rl[ind_arg1], rl[ind_arg2]))
 
                     om[k] = v.replace(' ', '') #remove spaces
                     om[k] = om[k].replace('drift({0},{1})'.format(rl[ind_arg1], rl[ind_arg2]), rl[ind_arg1])
 
-        return (om, drift_par_obs, vol_par_obs)
-
-
+        #get rid of repetitions
+        if drift_par_obs:
+            drift_vol = zip(*list(set(drift_par_obs)))
+            return (om, list(drift_vol[0]), list(drift_vol[1]))
+        else :
+            return (om, [], [])
 
     def change_user_input(self, reaction):
         """transform the reaction in smtg that we can parse in a programming language:

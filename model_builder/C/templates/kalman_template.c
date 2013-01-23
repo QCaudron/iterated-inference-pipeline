@@ -467,8 +467,10 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
     ///////////////////////////////
     // non-correlated noise term //
     ///////////////////////////////
+    {% if noise_Q.Q %}
     int from, to;
     double term;
+    {% endif %}
 
     {% if noise_Q.Q %}
     for (cac=0; cac<N_CAC; cac++) {
