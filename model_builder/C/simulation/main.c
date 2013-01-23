@@ -283,6 +283,13 @@ int main(int argc, char *argv[])
     prop2Xpop_size(J_p_X[0], p_data, COMMAND_STO);
     theta_driftIC2Xdrift(J_p_X[0], p_best->mean, p_data);
 
+    //!! For bifurcation analysis and Lyap exp computation we do not consider drift => we have to make sure that calc.natural_drifted_safe has been filled
+    int nt;
+    for(nt=0; nt<N_THREADS; nt++){
+        drift_par(calc[nt], p_data, J_p_X[0], 0, p_data->p_it_only_drift->length);
+    }
+
+
     replicate_J_p_X_0(J_p_X, p_data);
 
     for (i=0; i<(N_PAR_SV*N_CAC); i++){
