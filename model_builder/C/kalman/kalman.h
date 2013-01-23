@@ -113,11 +113,6 @@ void reset_kalman(struct s_kal *p_kal, struct s_common *p_common);
 void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data);
 void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data);
 int X2xc(double *xc, struct s_X *p_X);
-int list2sym_matrix(gsl_matrix *mat, double *vect, int offset);
-int sym_matrix2list(double *vect, gsl_matrix *mat, int offset);
-void find_cell_from_vector_form(int *cell, int idx);
-int find_cell_from_matrix_form(int row, int col);
-int matrix_times_list_form(gsl_matrix *res, gsl_matrix *mat, const double *vect, int offset);
 double get_total_pop(double *X);
 double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **routers);
 
