@@ -135,6 +135,11 @@ int main(int argc, char *argv[])
 
     struct s_simplex *p_simplex = build_simplex(GENERAL_ID,OPTION_PRIOR);
 
+    if(p_simplex->p_data->p_it_only_drift->length){
+        print_err("simplex cannot be used with models containing diffusions: use ksimplex or mif instead");
+        return 1;
+    }
+
     transform_theta(p_simplex->p_best, NULL, NULL, p_simplex->p_data, 1, 1);
 
     if (M == 0) {

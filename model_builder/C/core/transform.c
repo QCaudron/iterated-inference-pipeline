@@ -76,6 +76,10 @@ double f_inv_logit_ab(double x, double a, double b)
     }
 }
 
+double f_scale_id(double x)
+{
+    return x;
+}
 
 double f_scale_pow10(double x)
 {
@@ -304,7 +308,7 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
         } else if (strcmp(mytransf, "scale_pow10_pos") == 0) {
             p_router->f_scale = &f_scale_pow10_pos;
         } else {
-            p_router->f_scale = &f_id;
+            p_router->f_scale = &f_scale_id;
         }
 
         p_router->f_derivative = &f_der_logit_ab;
@@ -318,7 +322,7 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
             p_router->f_inv = &f_inv_log;
             p_router->f_derivative = &f_der_log;
             p_router->f_inv_derivative = &f_der_inv_log;
-            p_router->f_scale = &f_id;
+            p_router->f_scale = &f_scale_id;
 
         } else if (strcmp(mytransf, "logit")==0) {
 
@@ -326,7 +330,7 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
             p_router->f_inv = &f_inv_logit;
             p_router->f_derivative = &f_der_logit;
             p_router->f_inv_derivative = &f_der_inv_logit;
-            p_router->f_scale = &f_id;
+            p_router->f_scale = &f_scale_id;
 
         } else if (strcmp(mytransf, "identity")==0) {
 
@@ -334,7 +338,7 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
             p_router->f_inv = &f_id;
             p_router->f_derivative = &f_id;
             p_router->f_inv_derivative = &f_id;
-            p_router->f_scale = &f_id;
+            p_router->f_scale = &f_scale_id;
 
         } else if (strcmp(mytransf, "scale_pow10")==0) {
 

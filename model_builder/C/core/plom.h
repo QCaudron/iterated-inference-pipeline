@@ -665,6 +665,7 @@ double f_inv_logit_ab(double x, double a, double b);
 
 double f_scale_pow10(double x);
 double f_scale_pow10_pos(double x);
+double f_scale_id(double x);
 
 double f_der_log(double x, double a, double b);
 double f_der_inv_log(double x, double a, double b);
