@@ -100,7 +100,6 @@ model_builder/C/simplex/Makefile
 model_builder/C/simplex/build.c
 model_builder/C/simplex/build.o
 model_builder/C/simplex/main.c
-model_builder/C/simplex/main.c~
 model_builder/C/simplex/main.o
 model_builder/C/simplex/methods.c
 model_builder/C/simplex/methods.o

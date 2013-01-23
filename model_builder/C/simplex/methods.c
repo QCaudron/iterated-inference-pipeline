@@ -82,6 +82,10 @@ double f_simplex(const gsl_vector *x, void *params)
         }
     }
 
+    if (OPTION_PRIOR) {
+        fitness += log_prob_prior(p_best, p_best->mean, p_data);
+    }
+
     if(!OPTION_LEAST_SQUARE) {
         fitness = -fitness; //GSL simplex algo minimizes so we multiply by -1 in case of log likelihood
     }
