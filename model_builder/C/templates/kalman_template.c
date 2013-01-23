@@ -305,7 +305,7 @@ void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data 
  * get the total number of reactions
  * ie. size of F
  */
-int init_REAC(struct s_obs2ts **obs2ts)
+int init_REAC(void)
 {
     return N_CAC*{{ stoichiometric.rnb }};
 }
@@ -417,7 +417,7 @@ int eval_G(gsl_matrix *G, const double *X, struct s_par *p_par, struct s_data *p
 
     int row, col; // cell indices
     for(row=0; row<N_KAL; row++) {
-        for(col=0; col<N_REAC; col++) {
+        for(col=0; col<p_kalman_specific_data->N_REAC; col++) {
             gsl_matrix_set(SF, row, col, gsl_matrix_get(S, row, col)*F[col]);
         }
     }

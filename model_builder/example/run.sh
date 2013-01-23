@@ -26,4 +26,4 @@ cd ../../
 
 echo "clean"
 
-rm -r noise/model drift/model
+#rm -r noise/model drift/model

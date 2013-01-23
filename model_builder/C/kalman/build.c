@@ -52,11 +52,11 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data,
     p->Ft = p_kal->Ft;
 
     // demographic stochasticity matrices
-    N_REAC = init_REAC(p_data->obs2ts);
-    p->F = malloc(N_REAC*sizeof(double));
-    p->S = gsl_matrix_calloc(N_KAL, N_REAC);
+    p->N_REAC = init_REAC();
+    p->F = malloc(p->N_REAC*sizeof(double));
+    p->S = gsl_matrix_calloc(N_KAL, p->N_REAC);
     eval_S(p->S, p_data->obs2ts);
-    p->SF = gsl_matrix_calloc(N_KAL, N_REAC);
+    p->SF = gsl_matrix_calloc(N_KAL, p->N_REAC);
     p->G = gsl_matrix_alloc(N_KAL, N_KAL);
 
     return p;

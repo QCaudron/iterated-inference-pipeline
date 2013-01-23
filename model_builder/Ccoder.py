@@ -683,8 +683,7 @@ class Ccoder(Cmodel):
         ###################
 
         # for every atomic reaction
-        rInd=0
-        for r in self.proc_model:
+        for rInd, r in enumerate(self.proc_model):
             # for every state variable
             svInd=0
             for sv in self.par_sv:
@@ -706,8 +705,6 @@ class Ccoder(Cmodel):
 
             F[rInd] = self.make_C_term(rate, True)
 
-            rInd += 1
-
 
         ######################
         # observed variables #
@@ -722,8 +719,7 @@ class Ccoder(Cmodel):
 
             if not isinstance(self.obs_var_def[oInd][0], dict): ##prevalence:
                 # for every reaction
-                rInd=0
-                for r in self.proc_model:
+                for rInd, r in enumerate(self.proc_model):
 
                     # if it involves prevalence as input
                     if r['from'] == self.obs_var_def[oInd]:
@@ -733,8 +729,6 @@ class Ccoder(Cmodel):
                     elif r['to'] == self.obs_var_def[oInd]:
                         S_ov[oInd][rInd]= '-1'
 
-                    rInd += 1
-
             ##################
             # incidence case #
             ##################
@@ -743,14 +737,11 @@ class Ccoder(Cmodel):
                 # for every incidence
                 for inc in self.obs_var_def[oInd]:
                     # for every reaction
-                    rInd=0
-                    for r in self.proc_model:
+                    for rInd, r in enumerate(self.proc_model):
 
                         # if it involves incidence
                         if (r['from'] == inc['from']) and (r['to'] == inc['to']) and (r['rate'] == inc['rate']):
                             S_ov[oInd][rInd]= '+1'
-
-                        rInd += 1
 
 
         return {'S_sv': S_sv, 'S_ov': S_ov, 'F': F, 'rnb':len(self.proc_model)}

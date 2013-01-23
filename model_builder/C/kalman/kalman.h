@@ -27,7 +27,6 @@ double CONVERGENCE_STOP_SIMPLEX;
 
 // sizes
 int N_KAL;  // N_PAR_SV*N_CAC + N_TS + iterator_only_drift.nbtot
-int N_REAC; // number of reactions for demographic stochasticity computation
 
 // options
 int OPTION_TRANSF;  // add log_transf_correc to log_lik
@@ -48,6 +47,8 @@ struct s_kalman_specific_data
 
   struct s_group ***compo_groups_drift_par_proc;
 
+
+  int N_REAC; // number of reactions for demographic stochasticity computation
   // need to be allocated, free
   gsl_matrix *FtCt;	// for Ft*Ct
 
@@ -80,7 +81,7 @@ struct s_common
 
 struct s_kalman
 {
-  /* from simforence core */
+  /* from plom core */
   struct s_data *p_data;
   struct s_calc **calc;
   struct s_best *p_best;
@@ -134,7 +135,7 @@ void eval_F(double *F, const double *X, struct s_par *p_par, struct s_data *p_da
 void eval_Q(gsl_matrix *Q, const double *proj, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_kalman_specific_data *p_kalman_specific_data, double t);
 int eval_G(gsl_matrix *G, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_kalman_specific_data *p_kalman_specific_data, double t);
 
-int init_REAC(struct s_obs2ts **obs2ts);
+int init_REAC(void);
 void eval_S(gsl_matrix *S, struct s_obs2ts **obs2ts);
 
 /* prediction.c */
