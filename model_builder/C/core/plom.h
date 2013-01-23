@@ -189,6 +189,8 @@ struct s_router /* [ N_PAR_SV + N_PAR_PROC + N_PAR_OBS ] */
     double (*f) (double, double, double); /**< transformation (log, logit...) */
     double (*f_inv) (double, double, double); /**< inverse of f (f*f_inv=identity) */
 
+    double (*f_scale) (double); /**< scale value (10^x or 10^-x has an effect on s_par only.) */
+
     double (*f_derivative) (double, double, double); /**< derivative of f */
     double (*f_inv_derivative) (double, double, double); /**< derivative of f_inv */
 
@@ -199,7 +201,7 @@ struct s_router /* [ N_PAR_SV + N_PAR_PROC + N_PAR_OBS ] */
     double *min;  /**< [self.n_gp] @c a of logit_ab (minimum) in the user unit (and discarding rate_as_duration or pow10 scaling) */
     double *max;  /**< [self.n_gp] @c b of logit_ab (maximum) same scale as min  */
 
-    double *min_z;  /**< [self.n_gp] @c a of logit_ab in the data unit and the prediction function scale (i.e rate_as_duration has been applied...) */
+    double *min_z;  /**< [self.n_gp] @c a of logit_ab in the data unit and the prediction function scale (s_par) (i.e rate_as_duration has been applied...) */
     double *max_z;  /**< [self.n_gp] @c b of logit_ab same scale as min_z */
 };
 
@@ -661,9 +663,8 @@ double f_inv_logit(double x, double a, double b);
 double f_logit_ab(double x, double a, double b);
 double f_inv_logit_ab(double x, double a, double b);
 
-double f_scale_pow10(double x, double a, double b);
-double f_scale_logit_ab_pow10(double x, double a, double b);
-double f_scale_log_pow10_prop(double x, double a, double b);
+double f_scale_pow10(double x);
+double f_scale_pow10_pos(double x);
 
 double f_der_log(double x, double a, double b);
 double f_der_inv_log(double x, double a, double b);

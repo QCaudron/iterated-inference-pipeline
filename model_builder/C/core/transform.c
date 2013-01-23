@@ -37,7 +37,6 @@ double f_inv_log(double x, double a, double b)
     return exp(x);
 }
 
-
 double f_logit(double x, double a, double b)
 {
     //sanatize
@@ -78,27 +77,18 @@ double f_inv_logit_ab(double x, double a, double b)
 }
 
 
-
-double f_scale_pow10(double x, double a, double b)
+double f_scale_pow10(double x)
 {
     return pow(10.0, x);
 }
 
-double f_scale_logit_ab_pow10(double x, double a, double b)
-{
-    if (a == b) {
-        return pow(10.0, x);
-    } else {
-        return pow(10.0, ((b*exp(x)+a)/(1.0+exp(x))));
-    }
-}
 
 /**
- * Fit proportion in log10 scale (ensures that the exponent is positive with a log transfo)
+ * 10^-x with x positive (thanks to a log transfo)
  */
-double f_scale_log_pow10_prop(double x, double a, double b)
+double f_scale_pow10_pos(double x)
 {
-    return pow(10.0, -exp(x));
+    return pow(10.0, -x);
 }
 
 
@@ -109,7 +99,6 @@ double f_der_log(double x, double a, double b)
 {
     return 1.0/x;
 }
-
 
 
 
@@ -308,11 +297,14 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
     if ( is_bayesian && (strcmp(prior_type, "uniform") == 0)) {
 
         p_router->f = &f_logit_ab;
+        p_router->f_inv = &f_inv_logit_ab;
 
         if (strcmp(mytransf, "scale_pow10") == 0) {
-            p_router->f_inv = &f_scale_logit_ab_pow10;
+            p_router->f_scale = &f_scale_pow10;
+        } else if (strcmp(mytransf, "scale_pow10_pos") == 0) {
+            p_router->f_scale = &f_scale_pow10_pos;
         } else {
-            p_router->f_inv = &f_inv_logit_ab;
+            p_router->f_scale = &f_id;
         }
 
         p_router->f_derivative = &f_der_logit_ab;
@@ -326,6 +318,7 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
             p_router->f_inv = &f_inv_log;
             p_router->f_derivative = &f_der_log;
             p_router->f_inv_derivative = &f_der_inv_log;
+            p_router->f_scale = &f_id;
 
         } else if (strcmp(mytransf, "logit")==0) {
 
@@ -333,6 +326,7 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
             p_router->f_inv = &f_inv_logit;
             p_router->f_derivative = &f_der_logit;
             p_router->f_inv_derivative = &f_der_inv_logit;
+            p_router->f_scale = &f_id;
 
         } else if (strcmp(mytransf, "identity")==0) {
 
@@ -340,13 +334,23 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
             p_router->f_inv = &f_id;
             p_router->f_derivative = &f_id;
             p_router->f_inv_derivative = &f_id;
+            p_router->f_scale = &f_id;
 
         } else if (strcmp(mytransf, "scale_pow10")==0) {
 
             p_router->f =  &f_id;
-            p_router->f_inv = &f_scale_pow10;
+            p_router->f_inv = &f_id;
             p_router->f_derivative = &f_id;
             p_router->f_inv_derivative = &f_id;
+            p_router->f_scale = &f_scale_pow10;
+
+        } else if (strcmp(mytransf, "scale_pow10_pos")==0) {
+
+            p_router->f =  &f_log;
+            p_router->f_inv = &f_inv_log;
+            p_router->f_derivative = &f_der_log;
+            p_router->f_inv_derivative = &f_der_inv_log;
+            p_router->f_scale = &f_scale_pow10_pos;
 
         } else {
 
@@ -365,13 +369,9 @@ void set_ab_z(struct s_router *r)
     //convert into data unit;
     for(g=0; g<r->n_gp; g++){
 
-        if(r->f_inv == &f_scale_pow10){
-            a = f_scale_pow10(r->min[g], r->min[g], r->max[g]);
-            b = f_scale_pow10(r->max[g], r->min[g], r->max[g]);
-        } else {
-            a = r->min[g];
-            b = r->max[g];
-        }
+        //scale
+        a = r->f_scale(r->min[g]);
+        b = r->f_scale(r->max[g]);
 
         //to data unit
         a *= r->multiplier;
@@ -413,6 +413,9 @@ double back_transform_x(double x, int g, struct s_router *r)
     double trans;
     //back transform
     trans= (*(r->f_inv))(x, r->min[g], r->max[g]);
+
+    //scale
+    trans= (*(r->f_scale))(trans);
 
     //convert unit
     trans *= r->multiplier;
