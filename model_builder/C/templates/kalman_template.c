@@ -467,6 +467,9 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
     ///////////////////////////////
     // non-correlated noise term //
     ///////////////////////////////
+    int from, to;
+    double term;
+
     {% if noise_Q.Q %}
     for (cac=0; cac<N_CAC; cac++) {
         {% if noise_Q.sf %}
@@ -476,28 +479,17 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
         _sf[{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
 
         {% for x in noise_Q.Q %}
+        from = {{ x.from }} * N_CAC + cac;
+        to = {{ x.to }} * N_CAC + cac;
+        term = pow({{ x.prod_sd|safe }} * {{ x.rate|safe }}, 2);
+
         {% if x.from != x.to %}
-        gsl_matrix_set(Q,
-                       {{ x.from }} * N_CAC + cac,
-                       {{ x.to }} * N_CAC + cac,
-                       -pow({{ x.prod_sd|safe }} * {{ x.rate|safe }}, 2));
-
-        gsl_matrix_set(Q,
-                       {{ x.to }} * N_CAC + cac,
-                       {{ x.from }} * N_CAC + cac,
-                       -pow({{ x.prod_sd|safe }} * {{ x.rate|safe }}, 2));
-
-        gsl_matrix_set(Q,
-                       {{ x.to }} * N_CAC + cac,
-                       {{ x.to }} * N_CAC + cac,
-                       pow({{ x.prod_sd|safe }} * {{ x.rate|safe }}, 2));
+        gsl_matrix_set(Q, from, to, -term + gsl_matrix_get(Q, from, to));
+        gsl_matrix_set(Q, to, from, -term + gsl_matrix_get(Q, to, from));
+        gsl_matrix_set(Q, to, to, term + gsl_matrix_get(Q, to, to));
         {% endif %}
 
-        gsl_matrix_set(Q,
-                       {{ x.from }} * N_CAC + cac,
-                       {{ x.from }} * N_CAC + cac,
-                       pow({{ x.prod_sd|safe }} * {{ x.rate|safe }}, 2));
-
+        gsl_matrix_set(Q, from, from, term + gsl_matrix_get(Q, from, from));
         {% endfor %}
     }
     {% endif %}

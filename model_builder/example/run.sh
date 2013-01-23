@@ -9,6 +9,7 @@ fit theta | ./smc deter
 fit theta | ./smc sto
 fit theta | ./simplex -M 1000 --no_trace
 fit theta | ./kalman deter
+fit theta | ./ksimplex deter -M 100 --no_trace
 
 cd ../../
 

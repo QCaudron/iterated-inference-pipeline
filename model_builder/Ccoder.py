@@ -639,9 +639,9 @@ class Ccoder(Cmodel):
                     rate = reac['rate']
 
                 res.append({'from': self.par_sv.index(reac['from']) if reac['from'] not in self.universes else self.par_sv.index(reac['to']),
-                           'to': self.par_sv.index(reac['to']) if reac['to'] not in self.universes else self.par_sv.index(reac['from']),
-                           'prod_sd': '*'.join(sd),
-                           'rate' : self.make_C_term(rate, True)}) #note: True ensure that noise__ terms are removed from the rate
+                            'to': self.par_sv.index(reac['to']) if reac['to'] not in self.universes else self.par_sv.index(reac['from']),
+                            'prod_sd': '*'.join(sd),
+                            'rate' : self.make_C_term(rate, True)}) #note: True ensure that noise__ terms are removed from the rate
 
         rates = [x['rate'] for x in res]
         sf = self.cache_special_function_C(rates, prefix='_sf')

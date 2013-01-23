@@ -294,7 +294,7 @@ if __name__=="__main__":
     ##fix path (this is normally done by plom)
     for x in c['data']:
         x['source'] = os.path.join('/Users/seb/hfmd/hfmd_sir_hbrs/', x['source'])
-        ##x['source'] = os.path.join('example', 'noise', x['source'])
+        #x['source'] = os.path.join('example', 'noise', x['source'])
 
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
 
