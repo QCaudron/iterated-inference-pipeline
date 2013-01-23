@@ -155,18 +155,18 @@ class PlomModelBuilder(Context, Ccoder):
     def code(self):
         """generate C code for MIF, Simplex, pMCMC, Kalman, simulation, ..."""
 
-
         if not django_settings.configured:
             django_settings.configure(TEMPLATE_DIRS = (self.path_rendered,), DEBUG = False, FILE_CHARSET = 'utf-8')
 
         #elif not django_settings.TEMPLATE_DIRS:
         django_settings.TEMPLATE_DIRS = (self.path_rendered,)
 
-
         is_drift = True if len(self.drift_var) > 0 else False
-        order = self.print_order()
 
-        jac = self.jac()
+        ##methods whose results are use multiple times
+        order = self.print_order()
+        ode = self.print_ode()
+        jac = self.jac(ode['sf'])
 
         #core templates
         t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'core_template.c'))
@@ -176,7 +176,7 @@ class PlomModelBuilder(Context, Ccoder):
                            'print_prob': self.print_prob(),
                            'print_multinomial': self.print_multinomial(),
                            'print_update': self.print_update(),
-                           'print_ode': self.print_ode(),
+                           'print_ode': ode,
                            'list_obs_prev': self.print_obs_prev(),
                            'eq_obs_inc_markov': self.print_obs_inc_markov(),
                            'is_drift': is_drift,
@@ -191,7 +191,7 @@ class PlomModelBuilder(Context, Ccoder):
         t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'simulation_template.c'))
         c = DjangoContext({'order':order,
                            'jacobian':jac,
-                           'print_ode': self.print_ode(),
+                           'print_ode': ode,
                            'is_drift': is_drift})
         f = open(os.path.join(self.path_rendered, 'C', 'templates', 'simulation_tpl.c'),'w')
         f.write(t.render(c))
@@ -202,11 +202,11 @@ class PlomModelBuilder(Context, Ccoder):
         t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_template.c'))
         c = DjangoContext({'order':order,
                            'jacobian':jac,
-                           'jac_proc_obs':self.jac_proc_obs,
+                           'jac_proc_obs':self.jac_proc_obs(),
                            'noise_Q': self.eval_Q(),
                            'stoichiometric':self.stoichiometric(),
                            'is_drift': is_drift,
-                           'print_ode': self.print_ode()})
+                           'print_ode': ode})
         f = open(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_tpl.c'),'w')
         f.write(t.render(c))
         f.close()
@@ -286,14 +286,14 @@ if __name__=="__main__":
     p = json.load(open(os.path.join('example', 'noise', 'process.json')))
     l = json.load(open(os.path.join('example', 'noise', 'link.json')))
 
-    c = json.load(open('/Users/sebastian/hfmd/hfmd_sir_hbrs/context.json'))
-    p = json.load(open('/Users/sebastian/hfmd/hfmd_sir_hbrs/process.json'))
-    l = json.load(open('/Users/sebastian/hfmd/hfmd_sir_hbrs/link.json'))
+    c = json.load(open('/Users/seb/hfmd/hfmd_sir_hbrs/context.json'))
+    p = json.load(open('/Users/seb/hfmd/hfmd_sir_hbrs/process.json'))
+    l = json.load(open('/Users/seb/hfmd/hfmd_sir_hbrs/link.json'))
 
 
     ##fix path (this is normally done by plom)
     for x in c['data']:
-        x['source'] = os.path.join('/Users/sebastian/hfmd/hfmd_sir_hbrs/', x['source'])
+        x['source'] = os.path.join('/Users/seb/hfmd/hfmd_sir_hbrs/', x['source'])
         ##x['source'] = os.path.join('example', 'noise', x['source'])
 
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)

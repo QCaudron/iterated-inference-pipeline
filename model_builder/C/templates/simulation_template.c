@@ -71,9 +71,9 @@ int func_lyap (double t, const double X[], double f[], void *params)
     {% endif %}
 
     /* non linear system (automaticaly generated code)*/
-    double _r[N_CAC][{{print_ode.caches|length}}];
+    double _r[N_CAC][{{ print_ode.caches|length }}];
     {% if print_ode.sf %}
-    double _sf[N_CAC][{{print_ode.sf|length}}];{% endif %}
+    double _sf[N_CAC][{{ print_ode.sf|length }}];{% endif %}
     for(cac=0;cac<N_CAC;cac++) {
         {% for sf in print_ode.sf %}
         _sf[cac][{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
@@ -105,17 +105,19 @@ int func_lyap (double t, const double X[], double f[], void *params)
         _rj[cac][{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
     }
 
-    {% for jac_n in jacobian.jac_only %}
+
     for(c=0; c<N_C; c++) {
         for(ac=0; ac<N_AC; ac++) {
             cac = c*N_AC+ac;
             for(i=0; i<(N_PAR_SV*N_CAC); i++) {
+                {% for jac_n in jacobian.jac_only %}
                 //printf("%d %d %d %d\n", N_PAR_SV*N_CAC, ({{ forloop.counter0 }}*N_CAC+ cac)*N_PAR_SV*N_CAC, i,  N_PAR_SV*N_CAC+ ({{ forloop.counter0 }}*N_CAC+ cac)*N_PAR_SV*N_CAC +i);
                 f[N_PAR_SV*N_CAC+ ({{ forloop.counter0 }}*N_CAC+ cac)*N_PAR_SV*N_CAC +i] = {% for jac_np in jac_n %}+(_rj[cac][{{ jac_np|safe }}])*X[N_PAR_SV*N_CAC+ ({{ forloop.counter0 }}*N_CAC+ cac)*N_PAR_SV*N_CAC +i]{% endfor %};
+                {% endfor %}
             }
         }
     }
-    {% endfor %}
+
 
     return GSL_SUCCESS;
 }

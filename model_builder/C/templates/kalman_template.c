@@ -190,8 +190,13 @@ void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_da
     gsl_matrix_set_zero(jac);
 
 
-    double _rj[N_CAC][{{jacobian.caches|length}}];
+    double _rj[N_CAC][{{ jacobian.caches|length }}];
+    {% if jacobian.sf %}
+    double _sf[N_CAC][{{ jacobian.sf|length }}];{% endif %}
     for(cac=0; cac<N_CAC; cac++){
+        {% for sf in jacobian.sf %}
+        _sf[cac][{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
+
         {% for cache in jacobian.caches %}
         _rj[cac][{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
     }
@@ -300,7 +305,6 @@ void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data 
 
     x = gsl_vector_get(xk, N_PAR_SV*N_CAC +ts); //the derivative are templated (automaticaly generated code) and are a function of "x". we link "x" to the right observed variable.
     gsl_vector_set(ht, N_PAR_SV*N_CAC +ts, {{ jac_proc_obs|safe }});
-
 }
 
 
