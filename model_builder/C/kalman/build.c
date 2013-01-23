@@ -46,7 +46,6 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data,
 
     //temporary variable used in func_kal for covariance computation
     p->FtCt = gsl_matrix_alloc(N_KAL, N_KAL);	// for Ft*Ct
-    p->res = gsl_matrix_alloc(N_KAL, N_KAL);	// for Ft*Ct+Ct*Ft'+Q
 
     //store reference
     p->Q = p_common->Q;
@@ -78,7 +77,6 @@ void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data)
     FREE(p->compo_groups_drift_par_proc);
 
     gsl_matrix_free(p->FtCt);
-    gsl_matrix_free(p->res);
 
     FREE(p->F);
     gsl_matrix_free(p->S);

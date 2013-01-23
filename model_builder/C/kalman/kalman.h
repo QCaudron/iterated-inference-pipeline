@@ -50,7 +50,6 @@ struct s_kalman_specific_data
 
   // need to be allocated, free
   gsl_matrix *FtCt;	// for Ft*Ct
-  gsl_matrix *res;	// for Ft*Ct+Ct*Ft'+Q
 
   // for demographic stochasticity
   double *F;        /* Vector containing transition rates of the model: as many compenents as possible reactions */

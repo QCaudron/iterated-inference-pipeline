@@ -50,10 +50,8 @@ int func_kal(double t, const double X[], double f[], void *params)
 
     gsl_matrix *Ft = p_kalman_specific_data->Ft;
     gsl_matrix *Q = p_kalman_specific_data->Q;
-    gsl_matrix *S = p_kalman_specific_data->S;
     struct s_group ***compo_groups_drift_par_proc = p_kalman_specific_data->compo_groups_drift_par_proc;
     gsl_matrix *FtCt = p_kalman_specific_data->FtCt;
-    gsl_matrix *res = p_kalman_specific_data->res;
     gsl_matrix_const_view Ct   = gsl_matrix_const_view_array(&X[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE],N_KAL,N_KAL);
     gsl_matrix_view res2 = gsl_matrix_view_array(&f[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE],N_KAL,N_KAL);
 
@@ -121,11 +119,6 @@ int func_kal(double t, const double X[], double f[], void *params)
     // covariance //
     ////////////////
 
-    offset = N_PAR_SV*N_CAC + N_TS_INC_UNIQUE;
-    int row, col;
-    double data;
-
-
     // evaluate Q and jacobian
     eval_Q(Q, X, p_par, p_data, p_calc, p_kalman_specific_data, t);
     eval_jac(Ft, X, p_par, p_data, p_calc, compo_groups_drift_par_proc, t);
@@ -137,8 +130,6 @@ int func_kal(double t, const double X[], double f[], void *params)
     gsl_matrix_transpose (FtCt);
     gsl_matrix_add(&res2.matrix,FtCt);
     gsl_matrix_add(&res2.matrix,Q);
-
-
 
     return GSL_SUCCESS;
 }
@@ -169,16 +160,19 @@ void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_da
 {
     //X is p_X->proj
 
-    int c, ac, cac, g, d;
+    int c, ac, cac;
     int ts, ts_unique, stream, n_cac;
-    double sum_tmp;
 
     /*t is the current time in the unit of the data */
 
     //syntaxic shortcut
     struct s_obs2ts **obs2ts = p_data->obs2ts;
     struct s_router **routers = p_data->routers;  /* syntaxic shortcut */
+
+    {% if is_drift %}
+    int d, g;
     struct s_drift *p_drift =  p_data->p_drift;
+    {% endif %}
 
     //the automaticaly generated code may need these variables
     const int nn = p_calc->current_nn;
@@ -263,7 +257,7 @@ void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_da
             d = 0;
             {% for jac_ii in jac_i %}
             for(g=0; g< routers[ p_drift->ind_par_Xdrift_applied[{{ forloop.counter0 }}] ]->n_gp; g++) {
-                sum_tmp = 0.0;
+                double sum_tmp = 0.0;
                 for(n_cac=0; n_cac< compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->size; n_cac++) {
                     cac = compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->elements[n_cac];
                     if(cac_drift_in_cac_ts(cac, {{ forloop.parentloop.counter0 }}, ts_unique, obs2ts)) {
@@ -287,9 +281,7 @@ void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data 
 {
     /* derivative of the mean of the observation process against state variables and observed variables */
 
-    double x;
     struct s_router **routers = p_data->routers;  /* syntaxic shortcut */
-
 
     //the automaticaly generated code may need these variables
     int n, nn;
@@ -304,7 +296,7 @@ void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data 
     gsl_vector_set_zero(ht);
     //derivative against state variable are always nul so we focus on the derivative against the observed variable
 
-    x = gsl_vector_get(xk, N_PAR_SV*N_CAC +ts); //the derivative are templated (automaticaly generated code) and are a function of "x". we link "x" to the right observed variable.
+    double x = gsl_vector_get(xk, N_PAR_SV*N_CAC +ts); //the derivative are templated (automaticaly generated code) and are a function of "x". we link "x" to the right observed variable.
     gsl_vector_set(ht, N_PAR_SV*N_CAC +ts, {{ jac_proc_obs|safe }});
 }
 
@@ -377,13 +369,9 @@ void eval_F(double *F, const double *X, struct s_par *p_par, struct s_data *p_da
 
 
     int c, ac, cac;
-    int ts, ts_unique, stream, n_cac;
 
     // syntaxic shortcuts
-    struct s_obs2ts **obs2ts = p_data->obs2ts;
     struct s_router **routers = p_data->routers;
-    struct s_drift *p_drift = p_data->p_drift;
-
 
     //the automaticaly generated code may need these variables
     const int nn = p_calc->current_nn;
@@ -481,7 +469,9 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
     ///////////////////////////////
     {% if noise_Q.Q %}
     for (cac=0; cac<N_CAC; cac++) {
+        {% if noise_Q.sf %}
         double _sf[{{ noise_Q.sf|length }}];
+        {% endif %}
         {% for sf in noise_Q.sf %}
         _sf[{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
 

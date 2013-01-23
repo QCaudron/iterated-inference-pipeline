@@ -282,11 +282,9 @@ double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s
       Note: user should not use this function but get_log_likelihood
     */
 
-    int n, nn;
-    double t;
-    n = p_calc->current_n;
-    nn = p_calc->current_nn;
-    t = (double) p_data->times[n];
+    int n = p_calc->current_n;
+    int nn = p_calc->current_nn;
+    double t = (double) p_data->times[n];
 
     struct s_router **routers = p_data->routers;
 
@@ -316,18 +314,15 @@ double obs_mean(double x, struct s_par *p_par, struct s_data *p_data, struct s_c
   /*x is the predicted value from the model that we contrast with a time serie ts*/
   struct s_router **routers = p_data->routers;
 
-  double mu;
-  int n, nn;
-  double t;
-  n = p_calc->current_n;
-  nn = p_calc->current_nn;
-  t = (double) (nn+1);
+  int n = p_calc->current_n;
+  int nn = p_calc->current_nn;
+  double t = (double) p_data->times[n];
 
   double **par = p_par->natural;
   double ***covar = p_data->par_fixed;
 
   /*automaticaly generated code*/
-  mu = {{ proc_obs.mean|safe }};
+  double mu = {{ proc_obs.mean|safe }};
 
   return mu;
 }
@@ -337,18 +332,15 @@ double obs_var(double x, struct s_par *p_par, struct s_data *p_data, struct s_ca
   /*x is the predicted value from the model that we contrast with a time serie ts*/
   struct s_router **routers = p_data->routers;
 
-  double var;
-  int n, nn;
-  double t;
-  n = p_calc->current_n;
-  nn = p_calc->current_nn;
-  t = (double) (nn+1);
+  int n = p_calc->current_n;
+  int nn = p_calc->current_nn;
+  double t = (double) p_data->times[n];
 
   double **par = p_par->natural;
   double ***covar = p_data->par_fixed;
 
   /*automaticaly generated code*/
-  var = {{ proc_obs.var|safe }};
+  double var = {{ proc_obs.var|safe }};
 
   return var;
 }
@@ -359,11 +351,9 @@ double observation(double x, struct s_par *p_par, struct s_data *p_data, struct 
   /*x is the predicted value from the model that we contrast with a time serie ts*/
   struct s_router **routers = p_data->routers;
 
-  int n, nn;
-  double t;
-  n = p_calc->current_n;
-  nn = p_calc->current_nn;
-  t = (double) (nn+1);
+  int n = p_calc->current_n;
+  int nn = p_calc->current_nn;
+  double t = (double) p_data->times[n];
 
   double **par = p_par->natural;
   double ***covar = p_data->par_fixed;
