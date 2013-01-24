@@ -638,10 +638,23 @@ class Ccoder(Cmodel):
                 else:
                     rate = reac['rate']
 
+                # check if this incidence corresponds to an observed incidence
+                found = 0
+                obs_var_index = 0
+                for oInd in range(len(self.obs_var_def)):
+                    if isinstance(self.obs_var_def[oInd][0], dict): ##incidence:
+                        for inc in self.obs_var_def[oInd]:
+                            for rInd, r in enumerate(self.proc_model):
+                                if (reac['from'] == inc['from']) and (reac['to'] == inc['to']) and (reac['rate'] == inc['rate']):
+                                    found = 1
+                                    obs_var_index = oInd
+                
                 res.append({'from': self.par_sv.index(reac['from']) if reac['from'] not in self.universes else self.par_sv.index(reac['to']),
                             'to': self.par_sv.index(reac['to']) if reac['to'] not in self.universes else self.par_sv.index(reac['from']),
                             'prod_sd': '*'.join(sd),
-                            'rate' : self.make_C_term(rate, True)}) #note: True ensure that noise__ terms are removed from the rate
+                            'rate' : self.make_C_term(rate, True),
+                            'observed':found,
+                            'obs_var_index':obs_var_index}) #note: True ensure that noise__ terms are removed from the rate
 
         rates = [x['rate'] for x in res]
         sf = self.cache_special_function_C(rates, prefix='_sf')

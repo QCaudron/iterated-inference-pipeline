@@ -468,7 +468,7 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
     // non-correlated noise term //
     ///////////////////////////////
     {% if noise_Q.Q %}
-    int from, to;
+    int from, to, indobs;
     double term;
     {% endif %}
 
@@ -489,6 +489,10 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
         gsl_matrix_set(Q, from, to, -term + gsl_matrix_get(Q, from, to));
         gsl_matrix_set(Q, to, from, -term + gsl_matrix_get(Q, to, from));
         gsl_matrix_set(Q, to, to, term + gsl_matrix_get(Q, to, to));
+        {% if x.observed %}
+        indobs = {{ x.obs_var_index }} ;
+        gsl_matrix_set(Q, N_PAR_SV*N_CAC+indobs, N_PAR_SV*N_CAC+indobs, term + gsl_matrix_get(Q, N_PAR_SV*N_CAC+indobs, N_PAR_SV*N_CAC+indobs));
+        {% endif %}
         {% endif %}
 
         gsl_matrix_set(Q, from, from, term + gsl_matrix_get(Q, from, from));
