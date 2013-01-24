@@ -109,7 +109,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
             }
 
             int success = weight(p_like, n);
-            mean_var_theta_theoretical_mif(D_theta_bart[n+1], D_theta_Vt[n+1], J_theta, var_theta, p_like, m, ((double) (t1-t0)));
+            mean_var_theta_theoretical_mif(D_theta_bart[n+1], D_theta_Vt[n+1], J_theta, var_theta, p_like, p_data, p_best, m, ((double) (t1-t0)));
             if (OPTION_TRAJ) {
                 print_mean_var_theta_theoretical_mif(p_file_mif, D_theta_bart[n+1], D_theta_Vt[n+1], p_like, m, t1);
             }

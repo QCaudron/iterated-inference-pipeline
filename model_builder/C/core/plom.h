@@ -389,6 +389,7 @@ struct s_best {
     unsigned int *follower;        /**< [self.n_follow] index of follower */
     unsigned int *follow;          /**< [self.n_follow] index of parameter being followed by the follower */
 
+    unsigned int *is_follower;     /**< [length] boolean: index of mean, 1 = follow, 0 = doesn't follow */
 
     /* used to store states necessary for computation of the sampling covariance in MCMC algo */
     double *mean_sampling;         /**< [self.length] Em(X) 1st order mean needed to compute the sampling covariance */

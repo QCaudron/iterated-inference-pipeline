@@ -488,7 +488,7 @@ void transform_theta(struct s_best *p_best,
     struct s_iterator *p_it_fls = p_data->p_it_par_sv_and_drift; //fls => fixed lag smoothing
     double val_sd;
 
-    int i, k;
+    int i, k, myoffset;
 
     //parameters
     for (i=0; i<p_it_mif->length; i++) {
@@ -496,28 +496,24 @@ void transform_theta(struct s_best *p_best,
         struct s_router *r = routers[ p_it_mif->ind[i] ];
 
         for (k=0; k< r->n_gp; k++) {
+            myoffset = p_it_mif->offset[i]+k;
 
             if (transform_var) {
-                if (gsl_matrix_get(var, p_it_mif->offset[i]+k, p_it_mif->offset[i]+k) > 0.0) { /*keep var to 0 if originaly 0...*/
+                if (gsl_matrix_get(var, myoffset, myoffset) > 0.0) { /*keep var to 0 if originaly 0...*/
 
                     if (f_transit_par) {
-                        val_sd = (*f_transit_par)(gsl_matrix_get(var, p_it_mif->offset[i]+k, p_it_mif->offset[i]+k));
+                        val_sd = (*f_transit_par)(gsl_matrix_get(var, myoffset, myoffset));
                     } else {
-                        val_sd = gsl_matrix_get(var, p_it_mif->offset[i]+k, p_it_mif->offset[i]+k);
+                        val_sd = gsl_matrix_get(var, myoffset, myoffset);
                     }
 
-                    gsl_matrix_set(var,
-                                   p_it_mif->offset[i]+k,
-                                   p_it_mif->offset[i]+k,
-                                   pow(val_sd, 2)
-                                   );
-
+                    gsl_matrix_set(var, myoffset, myoffset, pow(val_sd, 2));
                 }
             }
 
             if (transform_mean) {
-                gsl_vector_set(x, p_it_mif->offset[i]+k,
-                               (*(r->f))( gsl_vector_get(x, p_it_mif->offset[i]+k), r->min[k], r->max[k] ) );
+                gsl_vector_set(x, myoffset,
+                               (*(r->f))( gsl_vector_get(x, myoffset), r->min[k], r->max[k] ) );
             }
         }
     }
@@ -528,27 +524,24 @@ void transform_theta(struct s_best *p_best,
         struct s_router *r = routers[ p_it_fls->ind[i] ];
 
         for (k=0; k< r->n_gp; k++) {
+            myoffset = p_it_fls->offset[i]+k;
+
             if (transform_var) {
-                if (gsl_matrix_get(var, p_it_fls->offset[i]+k, p_it_fls->offset[i]+k) > 0.0) { /*keep var to 0 if originaly 0...*/
+                if (gsl_matrix_get(var, myoffset, myoffset) > 0.0) { /*keep var to 0 if originaly 0...*/
                     if (f_transit_state) {
-                        val_sd = (*f_transit_state)(gsl_matrix_get(var, p_it_fls->offset[i]+k, p_it_fls->offset[i]+k));
+                        val_sd = (*f_transit_state)(gsl_matrix_get(var, myoffset, myoffset));
 
                     } else {
-                        val_sd = gsl_matrix_get(var, p_it_fls->offset[i]+k, p_it_fls->offset[i]+k);
+                        val_sd = gsl_matrix_get(var, myoffset, myoffset);
                     }
 
-                    gsl_matrix_set(var,
-                                   p_it_fls->offset[i]+k,
-                                   p_it_fls->offset[i]+k,
-                                   pow(val_sd,2)
-                                   );
-
+                    gsl_matrix_set(var, myoffset, myoffset, pow(val_sd,2));
                 }
             }
 
             if (transform_mean) {
-                gsl_vector_set(x, p_it_fls->offset[i]+k,
-                               (*(r->f))( gsl_vector_get(x, p_it_fls->offset[i]+k), r->min[k], r->max[k] ) );
+                gsl_vector_set(x, myoffset,
+                               (*(r->f))( gsl_vector_get(x, myoffset), r->min[k], r->max[k] ) );
             }
         }
     }

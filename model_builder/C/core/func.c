@@ -176,7 +176,7 @@ void update_to_be_estimated(struct s_best *p_best)
 
     p_best->n_to_be_estimated = 0;
     for(k=0; k<p_best->length; k++) {
-        if(gsl_matrix_get(p_best->var, k, k) > 0.0) {
+        if( (gsl_matrix_get(p_best->var, k, k) > 0.0) && (p_best->is_follower[k] == 0) ) {
             p_best->to_be_estimated[ p_best->n_to_be_estimated ] = k;
             p_best->n_to_be_estimated++;
         } else {

@@ -1121,7 +1121,7 @@ void clean_likelihood(struct s_likelihood *p_like)
 
 struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covariance)
 {
-    int i,j;
+    int i,j,k;
     struct s_router **routers = p_data->routers;
 
     struct s_best *p_best;
@@ -1152,11 +1152,13 @@ struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covar
 
     p_best->to_be_estimated = init1u_set0(p_best->length);
 
+    p_best->is_follower = init1u_set0(p_best->length);
     p_best->n_follow = 0;
     for(i=0; i<p_data->p_it_all->length; i++) {
         const char *par_key = routers[i]->name;
         json_t *par = fast_get_json_object(fast_get_json_object(theta, "value"), par_key);
-        if(json_object_get(par, "follow")){
+
+        if(json_object_get(par, "follow")) {
             const char *par_follow_key = fast_get_json_string_from_object(par, "follow");
 
             p_best->n_follow++;
@@ -1190,6 +1192,16 @@ struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covar
                 print_err(str);
                 exit(EXIT_FAILURE);
             }
+
+            for (k=0; k<routers[i]->n_gp; k++) {
+                p_best->is_follower[p_data->p_it_all->offset[i] + k] = 1;
+            }
+
+        } else {
+
+            for (k=0; k<routers[i]->n_gp; k++) {
+                p_best->is_follower[p_data->p_it_all->offset[i] + k] = 0;
+            }
         }
     }
 
@@ -1220,6 +1232,7 @@ void clean_best(struct s_best *p_best)
 
     FREE(p_best->to_be_estimated);
 
+    FREE(p_best->is_follower);
     if(p_best->n_follow){
         FREE(p_best->follower);
         FREE(p_best->follow);

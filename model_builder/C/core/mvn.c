@@ -112,7 +112,7 @@ void sfr_rmvnorm(gsl_vector *proposed, struct s_best *p_best, double sd_fac, str
     int status = gsl_linalg_cholesky_decomp(work);
     if(status == GSL_EDOM) {
         // error: matrix not positive
-        print_err("COVARIANCE MATRIX IS NOT POSITIVE DEFINITE");
+        print_err("Covariance matrix is not positive definite");
     }
 
     //working vector of size n (needed because proposed also contains

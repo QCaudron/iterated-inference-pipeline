@@ -59,11 +59,11 @@ int check_prior(struct s_best *p_best, gsl_vector *mean, struct s_data *p_data)
 
   for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
       for(k=0; k<routers[i]->n_gp; k++) {
-          if(gsl_matrix_get(p_best->var, offset, offset) >0.0) {
+          if( (gsl_matrix_get(p_best->var, offset, offset) > 0.0) && (p_best->is_follower[offset] == 0) ) {
               back_transformed = (*(routers[i]->f_inv))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]);
 
               p = (*(p_best->prior[offset]))(back_transformed, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);
-              if(p==0.0) {
+              if(p == 0.0) {
                   return 0; //FALSE
               }
           }
@@ -88,7 +88,7 @@ double log_prob_prior(struct s_best *p_best, gsl_vector *mean, struct s_data *p_
 
     for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
         for(k=0; k<routers[i]->n_gp; k++) {
-            if(gsl_matrix_get(p_best->var, offset, offset) >0.0) {
+            if( (gsl_matrix_get(p_best->var, offset, offset) > 0.0) && (p_best->is_follower[offset] == 0) ) {
                 back_transformed = (*(routers[i]->f_inv))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]);
                 p_tmp = (*(p_best->prior[offset]))(back_transformed, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);
                 Lp += log(sanitize_likelihood(p_tmp));
@@ -100,7 +100,7 @@ double log_prob_prior(struct s_best *p_best, gsl_vector *mean, struct s_data *p_
     return(Lp);
 }
 
-//Temporary hack
+
 double normal_prior(double x, double min, double max)
 {
     double mean = (max+min)/2.0;

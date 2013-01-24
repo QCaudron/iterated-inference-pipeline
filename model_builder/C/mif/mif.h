@@ -68,7 +68,7 @@ void get_submatrix_var_theta_mif(gsl_matrix *var_theta, struct s_best *p_best, s
 void fill_theta_bart_and_Vt_mif(double **D_theta_bart, double **D_theta_Vt, struct s_best *p_best, struct s_data *p_data, int m);
 
 void split_theta_mif(theta_t *proposed, gsl_vector *J_theta_j, double *J_IC_grouped_j, struct s_data *p_data);
-void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gsl_vector **J_theta, gsl_matrix *var, struct s_likelihood *p_like, int m, double delta_t);
+void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gsl_vector **J_theta, gsl_matrix *var, struct s_likelihood *p_like, struct s_data *p_data, struct s_best *p_best, int m, double delta_t);
 void print_mean_var_theta_theoretical_mif(FILE *p_file, double *theta_bart_n, double *theta_Vt_n, struct s_likelihood *p_like, int m, int time);
 void header_mean_var_theoretical_mif(FILE *p_file, struct s_data *p_data);
 

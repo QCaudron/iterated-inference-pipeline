@@ -100,47 +100,57 @@ void split_theta_mif(theta_t *proposed, gsl_vector *J_theta_j, double *J_IC_grou
 
 }
 
-void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gsl_vector **J_theta, gsl_matrix *var, struct s_likelihood *p_like, int m, double delta_t)
+void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gsl_vector **J_theta, gsl_matrix *var, struct s_likelihood *p_like, struct s_data *p_data, struct s_best *p_best, int m, double delta_t)
 {
     /* Compute filtered mean and predeiction var of particles at time
        n. We take weighted averages with "weights" for the filtered
        mean (in order to reduce monte-carlo variability) and use a numericaly stable
        online algo for the variance.*/
 
-    int j,k;
+    int i, j, k;
+
+    struct s_iterator *p_it = p_data->p_it_par_proc_par_obs_no_drift;
+    struct s_router **routers = p_data->routers;
 
     double kn, M2, avg, delta; //for variance computations
 
-    for(k=0; k<N_THETA_MIF; k++) {
-        if(gsl_matrix_get(var, k, k)>0.0) {
-            theta_bart_n[k]=0.0;
+    int offset = 0;
 
-            kn=0.0;
-            avg=0.0;
-            M2=0.0;
+    for(i=0; i<p_it->length; i++) {
+        for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
+            if( (gsl_matrix_get(var, offset, offset)>0.0) && (p_best->is_follower[p_it->offset[i]+k] == 0) ) {
 
-            for(j=0 ; j<J ; j++) {
+                theta_bart_n[offset]=0.0;
 
-                //variance computation
-                kn += 1.0;
-                delta = gsl_vector_get(J_theta[j], k) - avg;
-                avg += (delta / kn);
-                M2 += delta*(gsl_vector_get(J_theta[j], k) - avg);
+                kn=0.0;
+                avg=0.0;
+                M2=0.0;
 
-                //weighted average for filtered mean
-                theta_bart_n[k] += p_like->weights[j]*gsl_vector_get(J_theta[j], k);
-            }
-            theta_Vt_n[k] = M2/(kn -1.0);
+                for(j=0 ; j<J ; j++) {
 
-            if( (theta_Vt_n[k]<0.0) || (isinf(theta_Vt_n[k])==1) || (isnan(theta_Vt_n[k])==1)) {
-                theta_Vt_n[k]=0.0;
+                    //variance computation
+                    kn += 1.0;
+                    delta = gsl_vector_get(J_theta[j], offset) - avg;
+                    avg += (delta / kn);
+                    M2 += delta*(gsl_vector_get(J_theta[j], offset) - avg);
+
+                    //weighted average for filtered mean
+                    theta_bart_n[offset] += p_like->weights[j]*gsl_vector_get(J_theta[j], offset);
+                }
+                theta_Vt_n[offset] = M2/(kn -1.0);
+
+                if( (theta_Vt_n[offset]<0.0) || (isinf(theta_Vt_n[offset])==1) || (isnan(theta_Vt_n[offset])==1)) {
+                    theta_Vt_n[offset]=0.0;
 #if FLAG_VERBOSE
-                print_err("error in variance computation");
+                    print_err("error in variance computation");
 #endif
+                }
+                /*we add theoretical variance corresponding to mutation of theta
+                  to reduce Monte Carlo variability*/
+                theta_Vt_n[offset] += delta_t*pow(FREEZE, 2)*gsl_matrix_get(var, offset, offset);
             }
-            /*we add theoretical variance corresponding to mutation of theta
-              to reduce Monte Carlo variability*/
-            theta_Vt_n[k] += delta_t*pow(FREEZE, 2)*gsl_matrix_get(var, k, k);
+
+            offset++;
         }
     }
 }
@@ -249,7 +259,7 @@ void update_theta_best_stable_mif(struct s_best *p_best, double **D_theta_bart, 
 
     for(i=0; i<p_it->length; i++) {
         for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-            if(gsl_matrix_get(p_best->var, p_it->offset[i]+k, p_it->offset[i]+k) >0.0) {
+            if( (gsl_matrix_get(p_best->var, p_it->offset[i]+k, p_it->offset[i]+k) >0.0) && (p_best->is_follower[p_it->offset[i]+k] == 0) ) {
                 tmp = 0.0;
                 for(n=1; n<=N_DATA_NONAN; n++){
                     tmp += D_theta_bart[n][offset];
@@ -278,7 +288,7 @@ void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, do
 
     for(i=0; i<p_it->length; i++) {
         for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-            if(gsl_matrix_get(p_best->var, p_it->offset[i]+k, p_it->offset[i]+k) >0.0) {
+            if( (gsl_matrix_get(p_best->var, p_it->offset[i]+k, p_it->offset[i]+k) >0.0) && (p_best->is_follower[p_it->offset[i]+k] == 0) ) {
                 tmp=0.0;
                 for(n=1; n<=N_DATA_NONAN; n++) {
                     tmp += ( (D_theta_bart[n][offset]-D_theta_bart[n-1][offset]) / D_theta_Vt[n][offset] );
@@ -399,7 +409,7 @@ void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, 
 
             offset_best = p_it_mif->offset[i]+k;
 
-            if (gsl_matrix_get(var, offset_best, offset_best) > 0.0) { //only for the parameter that we want to estimate
+            if ( (gsl_matrix_get(var, offset_best, offset_best) > 0.0) && (p_best->is_follower[offset_best] == 0) ) { //only for the parameter that we want to estimate
                 for(j=0; j<J; j++) {
                     back_transformed = (*(p_router->f_inv))(gsl_vector_get( J_theta[j], offset), p_router->min[k], p_router->max[k]);
                     p_tmp = (*(p_best->prior[offset_best]))(back_transformed, p_best->par_prior[offset_best][0], p_best->par_prior[offset_best][1]);
@@ -413,7 +423,6 @@ void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, 
         }
     }
 
-
     // weights are multiplied by prior(theta_j)^(1/lag) for parameters fitted with fixed lag smoothing
     if(n<lag){
         offset = 0;
@@ -423,7 +432,7 @@ void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, 
 
                 offset_best = p_it_fls->offset[i]+k;
 
-                if (gsl_matrix_get(var, offset_best, offset_best) > 0.0) {
+                if ( (gsl_matrix_get(var, offset_best, offset_best) > 0.0) && (p_best->is_follower[offset_best] == 0) ) { //only for the parameter that we want to estimate
                     for(j=0; j<J; j++) {
                         back_transformed = (*(p_router->f_inv))((*J_IC_grouped)[j][offset], p_router->min[k], p_router->max[k]);
                         p_tmp = (*(p_best->prior[offset_best]))(back_transformed, p_best->par_prior[offset_best][0], p_best->par_prior[offset_best][1]);
