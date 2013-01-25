@@ -20,6 +20,7 @@ import copy
 from Cmodel import Cmodel
 from sympy import diff, Symbol, sympify
 from sympy.printing import ccode
+import itertools
 
 class Ccoder(Cmodel):
     """write the C code from the user input coming from the web interface..."""
@@ -616,45 +617,73 @@ class Ccoder(Cmodel):
 
     def eval_Q(self):
         """computes non-correlated noise term of the kalman Q matrix"""
-
-        #results
         res = []
 
-        #get reactions with noise
-        for reac in self.proc_model:
-            if 'noise__' in reac['rate']:
-                sd = [] #list of noise intensities
-                terms = self.change_user_input(reac['rate'])
-                for x in terms:
-                    if 'noise__' in x:
-                        ind = terms.index(x)
-                        while terms[ind] != ')':
-                            if terms[ind] in self.par_proc:
-                                sd.append(self.toC(terms[ind]))
-                            ind +=1
+        def get_sd(rate):
+            sd = [] #list of noise intensities
+            terms = self.change_user_input(rate)
+            for x in terms:
+                if 'noise__' in x:
+                    ind = terms.index(x)
+                    while terms[ind] != ')':
+                        if terms[ind] in self.par_proc:
+                            sd.append(self.toC(terms[ind]))
+                        ind +=1
 
-                if reac['from'] not in self.universes:
-                    rate = '({0})*{1}'.format(reac['rate'], reac['from'])
+            return sd
+
+        N_PAR_SV = len(self.par_sv)
+
+        for x in self.proc_model:
+            if 'noise__' in x['rate']:
+
+                inds_from = [self.par_sv.index(x['from'])] if x['from'] not in self.universes else [self.par_sv.index(x['to'])]
+                inds_to   = [self.par_sv.index(x['to'])] if x['to'] not in self.universes else [self.par_sv.index(x['from'])]
+
+                if x['from'] not in self.universes:
+                    rate = '({0})*{1}'.format(x['rate'], x['from'])
                 else:
-                    rate = reac['rate']
+                    rate = x['rate']
 
-                # check if this incidence corresponds to an observed incidence
-                found = 0
-                obs_var_index = 0
-                for oInd in range(len(self.obs_var_def)):
-                    if isinstance(self.obs_var_def[oInd][0], dict): ##incidence:
-                        for inc in self.obs_var_def[oInd]:
-                            for rInd, r in enumerate(self.proc_model):
-                                if (reac['from'] == inc['from']) and (reac['to'] == inc['to']) and (reac['rate'] == inc['rate']):
-                                    found = 1
-                                    obs_var_index = oInd
-                
-                res.append({'from': self.par_sv.index(reac['from']) if reac['from'] not in self.universes else self.par_sv.index(reac['to']),
-                            'to': self.par_sv.index(reac['to']) if reac['to'] not in self.universes else self.par_sv.index(reac['from']),
-                            'prod_sd': '*'.join(sd),
-                            'rate' : self.make_C_term(rate, True),
-                            'observed':found,
-                            'obs_var_index':obs_var_index}) #note: True ensure that noise__ terms are removed from the rate
+                Cterm = '({0})*({1})'.format(self.make_C_term(rate, True), '*'.join(get_sd(x['rate']))) #note: True ensure that noise__ terms are removed from the rate (ODE)
+
+##                for oInd in range(len(self.obs_var_def)):
+##                    ##incidences
+##                    if isinstance(self.obs_var_def[oInd][0], dict):
+##                        for inc in self.obs_var_def[oInd]:
+##                            ##if the incidence term (self.obs_var_def[oInd]) contains the noisy reaction x
+##                            if (x['from'] == inc['from']) and (x['to'] == inc['to']) and (x['rate'] == inc['rate']):
+##                                inds_to.append(N_PAR_SV + oInd)
+##
+##
+##                    ##prevalence
+##                    else:
+##                        if x['from'] in self.obs_var_def[oInd]:
+##                            inds_from.append(N_PAR_SV + oInd)
+##
+##                        if x['to'] in self.obs_var_def[oInd]:
+##                            inds_to.append(N_PAR_SV + oInd)
+
+                ###############
+                ## FIll Q
+                ###############
+
+                for t in itertools.product(inds_to, inds_from): ###Cartesian product: list(itertools.product([1,2], [2,4,5])) => [(1, 2), (1, 4), (1, 5), (2, 2), (2, 4), (2, 5)]
+                    if(t[0] == t[1]):
+                        #Q(i,j) += term2:
+                        sign = '+'
+                        res.append({'i': t[0], 'j': t[1], 'rate': Cterm, 'sign': sign})
+                    else:
+                        for tt in itertools.product(t, repeat=2): ##(1,3) => [(1,1), (1,3), (3,1), (3,3)]
+                            if (tt[0] in inds_from and tt[1] in inds_from) or (tt[0] in inds_to and tt[1] in inds_to):
+                                #Q(i,j) += term^2
+                                sign = '+'
+                            else:
+                                #Q(i,j) += -term^2
+                                sign = '-'
+
+                            res.append({'i': t[0], 'j': t[1], 'rate': Cterm, 'sign': sign})
+
 
         rates = [x['rate'] for x in res]
         sf = self.cache_special_function_C(rates, prefix='_sf')
