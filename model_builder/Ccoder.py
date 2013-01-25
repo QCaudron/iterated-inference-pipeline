@@ -657,7 +657,6 @@ class Ccoder(Cmodel):
                             if (x['from'] == inc['from']) and (x['to'] == inc['to']) and (x['rate'] == inc['rate']):
                                 inds_to.append(N_PAR_SV + oInd)
 
-
                     ##prevalence
                     else:
                         if x['from'] in self.obs_var_def[oInd]:
@@ -671,30 +670,30 @@ class Ccoder(Cmodel):
                 ###############
                 for t in itertools.product(inds_to, inds_from): ###Cartesian product: list(itertools.product([1,2], [2,4,5])) => [(1, 2), (1, 4), (1, 5), (2, 2), (2, 4), (2, 5)]
 
-
                     if(t[0] == t[1]):
-                        #Q(i,j) += term2:
                         sign = '+'
-                        Q_term = {'i': t[0], 'j': t[1], 'rate': Cterm, 'sign': sign}
                         if t[0] < N_PAR_SV:
-                            Q_proc.append(Q_term)
+                            Q_proc.append({'i': t[0], 'j': t[1], 'rate': Cterm, 'sign': sign})
                         else:
-                            Q_obs.append(Q_term)
+                            Q_obs.append({'i': {'is_obs': False, 'ind': t[0]} if t[0] < N_PAR_SV else {'is_obs': True, 'ind': t[0]-N_PAR_SV},
+                                          'j': {'is_obs': False, 'ind': t[1]} if t[1] < N_PAR_SV else {'is_obs': True, 'ind': t[1]-N_PAR_SV},
+                                          'rate': Cterm,
+                                          'sign': sign})
 
                     else:
                         for tt in itertools.product(t, repeat=2): ##(1,3) => [(1,1), (1,3), (3,1), (3,3)]
                             if (tt[0] in inds_from and tt[1] in inds_from) or (tt[0] in inds_to and tt[1] in inds_to):
-                                #Q(i,j) += term^2
                                 sign = '+'
                             else:
-                                #Q(i,j) += -term^2
                                 sign = '-'
 
-                            Q_term = {'i': tt[0], 'j': tt[1], 'rate': Cterm, 'sign': sign}
                             if (t[0] < N_PAR_SV) and (t[1] < N_PAR_SV): #NOTE: t not tt (not a bug)
-                                Q_proc.append(Q_term)
+                                Q_proc.append({'i': tt[0], 'j': tt[1], 'rate': Cterm, 'sign': sign})
                             else:
-                                Q_obs.append(Q_term)
+                                Q_obs.append({'i': {'is_obs': False, 'ind': tt[0]} if tt[0] < N_PAR_SV else {'is_obs': True, 'ind': tt[0]-N_PAR_SV},
+                                              'j': {'is_obs': False, 'ind': tt[1]} if tt[1] < N_PAR_SV else {'is_obs': True, 'ind': tt[1]-N_PAR_SV},
+                                              'rate': Cterm,
+                                              'sign': sign})
 
 
         rates = [x['rate'] for x in Q_proc + Q_obs]

@@ -306,6 +306,6 @@ if __name__=="__main__":
 ##    print model.map_ts_obs
 
     model.prepare()
-#    model.write_settings()
+    model.write_settings()
     model.code()
 #    model.compile()

@@ -156,6 +156,7 @@ struct s_obs2ts /* [N_OBS_ALL] */
     unsigned int *n_stream;  /**< [self.n_ts_unique] number of data stream */
     unsigned int *n_cac;     /**< [self.n_ts_unique] number of @c cac */
     unsigned int ***cac;     /**< [self.n_ts_unique][self.n_cac][2] list of @c c and @c ac (hence the 2) aggregated into the @c n_ts_unique time serie */
+    int offset;  /**< index of first ts (relative to N_TS) of the observed variable */
 };
 
 

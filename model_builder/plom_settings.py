@@ -65,6 +65,11 @@ def get_obs2ts(self):
 
         obs2ts.append(info_o)
 
+    ##add offset: first index of ts for an observed variable
+    offset=0
+    for x in obs2ts:
+        x['offset'] = offset
+        offset += sum(x['n_stream'])
 
     return obs2ts
 

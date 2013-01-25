@@ -388,6 +388,7 @@ struct s_obs2ts **build_obs2ts(json_t *json_obs2ts)
         obs2ts[o]->n_stream = fast_load_fill_json_1u(fast_get_json_array(json_obs2ts_o, "n_stream"), "n_stream");
         obs2ts[o]->n_cac = fast_load_fill_json_1u(fast_get_json_array(json_obs2ts_o, "n_cac"), "n_cac");
         obs2ts[o]->cac = fast_load_fill_json_3u(fast_get_json_array(json_obs2ts_o, "cac"), "cac");
+        obs2ts[o]->offset = fast_get_json_integer(json_obs2ts_o, "offset");
     }
 
     return obs2ts;

@@ -467,7 +467,7 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
     ///////////////////////////////
     // non-correlated noise term //
     ///////////////////////////////
-    {% if noise_Q.Q_proc %}
+    {% if noise_Q.Q_proc or noise_Q.Q_obs %}
     int j;
     double term;
     {% endif %}
@@ -489,6 +489,36 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
     }
     {% endif %}
 
+
+    {% comment %}
+    {% if noise_Q.Q_obs %}
+    int ts_unique, stream, n_cac, c, ac;
+    struct s_obs2ts *p_obs2ts;
+
+    {% for x in noise_Q.Q_obs %}
+
+    p_obs2ts = obs2ts[?????????];
+
+    for(ts_unique=0; ts_unique < p_obs2ts->n_ts_unique; ts_unique++) {
+        for(stream=0; stream < p_obs2ts->n_stream[ts_unique]; stream++) {
+            for(n_cac=0; n_cac< p_obs2ts->n_cac[ts_unique]; n_cac++) {
+                c = p_obs2ts->cac[ts_unique][n_cac][0];
+                ac = p_obs2ts->cac[ts_unique][n_cac][1];
+                cac = c*N_AC+ac;
+
+                term = {{ x.sign}} pow({{ x.rate|safe }}, 2);
+
+                i = ?????????;
+                j = ?????????;
+
+                gsl_matrix_set(Q, i, j, term + gsl_matrix_get(Q, i, j));
+            }
+        }
+    }
+
+    {% endfor %}
+    {% endif %}
+    {% endcomment %}
 
     ////////////////////////////////////
     // demographic stochasticity term //
