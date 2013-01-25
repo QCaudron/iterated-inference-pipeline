@@ -617,7 +617,9 @@ class Ccoder(Cmodel):
 
     def eval_Q(self):
         """computes non-correlated noise term of the kalman Q matrix"""
-        res = []
+
+        Q_proc = []
+        Q_obs = []
 
         def get_sd(rate):
             sd = [] #list of noise intensities
@@ -647,32 +649,38 @@ class Ccoder(Cmodel):
 
                 Cterm = '({0})*({1})'.format(self.make_C_term(rate, True), '*'.join(get_sd(x['rate']))) #note: True ensure that noise__ terms are removed from the rate (ODE)
 
-##                for oInd in range(len(self.obs_var_def)):
-##                    ##incidences
-##                    if isinstance(self.obs_var_def[oInd][0], dict):
-##                        for inc in self.obs_var_def[oInd]:
-##                            ##if the incidence term (self.obs_var_def[oInd]) contains the noisy reaction x
-##                            if (x['from'] == inc['from']) and (x['to'] == inc['to']) and (x['rate'] == inc['rate']):
-##                                inds_to.append(N_PAR_SV + oInd)
-##
-##
-##                    ##prevalence
-##                    else:
-##                        if x['from'] in self.obs_var_def[oInd]:
-##                            inds_from.append(N_PAR_SV + oInd)
-##
-##                        if x['to'] in self.obs_var_def[oInd]:
-##                            inds_to.append(N_PAR_SV + oInd)
+                for oInd in range(len(self.obs_var_def)):
+                    ##incidences
+                    if isinstance(self.obs_var_def[oInd][0], dict):
+                        for inc in self.obs_var_def[oInd]:
+                            ##if the incidence term (self.obs_var_def[oInd]) contains the noisy reaction x
+                            if (x['from'] == inc['from']) and (x['to'] == inc['to']) and (x['rate'] == inc['rate']):
+                                inds_to.append(N_PAR_SV + oInd)
+
+
+                    ##prevalence
+                    else:
+                        if x['from'] in self.obs_var_def[oInd]:
+                            inds_from.append(N_PAR_SV + oInd)
+
+                        if x['to'] in self.obs_var_def[oInd]:
+                            inds_to.append(N_PAR_SV + oInd)
 
                 ###############
                 ## FIll Q
                 ###############
-
                 for t in itertools.product(inds_to, inds_from): ###Cartesian product: list(itertools.product([1,2], [2,4,5])) => [(1, 2), (1, 4), (1, 5), (2, 2), (2, 4), (2, 5)]
+
+
                     if(t[0] == t[1]):
                         #Q(i,j) += term2:
                         sign = '+'
-                        res.append({'i': t[0], 'j': t[1], 'rate': Cterm, 'sign': sign})
+                        Q_term = {'i': t[0], 'j': t[1], 'rate': Cterm, 'sign': sign}
+                        if t[0] < N_PAR_SV:
+                            Q_proc.append(Q_term)
+                        else:
+                            Q_obs.append(Q_term)
+
                     else:
                         for tt in itertools.product(t, repeat=2): ##(1,3) => [(1,1), (1,3), (3,1), (3,3)]
                             if (tt[0] in inds_from and tt[1] in inds_from) or (tt[0] in inds_to and tt[1] in inds_to):
@@ -682,16 +690,23 @@ class Ccoder(Cmodel):
                                 #Q(i,j) += -term^2
                                 sign = '-'
 
-                            res.append({'i': tt[0], 'j': tt[1], 'rate': Cterm, 'sign': sign})
+                            Q_term = {'i': tt[0], 'j': tt[1], 'rate': Cterm, 'sign': sign}
+                            if (t[0] < N_PAR_SV) and (t[1] < N_PAR_SV): #NOTE: t not tt (not a bug)
+                                Q_proc.append(Q_term)
+                            else:
+                                Q_obs.append(Q_term)
 
 
-        rates = [x['rate'] for x in res]
+        rates = [x['rate'] for x in Q_proc + Q_obs]
         sf = self.cache_special_function_C(rates, prefix='_sf')
 
-        for i, r in enumerate(res):
-            res[i]['rate'] = rates[i]
+        for i, r in enumerate(Q_proc):
+            Q_proc[i]['rate'] = rates[i]
 
-        return {'Q':res, 'sf': sf}
+        for i, r in enumerate(Q_obs):
+            Q_obs[i]['rate'] = rates[len(Q_proc)+1]
+
+        return {'Q_proc':Q_proc, 'Q_obs':Q_obs, 'sf': sf}
 
 
 

@@ -467,12 +467,12 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
     ///////////////////////////////
     // non-correlated noise term //
     ///////////////////////////////
-    {% if noise_Q.Q %}
+    {% if noise_Q.Q_proc %}
     int j;
     double term;
     {% endif %}
 
-    {% if noise_Q.Q %}
+    {% if noise_Q.Q_proc %}
     for (cac=0; cac<N_CAC; cac++) {
         {% if noise_Q.sf %}
         double _sf[{{ noise_Q.sf|length }}];
@@ -480,7 +480,7 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
         {% for sf in noise_Q.sf %}
         _sf[{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
 
-        {% for x in noise_Q.Q %}
+        {% for x in noise_Q.Q_proc %}
         i = {{ x.i }} * N_CAC + cac;
         j = {{ x.j }} * N_CAC + cac;
         term = {{ x.sign}} pow({{ x.rate|safe }}, 2);
