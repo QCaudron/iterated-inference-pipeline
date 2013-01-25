@@ -682,7 +682,7 @@ class Ccoder(Cmodel):
                                 #Q(i,j) += -term^2
                                 sign = '-'
 
-                            res.append({'i': t[0], 'j': t[1], 'rate': Cterm, 'sign': sign})
+                            res.append({'i': tt[0], 'j': tt[1], 'rate': Cterm, 'sign': sign})
 
 
         rates = [x['rate'] for x in res]
