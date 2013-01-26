@@ -666,38 +666,26 @@ class Ccoder(Cmodel):
                             inds_to.append(N_PAR_SV + oInd)
 
                 ###############
-                ## FIll Q
+                ## fill Q
                 ###############
-                for t in itertools.product(inds_to, inds_from): ###Cartesian product: list(itertools.product([1,2], [2,4,5])) => [(1, 2), (1, 4), (1, 5), (2, 2), (2, 4), (2, 5)]
+                for t in itertools.product(inds_to + inds_from, repeat=2): ## all the possible couples with repetition
 
-                    if(t[0] == t[1]):
+                    if (t[0] in inds_from and t[1] in inds_from) or (t[0] in inds_to and t[1] in inds_to):
                         sign = '+'
-                        if t[0] < N_PAR_SV:
-                            Q_proc.append({'i': t[0], 'j': t[1], 'rate': Cterm, 'sign': sign})
-                        else:
-                            Q_obs.append({'i': {'is_obs': False, 'ind': t[0]} if t[0] < N_PAR_SV else {'is_obs': True, 'ind': t[0]-N_PAR_SV},
-                                          'j': {'is_obs': False, 'ind': t[1]} if t[1] < N_PAR_SV else {'is_obs': True, 'ind': t[1]-N_PAR_SV},
-                                          'rate': Cterm,
-                                          'sign': sign})
-
                     else:
-                        for tt in itertools.product(t, repeat=2): ##(1,3) => [(1,1), (1,3), (3,1), (3,3)]
-                            if (tt[0] in inds_from and tt[1] in inds_from) or (tt[0] in inds_to and tt[1] in inds_to):
-                                sign = '+'
-                            else:
-                                sign = '-'
+                        sign = '-'
 
-                            if (t[0] < N_PAR_SV) and (t[1] < N_PAR_SV): #NOTE: t not tt (not a bug)
-                                Q_proc.append({'i': tt[0], 'j': tt[1], 'rate': Cterm, 'sign': sign})
-                            else:
-                                Q_obs.append({'i': {'is_obs': False, 'ind': tt[0]} if tt[0] < N_PAR_SV else {'is_obs': True, 'ind': tt[0]-N_PAR_SV},
-                                              'j': {'is_obs': False, 'ind': tt[1]} if tt[1] < N_PAR_SV else {'is_obs': True, 'ind': tt[1]-N_PAR_SV},
-                                              'rate': Cterm,
-                                              'sign': sign})
+                    if (t[0] < N_PAR_SV) and (t[1] < N_PAR_SV):
+                        Q_proc.append({'i': t[0], 'j': t[1], 'rate': Cterm, 'sign': sign})
+                    else:
+                        Q_obs.append({'i': {'is_obs': False, 'ind': t[0]} if t[0] < N_PAR_SV else {'is_obs': True, 'ind': t[0]-N_PAR_SV},
+                                      'j': {'is_obs': False, 'ind': t[1]} if t[1] < N_PAR_SV else {'is_obs': True, 'ind': t[1]-N_PAR_SV},
+                                      'rate': Cterm,
+                                      'sign': sign})
 
 
         rates = [x['rate'] for x in Q_proc + Q_obs]
-        sf = self.cache_special_function_C(rates, prefix='_sf')
+        sf = self.cache_special_function_C(rates, prefix='_sf[cac]')
 
         for i, r in enumerate(Q_proc):
             Q_proc[i]['rate'] = rates[i]

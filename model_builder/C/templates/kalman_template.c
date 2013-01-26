@@ -467,18 +467,28 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
     ///////////////////////////////
     // non-correlated noise term //
     ///////////////////////////////
+
+
+
     {% if noise_Q.Q_proc or noise_Q.Q_obs %}
     int j;
     double term;
     {% endif %}
 
     {% if noise_Q.Q_proc %}
+
+    /*
+      Q_proc contains only term involving state variables. We just
+      replicate those term for every cac
+     */
+
+    {% if noise_Q.sf %}
+    double _sf[N_CAC][{{ noise_Q.sf|length }}];
+    {% endif %}
+
     for (cac=0; cac<N_CAC; cac++) {
-        {% if noise_Q.sf %}
-        double _sf[{{ noise_Q.sf|length }}];
-        {% endif %}
         {% for sf in noise_Q.sf %}
-        _sf[{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
+        _sf[cac][{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
 
         {% for x in noise_Q.Q_proc %}
         i = {{ x.i }} * N_CAC + cac;
@@ -490,35 +500,104 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
     {% endif %}
 
 
-    {% comment %}
+
     {% if noise_Q.Q_obs %}
-    int ts_unique, stream, n_cac, c, ac;
-    struct s_obs2ts *p_obs2ts;
+    /*
+      Q_obs contains only term involving at least one observed
+      variable. The expansion is difficult: Q is expressed in terms of
+      time series and not observed variable we only know the
+      relationship between state variable and observed variable
+      (that's what Q_obs gives us). We need to recreate time series
+      from index of observed variable (x.to.ind and x.from.ind).
+
+      for one given observed variable, s_obs2ts gives us the time
+      series involved (and the cac involved)
+    */
+
+    int ts_unique, ts_unique_i, ts_unique_j;
+    int stream, stream_i, stream_j;
+    int ts, ts_i, ts_j;
+    int cac_i, cac_j;
+    int n_cac, n_cac_i, n_cac_j;
+
+    struct s_obs2ts **obs2ts = p_data->obs2ts;
+    struct s_obs2ts *p_obs2ts, *p_obs2ts_i, *p_obs2ts_j;
 
     {% for x in noise_Q.Q_obs %}
 
-    p_obs2ts = obs2ts[?????????];
+    {% if x.i.is_obs and not x.j.is_obs or x.j.is_obs and not x.i.is_obs   %}
 
+    /*
+      x contains a state variable and an observed variable the
+      observed variable correspond to different ts (given by
+      obs2ts). For each ts, obs2ts also gives us the cac observed.
+    */
+
+    p_obs2ts = obs2ts[{% if x.i.is_obs %}{{ x.i.ind }}{% else %}{{ x.j.ind }}{% endif %}];
+    ts=0;
     for(ts_unique=0; ts_unique < p_obs2ts->n_ts_unique; ts_unique++) {
         for(stream=0; stream < p_obs2ts->n_stream[ts_unique]; stream++) {
             for(n_cac=0; n_cac< p_obs2ts->n_cac[ts_unique]; n_cac++) {
-                c = p_obs2ts->cac[ts_unique][n_cac][0];
-                ac = p_obs2ts->cac[ts_unique][n_cac][1];
-                cac = c*N_AC+ac;
+                cac = p_obs2ts->cac[ts_unique][n_cac][0]*N_AC + p_obs2ts->cac[ts_unique][n_cac][1];
 
                 term = {{ x.sign}} pow({{ x.rate|safe }}, 2);
 
-                i = ?????????;
-                j = ?????????;
+                i = {% if not x.i.is_obs %}{{ x.i.ind }} * N_CAC + cac{% else %}N_PAR_SV*N_CAC + p_obs2ts->offset + ts{% endif %};
+                j = {% if not x.j.is_obs %}{{ x.j.ind }} * N_CAC + cac{% else %}N_PAR_SV*N_CAC + p_obs2ts->offset + ts{% endif %};
 
                 gsl_matrix_set(Q, i, j, term + gsl_matrix_get(Q, i, j));
             }
+            ts++;
         }
     }
 
+    {% else %}
+
+    /*
+      x contains 2 observed variables: complicated case, we have to
+      find the common cac in between x.i.ind and x.j.ind
+    */
+
+    ts_i=0;
+    p_obs2ts_i = obs2ts[{{ x.i.ind }}]; p_obs2ts_j = obs2ts[{{ x.j.ind }}];
+
+    for(ts_unique_i=0; ts_unique_i < p_obs2ts_i->n_ts_unique; ts_unique_i++) {
+        for(stream_i=0; stream_i < p_obs2ts_i->n_stream[ts_unique_i]; stream_i++) {
+
+            ts_j=0;
+            for(ts_unique_j=0; ts_unique_j < p_obs2ts_j->n_ts_unique; ts_unique_j++) {
+                for(stream_j=0; stream_j < p_obs2ts_j->n_stream[ts_unique_j]; stream_j++) {
+
+                    i = N_PAR_SV*N_CAC + p_obs2ts_i->offset + ts_i;
+                    j = N_PAR_SV*N_CAC + p_obs2ts_j->offset + ts_j;
+
+                    //we determine the cac in common between the 2 ts (indexed i and j in Q)
+                    for(n_cac_i=0; n_cac_i< p_obs2ts_i->n_cac[ts_unique_i]; n_cac_i++) {
+                        cac_i = p_obs2ts_i->cac[ts_unique_i][n_cac_i][0]*N_AC + p_obs2ts_i->cac[ts_unique_i][n_cac_i][1];
+
+                        for(n_cac_j=0; n_cac_j< p_obs2ts_j->n_cac[ts_unique_j]; n_cac_j++) {
+                            cac_j = p_obs2ts_j->cac[ts_unique_j][n_cac_j][0]*N_AC + p_obs2ts_j->cac[ts_unique_j][n_cac_j][1];
+
+                            if(cac_i == cac_j){
+                                term = {{ x.sign}} pow({{ x.rate|safe }}, 2);
+                                gsl_matrix_set(Q, i, j, term + gsl_matrix_get(Q, i, j));
+                            }
+                        }
+                    }
+
+                    ts_j++;
+                }
+            }
+
+            ts_i++;
+        }
+    }
+
+    {% endif %}
+
     {% endfor %}
     {% endif %}
-    {% endcomment %}
+
 
     ////////////////////////////////////
     // demographic stochasticity term //
