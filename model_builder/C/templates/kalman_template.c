@@ -514,14 +514,14 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
       series involved (and the cac involved)
     */
 
-    int ts_unique, ts_unique_i, ts_unique_j;
-    int stream, stream_i, stream_j;
-    int ts, ts_i, ts_j;
-    int cac_i, cac_j;
-    int n_cac, n_cac_i, n_cac_j;
+    int ts_unique, ts_unique_j;
+    int stream, stream_j;
+    int ts, ts_j;
+    int cac_j;
+    int n_cac, n_cac_j;
 
     struct s_obs2ts **obs2ts = p_data->obs2ts;
-    struct s_obs2ts *p_obs2ts, *p_obs2ts_i, *p_obs2ts_j;
+    struct s_obs2ts *p_obs2ts, *p_obs2ts_j;
 
     {% for x in noise_Q.Q_obs %}
 
@@ -558,27 +558,28 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
       find the common cac in between x.i.ind and x.j.ind
     */
 
-    ts_i=0;
-    p_obs2ts_i = obs2ts[{{ x.i.ind }}]; p_obs2ts_j = obs2ts[{{ x.j.ind }}];
+    ts=0;
+    p_obs2ts = obs2ts[{{ x.i.ind }}]; p_obs2ts_j = obs2ts[{{ x.j.ind }}];
 
-    for(ts_unique_i=0; ts_unique_i < p_obs2ts_i->n_ts_unique; ts_unique_i++) {
-        for(stream_i=0; stream_i < p_obs2ts_i->n_stream[ts_unique_i]; stream_i++) {
+    for(ts_unique=0; ts_unique < p_obs2ts->n_ts_unique; ts_unique++) {
+        for(stream=0; stream < p_obs2ts->n_stream[ts_unique]; stream++) {
 
             ts_j=0;
             for(ts_unique_j=0; ts_unique_j < p_obs2ts_j->n_ts_unique; ts_unique_j++) {
                 for(stream_j=0; stream_j < p_obs2ts_j->n_stream[ts_unique_j]; stream_j++) {
 
-                    i = N_PAR_SV*N_CAC + p_obs2ts_i->offset + ts_i;
+                    i = N_PAR_SV*N_CAC + p_obs2ts->offset + ts;
                     j = N_PAR_SV*N_CAC + p_obs2ts_j->offset + ts_j;
 
                     //we determine the cac in common between the 2 ts (indexed i and j in Q)
-                    for(n_cac_i=0; n_cac_i< p_obs2ts_i->n_cac[ts_unique_i]; n_cac_i++) {
-                        cac_i = p_obs2ts_i->cac[ts_unique_i][n_cac_i][0]*N_AC + p_obs2ts_i->cac[ts_unique_i][n_cac_i][1];
+                    for(n_cac=0; n_cac< p_obs2ts->n_cac[ts_unique]; n_cac++) {
+                        cac = p_obs2ts->cac[ts_unique][n_cac][0]*N_AC + p_obs2ts->cac[ts_unique][n_cac][1];
 
                         for(n_cac_j=0; n_cac_j< p_obs2ts_j->n_cac[ts_unique_j]; n_cac_j++) {
                             cac_j = p_obs2ts_j->cac[ts_unique_j][n_cac_j][0]*N_AC + p_obs2ts_j->cac[ts_unique_j][n_cac_j][1];
 
-                            if(cac_i == cac_j){
+                            if(cac == cac_j){
+                                //x.rate is a function of cac
                                 term = {{ x.sign}} pow({{ x.rate|safe }}, 2);
                                 gsl_matrix_set(Q, i, j, term + gsl_matrix_get(Q, i, j));
                             }
@@ -589,7 +590,7 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
                 }
             }
 
-            ts_i++;
+            ts++;
         }
     }
 
