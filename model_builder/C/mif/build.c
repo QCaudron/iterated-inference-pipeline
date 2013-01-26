@@ -59,13 +59,14 @@ struct s_mif *build_mif(int has_dt_be_specified, double dt_option, double prop_L
         exit(EXIT_FAILURE);
     }
 
-    p_mif->calc = build_calc(GENERAL_ID, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_mif->p_data);
     p_mif->p_best = build_best(p_mif->p_data, theta, 0);
     json_decref(theta);
-    p_mif->J_p_X = build_J_p_X(p_mif->p_data);
-    p_mif->J_p_X_tmp = build_J_p_X(p_mif->p_data);
+    p_mif->J_p_X = build_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_mif->p_data);
+    p_mif->J_p_X_tmp = build_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_mif->p_data);
     p_mif->J_p_par = build_J_p_par(p_mif->p_data);
     p_mif->p_like = build_likelihood();
+
+    p_mif->calc = build_calc(GENERAL_ID, p_mif->J_p_X[0], func, p_mif->p_data);
 
     /*MIF specific*/
 

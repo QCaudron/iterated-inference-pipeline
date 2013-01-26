@@ -35,11 +35,13 @@ struct s_simplex *build_simplex(int general_id, int is_bayesian)
   p_simplex->p_data = build_data(settings, theta, is_bayesian); //also build obs2ts
   json_decref(settings);
 
-  p_simplex->calc = build_calc(general_id, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_simplex->p_data);
+
   p_simplex->p_par = build_par(p_simplex->p_data);
-  p_simplex->p_X = build_X(p_simplex->p_data);
+  p_simplex->p_X = build_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_simplex->p_data);
   p_simplex->p_best = build_best(p_simplex->p_data, theta, 0);
   json_decref(theta);
+
+  p_simplex->calc = build_calc(general_id, p_simplex->p_X, func, p_simplex->p_data);
 
   p_simplex->smallest_log_like = get_smallest_log_likelihood(p_simplex->p_data->data_ind);
 

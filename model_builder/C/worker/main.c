@@ -51,8 +51,8 @@ void *worker_routine (void *params) {
 
     struct s_data *p_data = p->p_data;
     struct s_par *p_par = build_par(p_data);
-    struct s_calc *p_calc = build_p_calc(GENERAL_ID, p->thread_id, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_data);
-    struct s_X *p_X = build_X(p_data);
+    struct s_X *p_X = build_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_data);
+    struct s_calc *p_calc = build_p_calc(GENERAL_ID, p->thread_id, p_X, func, p_data);
 
     double like = 0.0;
 

@@ -110,18 +110,19 @@ struct s_pmcmc *build_pmcmc(json_t *settings, int has_dt_be_specified, double dt
 
     json_t *theta = load_json();
     p_pmcmc->p_data = build_data(settings, theta, 1); //also build obs2ts
-    p_pmcmc->calc = build_calc(GENERAL_ID, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_pmcmc->p_data);
     p_pmcmc->p_best = build_best(p_pmcmc->p_data, theta, update_covariance);
     json_decref(theta);
 
-    p_pmcmc->D_J_p_X = build_D_J_p_X(p_pmcmc->p_data);
-    p_pmcmc->D_J_p_X_tmp = build_D_J_p_X(p_pmcmc->p_data);
+    p_pmcmc->D_J_p_X = build_D_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_pmcmc->p_data);
+    p_pmcmc->D_J_p_X_tmp = build_D_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_pmcmc->p_data);
     p_pmcmc->p_par = build_par(p_pmcmc->p_data);
     p_pmcmc->D_p_hat_new = build_D_p_hat(p_pmcmc->p_data);
     p_pmcmc->D_p_hat_prev = build_D_p_hat(p_pmcmc->p_data);
     p_pmcmc->D_p_hat_best = build_D_p_hat(p_pmcmc->p_data);
 
     p_pmcmc->p_like = build_likelihood();
+
+    p_pmcmc->calc = build_calc(GENERAL_ID, p_pmcmc->D_J_p_X[0][0], func, p_pmcmc->p_data);
 
     struct s_pmcmc_calc_data *p_pmcmc_calc_data = build_pmcmc_calc_data(p_pmcmc->p_best, a, m_switch, m_eps);
     //store the ref for each element of calc

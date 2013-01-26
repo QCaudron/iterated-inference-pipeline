@@ -59,6 +59,12 @@
         ppp = NULL;	\
     }while(0)
 
+
+#define PLOM_SIZE_PROJ (N_PAR_SV*N_CAC + N_TS_INC_UNIQUE)
+#define PLOM_SIZE_OBS N_TS
+#define PLOM_SIZE_DRIFT (N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS)
+
+
 #define BUFFER_SIZE (5000 * 1024)  /**< 5000 KB buffer size for settings.json inputs */
 #define STR_BUFFSIZE 255 /**< buffer for log and error strings */
 #define DEFAULT_PATH "./" /**< default path for non JSON output (has to be slash appended) */
@@ -76,6 +82,8 @@
 
 #define ZERO_LOG 1e-17 /**< smallest value that can be log transformed without being replaced by @c ZERO_LOG */
 #define ONE_LOGIT 0.999999999 /**< largest value that can be logit transformed without being replaced by @c ONE_LOGIT */
+
+
 
 /*-------global variables--------*/
 int N_THREADS;  /**< max number of threads (set by build_calc) */
@@ -560,15 +568,15 @@ struct s_drift *build_drift(json_t *json_drift);
 void clean_drift(struct s_drift *p_drift);
 struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian);
 void clean_data(struct s_data *p_data);
-struct s_calc *build_p_calc(int seed, int nt, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
-struct s_calc **build_calc(int general_id, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc *build_p_calc(int seed, int nt, struct s_X *p_X, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc **build_calc(int general_id, struct s_X *p_X, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
 void clean_p_calc(struct s_calc *p_calc);
 void clean_calc(struct s_calc **calc);
-struct s_X *build_X(struct s_data *p_data);
+struct s_X *build_X(int size_proj, int size_obs, int size_drift, struct s_data *p_data);
+struct s_X **build_J_p_X(int size_proj, int size_obs, int size_drift, struct s_data *p_data);
+struct s_X ***build_D_J_p_X(int size_proj, int size_obs, int size_drift, struct s_data *p_data);
 void clean_X(struct s_X *p_X);
-struct s_X **build_J_p_X(struct s_data *p_data);
 void clean_J_p_X(struct s_X **J_p_X);
-struct s_X ***build_D_J_p_X(struct s_data *p_data);
 void clean_D_J_p_X(struct s_X ***D_J_p_X);
 struct s_hat **build_D_p_hat(struct s_data *p_data);
 void clean_D_p_hat(struct s_hat **D_p_hat, struct s_data *p_data);

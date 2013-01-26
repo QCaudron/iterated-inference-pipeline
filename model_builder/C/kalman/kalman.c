@@ -117,28 +117,9 @@ void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data)
 }
 
 
-
-/**
- * concatenate X->proj and covariance matrix into an "xc" list
- * @param xc the concatenated list
- * @param p_X the X vector
- * @return an error code (0 if no error)
- */
-int X2xc(double *xc, struct s_X *p_X)
-{
-    int i;
-
-    // copy X->proj in xc
-    for(i=0; i<N_PAR_SV*N_CAC+N_TS_INC_UNIQUE; i++)
-        xc[i] = p_X->proj[i];
-
-    // TODO errors
-    return 0;
-}
-
 /**
  * get total population in SV
- * @param a list beginning by the state variables (X->proj, xk, xc...)
+ * @param a list beginning by the state variables (X->proj, xk...)
  * @return the total population
  */
 double get_total_pop(double *X)
@@ -187,6 +168,7 @@ double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **ro
     return(Lp);
 }
 
+
 /**
  *   run an extended Kalman filter and returns the log likelihood
  */
@@ -207,10 +189,8 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
     t0=0;
     log_lik = 0.0;
 
-    double xc[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE + N_KAL*N_KAL];
-    gsl_matrix_view Ct = gsl_matrix_view_array(&xc[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE],N_KAL,N_KAL);
+    gsl_matrix_view Ct = gsl_matrix_view_array(&(p_X->proj[PLOM_SIZE_PROJ]), N_KAL, N_KAL);
     gsl_matrix_set_zero(&Ct.matrix);
-
 
     //////////////////
     // for all data //
@@ -243,20 +223,11 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
             reset_inc(p_X);	// reset incidence to 0
             reset_inc_Cov(&Ct.matrix);	// reset incidence covariance to 0
 
-
-            X2xc(xc, p_X);
-
-            // propagate xc (X->proj and Ct) if populations not exploding
-            if (get_total_pop(xc)<WORLD_POP) {
-                f_prediction_ode_rk(xc, nn, nn+1, p_par, calc[0]);
+            // propagate X->proj (containing the covariance Ct) if populations not exploding
+            if (get_total_pop(p_X->proj)<WORLD_POP) {
+                f_prediction_ode_rk(p_X->proj, nn, nn+1, p_par, calc[0]);
             } else {
-                print_err("total_pop(xc)>=WORLD_POP");
-            }
-
-            // get p_X->proj and Ct from xc
-            int i;
-            for (i=0; i<N_PAR_SV*N_CAC+N_TS_INC_UNIQUE; i++) {
-                p_X->proj[i]  = xc[i];
+                print_err("total_pop(X->proj)>=WORLD_POP");
             }
 
             proj2obs(p_X, p_data);

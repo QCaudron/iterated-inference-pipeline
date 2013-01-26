@@ -166,16 +166,16 @@ struct s_kalman *build_kalman(json_t *settings, int is_bayesian, int update_cova
     }
     json_t *theta = load_json();
 
+
+
     p_kalman->p_data = build_data(settings, theta, is_bayesian);
-    p_kalman->p_X = build_X(p_kalman->p_data);
+    N_KAL = N_PAR_SV*N_CAC + N_TS + p_kalman->p_data->p_it_only_drift->nbtot;
+
+    p_kalman->p_X = build_X(PLOM_SIZE_PROJ + (N_KAL*N_KAL), PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_kalman->p_data); //proj contains Ct.
     p_kalman->p_best = build_best(p_kalman->p_data, theta, update_covariance);
     json_decref(theta);
 
-    N_KAL = N_PAR_SV*N_CAC + N_TS + p_kalman->p_data->p_it_only_drift->nbtot;
-    p_kalman->calc = build_calc(GENERAL_ID,
-                                ((N_PAR_SV*N_CAC + N_TS_INC_UNIQUE) + (N_KAL*N_KAL)), //(X size) + (Ct size)
-                                func_kal,
-                                p_kalman->p_data);
+    p_kalman->calc = build_calc(GENERAL_ID, p_kalman->p_X, func_kal, p_kalman->p_data);
     p_kalman->p_par = build_par(p_kalman->p_data);
 
     p_kalman->smallest_log_like = get_smallest_log_likelihood(p_kalman->p_data->data_ind);

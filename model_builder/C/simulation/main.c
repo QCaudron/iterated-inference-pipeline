@@ -238,12 +238,12 @@ int main(int argc, char *argv[])
     struct s_data *p_data = build_data(settings, theta, 0);
     json_decref(settings);
 
-    struct s_calc **calc = build_calc(GENERAL_ID, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_data);
     struct s_par *p_par = build_par(p_data);
-    struct s_X **J_p_X = build_J_p_X(p_data);
+    struct s_X **J_p_X = build_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_data);
     struct s_best *p_best = build_best(p_data, theta, 0);
     json_decref(theta);
 
+    struct s_calc **calc = build_calc(GENERAL_ID, J_p_X[0], func, p_data);
 
 
     double *y0 = init1d_set0(N_PAR_SV*N_CAC + N_TS_INC_UNIQUE);

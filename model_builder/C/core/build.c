@@ -719,7 +719,7 @@ void clean_data(struct s_data *p_data)
 
 
 
-struct s_calc *build_p_calc(int seed, int nt, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data)
+struct s_calc *build_p_calc(int seed, int nt, struct s_X *p_X, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data)
 {
     /*dim_ode is:
       N_PAR_SV*N_CAC +N_TS_INC_UNIQUE (X size) + (N_KAL*N_KAL) (Ct size) for kalman and
@@ -727,6 +727,8 @@ struct s_calc *build_p_calc(int seed, int nt, int dim_ode, int (*func_ode) (doub
     */
     char str[STR_BUFFSIZE];
     int i;
+
+    int dim_ode = p_X->size_proj;
 
     struct s_calc *p_calc = malloc(sizeof(struct s_calc));
     if (p_calc==NULL) {
@@ -812,7 +814,7 @@ struct s_calc *build_p_calc(int seed, int nt, int dim_ode, int (*func_ode) (doub
 
 }
 
-struct s_calc **build_calc(int general_id, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data)
+struct s_calc **build_calc(int general_id, struct s_X *p_X, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data)
 {
     char str[STR_BUFFSIZE];
     int nt;
@@ -848,7 +850,7 @@ struct s_calc **build_calc(int general_id, int dim_ode, int (*func_ode) (double,
     /* we create as many rng as parallel threads *but* note that for the operations not prarallelized, we always use cacl[0].randgsl */
 
     for (nt=0;nt<N_THREADS;nt++) {
-        calc[nt] = build_p_calc(seed, nt, dim_ode, func_ode, p_data);
+        calc[nt] = build_p_calc(seed, nt, p_X, func_ode, p_data);
     }
 
     return calc;
@@ -892,7 +894,7 @@ void clean_calc(struct s_calc **calc)
 }
 
 
-struct s_X *build_X(struct s_data *p_data)
+struct s_X *build_X(int size_proj, int size_obs, int size_drift, struct s_data *p_data)
 {
     int i;
 
@@ -905,23 +907,23 @@ struct s_X *build_X(struct s_data *p_data)
         exit(EXIT_FAILURE);
     }
 
-    p_X->size_proj = N_PAR_SV*N_CAC + N_TS_INC_UNIQUE;
-    p_X->size_obs = N_TS;
-    p_X->size_drift = (N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
+    p_X->size_proj = size_proj;
+    p_X->size_obs = size_obs;
+    p_X->size_drift = size_drift;
 
-    p_X->proj = init1d_set0(p_X->size_proj);
-    p_X->obs = init1d_set0(p_X->size_obs);
+    p_X->proj = init1d_set0(size_proj);
+    p_X->obs = init1d_set0(size_obs);
 
 
     /* drift */
-    p_X->drift = malloc(p_X->size_drift * sizeof (double *));
+    p_X->drift = malloc(size_drift * sizeof (double *));
     if(p_X->drift==NULL) {
         char str[STR_BUFFSIZE];
         snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
-    for(i=0; i< p_X->size_drift; i++) {
+    for(i=0; i< size_drift; i++) {
         p_X->drift[i] = init1d_set0( p_data->routers[ (p_data->p_drift)->ind_par_Xdrift_applied[i] ]->n_gp );
     }
 
@@ -933,13 +935,13 @@ void clean_X(struct s_X *p_X)
     FREE(p_X->proj);
     FREE(p_X->obs);
 
-    clean2d(p_X->drift, (N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS));
+    clean2d(p_X->drift, p_X->size_drift);
 
     FREE(p_X);
 }
 
 
-struct s_X **build_J_p_X(struct s_data *p_data)
+struct s_X **build_J_p_X(int size_proj, int size_obs, int size_drift, struct s_data *p_data)
 {
     int j;
 
@@ -953,7 +955,7 @@ struct s_X **build_J_p_X(struct s_data *p_data)
     }
 
     for(j=0; j<J; j++){
-        J_p_X[j] = build_X(p_data);
+        J_p_X[j] = build_X(size_proj, size_obs, size_drift, p_data);
     }
 
     return J_p_X;
@@ -970,7 +972,7 @@ void clean_J_p_X(struct s_X **J_p_X)
 }
 
 
-struct s_X ***build_D_J_p_X(struct s_data *p_data)
+struct s_X ***build_D_J_p_X(int size_proj, int size_obs, int size_drift, struct s_data *p_data)
 {
     int n;
 
@@ -984,7 +986,7 @@ struct s_X ***build_D_J_p_X(struct s_data *p_data)
     }
 
     for(n=0; n<(N_DATA+1); n++) {
-        D_J_p_X[n] = build_J_p_X(p_data);
+        D_J_p_X[n] = build_J_p_X(size_proj, size_obs, size_drift, p_data);
     }
 
     return D_J_p_X;

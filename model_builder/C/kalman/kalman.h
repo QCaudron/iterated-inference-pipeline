@@ -112,7 +112,6 @@ double f_simplex_kalman(const gsl_vector *x, void *params);
 void reset_kalman(struct s_kal *p_kal, struct s_common *p_common);
 void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data);
 void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data);
-int X2xc(double *xc, struct s_X *p_X);
 double get_total_pop(double *X);
 double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **routers);
 

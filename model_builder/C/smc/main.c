@@ -196,14 +196,15 @@ int main(int argc, char *argv[])
     struct s_data *p_data = build_data(settings, theta, 0);
     json_decref(settings);
 
-    struct s_calc **calc = build_calc(GENERAL_ID, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_data);
     struct s_par *p_par = build_par(p_data);
     struct s_hat **D_p_hat = build_D_p_hat(p_data);
-    struct s_X ***D_J_p_X = build_D_J_p_X(p_data);
-    struct s_X ***D_J_p_X_tmp = build_D_J_p_X(p_data);
+    struct s_X ***D_J_p_X = build_D_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_data);
+    struct s_X ***D_J_p_X_tmp = build_D_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_data);
     struct s_best *p_best = build_best(p_data, theta, 0);
     json_decref(theta);
     struct s_likelihood *p_like = build_likelihood();
+
+    struct s_calc **calc = build_calc(GENERAL_ID, D_J_p_X[0][0], func, p_data);
 
 
     FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
