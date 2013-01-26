@@ -684,14 +684,21 @@ class Ccoder(Cmodel):
                                       'sign': sign})
 
 
-        rates = [x['rate'] for x in Q_proc + Q_obs]
-        sf = self.cache_special_function_C(rates, prefix='_sf[cac]')
 
+        #################################################
+        ##cache special functions (sinusoidal forcing...)
+        #################################################
+
+        rates = [x['rate'] for x in Q_proc + Q_obs]
+        sf = self.cache_special_function_C(rates, prefix='_sf[cac]') ##rates is modifies in place, special fonction are replaced by _sf[cac][ind]
+
+        ##echo back the rates with the cached forced fonctions
         for i, r in enumerate(Q_proc):
             Q_proc[i]['rate'] = rates[i]
 
         for i, r in enumerate(Q_obs):
             Q_obs[i]['rate'] = rates[len(Q_proc)+1]
+
 
         return {'Q_proc':Q_proc, 'Q_obs':Q_obs, 'sf': sf}
 
