@@ -26,7 +26,7 @@ int sfr_send (void *socket, char *string)
     zmq_msg_t message;
     zmq_msg_init_size (&message, strlen(string)+1); //add 0 at the end
     memcpy (zmq_msg_data (&message), string, strlen(string)+1);
-    rc = zmq_msg_send (socket, &message, 0);
+    rc = zmq_msg_send (&message, socket , 0);
     zmq_msg_close (&message);
     return (rc);
 }
@@ -38,7 +38,7 @@ int send_array_d(void *socket, double *array, int array_size, int zmq_options)
     zmq_msg_t msg;
     zmq_msg_init_size (&msg, array_size * sizeof(double));
     memcpy (zmq_msg_data (&msg), array, array_size * sizeof(double));
-    rc = zmq_msg_send (socket, &msg, zmq_options);
+    rc = zmq_msg_send (&msg, socket, zmq_options);
     zmq_msg_close (&msg);
     return (rc);
 }
@@ -49,7 +49,7 @@ int send_int(void *socket, int x, int zmq_options)
     zmq_msg_t msg;
     zmq_msg_init_size (&msg, sizeof(int));
     memcpy (zmq_msg_data (&msg), &x, sizeof(int));
-    rc = zmq_msg_send (socket, &msg, zmq_options);
+    rc = zmq_msg_send (&msg, socket , zmq_options);
     zmq_msg_close (&msg);
     return (rc);
 }
@@ -61,7 +61,7 @@ int send_double(void *socket, double x, int zmq_options)
     zmq_msg_t msg;
     zmq_msg_init_size (&msg, sizeof(double));
     memcpy (zmq_msg_data (&msg), &x, sizeof(double));
-    rc = zmq_msg_send (socket, &msg, zmq_options);
+    rc = zmq_msg_send (&msg, socket , zmq_options);
     zmq_msg_close (&msg);
     return (rc);
 }
@@ -74,7 +74,7 @@ int send_int64_t(void *socket, int64_t x, int zmq_options)
     zmq_msg_t msg;
     zmq_msg_init_size (&msg, sizeof(int64_t));
     memcpy (zmq_msg_data (&msg), &x, sizeof(int64_t));
-    rc = zmq_msg_send (socket, &msg, zmq_options);
+    rc = zmq_msg_send (&msg, socket, zmq_options);
     zmq_msg_close (&msg);
     return (rc);
 }
@@ -161,7 +161,7 @@ char *recv_str(void *socket)
 
     zmq_msg_t msg;
     zmq_msg_init(&msg);
-    zmq_msg_recv(socket, &msg, 0);
+    zmq_msg_recv(&msg, socket , 0);
 
     int size = zmq_msg_size (&msg);
     char *string = malloc(size);
@@ -180,7 +180,7 @@ int recv_int(void *socket)
 
     zmq_msg_t msg;
     zmq_msg_init(&msg);
-    zmq_msg_recv(socket, &msg, 0);
+    zmq_msg_recv(&msg, socket, 0);
     x = *((int *) zmq_msg_data(&msg));
     zmq_msg_close (&msg);
 
@@ -195,7 +195,7 @@ double recv_double(void *socket)
 
     zmq_msg_t msg;
     zmq_msg_init(&msg);
-    zmq_msg_recv(socket, &msg, 0);
+    zmq_msg_recv(&msg, socket,  0);
     x = *((double *) zmq_msg_data(&msg));
     zmq_msg_close (&msg);
 
@@ -212,7 +212,7 @@ int64_t recv_int64_t(void *socket)
 
     zmq_msg_t msg;
     zmq_msg_init(&msg);
-    zmq_msg_recv(socket, &msg, 0);
+    zmq_msg_recv(&msg, socket, 0);
     x = *((int64_t *) zmq_msg_data(&msg));
     zmq_msg_close (&msg);
 
@@ -226,7 +226,7 @@ void recv_array_d(double *array, int array_size, void *socket)
 
     zmq_msg_t msg;
     zmq_msg_init(&msg);
-    zmq_msg_recv(socket, &msg, 0);
+    zmq_msg_recv(&msg, socket, 0);
     memcpy(array, (double *) zmq_msg_data(&msg), array_size * sizeof(double));
     zmq_msg_close (&msg);
 }
@@ -244,7 +244,7 @@ int sfr_send_zero_copy (void *socket, char *string)
     zmq_msg_init_size (&message, strlen(string)+1); //add 0 at the end
 
     zmq_msg_init_data (&message, string, strlen(string)+1, free_zmq_msg_zero_copy, hint);
-    rc = zmq_msg_send (socket, &message, 0);
+    rc = zmq_msg_send (&message, socket , 0);
 
     zmq_msg_close (&message);
     return (rc);
