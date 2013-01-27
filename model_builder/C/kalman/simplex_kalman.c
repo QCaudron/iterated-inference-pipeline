@@ -24,8 +24,6 @@ double f_simplex_kalman(const gsl_vector *x, void *params)
 
     transfer_estimated(p->p_best, x, p->p_data);
 
-    reset_kalman(p->p_kal);
-
     back_transform_theta2par(p->p_par, p->p_best->mean, p->p_data->p_it_all, p->p_data);
     linearize_and_repeat(p->p_X, p->p_par, p->p_data, p->p_data->p_it_par_sv);
     prop2Xpop_size(p->p_X, p->p_data, COMMAND_STO);
@@ -200,7 +198,7 @@ int main(int argc, char *argv[])
     json_decref(settings);
 
 #if FLAG_VERBOSE
-    print_log("starting computations of simplex_kalman...\n");
+    print_log("starting computations...\n");
 #endif
 
     if (OPTION_PRIOR) {

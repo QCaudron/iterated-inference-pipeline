@@ -98,7 +98,6 @@ void clean_kalman(struct s_kalman *p_kalman);
 double drift_derivative(double jac_tpl, double jac_der, struct s_router *r, int cac);
 double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kal *p_kal, struct s_data *p_data, struct s_calc **calc, FILE *p_file_X, int m);
 double f_simplex_kalman(const gsl_vector *x, void *params);
-void reset_kalman(struct s_kal *p_kal);
 void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data);
 void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data);
 double get_total_pop(double *X);

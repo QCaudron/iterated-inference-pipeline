@@ -177,14 +177,14 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
     int ts, ts_nonan;	// time series indices
 
     // likelihoods
-    double like;
-    double log_lik;
-    double log_lik_temp;
+    double like, log_lik, log_lik_temp;
 
     struct s_data_ind **data_ind = p_data->data_ind;
 
     t0=0;
     log_lik = 0.0;
+    p_kal->sc_st = 0.0;
+    p_kal->sc_pred_error = 0.0;
 
     gsl_matrix_view Ct = gsl_matrix_view_array(&(p_X->proj[PLOM_SIZE_PROJ]), N_KAL, N_KAL);
     gsl_matrix_set_zero(&Ct.matrix);
@@ -236,10 +236,8 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 
         // transform p_X to x_k
         X2xk(p_kal->xk, p_X, p_data);
-        /*
-         * from here we work only with xk. xk is a gsl_vector containing
-         * state variable + observed variable (N_PAR_SV*N_CAC + N_TS)
-         */
+
+        // from here we work only with xk
 
         p_kal->sc_rt = 0.0;
         log_lik_temp = 0.0;
@@ -277,16 +275,4 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
     }
 
     return log_lik;
-}
-
-
-/**
- *   we reset everything to 0 (needed for simplex_kalman as
- *   simplex_kalman calls multiple times kalman
- */
-void reset_kalman(struct s_kal *p_kal)
-{
-    p_kal->sc_st = 0.0;
-    p_kal->sc_pred_error = 0.0;
-    p_kal->sc_rt = 0.0;
 }
