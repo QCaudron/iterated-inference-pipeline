@@ -639,8 +639,8 @@ class Ccoder(Cmodel):
         for x in self.proc_model:
             if 'noise__' in x['rate']:
 
-                inds_from = [self.par_sv.index(x['from'])] if x['from'] not in self.universes]
-                inds_to   = [self.par_sv.index(x['to'])] if x['to'] not in self.universes]
+                inds_from = [self.par_sv.index(x['from'])] if x['from'] not in self.universes else []
+                inds_to   = [self.par_sv.index(x['to'])] if x['to'] not in self.universes else []
 
                 if x['from'] not in self.universes:
                     rate = '({0})*{1}'.format(x['rate'], x['from'])
