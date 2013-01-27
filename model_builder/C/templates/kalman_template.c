@@ -63,7 +63,6 @@ int func_kal(double t, const double X[], double f[], void *params)
     double **par = p_par->natural;
     double ***covar = p_data->par_fixed;
 
-
     {% if current_p %}
     for (c=0;c<N_C;c++) {
         for (ac=0;ac<N_AC;ac++) {
@@ -71,7 +70,6 @@ int func_kal(double t, const double X[], double f[], void *params)
         }
     }
     {% endif %}
-
 
     double _r[N_CAC][{{print_ode.caches|length}}];
     {% if print_ode.sf %}
@@ -156,7 +154,7 @@ int cac_drift_in_cac_ts(int cac_drift, int o, int ts_unique, struct s_obs2ts **o
     return 0;
 }
 
-void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_group ***compo_groups_drift_par_proc, double t)
+void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_group ***compo_groups_drift_par_proc, double t)
 {
     //X is p_X->proj
 
@@ -181,7 +179,7 @@ void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_da
     double ***covar = p_data->par_fixed;
 
     //some terms are always 0: derivative of the ODE (excluding the observed variable) against the observed variable, derivative of the dynamic of the observed variable against the observed variables, derivative of the drift eq.
-    gsl_matrix_set_zero(jac);
+    gsl_matrix_set_zero(Ft);
 
 
     double _rj[N_CAC][{{ jacobian.caches|length }}];
@@ -201,7 +199,7 @@ void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_da
             cac = c*N_AC+ac;
             {% for jac_i in jacobian.jac %}
             {% for jac_ii in jac_i %}
-            gsl_matrix_set(jac, {{ forloop.parentloop.counter0 }}*N_CAC+cac, {{ forloop.counter0 }}*N_CAC+cac, _rj[cac][{{ jac_ii|safe }}]);
+            gsl_matrix_set(Ft, {{ forloop.parentloop.counter0 }}*N_CAC+cac, {{ forloop.counter0 }}*N_CAC+cac, _rj[cac][{{ jac_ii|safe }}]);
             {% endfor %}
             {% endfor %}
         }
@@ -219,7 +217,7 @@ void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_da
                 c = obs2ts[{{ forloop.parentloop.counter0 }}]->cac[ts_unique][n_cac][0];
                 ac = obs2ts[{{ forloop.parentloop.counter0 }}]->cac[ts_unique][n_cac][1];
                 cac = c*N_AC+ac;
-                gsl_matrix_set(jac, N_PAR_SV*N_CAC+ts, {{ forloop.counter0 }}*N_CAC+cac, _rj[cac][{{ jac_ii|safe }}]);
+                gsl_matrix_set(Ft, N_PAR_SV*N_CAC+ts, {{ forloop.counter0 }}*N_CAC+cac, _rj[cac][{{ jac_ii|safe }}]);
             }
             {% endfor %}
             ts++;
@@ -236,7 +234,7 @@ void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_da
         for(n_cac=0; n_cac< compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->size; n_cac++) {
             cac = compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->elements[n_cac];
             get_c_ac(cac, &c, &ac);
-            gsl_matrix_set(jac,
+            gsl_matrix_set(Ft,
                            {{ forloop.parentloop.counter0 }}*N_CAC+cac,
                            N_PAR_SV*N_CAC + N_TS + d,
                            drift_derivative(_rj[cac][{{ jac_ii.value|safe }}], {{ jac_ii.der|safe }}, routers[ORDER_{{ jac_ii.name|safe }}], cac));
@@ -265,7 +263,7 @@ void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_da
                         sum_tmp += drift_derivative(_rj[cac][{{ jac_ii.value|safe }}], {{ jac_ii.der|safe }}, routers[ORDER_{{ jac_ii.name|safe }}], cac);
                     }
                 }
-                gsl_matrix_set(jac, N_PAR_SV*N_CAC + ts, N_PAR_SV*N_CAC + N_TS + d, sum_tmp);
+                gsl_matrix_set(Ft, N_PAR_SV*N_CAC + ts, N_PAR_SV*N_CAC + N_TS + d, sum_tmp);
                 d++;
             }
             {% endfor %}

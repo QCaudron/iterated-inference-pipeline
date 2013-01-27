@@ -24,18 +24,20 @@ double f_simplex_kalman(const gsl_vector *x, void *params)
 
     transfer_estimated(p->p_best, x, p->p_data);
 
-    reset_kalman(p->p_kal, p->p_common);
+    reset_kalman(p->p_kal);
 
     back_transform_theta2par(p->p_par, p->p_best->mean, p->p_data->p_it_all, p->p_data);
     linearize_and_repeat(p->p_X, p->p_par, p->p_data, p->p_data->p_it_par_sv);
     prop2Xpop_size(p->p_X, p->p_data, COMMAND_STO);
     theta_driftIC2Xdrift(p->p_X, p->p_best->mean, p->p_data);
 
-    double log_lik = run_kalman(p->p_X, p->p_best, p->p_par, p->p_kal, p->p_common, p->p_data, p->calc, NULL, 0);
+    double log_lik = run_kalman(p->p_X, p->p_best, p->p_par, p->p_kal, p->p_data, p->calc, NULL, 0);
 
     // "-": simplex minimizes hence the "-"
     return - log_lik;
 }
+
+
 
 int main(int argc, char *argv[])
 {

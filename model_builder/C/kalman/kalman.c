@@ -18,9 +18,6 @@
 
 #include "kalman.h"
 
-
-
-
 /**
  * For eval_jac
  */
@@ -172,7 +169,7 @@ double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **ro
 /**
  *   run an extended Kalman filter and returns the log likelihood
  */
-double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kal *p_kal, struct s_common *p_common, struct s_data *p_data, struct s_calc **calc, FILE *p_file_X, int m)
+double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kal *p_kal, struct s_data *p_data, struct s_calc **calc, FILE *p_file_X, int m)
 {
     // loops indices
     int n, nn;		// data and nonan data indices
@@ -221,7 +218,7 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
             store_state_current_n_nn(calc, n, nn);
 
             reset_inc(p_X);	// reset incidence to 0
-            reset_inc_Cov(&Ct.matrix);	// reset incidence covariance to 0
+            reset_inc_cov(&Ct.matrix);	// reset incidence covariance to 0
 
             // propagate X->proj (containing the covariance Ct) if populations not exploding
             if (get_total_pop(p_X->proj)<WORLD_POP) {
@@ -251,15 +248,15 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
             ts_nonan = data_ind[n]->ind_nonan[ts];
             p_kal->sc_rt = obs_var(gsl_vector_get(p_kal->xk, N_PAR_SV*N_CAC + ts_nonan), p_par, p_data, calc[0], ts_nonan);
 
-            eval_ht(p_common->ht, p_kal->xk, p_par, p_data, calc[0], ts_nonan);
+            eval_ht(p_kal->ht, p_kal->xk, p_par, p_data, calc[0], ts_nonan);
 
             // compute gain
             ekf_gain_computation(obs_mean(gsl_vector_get(p_kal->xk, N_PAR_SV*N_CAC +ts_nonan), p_par, p_data, calc[0], ts_nonan),
                                  p_data->data[calc[0]->current_nn][ts_nonan],
-                                 &Ct.matrix, p_common->ht, p_kal->kt, p_kal->sc_rt,
+                                 &Ct.matrix, p_kal->ht, p_kal->kt, p_kal->sc_rt,
                                  &(p_kal->sc_st), &(p_kal->sc_pred_error)); //scalar sc_st and sc_pred_error will be modified so we pass their address
 
-            like = ekf_update(p_kal->xk, &Ct.matrix, p_common->ht, p_kal->kt, p_kal->sc_st, p_kal->sc_pred_error);
+            like = ekf_update(p_kal->xk, &Ct.matrix, p_kal->ht, p_kal->kt, p_kal->sc_st, p_kal->sc_pred_error);
             log_lik_temp += log(like);
         }
 
@@ -284,17 +281,12 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 
 
 /**
-   we reset everything to 0 (needed for simplex_kalman as
-   simplex_kalman calls multiple times kalman
-*/
-void reset_kalman(struct s_kal *p_kal, struct s_common *p_common)
+ *   we reset everything to 0 (needed for simplex_kalman as
+ *   simplex_kalman calls multiple times kalman
+ */
+void reset_kalman(struct s_kal *p_kal)
 {
-    gsl_matrix_set_zero(p_kal->Ft);
-    gsl_vector_set_zero(p_kal->kt);
     p_kal->sc_st = 0.0;
     p_kal->sc_pred_error = 0.0;
     p_kal->sc_rt = 0.0;
-
-    gsl_matrix_set_zero(p_common->Q);
-    gsl_vector_set_zero(p_common->ht);
 }

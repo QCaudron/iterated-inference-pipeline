@@ -31,6 +31,7 @@ int N_KAL;  // N_PAR_SV*N_CAC + N_TS + iterator_only_drift.nbtot
 // options
 int OPTION_TRANSF;  // add log_transf_correc to log_lik
 
+
 /*
    To make things easier, vectors are in lower case letters, matrix in
    capital letters and scalar prefixed by sc_
@@ -40,44 +41,35 @@ int OPTION_TRANSF;  // add log_transf_correc to log_lik
 // method_specific_data (accessible via p_calc->method_specific_thread_safe_data) (after casting)
 struct s_kalman_specific_data
 {
+    gsl_matrix *Q;  /**< Dispersion matrix of the SDE approximated with by the EKF: dX_t = f(X_t,\theta)dt + Chol(Q)dB_t */
+    gsl_matrix *Ft; /**< Jacobian matrix of the drift f(X_t,\theta) of the SDE approximated with the EKF: dX_t = f(X_t,\theta)dt + Chol(Q)dB_t */
 
-  // only ref
-  gsl_matrix *Q;  /* Dispersion matrix of the SDE approximated with by the EKF: dX_t = f(X_t,\theta)dt + Chol(Q)dB_t */
-    gsl_matrix *Ft; /* Jacobian matrix of the drift f(X_t,\theta) of the SDE approximated with the EKF: dX_t = f(X_t,\theta)dt + Chol(Q)dB_t */
+    struct s_group ***compo_groups_drift_par_proc;
 
-  struct s_group ***compo_groups_drift_par_proc;
+    int N_REAC; /**< number of reactions for demographic stochasticity computation */
+    // need to be allocated, free
+    gsl_matrix *FtCt;	/**< for Ft*Ct */
 
 
-  int N_REAC; // number of reactions for demographic stochasticity computation
-  // need to be allocated, free
-  gsl_matrix *FtCt;	// for Ft*Ct
-
-  // for demographic stochasticity
-  double *F;        /* Vector containing transition rates of the model: as many compenents as possible reactions */
-  gsl_matrix *S;    /* Stoichiometric matrix containing in each column the reasult (+1 or -1 generally) of each reaction regarding each component : as many columns as reactions, as many rows as compartments*/
-  gsl_matrix *SF;   // S*F for G computing
-  gsl_matrix *G;    // Dispersion matrix specific to the demographic stochasticity: will be added to the global dispersion matrix Q
+    // for demographic stochasticity
+    double *F;        /**< Vector containing transition rates of the model: as many compenents as possible reactions */
+    gsl_matrix *S;    /**< Stoichiometric matrix containing in each column the reasult (+1 or -1 generally) of each reaction regarding each component : as many columns as reactions, as many rows as compartments*/
+    gsl_matrix *SF;   /**< S*F for G computing */
+    gsl_matrix *G;    /**< Dispersion matrix specific to the demographic stochasticity: will be added to the global dispersion matrix Q */
 };
 
 
 struct s_kal
 {
-  gsl_vector *xk;  /* [N_KAL]: concatenation of non-overlapping components of X->proj, X->obs and X->drift */
+    gsl_vector *xk;  /**< [N_KAL] concatenation of non-overlapping components of X->proj, X->obs and X->drift */
+    gsl_vector *kt;  /**< [N_KAL] Kalman Gain vector */
+    gsl_vector *ht;  /**< [N_KAL] Gradient of the observation function */
 
-  gsl_matrix *Ft;  /* [N_KAL][N_KAL] Jacobian matrix of the drift f(X_t,\theta) of the SDE approximated with the EKF: dX_t = f(X_t,\theta)dt + Chol(Q)dB_t */
-
-  gsl_vector *kt;  /* [N_KAL] Kalman Gain vector */
-
-  double sc_st /* Innovation or residuak covariance */;
-  double sc_pred_error /* Innovation or measurement residual */;
-  double sc_rt /* observation process variance */;
+    double sc_st         /**< Innovation or residuak covariance */;
+    double sc_pred_error /**< Innovation or measurement residual */;
+    double sc_rt         /**< observation process variance */;
 };
 
-struct s_common
-{
-  gsl_matrix *Q; /* [N_KAL][N_KAL] */
-  gsl_vector *ht; /* [N_KAL] Gradient of the observation function */
-};
 
 struct s_kalman
 {
@@ -92,52 +84,42 @@ struct s_kalman
 
   /* kalman specific */
   struct s_kal *p_kal;
-  struct s_common *p_common;
-
-  struct s_group ***compo_groups_drift_par_proc;
 };
 
 /* build.c */
+struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data);
+void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data);
 struct s_kal *build_kal(void);
 void clean_kal(struct s_kal *p_kal);
-struct s_common *build_common(void);
-void clean_common(struct s_common *p_common);
 struct s_kalman *build_kalman(json_t *settings, int is_bayesian, int update_covariance);
 void clean_kalman(struct s_kalman *p_kalman);
 
 /* kalman.c */
 double drift_derivative(double jac_tpl, double jac_der, struct s_router *r, int cac);
-double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kal *p_kal, struct s_common *p_common, struct s_data *p_data, struct s_calc **calc, FILE *p_file_X, int m);
+double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kal *p_kal, struct s_data *p_data, struct s_calc **calc, FILE *p_file_X, int m);
 double f_simplex_kalman(const gsl_vector *x, void *params);
-void reset_kalman(struct s_kal *p_kal, struct s_common *p_common);
+void reset_kalman(struct s_kal *p_kal);
 void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data);
 void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data);
 double get_total_pop(double *X);
 double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **routers);
 
 /* ekf.c */
-void reset_inc_Cov(gsl_matrix *Ct);
+void reset_inc_cov(gsl_matrix *Ct);
 void check_and_correct_Ct(gsl_matrix *Ct);
 void ekf_propag_cov(double *proj, gsl_matrix *Ft, gsl_matrix *Ct, gsl_matrix *Q, struct s_par *p_par, struct s_group ***compo_groups_drift_par_proc, double t);
-
 void ekf_gain_computation(double xk_t_ts, double data_t_ts, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt, double sc_rt, double *sc_st, double *sc_pred_error);
-
 double ekf_update(gsl_vector *xk, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt, double sc_st, double sc_pred_error);
 
-/* eval_ekf_update_mats */
+/* kalman_template.c */
 int cac_drift_in_cac_ts(int cac_drift, int o, int ts_unique, struct s_obs2ts **obs2ts);
 void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_group ***compo_groups_drift_par_proc, double t);
-
 void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
-
 void eval_F(double *F, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_group ***compo_groups_drift_par_proc, double t);
 void eval_Q(gsl_matrix *Q, const double *proj, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_kalman_specific_data *p_kalman_specific_data, double t);
 int eval_G(gsl_matrix *G, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_kalman_specific_data *p_kalman_specific_data, double t);
-
 int init_REAC(void);
 void eval_S(gsl_matrix *S, struct s_obs2ts **obs2ts);
-
-/* prediction.c */
 int func_kal(double t, const double X[], double f[], void *params);
 
 /* kmcmc.c */

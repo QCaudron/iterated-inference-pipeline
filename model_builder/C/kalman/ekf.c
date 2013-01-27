@@ -21,7 +21,7 @@
 /**
  *  reset incidence-related rows and columns to 0
  */
-void reset_inc_Cov(gsl_matrix *Ct)
+void reset_inc_cov(gsl_matrix *Ct)
 {
     int oi,oii;
     for (oi=N_PAR_SV*N_CAC; oi<N_PAR_SV*N_CAC+N_TS_INC; oi++) {

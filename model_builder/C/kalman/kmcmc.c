@@ -65,7 +65,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
     theta_driftIC2Xdrift(p_X, p_best->proposed, p_data);
 
     //run Kalman
-    p_like->Llike_best = run_kalman(p_X, p_best, p_par, p_kalman->p_kal, p_kalman->p_common, p_data, calc, p_file_X, m);
+    p_like->Llike_best = run_kalman(p_X, p_best, p_par, p_kalman->p_kal, p_data, calc, p_file_X, m);
     p_like->Llike_new = p_like->Llike_best;
 
     //the initial iteration is "accepted"
@@ -107,8 +107,8 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
         back_transform_theta2par(p_par, p_best->proposed, p_data->p_it_par_proc_par_obs_no_drift, p_data);
 
         //run Kalman
-        reset_kalman(p_kalman->p_kal, p_kalman->p_common);
-        p_like->Llike_best = run_kalman(p_X, p_best, p_par, p_kalman->p_kal, p_kalman->p_common, p_data, calc, p_file_X, m);
+        reset_kalman(p_kalman->p_kal);
+        p_like->Llike_best = run_kalman(p_X, p_best, p_par, p_kalman->p_kal, p_data, calc, p_file_X, m);
 
         p_like->Llike_new = p_like->Llike_best;
 
