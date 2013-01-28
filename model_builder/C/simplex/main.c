@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
 
     int M = 10;
-    double CONVERGENCE_STOP_SIMPLEX = 1e-9;
+    double CONVERGENCE_STOP_SIMPLEX = 1e-6;
 
 
     GENERAL_ID =0;

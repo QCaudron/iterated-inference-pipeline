@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
     // simplex options
     M = 10;
-    CONVERGENCE_STOP_SIMPLEX = 1e-9;
+    CONVERGENCE_STOP_SIMPLEX = 1e-6;
 
     // general options
     int has_dt_be_specified = 0;
