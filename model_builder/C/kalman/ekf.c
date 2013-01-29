@@ -294,7 +294,7 @@ double ekf_update(gsl_vector *xk, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt
         print_err(str);
     }
 
-    like = gsl_ran_gaussian_pdf(sc_pred_error/sqrt(sc_st), 1.0);
+    like = gsl_ran_gaussian_pdf(sc_pred_error, sqrt(sc_st));
 
     return sanitize_likelihood(like);
 }
