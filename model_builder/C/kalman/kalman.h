@@ -65,9 +65,9 @@ struct s_kal
     gsl_vector *kt;  /**< [N_KAL] Kalman Gain vector */
     gsl_vector *ht;  /**< [N_KAL] Gradient of the observation function */
 
-    double sc_st         /**< Innovation or residuak covariance */;
-    double sc_pred_error /**< Innovation or measurement residual */;
-    double sc_rt         /**< observation process variance */;
+    double sc_st;         /**< Innovation or residual covariance */
+    double sc_pred_error; /**< Innovation or measurement residual */
+    double sc_rt;         /**< observation process variance */
 };
 
 

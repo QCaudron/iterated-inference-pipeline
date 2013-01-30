@@ -239,7 +239,6 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 
         // from here we work only with xk
 
-        p_kal->sc_rt = 0.0;
         log_lik_temp = 0.0;
         for(ts=0; ts< data_ind[n]->n_nonan; ts++) {
 
