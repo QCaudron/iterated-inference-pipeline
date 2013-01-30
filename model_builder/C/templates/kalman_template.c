@@ -212,14 +212,18 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
     {% for jac_i in jacobian.jac_obs %}
     for(ts_unique=0; ts_unique < obs2ts[{{ forloop.counter0 }}]->n_ts_unique; ts_unique++) {
         for(stream=0; stream < obs2ts[{{ forloop.counter0 }}]->n_stream[ts_unique]; stream++) {
-            {% for jac_ii in jac_i %}
-            for(n_cac=0; n_cac< obs2ts[{{ forloop.parentloop.counter0 }}]->n_cac[ts_unique]; n_cac++) {
-                c = obs2ts[{{ forloop.parentloop.counter0 }}]->cac[ts_unique][n_cac][0];
-                ac = obs2ts[{{ forloop.parentloop.counter0 }}]->cac[ts_unique][n_cac][1];
+
+            for(n_cac=0; n_cac< obs2ts[{{ forloop.counter0 }}]->n_cac[ts_unique]; n_cac++) {
+                c = obs2ts[{{ forloop.counter0 }}]->cac[ts_unique][n_cac][0];
+                ac = obs2ts[{{ forloop.counter0 }}]->cac[ts_unique][n_cac][1];
                 cac = c*N_AC+ac;
+
+                {% for jac_ii in jac_i %}
                 gsl_matrix_set(Ft, N_PAR_SV*N_CAC+ts, {{ forloop.counter0 }}*N_CAC+cac, _rj[cac][{{ jac_ii|safe }}]);
+                {% endfor %}
+
             }
-            {% endfor %}
+
             ts++;
         }
     }
@@ -342,14 +346,18 @@ void eval_S(gsl_matrix *S, struct s_obs2ts **obs2ts)
     {% for S_i in stoichiometric.S_ov %}
     for(ts_unique=0; ts_unique < obs2ts[{{ forloop.counter0 }}]->n_ts_unique; ts_unique++) {
         for(stream=0; stream < obs2ts[{{ forloop.counter0 }}]->n_stream[ts_unique]; stream++) {
-            {% for S_ii in S_i %}
-            for(n_cac=0; n_cac< obs2ts[{{ forloop.parentloop.counter0 }}]->n_cac[ts_unique]; n_cac++) {
-                c = obs2ts[{{ forloop.parentloop.counter0 }}]->cac[ts_unique][n_cac][0];
-                ac = obs2ts[{{ forloop.parentloop.counter0 }}]->cac[ts_unique][n_cac][1];
+
+            for(n_cac=0; n_cac< obs2ts[{{ forloop.counter0 }}]->n_cac[ts_unique]; n_cac++) {
+                c = obs2ts[{{ forloop.counter0 }}]->cac[ts_unique][n_cac][0];
+                ac = obs2ts[{{ forloop.counter0 }}]->cac[ts_unique][n_cac][1];
                 cac = c*N_AC+ac;
+
+                {% for S_ii in S_i %}
                 gsl_matrix_set(S, N_PAR_SV*N_CAC+ts, {{ forloop.counter0 }}*N_CAC+cac, {{ S_ii|safe }});
+                {% endfor %}
+
             }
-            {% endfor %}
+
             ts++;
         }
     }
@@ -557,7 +565,8 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
     */
 
     ts=0;
-    p_obs2ts = obs2ts[{{ x.i.ind }}]; p_obs2ts_j = obs2ts[{{ x.j.ind }}];
+    p_obs2ts = obs2ts[{{ x.i.ind }}];
+    p_obs2ts_j = obs2ts[{{ x.j.ind }}];
 
     for(ts_unique=0; ts_unique < p_obs2ts->n_ts_unique; ts_unique++) {
         for(stream=0; stream < p_obs2ts->n_stream[ts_unique]; stream++) {
