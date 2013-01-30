@@ -24,8 +24,9 @@ double get_smallest_log_likelihood(struct s_data_ind **data_ind)
   int n;
   double smallest_log_like = 0.0;
 
-  for(n=0 ; n<N_DATA_NONAN; n++)
-    smallest_log_like += data_ind[n]->n_nonan;
+  for(n=0 ; n<N_DATA_NONAN; n++) {
+      smallest_log_like += data_ind[n]->n_nonan;
+  }
 
   return smallest_log_like * LOG_LIKE_MIN;
 }
@@ -77,14 +78,17 @@ double get_log_likelihood(struct s_X *p_X, struct s_par *p_par, struct s_data *p
  */
 double sanitize_likelihood(double like)
 {
-    if ((isinf(like)==1) || (isnan(like)==1) || (like<=0.0) ) { /*we avoid 0.0 to avoid nan when taking log*/
+    if ((isinf(like)==1) || (isnan(like)==1) || (like<0.0) ) { //error
 #if FLAG_VERBOSE
         char str[STR_BUFFSIZE];
         sprintf(str, "error likelihood computation, like=%g", like);
         print_err(str);
 #endif
         return LIKE_MIN;
+    } else {
+        /*we avoid 0.0 to avoid nan when taking log and we ensure a uniform likelihood scale by making sure that everything below LIKE_MIN is LIKE_MIN */
+
+        return (like <= LIKE_MIN) ? LIKE_MIN : like;
     }
 
-    return like;
 }
