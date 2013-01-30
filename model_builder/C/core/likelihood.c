@@ -83,7 +83,7 @@ double sanitize_likelihood(double like)
         sprintf(str, "error likelihood computation, like=%g", like);
         print_err(str);
 #endif
-        return = LIKE_MIN;
+        return LIKE_MIN;
     }
 
     return like;
