@@ -62,8 +62,10 @@ use the generated binaries.
 
 First generate the documentation for the C code:
 A general introduction:
-in model_builder/doc/ run: ```docco api.c``` and open docs/api.html with
-a web browser.
+In model_builder/doc/ run: ```docco smc.c``` and open docs/smc.html with
+a web browser. 
+In the same vain, ```docco kalman.c``` will detail our implementation
+of the extended Kalman Filter.
 
 in model_builder/doc/ run: ```doxygen Doxyfile``` and open model_builder/doc/html/index.html with
 a web browser.

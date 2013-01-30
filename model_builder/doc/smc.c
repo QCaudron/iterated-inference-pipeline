@@ -39,18 +39,18 @@ int main(void)
     // We create the main data structure used by the various inference methods
     //
     // - _p\_data_: the **immutable** data. The data itself and all the navigation data required to iterate through the parameters.
-    // - _calc_: an array containing one _p\_calc_ object per thread. _p\_calc_ objects are to support the calculations in multi-threaded environments. _p\_calc_ objects store everything related to random number generators, numerical integration methods and **mutable** states that need to be computed **in parallel**.
     // - _p\_par_: The parameters in the **natural** scale
-    // - _J\_p\_X_: an Array of J  _p_X_ objects representing the state variables, the observed variable and the drifted variables.
+    // - _J\_p\_X_: an Array of J  _p\_X_ objects representing the state variables, the observed variable and the drifted variables. PLOM\_SIZE\_PROJ, PLOM\_SIZE\_OBS, PLOM\_SIZE\_DRIFT are macros defined in plom.h defining the number of state variables, observed variable and drifted variables.
     // - _J\_p\_X\_tmp_: A replication of _J\_p\_X_ that will be used for the resampling step of the particle filter
+    // - _calc_: an array containing one _p\_calc_ object per thread. _p\_calc_ objects are to support the calculations in multi-threaded environments. _p\_calc_ objects store everything related to random number generators, numerical integration methods of _p\_X_ objects and **mutable** states that need to be computed **in parallel**.
     // - _p\_best_: The parameters (in the **transformed** scale) and everything needed to mutate the parameters. _p\_best_ is typically used for inference methods (MIF, pMCMC, simplex...)
     // - _p\_like_: Everything related to the likelihood (weights, ESS...)
 
     struct s_data *p_data = build_data(settings, theta, 0);
-    struct s_calc **calc = build_calc(GENERAL_ID, N_PAR_SV*N_CAC +N_TS_INC_UNIQUE, func, p_data);
     struct s_par *p_par = build_par(p_data);
-    struct s_X **J_p_X = build_J_p_X(p_data);
-    struct s_X **J_p_X_tmp = build_J_p_X(p_data);
+    struct s_X **J_p_X = build_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_data);
+    struct s_X **J_p_X_tmp = build_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_data);
+    struct s_calc **calc = build_calc(GENERAL_ID, J_p_X[0], func, p_data);
     struct s_best *p_best = build_best(p_data, theta, 0);
     struct s_likelihood *p_like = build_likelihood();
 
