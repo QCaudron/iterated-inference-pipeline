@@ -77,19 +77,14 @@ double get_log_likelihood(struct s_X *p_X, struct s_par *p_par, struct s_data *p
  */
 double sanitize_likelihood(double like)
 {
-    if ((isinf(like)==1) || (isnan(like)==1) || (like<0.0) ) { /*we avoid 0.0 to avoid nan when taking log*/
+    if ((isinf(like)==1) || (isnan(like)==1) || (like<=0.0) ) { /*we avoid 0.0 to avoid nan when taking log*/
 #if FLAG_VERBOSE
         char str[STR_BUFFSIZE];
         sprintf(str, "error likelihood computation, like=%g", like);
         print_err(str);
 #endif
-        like = LIKE_MIN;
-    } else {
-
-        if (like <= 0.0) { /*likelihood ==0.0 => create trouble when taking log.. we set to LIKE_MIN*/
-            like = LIKE_MIN;
-        }
-
+        return = LIKE_MIN;
     }
+
     return like;
 }
