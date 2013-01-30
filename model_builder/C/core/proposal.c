@@ -122,7 +122,7 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
             if(gsl_matrix_get(var, offset, offset) >0.0) {
 
                 if (!is_mvn) {
-                    p_tmp = gsl_ran_gaussian_pdf((gsl_vector_get(proposed, offset)-gsl_vector_get(mean, offset))/sd_fac*sqrt(gsl_matrix_get(var, offset, offset)),1);
+                    p_tmp = gsl_ran_gaussian_pdf((gsl_vector_get(proposed, offset)-gsl_vector_get(mean, offset)), sd_fac*sqrt(gsl_matrix_get(var, offset, offset)));
                 }
 
 
@@ -149,7 +149,7 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
                 //check for numerical issues
                 if((isinf(p_tmp)==1) || (isnan(p_tmp)==1)) {
 #if FLAG_VERBOSE
-                    snprintf(str, STR_BUFFSIZE, "error prob_prior computation, p=%g", p_tmp);
+                    snprintf(str, STR_BUFFSIZE, "error log_prob_proposal computation (p=%g)", p_tmp);
                     print_err(str);
 #endif
                     p_tmp=LIKE_MIN;

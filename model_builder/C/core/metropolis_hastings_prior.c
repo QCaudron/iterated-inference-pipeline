@@ -105,7 +105,7 @@ double normal_prior(double x, double min, double max)
 {
     double mean = (max+min)/2.0;
     double sd = (max-min)/4.0;
-    return gsl_ran_gaussian_pdf((x-mean)/sd,1);
+    return gsl_ran_gaussian_pdf((x-mean), sd);
 }
 
 /**

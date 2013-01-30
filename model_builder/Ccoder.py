@@ -668,7 +668,7 @@ class Ccoder(Cmodel):
                 ###############
                 ## fill Q
                 ###############
-                for t in itertools.product(inds_to + inds_from, repeat=2): ## all the possible couples with repetition
+                for t in itertools.product(set(inds_to + inds_from), repeat=2): ## all the possible couples with repetition
 
                     if (t[0] in inds_from and t[1] in inds_from) or (t[0] in inds_to and t[1] in inds_to):
                         sign = '+'
@@ -682,8 +682,6 @@ class Ccoder(Cmodel):
                                       'j': {'is_obs': False, 'ind': t[1]} if t[1] < N_PAR_SV else {'is_obs': True, 'ind': t[1]-N_PAR_SV},
                                       'rate': Cterm,
                                       'sign': sign})
-
-
 
         #################################################
         ##cache special functions (sinusoidal forcing...)
