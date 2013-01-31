@@ -615,6 +615,112 @@ class Ccoder(Cmodel):
         return self.make_C_term(self.obs_model['mean'], is_ode=True, derivate='x')
 
 
+    def eval_Q2(self):
+        """we assume only one noise term per reaction"""
+
+        # Ls: Dispersion matrix of stochastic differential equation as
+        # defined is Sarkka 2006 phD.
+        # Ls is of size n*s with n == N_PAR_SV and s == number of independent noise terms
+
+        N_REAC = len(self.proc_model)
+        N_PAR_SV = len(self.par_sv)
+        N_OBS = len(self.obs_var_def)
+
+        env_sto = self.get_gamma_noise_terms()
+        env_sto_name = [x[1] for x in env_sto]
+
+        s = N_REAC + len(env_sto) + len(self.drift_var) ##for demographic stochasticity, one independent noise term for reaction
+
+        #we split Ls into Ls_proc and Ls_obs
+        Ls_proc = [[0]*s]*N_PAR_SV
+        Ls_obs = [[0]*s]*N_OBS
+        diag_Qc = [0]*s
+
+        def get_noise(rate):
+            Qc_index = []
+            sd = [] #list of noise intensities
+            terms = self.change_user_input(rate)
+            for x in terms:
+                if 'noise__' in x:
+                    ind = terms.index(x)
+                    Qc_index.append(env_sto_name.index(x))
+                    while terms[ind] != ')':
+                        if terms[ind] in self.par_proc:
+                            sd.append(self.toC(terms[ind]))
+                        ind +=1
+
+            return N_REAC + Qc_index[0], sd[0]
+
+        ###################
+        # state variables #
+        ###################
+        for B_dem_ind, r in enumerate(self.proc_model):
+            is_noise = 'noise__' in r['rate']
+            if is_noise:
+                B_sto_ind, sd = get_noise(r['rate'])
+
+            if r['from'] not in self.universes:
+                i = self.par_sv.index(r['from'])
+                Ls_proc[i][B_dem_ind] -= 1 ##demographic stochasticity
+                if is_noise:
+                    Ls_proc[i][B_sto_ind] -= 1 ##env stochasticity
+
+                Qc_term = r['rate']
+            else:
+                Qc_term = '({0})*{1}'.format(r['rate'], r['from'])
+
+            if r['to'] not in self.universes:
+                i = self.par_sv.index(r['to'])
+                Ls_proc[i][B_dem_ind] += 1
+                if is_noise:
+                    Ls_proc[i][B_sto_ind] += 1
+
+            diag_Qc[B_dem_ind] = self.make_C_term(Qc_term + '/' + self.myN, True)
+            if is_noise:
+                diag_Qc[B_sto_ind] = '({0})*({1})'.format(self.make_C_term(Qc_term, True), sd) #note: we re-multiply by sd as True ensures that noise__ terms are removed from the rate (ODE)
+
+
+        ######################
+        # observed variables #
+        ######################
+
+        # for every observed variable
+        for i in range(len(self.obs_var_def)):
+
+            for B_dem_ind, r in enumerate(self.proc_model):
+                is_noise = 'noise__' in r['rate']
+                if is_noise:
+                    B_sto_ind, sd = get_noise(r['rate'])
+
+                if not isinstance(self.obs_var_def[oInd][0], dict): ##prevalence:
+
+                    # if it involves prevalence as input
+                    if x['from'] in self.obs_var_def[i]:
+                        Ls_obs[i][B_dem_ind] += 1
+                        if is_noise:
+                            Ls_obs[i][B_sto_ind] += 1
+
+                    # if it involves prevalence as output
+                    if x['to'] in self.obs_var_def[i]:
+                        Ls_obs[i][B_dem_ind] -= 1
+                        if is_noise:
+                            Ls_obs[i][B_sto_ind] -= 1
+
+                else: #incidence
+                    # for every incidence
+                    for inc in self.obs_var_def[oInd]:
+                        # if it involves incidence
+                        if (r['from'] == inc['from']) and (r['to'] == inc['to']) and (r['rate'] == inc['rate']):
+                            Ls_obs[i][B_dem_ind] -= 1
+                            if is_noise:
+                                Ls_obs[i][B_sto_ind] -= 1
+
+
+
+        return {'Ls_obs': Ls_obs, 'Ls_proc': Ls_proc, 'diag_Qc': diag_Qc}
+
+
+
     def eval_Q(self):
         """computes non-correlated noise term of the kalman Q matrix"""
 
