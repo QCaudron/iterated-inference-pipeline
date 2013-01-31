@@ -702,21 +702,6 @@ class Ccoder(Cmodel):
 
 
 
-    def __str__(self):
-        tobeprinted = ''
-
-        jacs = self.jac()
-        for i in jacs:
-            tobeprinted += '\n\n' + i + ':\n'
-            tobeprinted += '\n'.join(['  |  '.join(line) for line in jacs[i]])
-
-        jac_proc_obs = self.jac_proc_obs()
-        tobeprinted += '\n\njac_proc_obs:\n'
-        tobeprinted += jac_proc_obs
-
-        return tobeprinted
-
-
     def stoichiometric(self):
         """compute the stoichiometric and force of infection matrices for demographic stochasticity"""
 

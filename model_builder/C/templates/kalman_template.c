@@ -122,7 +122,7 @@ int func_kal(double t, const double X[], double f[], void *params)
     eval_jac(Ft, X, p_par, p_data, p_calc, compo_groups_drift_par_proc, t);
 
     // compute Ft*Ct+Ct*Ft'+Q
-    gsl_matrix_set_zero(&res2.matrix);
+    Gsl_matrix_set_zero(&res2.matrix);
     gsl_blas_dgemm (CblasNoTrans, CblasNoTrans, 1.0, Ft, &Ct.matrix, 0.0, FtCt);
     gsl_matrix_add(&res2.matrix,FtCt);
     gsl_matrix_transpose (FtCt);
