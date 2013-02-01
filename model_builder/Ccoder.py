@@ -616,128 +616,67 @@ class Ccoder(Cmodel):
 
 
     def eval_Q(self):
-        """computes non-correlated noise term of the kalman Q matrix"""
+        """we assume only one noise term per reaction"""
 
-        Q_proc = []
-        Q_obs = []
+        # Ls: Dispersion matrix of stochastic differential equation as
+        # defined is Sarkka 2006 phD.
+        # Ls is of size n*s with n == N_PAR_SV and s == number of independent noise terms
 
-        def get_sd(rate):
+        N_REAC = len(self.proc_model)
+        N_PAR_SV = len(self.par_sv)
+        N_OBS = len(self.obs_var_def)
+
+        env_sto = self.get_gamma_noise_terms()
+        env_sto_name = [x[0] for x in env_sto]
+        N_ENV_STO =  len(env_sto)
+
+        s = N_REAC + N_ENV_STO ##for demographic stochasticity, one independent noise term for reaction
+
+        #we split Ls into Ls_proc and Ls_obs
+        Ls_proc = [[0]*s for x in range(N_PAR_SV)]
+        Ls_obs = [[0]*s for x in range(N_OBS)]
+        diag_Qc = [0]*s
+
+        def get_noise(rate):
+            Qc_index = []
             sd = [] #list of noise intensities
             terms = self.change_user_input(rate)
             for x in terms:
                 if 'noise__' in x:
                     ind = terms.index(x)
+                    Qc_index.append(env_sto_name.index(x))
                     while terms[ind] != ')':
                         if terms[ind] in self.par_proc:
                             sd.append(self.toC(terms[ind]))
                         ind +=1
 
-            return sd
-
-        N_PAR_SV = len(self.par_sv)
-
-        for x in self.proc_model:
-            if 'noise__' in x['rate']:
-
-                inds_from = [self.par_sv.index(x['from'])] if x['from'] not in self.universes else []
-                inds_to   = [self.par_sv.index(x['to'])] if x['to'] not in self.universes else []
-
-                if x['from'] not in self.universes:
-                    rate = '({0})*{1}'.format(x['rate'], x['from'])
-                else:
-                    rate = x['rate']
-
-                Cterm = '({0})*({1})'.format(self.make_C_term(rate, True), '*'.join(get_sd(x['rate']))) #note: True ensure that noise__ terms are removed from the rate (ODE)
-
-                for oInd in range(len(self.obs_var_def)):
-                    ##incidences
-                    if isinstance(self.obs_var_def[oInd][0], dict):
-                        for inc in self.obs_var_def[oInd]:
-                            ##if the incidence term (self.obs_var_def[oInd]) contains the noisy reaction x
-                            if (x['from'] == inc['from']) and (x['to'] == inc['to']) and (x['rate'] == inc['rate']):
-                                inds_to.append(N_PAR_SV + oInd)
-
-                    ##prevalence
-                    else:
-                        if x['from'] in self.obs_var_def[oInd]:
-                            inds_from.append(N_PAR_SV + oInd)
-
-                        if x['to'] in self.obs_var_def[oInd]:
-                            inds_to.append(N_PAR_SV + oInd)
-
-                ###############
-                ## fill Q
-                ###############
-                for t in itertools.product(set(inds_to + inds_from), repeat=2): ## all the possible couples with repetition
-
-                    if (t[0] in inds_from and t[1] in inds_from) or (t[0] in inds_to and t[1] in inds_to):
-                        sign = '+'
-                    else:
-                        sign = '-'
-
-                    if (t[0] < N_PAR_SV) and (t[1] < N_PAR_SV):
-                        Q_proc.append({'i': t[0], 'j': t[1], 'rate': Cterm, 'sign': sign})
-                    else:
-                        Q_obs.append({'i': {'is_obs': False, 'ind': t[0]} if t[0] < N_PAR_SV else {'is_obs': True, 'ind': t[0]-N_PAR_SV},
-                                      'j': {'is_obs': False, 'ind': t[1]} if t[1] < N_PAR_SV else {'is_obs': True, 'ind': t[1]-N_PAR_SV},
-                                      'rate': Cterm,
-                                      'sign': sign})
-
-        #################################################
-        ##cache special functions (sinusoidal forcing...)
-        #################################################
-
-        rates = [x['rate'] for x in Q_proc + Q_obs]
-        sf = self.cache_special_function_C(rates, prefix='_sf[cac]') ##rates is modifies in place, special fonction are replaced by _sf[cac][ind]
-
-        ##echo back the rates with the cached forced fonctions
-        for i, r in enumerate(Q_proc):
-            Q_proc[i]['rate'] = rates[i]
-
-        for i, r in enumerate(Q_obs):
-            Q_obs[i]['rate'] = rates[len(Q_proc)+1]
-
-
-        return {'Q_proc':Q_proc, 'Q_obs':Q_obs, 'sf': sf}
-
-
-
-    def stoichiometric(self):
-        """compute the stoichiometric and force of infection matrices for demographic stochasticity"""
-
-        # init stoichiometric matrix
-        S_sv = [['0']*len(self.proc_model) for s in self.par_sv] # state var bloc
-        S_ov = [['0']*len(self.proc_model) for o in self.obs_var_def] # obs var bloc
-        # init force of infection matrix
-        F = ['0']*len(self.proc_model)
-
-
         ###################
         # state variables #
         ###################
+        for B_dem_ind, r in enumerate(self.proc_model):
+            is_noise = 'noise__' in r['rate']
+            if is_noise:
+                B_sto_ind, sd = get_noise(r['rate'])
 
-        # for every atomic reaction
-        for rInd, r in enumerate(self.proc_model):
-            # for every state variable
-            svInd=0
-            for sv in self.par_sv:
-                # state variable in left hand => output
-                if r['from'] == sv:
-                    S_sv[svInd][rInd] = '-1'
-                # state variable in right hand => input
-                elif r['to'] == sv:
-                    S_sv[svInd][rInd] = '+1'
-                svInd += 1
-
-            # fill force matrix
             if r['from'] not in self.universes:
-                rate = '({0})*{1}'.format(r['rate'], r['from'])
+                i = self.par_sv.index(r['from'])
+                Ls_proc[i][B_dem_ind] -= 1 ##demographic stochasticity
+                if is_noise:
+                    Ls_proc[i][B_sto_ind] -= 1 ##env stochasticity
+
+                Qc_term = '({0})*{1}'.format(r['rate'], r['from'])
             else:
-                rate = r['rate']
+                Qc_term = r['rate']
 
-            rate += '/' + self.myN
+            if r['to'] not in self.universes:
+                i = self.par_sv.index(r['to'])
+                Ls_proc[i][B_dem_ind] += 1
+                if is_noise:
+                    Ls_proc[i][B_sto_ind] += 1
 
-            F[rInd] = self.make_C_term(rate, True)
+            diag_Qc[B_dem_ind] = self.make_C_term(Qc_term + '/' + self.myN, True)
+            if is_noise:
+                diag_Qc[B_sto_ind] = 'pow(({0})*({1}), 2)'.format(self.make_C_term(Qc_term, True), sd) #note: we re-multiply by sd as True ensures that noise__ terms are removed from the rate (ODE)
 
 
         ######################
@@ -745,45 +684,89 @@ class Ccoder(Cmodel):
         ######################
 
         # for every observed variable
-        for oInd in range(len(self.obs_var_def)):
+        for i in range(len(self.obs_var_def)):
 
-            ###################
-            # prevalence case #
-            ###################
+            for B_dem_ind, r in enumerate(self.proc_model):
+                is_noise = 'noise__' in r['rate']
+                if is_noise:
+                    B_sto_ind, sd = get_noise(r['rate'])
 
-            if not isinstance(self.obs_var_def[oInd][0], dict): ##prevalence:
-                # for every reaction
-                for rInd, r in enumerate(self.proc_model):
+                ##prevalence:
+                if not isinstance(self.obs_var_def[i][0], dict):
 
                     # if it involves prevalence as input
-                    if r['from'] == self.obs_var_def[oInd]:
-                        S_ov[oInd][rInd]= '+1'
+                    if r['from'] in self.obs_var_def[i]:
+                        Ls_obs[i][B_dem_ind] -= 1
+                        if is_noise:
+                            Ls_obs[i][B_sto_ind] -= 1
 
                     # if it involves prevalence as output
-                    elif r['to'] == self.obs_var_def[oInd]:
-                        S_ov[oInd][rInd]= '-1'
+                    if r['to'] in self.obs_var_def[i]:
+                        Ls_obs[i][B_dem_ind] += 1
+                        if is_noise:
+                            Ls_obs[i][B_sto_ind] += 1
 
-            ##################
-            # incidence case #
-            ##################
-
-            else: #incidence
-                # for every incidence
-                for inc in self.obs_var_def[oInd]:
-                    # for every reaction
-                    for rInd, r in enumerate(self.proc_model):
-
+                #incidence:
+                else:
+                    # for every incidence
+                    for inc in self.obs_var_def[i]:
                         # if it involves incidence
                         if (r['from'] == inc['from']) and (r['to'] == inc['to']) and (r['rate'] == inc['rate']):
-                            S_ov[oInd][rInd]= '+1'
+                            Ls_obs[i][B_dem_ind] += 1
+                            if is_noise:
+                                Ls_obs[i][B_sto_ind] += 1
 
 
-        return {'S_sv': S_sv, 'S_ov': S_ov, 'F': F, 'rnb':len(self.proc_model)}
+        ##we create 2 version of Ls_obs, Ls_proc, diag_Qc: one with demographic stochasticity and the other without
+        Ls_proc_deter = []
+        Ls_obs_deter = []
+        for x in Ls_proc:
+            Ls_proc_deter.append(x[N_REAC:len(x)])
+        for x in Ls_obs:
+            Ls_obs_deter.append(x[N_REAC:len(x)])
 
+        diag_Qc_deter = diag_Qc[N_REAC:len(diag_Qc)]
+
+        #cache special functions
+        sf = self.cache_special_function_C(diag_Qc, prefix='_sf') ##diag_Qc is modifies in place, special fonction are replaced by _sf[cac][ind]
+        sf_deter = self.cache_special_function_C(diag_Qc_deter, prefix='_sf')
+
+        return {'sto': {'Ls_obs': Ls_obs, 'Ls_proc': Ls_proc, 'diag_Qc': diag_Qc, 'sf': sf, 's': len(Ls_proc[0])},
+                'deter': {'Ls_obs': Ls_obs_deter, 'Ls_proc': Ls_proc_deter, 'diag_Qc': diag_Qc_deter, 'sf': sf_deter, 's': len(Ls_proc_deter[0])}}
 
 
 if __name__=="__main__":
 
-    """test PLoM model builder"""
+    """test Ccoder"""
 
-    print('see Builder for test')
+    import json
+    import os
+    from Builder import PlomModelBuilder
+
+    c = json.load(open(os.path.join('example', 'noise', 'context.json')))
+    p = json.load(open(os.path.join('example', 'noise', 'process.json')))
+    l = json.load(open(os.path.join('example', 'noise', 'link.json')))
+
+    ##fix path (this is normally done by plom(1))
+    for x in c['data']:
+        x['source'] = os.path.join('example', 'noise', x['source'])
+
+    model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
+    Q = model.eval_Q()
+
+    print model.obs_var_def
+
+    print 'Ls_proc'
+    for x in Q['deter']['Ls_proc']:
+        print x
+
+    print 'Ls_obs'
+    for x in Q['deter']['Ls_obs']:
+        print x
+
+    print Q['deter']['diag_Qc']
+
+    model.prepare()
+    model.write_settings()
+    model.code()
+    model.compile()
