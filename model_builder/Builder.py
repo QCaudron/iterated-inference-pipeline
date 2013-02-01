@@ -203,8 +203,7 @@ class PlomModelBuilder(Context, Ccoder):
         c = DjangoContext({'order':order,
                            'jacobian':jac,
                            'jac_proc_obs':self.jac_proc_obs(),
-                           'noise_Q': self.eval_Q(),
-                           'stoichiometric':self.stoichiometric(),
+                           'Q': self.eval_Q(),
                            'is_drift': is_drift,
                            'print_ode': ode})
         f = open(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_tpl.c'),'w')
@@ -287,7 +286,7 @@ if __name__=="__main__":
     l = json.load(open(os.path.join('example', 'noise', 'link.json')))
 
 
-    ##fix path (this is normally done by plom)
+    ##fix path (this is normally done by plom(1))
     for x in c['data']:
         x['source'] = os.path.join('example', 'noise', x['source'])
 

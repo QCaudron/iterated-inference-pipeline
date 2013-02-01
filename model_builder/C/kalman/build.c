@@ -18,50 +18,7 @@
 
 #include "kalman.h"
 
-struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data)
-{
-
-    int i;
-
-    struct s_kalman_specific_data *p;
-    p = malloc(sizeof(struct s_kalman_specific_data));
-    if(p==NULL){
-        char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
-        print_err(str);
-        exit(EXIT_FAILURE);
-    }
-
-    //compo_groups_drift_par_proc
-    p->compo_groups_drift_par_proc = malloc(N_DRIFT_PAR_PROC* sizeof (struct s_group **));
-    if(p->compo_groups_drift_par_proc==NULL) {
-        char str[STR_BUFFSIZE];
-        sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
-        print_err(str);
-        exit(EXIT_FAILURE);
-    }
-    for(i=0; i<N_DRIFT_PAR_PROC; i++) {
-        p->compo_groups_drift_par_proc[i] = get_groups_compo(p_data->routers[ p_data->p_drift->ind_par_Xdrift_applied[i] ]);
-    }
-
-    //temporary variable used in func_kal for covariance computation
-    p->FtCt = gsl_matrix_alloc(N_KAL, N_KAL);	// for Ft*Ct
-
-    p->Q = gsl_matrix_calloc(N_KAL, N_KAL);
-    p->Ft = gsl_matrix_calloc(N_KAL, N_KAL);
-
-    // demographic stochasticity matrices
-    p->N_REAC = init_REAC();
-    p->F = init1d_set0(p->N_REAC);
-    p->S = gsl_matrix_calloc(N_KAL, p->N_REAC);
-    eval_S(p->S, p_data->obs2ts);
-    p->SF = gsl_matrix_calloc(N_KAL, p->N_REAC);
-    p->G = gsl_matrix_alloc(N_KAL, N_KAL);
-
-    return p;
-
-}
-
+//struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data)  is templated
 
 void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data)
 {
@@ -76,14 +33,12 @@ void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data)
     FREE(p->compo_groups_drift_par_proc);
 
     gsl_matrix_free(p->FtCt);
-
     gsl_matrix_free(p->Q);
     gsl_matrix_free(p->Ft);
 
-    FREE(p->F);
-    gsl_matrix_free(p->S);
-    gsl_matrix_free(p->SF);
-    gsl_matrix_free(p->G);
+    FREE(p->diag_Qc);
+    gsl_matrix_free(p->L);
+    gsl_matrix_free(p->LQc);
 
     FREE(p);
 }
