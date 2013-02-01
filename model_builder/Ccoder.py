@@ -650,6 +650,8 @@ class Ccoder(Cmodel):
                             sd.append(self.toC(terms[ind]))
                         ind +=1
 
+            return N_REAC + Qc_index[0], sd[0]
+
         ###################
         # state variables #
         ###################
