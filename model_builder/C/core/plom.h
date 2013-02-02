@@ -64,6 +64,8 @@
 #define PLOM_SIZE_OBS N_TS
 #define PLOM_SIZE_DRIFT (N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS)
 
+enum plom_implementations {PLOM_ODE, PLOM_SDE, PLOM_PSR};
+enum plom_noises_off {PLOM_NO_DEM_STO = 0, PLOM_NO_ENV_STO = 1<<0, PLOM_NO_DRIFT = 2<<0}; //several noises can be turned off
 
 #define BUFFER_SIZE (5000 * 1024)  /**< 5000 KB buffer size for settings.json inputs */
 #define STR_BUFFSIZE 255 /**< buffer for log and error strings */
@@ -84,10 +86,7 @@
 #define ONE_LOGIT 0.999999999 /**< largest value that can be logit transformed without being replaced by @c ONE_LOGIT */
 
 
-
 /*-------global variables--------*/
-int N_THREADS;  /**< max number of threads (set by build_calc) */
-
 /* algo parameters (read from the command line) */
 int J; /**< number of particles */
 double LIKE_MIN; /**< minimum value of likelihood (smaller value are considered 0.0)*/
@@ -129,8 +128,6 @@ double ONE_YEAR_IN_DATA_UNIT;
 /* option and commands */
 int OPTION_TRAJ;   /**< print the trajectories */
 int OPTION_PRIOR;   /**< print add the logprior to the loglik outputs */
-int COMMAND_DETER; /**< neglect demographic stochasticity */
-int COMMAND_STO;   /**< include demographic stochasticity */
 
 
 /*-------plom core generic structures. These structures are used as nucleus for all plom population based C programs--------*/
@@ -263,6 +260,7 @@ struct s_data{
     struct s_drift *p_drift;      /**< reference to s_drift */
 
     struct s_iterator *p_it_all;                         /**< to iterate on every parameters */
+    struct s_iterator *p_it_noise;                       /**< to iterate on environmental stochasticity noises *only* */
     struct s_iterator *p_it_only_drift;                  /**< to iterate on parameters following a diffusion *only* */
     struct s_iterator *p_it_par_sv;                      /**< to iterate on the initial conditions of the state variables */
     struct s_iterator *p_it_all_no_drift;                /**< to iterate on every parameters *not* following a diffusion  */
@@ -296,6 +294,7 @@ struct s_data{
 
 struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get_max_threads() replication of the stucture...*/
 {
+    int n_threads; /**< the total number of threads */
     int thread_id; /**< the id of the thread where the computation are being run */
 
     int current_n;  /**< current value of the N_DATA_NONAN index*/
@@ -303,22 +302,32 @@ struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get
 
     gsl_rng *randgsl; /**< random number generator */
 
-    /*for MARKOV*/
+    /////////////////
+    //implementations
+    /////////////////
+
+    /* Euler multinomial */
     double **prob; /*[N_PAR_SV][number of output from the compartment]*/
     unsigned int ***inc; /* [N_PAR_SV][N_CAC][number of destinations] increments vector, we keep N_CAC to be able to compute incidences matching time series that can be a summation of different cities and age classes */
 
-    //  double *gravity; /*[NUMC] additional term specific to measles model*/
+    /* SDE */
+    gsl_matrix *Q; /**< result of L Qc L' : Dispersion matrix of the SDE approximated with by the EKF: dX_t = f(X_t,\theta)dt + L b_t  (b_t is a Browninan motion with diffusion matrix Qc)*/
 
-    /*for GILLESPIE*/
+    /* Gillespie */
     //  double **reaction; /*reaction matrix*/
 
-    /*for ODE*/
+    /* ODE*/
     const gsl_odeiv2_step_type * T;
     gsl_odeiv2_control * control;
     gsl_odeiv2_step * step;
     gsl_odeiv2_evolve * evolve;
     gsl_odeiv2_system sys;
     double *yerr;
+
+
+
+    //  double *gravity; /*[NUMC] additional term specific to measles model*/
+
 
     //multi-threaded sorting
     double *to_be_sorted;  /**< [J] array of the J particle to be sorted*/
@@ -551,7 +560,7 @@ void load_covariance(gsl_matrix *covariance, json_t *array2d);
 json_t *load_settings(const char *path);
 
 /* build.c */
-struct s_iterator *build_iterator(struct s_router **routers, struct s_drift *p_drift, char *it_type);
+struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, struct s_drift *p_drift, char *it_type);
 void clean_iterator(struct s_iterator *p_it);
 struct s_router *build_router(const json_t *par, const char *par_key, const json_t *partition, const json_t *order, const char *link_key, const char *u_data, int is_bayesian);
 void clean_router(struct s_router *p_router);
@@ -568,10 +577,13 @@ struct s_drift *build_drift(json_t *json_drift);
 void clean_drift(struct s_drift *p_drift);
 struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian);
 void clean_data(struct s_data *p_data);
-struct s_calc *build_p_calc(int seed, int nt, struct s_X *p_X, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
-struct s_calc **build_calc(int general_id, struct s_X *p_X, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
-void clean_p_calc(struct s_calc *p_calc);
-void clean_calc(struct s_calc **calc);
+
+struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementations implementation, int J, struct s_X *p_X, int size_Q, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc *build_p_calc(int n_threads, int nt, int seed, enum plom_implementations implementation, struct s_X *p_X, int size_Q, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
+
+void clean_p_calc(struct s_calc *p_calc, enum plom_implementations implementation);
+void clean_calc(struct s_calc **calc, enum plom_implementations implementation);
+
 struct s_X *build_X(int size_proj, int size_obs, int size_drift, struct s_data *p_data);
 struct s_X **build_J_p_X(int size_proj, int size_obs, int size_drift, struct s_data *p_data);
 struct s_X ***build_D_J_p_X(int size_proj, int size_obs, int size_drift, struct s_data *p_data);
@@ -625,7 +637,7 @@ double sum_SV(const double *X_proj, int cac);
 double correct_rate(double rate);
 
 void linearize_and_repeat(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, const struct s_iterator *p_it);
-void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, int need_rounding);
+void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, enum plom_implementations implementation);
 void theta_driftIC2Xdrift(struct s_X *p_X, const theta_t *best_mean, struct s_data *p_data);
 
 
@@ -804,7 +816,7 @@ double sfr_dmvnorm(struct s_best *p_best, theta_t *proposed, gsl_vector *mean, d
 void eval_var_emp(struct s_best *p_best, double m);
 
 /* templated */
-void build_markov(struct s_calc *p);
+void build_psr(struct s_calc *p);
 
 double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
 

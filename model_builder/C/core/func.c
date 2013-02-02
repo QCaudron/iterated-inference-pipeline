@@ -189,14 +189,12 @@ void update_to_be_estimated(struct s_best *p_best)
 
 
 /**
- * make sure that N_THREADS <= J and return safe n_threads
+ * make sure that n_threads <= J and return safe n_threads
  */
 
 int sanitize_n_threads(int n_threads, int J)
 {
-
-
-    if(N_THREADS > J){
+    if(n_threads > J){
 #if FLAG_VERBOSE
         print_warning("N_TREADS > J, N_THREADS has been set to J");
 #endif
@@ -210,7 +208,7 @@ int sanitize_n_threads(int n_threads, int J)
 void store_state_current_n_nn(struct s_calc **calc, int n, int nn)
 {
     int nt;
-    for (nt=0; nt<N_THREADS; nt++) {
+    for (nt=0; nt<calc[0]->n_threads; nt++) {
         calc[nt]->current_n = n;
         calc[nt]->current_nn = nn;
     }

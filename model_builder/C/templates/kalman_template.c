@@ -32,7 +32,7 @@
 #define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
 
 
-struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data)
+struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data, enum plom_noises_off noises_off)
 {
     int i;
 
@@ -58,15 +58,14 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data)
     }
 
     p->FtCt = gsl_matrix_alloc(N_KAL, N_KAL);
-    p->Q = gsl_matrix_calloc(N_KAL, N_KAL);
     p->Ft = gsl_matrix_calloc(N_KAL, N_KAL);
 
 
     int n_noise;
-    if(COMMAND_STO) { //demographic stochasticity is taken into account
-        n_noise = {{ Q.sto.s }}*N_CAC;
-    } else {
+    if(noises_off & PLOM_NO_DEM_STO) { //demographic stochasticity is **not** taken into account
         n_noise = {{ Q.deter.s }}*N_CAC;
+    } else {
+        n_noise = {{ Q.sto.s }}*N_CAC;
     }
     n_noise += p_data->p_it_only_drift->nbtot;
 
@@ -77,7 +76,7 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data)
 
     p->diag_Qc = init1d_set0(n_noise);
     p->L = gsl_matrix_calloc(N_KAL, n_noise);
-    eval_L(p->L, p_data);
+    eval_L(p->L, p_data, noises_off);
     p->LQc = gsl_matrix_calloc(N_KAL, n_noise);
 
     return p;
@@ -102,7 +101,7 @@ int func_kal(double t, const double X[], double f[], void *params)
     struct s_kalman_specific_data *p_kalman_specific_data = (struct s_kalman_specific_data *) p_calc->method_specific_thread_safe_data;
 
     gsl_matrix *Ft = p_kalman_specific_data->Ft;
-    gsl_matrix *Q = p_kalman_specific_data->Q;
+    gsl_matrix *Q = p_calc->Q;
     struct s_group ***compo_groups_drift_par_proc = p_kalman_specific_data->compo_groups_drift_par_proc;
     gsl_matrix *FtCt = p_kalman_specific_data->FtCt;
     gsl_matrix_const_view Ct   = gsl_matrix_const_view_array(&X[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE],N_KAL,N_KAL);
@@ -359,7 +358,7 @@ void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data 
 /**
  * evaluate dispersion matrix L (as described in Sarkka phD (2006))
  */
-void eval_L(gsl_matrix *L, struct s_data *p_data)
+void eval_L(gsl_matrix *L, struct s_data *p_data, enum plom_noises_off noises_off)
 {
     int c, ac, cac;
     int ts, ts_unique, stream, n_cac;
@@ -368,7 +367,7 @@ void eval_L(gsl_matrix *L, struct s_data *p_data)
     {% for command, Ls in Q.items %}
 
     {% if command == 'sto' %}
-    if(COMMAND_STO) { //demographic stochasticity
+    if(!(noises_off & PLOM_NO_DEM_STO)) { //demographic stochasticity
     {% else %}
     } else { //no demographic stochasticity (only env sto and drift)
     {% endif %}
@@ -431,7 +430,7 @@ void eval_L(gsl_matrix *L, struct s_data *p_data)
 /**
  * evaluate the diagonal of Qc
  */
-void eval_diag_Qc(double *diag_Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t)
+void eval_diag_Qc(double *diag_Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t, enum plom_noises_off noises_off)
 {
     // X is p_X->proj
     int cac;
@@ -447,7 +446,7 @@ void eval_diag_Qc(double *diag_Qc, const double *X, struct s_par *p_par, struct 
     {% for command, Ls in Q.items %}
 
     {% if command == 'sto' %}
-    if(COMMAND_STO) { //demographic stochasticity
+    if(!(noises_off & PLOM_NO_DEM_STO)) { //demographic stochasticity
     {% else %}
     } else { //no demographic stochasticity (only env sto and drift)
     {% endif %}
@@ -496,7 +495,7 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
     gsl_matrix *LQc = p_kalman_specific_data->LQc;
 
 
-    eval_diag_Qc(diag_Qc, X, p_par, p_data, p_calc, t);
+    eval_diag_Qc(diag_Qc, X, p_par, p_data, p_calc, t, 0); //TODO last 0 is noises_off (from enum plom_noises)
 
     // L*Qc
     int row, col;

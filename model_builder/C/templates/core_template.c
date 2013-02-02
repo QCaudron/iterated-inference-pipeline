@@ -31,13 +31,15 @@
 {% for o in order.data %}
 #define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
 
-
-void build_markov(struct s_calc *p)
+/**
+ * Alloc memory for the psr implementation
+ */
+void build_psr(struct s_calc *p)
 {
 unsigned int tab[N_PAR_SV+2]; //+2 for U and DU of the universes
 
 /*automaticaly generated code: dimension of prob and inc*/
-{% for x in buildmarkov %}
+{% for x in psr %}
 tab[ORDER_{{x.state|safe}}] = {{x.nb_reaction|safe}};{% endfor %}
 
 p->prob = init2d_var_set0(N_PAR_SV+2, tab);

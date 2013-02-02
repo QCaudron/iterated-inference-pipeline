@@ -33,7 +33,6 @@ void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data)
     FREE(p->compo_groups_drift_par_proc);
 
     gsl_matrix_free(p->FtCt);
-    gsl_matrix_free(p->Q);
     gsl_matrix_free(p->Ft);
 
     FREE(p->diag_Qc);

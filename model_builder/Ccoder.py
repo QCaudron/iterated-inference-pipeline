@@ -210,7 +210,7 @@ class Ccoder(Cmodel):
         return Clist
 
 
-    def print_build_markov(self):
+    def print_build_psr(self):
         Clist = []
         for s in self.par_sv + self.universes:
             nbreac = len([r for r in self.proc_model if r['from']==s]) +1 ##+1 to stay in the same compartment or to declare smtg in case of no reaction (not super clean but makes C code easier...)

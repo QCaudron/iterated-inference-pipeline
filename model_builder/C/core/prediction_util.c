@@ -95,10 +95,8 @@ void linearize_and_repeat(struct s_X *p_X, struct s_par *p_par, struct s_data *p
 *   From proportion of initial conditons to population size.  If
 *   @c POP_SIZE_EQ_SUM_SV the last state is replaced by
 *   pop_size - sum_every_state_except_the_last.
-*
-*   need_rounding should be set to 1 for stochastic model
 */
-void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, int need_rounding)
+void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, enum plom_implementations implementation)
 {
 
     double *Xpop_size = p_X->proj;
@@ -108,7 +106,7 @@ void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, int need_rounding)
     for (i=0; i< N_PAR_SV ; i++) {
         for (cac=0; cac<N_CAC; cac++) {
             Xpop_size[i*N_CAC+cac] = Xpop_size[i*N_CAC+cac] * pop_size_t0[cac];
-            if(need_rounding){
+            if(implementation == PLOM_PSR){ //rounding for exact methods
                 Xpop_size[i*N_CAC+cac] = round(Xpop_size[i*N_CAC+cac]);
             }
         }

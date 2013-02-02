@@ -180,7 +180,7 @@ class PlomModelBuilder(Context, Ccoder):
                            'list_obs_prev': self.print_obs_prev(),
                            'eq_obs_inc_markov': self.print_obs_inc_markov(),
                            'is_drift': is_drift,
-                           'buildmarkov':self.print_build_markov(),
+                           'psr':self.print_build_psr(),
                            'proc_obs':self.print_like()})
         f = open(os.path.join(self.path_rendered, 'C', 'templates', 'core_tpl.c'),'w')
         f.write(t.render(c))
