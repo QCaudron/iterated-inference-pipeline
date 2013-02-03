@@ -157,7 +157,6 @@ void f_prediction_ode(struct s_X *p_X, double t0, double t1, struct s_par *p_par
             exit(EXIT_FAILURE);
         }
     }
-
 }
 
 
