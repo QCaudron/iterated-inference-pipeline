@@ -793,8 +793,6 @@ struct s_calc *build_p_calc(int n_threads, int nt, int seed, enum plom_implement
     char str[STR_BUFFSIZE];
     int i;
 
-    int dim_ode = p_X->size_proj;
-
     struct s_calc *p_calc = malloc(sizeof(struct s_calc));
     if (p_calc==NULL) {
 
@@ -844,6 +842,7 @@ struct s_calc *build_p_calc(int n_threads, int nt, int seed, enum plom_implement
 
     if (implementation == PLOM_ODE){
 
+        int dim_ode = p_X->size_proj;
         p_calc->T = gsl_odeiv2_step_rkf45;
         p_calc->control = gsl_odeiv2_control_y_new(ABS_TOL, REL_TOL); /*abs and rel error (eps_abs et eps_rel) */
         p_calc->step = gsl_odeiv2_step_alloc(p_calc->T, dim_ode);
@@ -1161,7 +1160,7 @@ void clean_likelihood(struct s_likelihood *p_like)
     FREE(p_like);
 }
 
-struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covariance)
+struct s_best *build_best(struct s_data *p_data, json_t *theta, enum plom_noises_off noises_off, int update_covariance)
 {
     int i,j,k;
     struct s_router **routers = p_data->routers;
@@ -1247,7 +1246,7 @@ struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covar
         }
     }
 
-    load_best(p_best, p_data, theta, 1, update_covariance);
+    load_best(p_best, p_data, theta, noises_off, 1, update_covariance);
 
     gsl_vector_memcpy(p_best->proposed, p_best->mean);
 

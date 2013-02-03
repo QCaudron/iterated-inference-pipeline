@@ -492,20 +492,20 @@ json_t *load_settings(const char *path)
     return settings;
 }
 
-
-void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int update_guess, int update_covariance)
+/**
+ * integrate best data from the webApp
+ */
+void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, enum plom_noises_off noises_off,  int update_guess, int update_covariance)
 {
-    /* integrate best data from the webApp */
-
     int i, g, offset;
     struct s_router **routers = p_data->routers;
     json_t *parameters = fast_get_json_object(theta, "value");
     json_t *partitions = fast_get_json_object(theta, "partition");
-    struct s_iterator *p_it = p_data->p_it_all;
+    struct s_iterator *p_it_all = p_data->p_it_all;
 
     offset = 0;
 
-    for(i=0; i<p_it->length; i++) {
+    for(i=0; i<p_it_all->length; i++) {
         const char *par_key = routers[i]->name;
 
         json_t *par = fast_get_json_object(parameters, par_key);
@@ -547,6 +547,27 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int 
             p_best->par_prior[offset][1] = fast_get_json_real_from_object(par_max, my_group_id);
 
             offset++;
+        }
+    }
+
+    //turn off some noises parameters
+    if(noises_off & PLOM_NO_ENV_STO){
+        struct s_iterator *p_it_noise = p_data->p_it_noise;
+        for(i=0; i<p_it_noise->length; i++){
+            for(g=0; g< routers[ p_it_noise->ind[i] ]->n_gp; g++){
+                gsl_matrix_set(p_best->var, p_it_noise->offset[i]+g, p_it_noise->offset[i]+g, 0.0);
+            }
+        }
+    }
+
+    //we turn off the **volatilities**
+    if(noises_off & PLOM_NO_DRIFT){
+        struct s_iterator *p_it_drift = p_data->p_it_only_drift;
+        for(i=0; i<p_it_drift->length; i++) {
+            int ind_volatility = p_data->p_drift->ind_volatility_Xdrift[i];
+            for(g=0; g< routers[ind_volatility]->n_gp; g++) {
+                gsl_matrix_set(p_best->var, p_it_all->offset[ind_volatility]+g, p_it_all->offset[ind_volatility]+g, 0.0);
+            }
         }
     }
 

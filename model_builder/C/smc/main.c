@@ -28,12 +28,16 @@ int main(int argc, char *argv[])
     char sfr_help_string[] =
         "Plom Sequential Monte Carlo\n"
         "usage:\n"
-        "smc <implementation> [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
+        "smc <implementation> [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "                     [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
         "                     [-t, --no_filter] [-b, --no_best] [-h, --no_hat]\n"
         "                     [-s, --DT <float>] [-l, --LIKE_MIN <float>] [-J <integer>]\n"
         "                     [--help]\n"
         "where implementation is 'ode', 'sde' or 'psr'\n"
         "options:\n"
+        "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
+        "--no_env_sto       turn off environmental stochasticity (if any)\n"
+        "--no_drift         turn off drift (if any)\n"
         "--traj             print the trajectories\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
@@ -49,13 +53,12 @@ int main(int argc, char *argv[])
 
 
     int filter = 1;
-    int output_best = 1;
-    int output_hat = 1;
-    int output_pred_res =1;
+    int output_best = 1, output_hat = 1, output_pred_res =1;
     int has_dt_be_specified = 0;
     double dt_option;
 
     enum plom_implementations implementation;
+    enum plom_noises_off noises_off = 0;
 
     OPTION_TRAJ = 0;
     OPTION_PRIOR = 0;
@@ -72,6 +75,10 @@ int main(int argc, char *argv[])
                 /* These options set a flag. */
                 {"traj", no_argument,       &OPTION_TRAJ, 1},
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
+                {"no_dem_sto", no_argument,       0, 'x'},
+                {"no_env_sto", no_argument,       0, 'y'},
+                {"no_drift",   no_argument,       0, 'z'},
+
                 {"help",       no_argument,       0, 'e'},
                 {"path",       required_argument, 0, 'p'},
                 {"id",         required_argument, 0, 'i'},
@@ -101,6 +108,16 @@ int main(int argc, char *argv[])
             if (long_options[option_index].flag != 0) {
                 break;
             }
+            break;
+
+        case 'x':
+            noises_off = noises_off | PLOM_NO_DEM_STO;
+            break;
+        case 'y':
+            noises_off = noises_off | PLOM_NO_ENV_STO;
+            break;
+        case 'z':
+            noises_off = noises_off | PLOM_NO_DRIFT;
             break;
 
         case 'e':
@@ -159,6 +176,7 @@ int main(int argc, char *argv[])
     } else {
         if (!strcmp(argv[0], "ode")) {
             implementation = PLOM_ODE;
+            noises_off = noises_off | PLOM_NO_DEM_STO| PLOM_NO_ENV_STO | PLOM_NO_DRIFT;
         } else if (!strcmp(argv[0], "sde")) {
             implementation = PLOM_SDE;
         } else if (!strcmp(argv[0], "psr")) {
@@ -168,7 +186,6 @@ int main(int argc, char *argv[])
             return 1;
         }
     }
-
 
     json_t *settings = load_settings(PATH_SETTINGS);
 
@@ -189,14 +206,13 @@ int main(int argc, char *argv[])
     struct s_hat **D_p_hat = build_D_p_hat(p_data);
     struct s_X ***D_J_p_X = build_D_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_data);
     struct s_X ***D_J_p_X_tmp = build_D_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_data);
-    struct s_best *p_best = build_best(p_data, theta, 0);
+    struct s_best *p_best = build_best(p_data, theta, noises_off, 0);
     json_decref(theta);
     struct s_likelihood *p_like = build_likelihood();
 
     struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, implementation, J, D_J_p_X[0][0], PLOM_SIZE_PROJ, func, p_data);
 
     FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
-
     FILE *p_file_pred_res = (output_pred_res==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals, p_data): NULL;
 
 
@@ -217,11 +233,25 @@ int main(int argc, char *argv[])
 
     replicate_J_p_X_0(D_J_p_X[0], p_data);
 
+    void (*f_pred) (struct s_X *, double, double, struct s_par *, struct s_data *, struct s_calc *);
+
     if (implementation == PLOM_ODE) {
-        run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, f_prediction_with_drift_deter, filter, p_file_X, p_file_pred_res);
-    } else {
-        run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, f_prediction_with_drift_sto, filter, p_file_X, p_file_pred_res);
+        f_pred = &f_prediction_ode;
+
+    } else if (implementation == PLOM_SDE){
+        if ( (noises_off & (PLOM_NO_DEM_STO)) && (noises_off & (PLOM_NO_ENV_STO)) )  {
+            f_pred = &f_prediction_sde_no_dem_sto_no_env_sto;
+        }
+
+    } else if (implementation == PLOM_PSR){
+        if(noises_off & PLOM_NO_DRIFT){
+            f_pred = &f_prediction_psr_no_drift;
+        } else {
+            f_pred = &f_prediction_psr;
+        }
     }
+
+    run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, f_pred, filter, p_file_X, p_file_pred_res);
 
 #if FLAG_VERBOSE
     time_end = s_clock();

@@ -65,7 +65,7 @@
 #define PLOM_SIZE_DRIFT (N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS)
 
 enum plom_implementations {PLOM_ODE, PLOM_SDE, PLOM_PSR};
-enum plom_noises_off {PLOM_NO_DEM_STO = 0, PLOM_NO_ENV_STO = 1<<0, PLOM_NO_DRIFT = 2<<0}; //several noises can be turned off
+enum plom_noises_off {PLOM_NO_DEM_STO = 1 << 0, PLOM_NO_ENV_STO = 1 << 1, PLOM_NO_DRIFT = 1 << 2 }; //several noises can be turned off
 
 #define BUFFER_SIZE (5000 * 1024)  /**< 5000 KB buffer size for settings.json inputs */
 #define STR_BUFFSIZE 255 /**< buffer for log and error strings */
@@ -260,12 +260,12 @@ struct s_data{
     struct s_drift *p_drift;      /**< reference to s_drift */
 
     struct s_iterator *p_it_all;                         /**< to iterate on every parameters */
-    struct s_iterator *p_it_noise;                       /**< to iterate on environmental stochasticity noises *only* */
     struct s_iterator *p_it_only_drift;                  /**< to iterate on parameters following a diffusion *only* */
     struct s_iterator *p_it_par_sv;                      /**< to iterate on the initial conditions of the state variables */
     struct s_iterator *p_it_all_no_drift;                /**< to iterate on every parameters *not* following a diffusion  */
     struct s_iterator *p_it_par_proc_par_obs_no_drift;   /**< to iterate on the parameter of the process and observation models *not* following a diffusion */
     struct s_iterator *p_it_par_sv_and_drift;            /**< to iterate on the initial conditions of the state variable *and* the parameters following a diffusion */
+    struct s_iterator *p_it_noise;                       /**< to iterate on environmental stochasticity noises *only* */
 
     /* fixed params */
     double ***par_fixed;     /**< [N_PAR_FIXED][N_DATA_PAR_FIXED][N_CAC] an array of covariates (each covariate is a 2D array) */
@@ -555,7 +555,7 @@ void load3d_var(double ***tab, int n, unsigned int *colbreaks1, unsigned int **c
 void load3u_var(unsigned int ***tab, int n, unsigned int *colbreaks1, unsigned int **colbreaks2, char *filename);
 void load3u_varp1(unsigned int ***tab, int n, unsigned int *colbreaks1, unsigned int colbreaks2, char *filename);
 
-void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int update_guess, int update_covariance);
+void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, enum plom_noises_off noises_off, int update_guess, int update_covariance);
 void load_covariance(gsl_matrix *covariance, json_t *array2d);
 json_t *load_settings(const char *path);
 
@@ -596,18 +596,14 @@ struct s_hat *build_hat(struct s_data *p_data);
 void clean_hat(struct s_hat *p_hat, struct s_data *p_data);
 struct s_likelihood *build_likelihood(void);
 void clean_likelihood(struct s_likelihood *p_like);
-struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covariance);
+struct s_best *build_best(struct s_data *p_data, json_t *theta, enum plom_noises_off noises_off, int update_covariance);
 void clean_best(struct s_best *p_best);
 
 
 /*webio.c*/
 void ask_update();
 void block();
-void update_walk_rates(struct s_best *p_best,
-                       double (*f_transit_par) (double sd_x_par),
-                       double (*f_transit_state) (double sd_x_state),
-                       struct s_data *p_data);
-
+void update_walk_rates(struct s_best *p_best, double (*f_transit_par) (double sd_x_par), double (*f_transit_state) (double sd_x_state), struct s_data *p_data, enum plom_noises_off noises_off);
 /*print.c*/
 FILE *sfr_fopen(const char* path, const int general_id, const char* file_name, const char *mode, void (*header)(FILE*, struct s_data *), struct s_data *p_data);
 void sfr_fclose(FILE *p_file);
@@ -641,13 +637,14 @@ void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, enum plom_implementa
 void theta_driftIC2Xdrift(struct s_X *p_X, const theta_t *best_mean, struct s_data *p_data);
 
 
-void f_prediction_with_drift_deter(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
-void f_prediction_with_drift_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void f_prediction_ode(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void f_prediction_sde_no_dem_sto_no_env_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void f_prediction_psr(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void f_prediction_psr_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+
 
 void sfr_ran_multinomial (const gsl_rng * r, const size_t K, unsigned int N, const double p[], unsigned int n[]);
 
-void f_prediction_euler_multinomial(double *X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
-void f_prediction_ode_rk(double *y, double t0, double t1, struct s_par *p_par,  struct s_calc *p_calc);
 
 void *jac;
 
