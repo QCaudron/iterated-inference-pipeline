@@ -123,14 +123,14 @@ void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, enum plom_implementa
 /* load p_X->drift from drift IC (contained in p_best) */
 void theta_driftIC2Xdrift(struct s_X *p_X, const theta_t *best_mean, struct s_data *p_data)
 {
-    double **Xdrift = p_X->drift;
     int i, k;
     struct s_iterator *p_it_only_drift = p_data->p_it_only_drift;
     struct s_router **routers = p_data->routers;
+    struct s_drift **drift = p_data->drift;
 
     for(i=0; i< p_it_only_drift->length; i++) {
         for(k=0; k< routers[ p_it_only_drift->ind[i] ]->n_gp; k++) {
-            Xdrift[i][k] = gsl_vector_get(best_mean, p_it_only_drift->offset[i] +k );
+            p_X->proj[drift[i]->offset + k] = gsl_vector_get(best_mean, p_it_only_drift->offset[i] +k );
         }
     }
 }
@@ -168,12 +168,12 @@ void f_prediction_sde_no_dem_sto_no_env_sto(struct s_X *p_X, double t0, double t
     for(k= (int) (t0*DELTA_STO) ; k< (int) (t1*DELTA_STO) ;k++) {
         t = (double) k/DELTA_STO;
 
-        if (N_DRIFT_PAR_PROC) {
-            compute_drift(p_X, p_par, p_data, p_calc, 0, N_DRIFT_PAR_PROC, DT);
-            drift_par(p_calc, p_data, p_X, 0, N_DRIFT_PAR_PROC);
+        f_prediction_ode(p_X, t, t+DT, p_par, p_data, p_calc);
+
+        if (N_DRIFT) {
+            compute_drift(p_X, p_par, p_data, p_calc, DT);
         }
 
-        f_prediction_ode(p_X, t, t+DT, p_par, p_data, p_calc);
     }
 }
 
@@ -188,12 +188,12 @@ void f_prediction_psr(struct s_X *p_X, double t0, double t1, struct s_par *p_par
     for (k= (int) (t0*DELTA_STO) ; k< (int) (t1*DELTA_STO) ;k++) {
         t = (double) k/DELTA_STO;
 
-        if (N_DRIFT_PAR_PROC) {
-            compute_drift(p_X, p_par, p_data, p_calc, 0, N_DRIFT_PAR_PROC, DT);
-            drift_par(p_calc, p_data, p_X, 0, N_DRIFT_PAR_PROC);
+        step_euler_multinomial(y, t, p_par, p_data, p_calc);
+
+        if (N_DRIFT) {
+            compute_drift(p_X, p_par, p_data, p_calc, DT);
         }
 
-        step_euler_multinomial(y, t, p_par, p_data, p_calc);
     }
 }
 

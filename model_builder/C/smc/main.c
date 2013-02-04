@@ -202,15 +202,17 @@ int main(int argc, char *argv[])
     struct s_data *p_data = build_data(settings, theta, 0);
     json_decref(settings);
 
+    int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
+
     struct s_par *p_par = build_par(p_data);
     struct s_hat **D_p_hat = build_D_p_hat(p_data);
-    struct s_X ***D_J_p_X = build_D_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_data);
-    struct s_X ***D_J_p_X_tmp = build_D_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_data);
+    struct s_X ***D_J_p_X = build_D_J_p_X(size_proj, N_TS, p_data);
+    struct s_X ***D_J_p_X_tmp = build_D_J_p_X(size_proj, N_TS, p_data);
     struct s_best *p_best = build_best(p_data, theta, noises_off, 0);
     json_decref(theta);
     struct s_likelihood *p_like = build_likelihood();
 
-    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, implementation, J, D_J_p_X[0][0], PLOM_SIZE_PROJ, func, p_data);
+    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, implementation, J, size_proj, func, p_data);
 
     FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
     FILE *p_file_pred_res = (output_pred_res==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals, p_data): NULL;

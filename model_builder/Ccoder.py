@@ -51,13 +51,13 @@ class Ccoder(Cmodel):
 
         elif term in self.par_proc :
             if term in self.drift_par_proc:
-                return 'p_calc->natural_drifted_safe[ORDER_drift__par_proc__{0}][routers[ORDER_{0}]->map[cac]]'.format(term)
+                return 'back_transform_x(X[p_data->drift[ORDER_drift__par_proc__{0}]->offset + routers[ORDER_{0}]->map[cac]], routers[ORDER_{0}]->map[cac], routers[ORDER_{0}])'.format(term)
             else:
                 return 'par[ORDER_{0}][routers[ORDER_{0}]->map[cac]]'.format(term)
 
         elif term in self.par_obs:
             if term in self.drift_par_obs:
-                return 'p_calc->natural_drifted_safe[ORDER_drift__par_obs__{0}][routers[ORDER_{0}]->map[ts]]'.format(term)
+                return 'back_transform_x(X[p_data->drift[ORDER_drift__par_obs__{0}]->offset + routers[ORDER_{0}]->map[ts]], routers[ORDER_{0}]->map[ts], routers[ORDER_{0}])'.format(term)
             else:
                 return 'par[ORDER_{0}][routers[ORDER_{0}]->map[ts]]'.format(term)
 

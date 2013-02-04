@@ -36,16 +36,16 @@
  */
 void build_psr(struct s_calc *p)
 {
-unsigned int tab[N_PAR_SV+2]; //+2 for U and DU of the universes
+    unsigned int tab[N_PAR_SV+2]; //+2 for U and DU of the universes
 
-/*automaticaly generated code: dimension of prob and inc*/
-{% for x in psr %}
-tab[ORDER_{{x.state|safe}}] = {{x.nb_reaction|safe}};{% endfor %}
+    /*automaticaly generated code: dimension of prob and inc*/
+    {% for x in psr %}
+    tab[ORDER_{{x.state|safe}}] = {{x.nb_reaction|safe}};{% endfor %}
 
-p->prob = init2d_var_set0(N_PAR_SV+2, tab);
-p->inc = init3u_varp2_set0(N_PAR_SV+2, N_CAC, tab);
+    p->prob = init2d_var_set0(N_PAR_SV+2, tab);
+    p->inc = init3u_varp2_set0(N_PAR_SV+2, N_CAC, tab);
 
-//  p->gravity = init1d_set0(N_C);
+    //  p->gravity = init1d_set0(N_C);
 }
 
 
@@ -62,7 +62,7 @@ void proj2obs(struct s_X *p_X, struct s_data *p_data)
     {% endif %}
 
     ind_obs = 0;
-    ind_proj_inc = N_PAR_SV*N_CAC;
+    ind_proj_inc = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
 
     /* extend incidence: duplicate ts with multiple data streams */
     for(o=0; o<N_OBS_INC; o++) {
@@ -175,7 +175,7 @@ void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_d
 
     /*compute incidence:integral between t and t+1 (automaticaly generated code)*/
 
-    offset = 0;
+    offset = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
     {% for eq in eq_obs_inc_markov %}
     o = {{ eq.true_ind_obs|safe }};
 
@@ -188,7 +188,7 @@ void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_d
 
             sum_inc += {{ eq.right_hand_side|safe }};
         }
-        X[N_PAR_SV*N_CAC +offset] += sum_inc;
+        X[offset] += sum_inc;
         offset++;
     }
 
@@ -206,7 +206,7 @@ int func(double t, const double X[], double f[], void *params)
     struct s_obs2ts **obs2ts = p_data->obs2ts;
     struct s_router **routers = p_data->routers;
 
-    int c, ac, cac, n_cac, ts, o;
+    int i, c, ac, cac, n_cac, ts, o;
     double sum_inc = 0.0;
     int offset;
 
@@ -252,10 +252,16 @@ int func(double t, const double X[], double f[], void *params)
         }
     }
 
+    //drift
+    offset = N_PAR_SV*N_CAC;
+    for(i=0; i<p_data->p_it_only_drift->nbtot; i++){
+        f[offset+i] = 0.0;
+    }
+
     /*automaticaly generated code:*/
     /*compute incidence:integral between t and t+1*/
 
-    offset=0;
+    offset = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
     {% for eq in print_ode.obs %}
     o = {{ eq.true_ind_obs|safe }};
 
@@ -269,7 +275,7 @@ int func(double t, const double X[], double f[], void *params)
             sum_inc += {{ eq.right_hand_side|safe }};
         }
 
-        f[N_PAR_SV*N_CAC +offset] = sum_inc;
+        f[offset] = sum_inc;
         offset++;
     }
     {% endfor %}

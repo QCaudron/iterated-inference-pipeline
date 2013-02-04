@@ -258,3 +258,18 @@ int in_u(int i, unsigned int *tab, int length){
 
     return 0;
 }
+
+
+/**
+ * return 1 if i is in drift else 0
+ */
+int in_drift(int i, struct s_drift **drift){
+    int k;
+    for (k=0; k< N_DRIFT; k++) {
+        if (drift[k]->ind_par_Xdrift_applied == i) {
+            return 1;
+        }
+    }
+
+    return 0;
+}

@@ -45,6 +45,8 @@ struct s_kalman_specific_data
 
     struct s_group ***compo_groups_drift_par_proc;
 
+
+    gsl_matrix *Q;  /**< result of L Qc L' : Dispersion matrix of the SDE approximated with by the EKF: dX_t = f(X_t,\theta)dt + L b_t  (b_t is a Browninan motion with diffusion matrix Qc)*/
     gsl_matrix *FtCt;	/**< for Ft*Ct (product of the jacobian matrix and the covariance matrix) */
 
     double *diag_Qc;        /**< Diagonal of the diffusion matrix of the Brownian motion (as many terms as independent noises (Brownian motion)) */

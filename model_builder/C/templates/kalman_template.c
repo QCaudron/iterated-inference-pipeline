@@ -46,18 +46,19 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data,
     }
 
     //compo_groups_drift_par_proc
-    p->compo_groups_drift_par_proc = malloc(N_DRIFT_PAR_PROC* sizeof (struct s_group **));
+    p->compo_groups_drift_par_proc = malloc(N_DRIFT* sizeof (struct s_group **));
     if(p->compo_groups_drift_par_proc==NULL) {
         char str[STR_BUFFSIZE];
         snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
-    for(i=0; i<N_DRIFT_PAR_PROC; i++) {
-        p->compo_groups_drift_par_proc[i] = get_groups_compo(p_data->routers[ p_data->p_drift->ind_par_Xdrift_applied[i] ]);
+    for(i=0; i<N_DRIFT; i++) {
+        p->compo_groups_drift_par_proc[i] = get_groups_compo(p_data->routers[ p_data->drift[i]->ind_par_Xdrift_applied ]);
     }
 
     p->FtCt = gsl_matrix_alloc(N_KAL, N_KAL);
+    p->Q = gsl_matrix_calloc(N_KAL, N_KAL);
     p->Ft = gsl_matrix_calloc(N_KAL, N_KAL);
 
 
@@ -101,7 +102,7 @@ int func_kal(double t, const double X[], double f[], void *params)
     struct s_kalman_specific_data *p_kalman_specific_data = (struct s_kalman_specific_data *) p_calc->method_specific_thread_safe_data;
 
     gsl_matrix *Ft = p_kalman_specific_data->Ft;
-    gsl_matrix *Q = p_calc->Q;
+    gsl_matrix *Q = p_kalman_specific_data->Q;
     struct s_group ***compo_groups_drift_par_proc = p_kalman_specific_data->compo_groups_drift_par_proc;
     gsl_matrix *FtCt = p_kalman_specific_data->FtCt;
     gsl_matrix_const_view Ct   = gsl_matrix_const_view_array(&X[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE],N_KAL,N_KAL);
@@ -221,7 +222,7 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
 
     {% if is_drift %}
     int d, g;
-    struct s_drift *p_drift =  p_data->p_drift;
+    struct s_drift *drift =  p_data->drift;
     {% endif %}
 
     //the automaticaly generated code may need these variables
@@ -284,7 +285,7 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
     {% for jac_i in jacobian.jac_drift %}
     d = 0;
     {% for jac_ii in jac_i %}
-    for(g=0; g< routers[ p_drift->ind_par_Xdrift_applied[{{ forloop.counter0 }}] ]->n_gp; g++) {
+    for(g=0; g< routers[ drift[{{ forloop.counter0 }}]->ind_par_Xdrift_applied ]->n_gp; g++) {
         for(n_cac=0; n_cac< compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->size; n_cac++) {
             cac = compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->elements[n_cac];
             get_c_ac(cac, &c, &ac);
@@ -308,7 +309,7 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
         for(stream=0; stream < obs2ts[{{ forloop.counter0 }}]->n_stream[ts_unique]; stream++) {
             d = 0;
             {% for jac_ii in jac_i %}
-            for(g=0; g< routers[ p_drift->ind_par_Xdrift_applied[{{ forloop.counter0 }}] ]->n_gp; g++) {
+            for(g=0; g< routers[ drift[{{ forloop.counter0 }}]->ind_par_Xdrift_applied ]->n_gp; g++) {
                 double sum_tmp = 0.0;
                 for(n_cac=0; n_cac< compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->size; n_cac++) {
                     cac = compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->elements[n_cac];
@@ -471,7 +472,7 @@ void eval_diag_Qc(double *diag_Qc, const double *X, struct s_par *p_par, struct 
         int offset = 0;
         for(i=0; i<p_it->length; i++) {
             for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-                diag_Qc[{{ Ls.diag_Qc|length }}*N_CAC + offset] = pow(par[ p_data->p_drift->ind_volatility_Xdrift[i] ][k],2);
+                diag_Qc[{{ Ls.diag_Qc|length }}*N_CAC + offset] = pow(par[ p_data->drift[i]->ind_volatility_Xdrift ][k],2);
                 offset++;
             }
         }

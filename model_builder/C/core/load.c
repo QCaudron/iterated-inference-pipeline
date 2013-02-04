@@ -479,8 +479,7 @@ json_t *load_settings(const char *path)
     N_OBS_INC = fast_get_json_integer(cst, "N_OBS_INC");
     N_OBS_PREV = fast_get_json_integer(cst, "N_OBS_PREV");
 
-    N_DRIFT_PAR_PROC = fast_get_json_integer(cst, "N_DRIFT_PAR_PROC");
-    N_DRIFT_PAR_OBS = fast_get_json_integer(cst, "N_DRIFT_PAR_OBS");
+    N_DRIFT = fast_get_json_integer(cst, "N_DRIFT");
 
     IS_SCHOOL_TERMS = fast_get_json_integer(cst, "IS_SCHOOL_TERMS");
 
@@ -564,7 +563,7 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, enum
     if(noises_off & PLOM_NO_DRIFT){
         struct s_iterator *p_it_drift = p_data->p_it_only_drift;
         for(i=0; i<p_it_drift->length; i++) {
-            int ind_volatility = p_data->p_drift->ind_volatility_Xdrift[i];
+            int ind_volatility = p_data->drift[i]->ind_volatility_Xdrift;
             for(g=0; g< routers[ind_volatility]->n_gp; g++) {
                 gsl_matrix_set(p_best->var, p_it_all->offset[ind_volatility]+g, p_it_all->offset[ind_volatility]+g, 0.0);
             }

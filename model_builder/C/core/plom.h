@@ -60,10 +60,6 @@
     }while(0)
 
 
-#define PLOM_SIZE_PROJ (N_PAR_SV*N_CAC + N_TS_INC_UNIQUE)
-#define PLOM_SIZE_OBS N_TS
-#define PLOM_SIZE_DRIFT (N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS)
-
 enum plom_implementations {PLOM_ODE, PLOM_SDE, PLOM_PSR};
 enum plom_noises_off {PLOM_NO_DEM_STO = 1 << 0, PLOM_NO_ENV_STO = 1 << 1, PLOM_NO_DRIFT = 1 << 2 }; //several noises can be turned off
 
@@ -112,8 +108,7 @@ int N_OBS_ALL;         /**< number of type of observed variables (e.g incidence_
 int N_OBS_INC;         /**< number of incidences */
 int N_OBS_PREV;        /**< number of prevalences */
 
-int N_DRIFT_PAR_PROC;  /**< number of parameter of the process model following a diffusion */
-int N_DRIFT_PAR_OBS;   /**< number of parameter of the observation model following a diffusion */
+int N_DRIFT;           /**< number of parameter following a diffusion */
 
 int IS_SCHOOL_TERMS;   /**< do we need school terms data */
 
@@ -227,11 +222,12 @@ struct s_par /*optional [J] */
  * map the drift state variable to the parameters where the diffusion
  * has to be applied and link to the associated volatilities
  */
-struct s_drift
+struct s_drift //[N_DRIFT]
 {
     /* diffusion */
-    unsigned int *ind_par_Xdrift_applied; /**< [N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS] to which parameters the drift state variable is applied */
-    unsigned int *ind_volatility_Xdrift;  /**< [N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS] index of the volatility of the drift state variable */
+    int ind_par_Xdrift_applied; /**< to which parameters the drift state variable is applied */
+    int ind_volatility_Xdrift;  /**< index of the volatility of the drift state variable */
+    int offset; /**< offset of the drift variable in s_X.proj */
 };
 
 
@@ -257,7 +253,7 @@ struct s_data{
 
     struct s_router **routers;    /**< [ N_PAR_SV + N_PAR_PROC + N_PAR_OBS ] an array of pointers to s_router (one for each parameter) */
 
-    struct s_drift *p_drift;      /**< reference to s_drift */
+    struct s_drift **drift;      /**< reference to s_drift */
 
     struct s_iterator *p_it_all;                         /**< to iterate on every parameters */
     struct s_iterator *p_it_only_drift;                  /**< to iterate on parameters following a diffusion *only* */
@@ -310,9 +306,6 @@ struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get
     double **prob; /*[N_PAR_SV][number of output from the compartment]*/
     unsigned int ***inc; /* [N_PAR_SV][N_CAC][number of destinations] increments vector, we keep N_CAC to be able to compute incidences matching time series that can be a summation of different cities and age classes */
 
-    /* SDE */
-    gsl_matrix *Q; /**< result of L Qc L' : Dispersion matrix of the SDE approximated with by the EKF: dX_t = f(X_t,\theta)dt + L b_t  (b_t is a Browninan motion with diffusion matrix Qc)*/
-
     /* Gillespie */
     //  double **reaction; /*reaction matrix*/
 
@@ -346,9 +339,6 @@ struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get
     struct s_par *p_par;
 
     struct s_data *p_data; /**< ref to s_data (same reason as the ref to s_par) */
-
-    /* thread-safe temporary variables of general usage */
-    double **natural_drifted_safe; /**< complement s_par.natural [p_data->p_drift->N_DRIFT_PAR_PROC + p_data->p_drift->N_DRIFT_PAR_OBS][n_gp for all the drifting parameters] */
 
     /** method specific *thread-safe* data */
     void *method_specific_thread_safe_data;
@@ -430,13 +420,8 @@ struct s_best {
  */
 struct s_X /* optionaly [N_DATA+1][J] for MIF and pMCMC "+1" is for initial condition (one time step before first data)  */
 {
-    int size_proj;   /**< N_PAR_SV*N_CAC + N_TS_INC_UNIQUE */
-    int size_obs;    /**< N_TS */
-    int size_drift;  /**< N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS */
-
     double *proj;    /**< [self.size_proj] x integrated (projected) (ODE, MARKOV...) */
     double *obs;     /**< [self.size_obs] x observed  matching the data (N_TS time series) */
-    double **drift;  /**< [self.size_drift][n_gp for all the drifting parameters] The state variable of the diffusion. */
 };
 
 
@@ -560,7 +545,7 @@ void load_covariance(gsl_matrix *covariance, json_t *array2d);
 json_t *load_settings(const char *path);
 
 /* build.c */
-struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, struct s_drift *p_drift, char *it_type);
+struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, struct s_drift **drift, char *it_type);
 void clean_iterator(struct s_iterator *p_it);
 struct s_router *build_router(const json_t *par, const char *par_key, const json_t *partition, const json_t *order, const char *link_key, const char *u_data, int is_bayesian);
 void clean_router(struct s_router *p_router);
@@ -573,20 +558,20 @@ struct s_par **build_J_p_par(struct s_data *p_data);
 void clean_J_p_par(struct s_par **J_p_par);
 struct s_obs2ts **build_obs2ts(json_t *json_obs2ts);
 void clean_obs2ts(struct s_obs2ts **obs2ts);
-struct s_drift *build_drift(json_t *json_drift);
-void clean_drift(struct s_drift *p_drift);
+struct s_drift **build_drift(json_t *json_drift, struct s_router **routers);
+void clean_drift(struct s_drift **drift);
 struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian);
 void clean_data(struct s_data *p_data);
 
-struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementations implementation, int J, struct s_X *p_X, int size_Q, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
-struct s_calc *build_p_calc(int n_threads, int nt, int seed, enum plom_implementations implementation, struct s_X *p_X, int size_Q, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementations implementation, int J, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc *build_p_calc(int n_threads, int nt, int seed, enum plom_implementations implementation, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
 
 void clean_p_calc(struct s_calc *p_calc, enum plom_implementations implementation);
 void clean_calc(struct s_calc **calc, enum plom_implementations implementation);
 
-struct s_X *build_X(int size_proj, int size_obs, int size_drift, struct s_data *p_data);
-struct s_X **build_J_p_X(int size_proj, int size_obs, int size_drift, struct s_data *p_data);
-struct s_X ***build_D_J_p_X(int size_proj, int size_obs, int size_drift, struct s_data *p_data);
+struct s_X *build_X(int size_proj, int size_obs, struct s_data *p_data);
+struct s_X **build_J_p_X(int size_proj, int size_obs, struct s_data *p_data);
+struct s_X ***build_D_J_p_X(int size_proj, int size_obs, struct s_data *p_data);
 void clean_X(struct s_X *p_X);
 void clean_J_p_X(struct s_X **J_p_X);
 void clean_D_J_p_X(struct s_X ***D_J_p_X);
@@ -672,6 +657,7 @@ void store_state_current_n_nn(struct s_calc **calc, int n, int nn);
 //void store_state_current_m(struct s_calc **calc, int m);
 void sanitize_best_to_prior(struct s_best *p_best, struct s_data *p_data);
 int in_u(int i, unsigned int *tab, int length);
+int in_drift(int i, struct s_drift **drift);
 
 /* transform.c */
 double f_id(double x, double a, double b);
@@ -772,8 +758,7 @@ json_t *load_json(void);
 void print_json_on_stdout(json_t *root);
 
 /* drift.c */
-void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ind_drift_start, int ind_drift_end, double delta_t);
-void drift_par(struct s_calc *p_calc, struct s_data *p_data, struct s_X *p_X, int ind_drift_start, int ind_drift_end);
+void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double delta_t);
 
 /* group.c */
 void get_c_ac(int cac, int *c, int *ac);
