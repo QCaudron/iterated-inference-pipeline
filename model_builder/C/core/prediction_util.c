@@ -126,13 +126,13 @@ void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, enum plom_implementa
 void theta_driftIC2Xdrift(struct s_X *p_X, const theta_t *best_mean, struct s_data *p_data)
 {
     int i, k;
-    struct s_iterator *p_it_only_drift = p_data->p_it_only_drift;
+    struct s_iterator *p_it = p_data->p_it_only_drift;
     struct s_router **routers = p_data->routers;
     struct s_drift **drift = p_data->drift;
 
-    for(i=0; i< p_it_only_drift->length; i++) {
-        for(k=0; k< routers[ p_it_only_drift->ind[i] ]->n_gp; k++) {
-            p_X->proj[drift[i]->offset + k] = gsl_vector_get(best_mean, p_it_only_drift->offset[i] +k );
+    for(i=0; i< p_it->length; i++) {
+        for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
+            p_X->proj[drift[i]->offset + k] = gsl_vector_get(best_mean, p_it->offset[i] +k );
         }
     }
 }
@@ -141,6 +141,27 @@ void theta_driftIC2Xdrift(struct s_X *p_X, const theta_t *best_mean, struct s_da
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //prediction functions of prototype void f_prediction_ode(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+plom_f_pred_t get_f_pred(enum plom_implementations implementation, enum plom_noises_off noises_off)
+{ 
+    if (implementation == PLOM_ODE) {
+	return &f_prediction_ode;
+
+    } else if (implementation == PLOM_SDE){
+	if ( (noises_off & (PLOM_NO_DEM_STO)) && (noises_off & (PLOM_NO_ENV_STO)) )  {
+	    return &f_prediction_sde_no_dem_sto_no_env_sto;
+	}
+
+    } else if (implementation == PLOM_PSR){
+	if(noises_off & PLOM_NO_DRIFT){
+	    return &f_prediction_psr_no_drift;
+	} else {
+	    return &f_prediction_psr;
+	}
+    }
+
+    return NULL;
+}
 
 void f_prediction_ode(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {

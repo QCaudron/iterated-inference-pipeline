@@ -28,12 +28,12 @@ int main(int argc, char *argv[])
     char sfr_help_string[] =
         "Plom Sequential Monte Carlo\n"
         "usage:\n"
-        "smc <implementation> [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "smc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
         "                     [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
         "                     [-t, --no_filter] [-b, --no_best] [-h, --no_hat]\n"
         "                     [-s, --DT <float>] [-l, --LIKE_MIN <float>] [-J <integer>]\n"
         "                     [--help]\n"
-        "where implementation is 'ode', 'sde' or 'psr'\n"
+        "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_env_sto       turn off environmental stochasticity (if any)\n"
@@ -170,9 +170,8 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if(argc != 1) {
-        print_log(sfr_help_string);
-        return 1;
+    if(argc == 0) {
+	implementation = PLOM_PSR;
     } else {
         if (!strcmp(argv[0], "ode")) {
             implementation = PLOM_ODE;
@@ -235,25 +234,7 @@ int main(int argc, char *argv[])
 
     replicate_J_p_X_0(D_J_p_X[0], p_data);
 
-    void (*f_pred) (struct s_X *, double, double, struct s_par *, struct s_data *, struct s_calc *);
-
-    if (implementation == PLOM_ODE) {
-        f_pred = &f_prediction_ode;
-
-    } else if (implementation == PLOM_SDE){
-        if ( (noises_off & (PLOM_NO_DEM_STO)) && (noises_off & (PLOM_NO_ENV_STO)) )  {
-            f_pred = &f_prediction_sde_no_dem_sto_no_env_sto;
-        }
-
-    } else if (implementation == PLOM_PSR){
-        if(noises_off & PLOM_NO_DRIFT){
-            f_pred = &f_prediction_psr_no_drift;
-        } else {
-            f_pred = &f_prediction_psr;
-        }
-    }
-
-    run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, f_pred, filter, p_file_X, p_file_pred_res);
+    run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, get_f_pred(implementation, noises_off), filter, p_file_X, p_file_pred_res);
 
 #if FLAG_VERBOSE
     time_end = s_clock();

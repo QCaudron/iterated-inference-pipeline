@@ -18,7 +18,7 @@
 
 #include "simplex.h"
 
-struct s_simplex *build_simplex(int general_id, int is_bayesian)
+struct s_simplex *build_simplex(enum plom_implementations implementation,  enum plom_noises_off noises_off, int general_id, int is_bayesian)
 {
   struct s_simplex *p_simplex;
   p_simplex = malloc(sizeof(struct s_simplex));
@@ -35,28 +35,29 @@ struct s_simplex *build_simplex(int general_id, int is_bayesian)
   p_simplex->p_data = build_data(settings, theta, is_bayesian); //also build obs2ts
   json_decref(settings);
 
+  int size_proj = N_PAR_SV*N_CAC + p_simplex->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
   p_simplex->p_par = build_par(p_simplex->p_data);
-  p_simplex->p_X = build_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_simplex->p_data);
-  p_simplex->p_best = build_best(p_simplex->p_data, theta, 0);
+  p_simplex->p_X = build_X(size_proj, N_TS, p_simplex->p_data);
+  p_simplex->p_best = build_best(p_simplex->p_data, theta, noises_off, 0);
   json_decref(theta);
 
-  p_simplex->calc = build_calc(general_id, p_simplex->p_X, func, p_simplex->p_data);
-
+  int n_threads = omp_get_max_threads();
+  p_simplex->calc = build_calc(&n_threads, general_id, implementation, 1, size_proj, func, p_simplex->p_data);
   p_simplex->smallest_log_like = get_smallest_log_likelihood(p_simplex->p_data->data_ind);
 
   return p_simplex;
 }
 
 
-void clean_simplex(struct s_simplex *p_simplex)
+void clean_simplex(struct s_simplex *p_simplex, enum plom_implementations implementation)
 {
 
-  clean_calc(p_simplex->calc);
-  clean_X(p_simplex->p_X);
-  clean_best(p_simplex->p_best);
-  clean_par(p_simplex->p_par);
-  clean_data(p_simplex->p_data);
+    clean_calc(p_simplex->calc, implementation);
+    clean_X(p_simplex->p_X);
+    clean_best(p_simplex->p_best);
+    clean_par(p_simplex->p_par);
+    clean_data(p_simplex->p_data);
 
-  FREE(p_simplex);
+    FREE(p_simplex);
 }

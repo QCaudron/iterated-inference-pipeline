@@ -38,6 +38,7 @@ double f_simplex(const gsl_vector *x, void *params)
     back_transform_theta2par(p_par, p_best->mean, p_data->p_it_all, p_data);
     linearize_and_repeat(p_X, p_par, p_data, p_data->p_it_par_sv);
     prop2Xpop_size(p_X, p_data, 0);
+    theta_driftIC2Xdrift(p_X, p_best->mean, p_data);
 
     /* if the initial conditions do not respect the constraint we set
        the log likelihood to the smallest possible value:
@@ -55,7 +56,7 @@ double f_simplex(const gsl_vector *x, void *params)
             for(nn=t0 ; nn<t1 ; nn++) {
                 store_state_current_n_nn(calc, n, nn);
                 reset_inc(p_X, p_data); //reset incidence to 0
-                f_prediction_ode_rk(p_X->proj, nn, (nn+1), p_par, calc[0]);
+		f_prediction_ode(p_X, nn, (nn+1), p_par, p_data, calc[0]);
             }
             proj2obs(p_X, p_data);
 

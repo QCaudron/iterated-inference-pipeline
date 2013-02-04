@@ -28,9 +28,10 @@ int main(int argc, char *argv[])
     char sfr_help_string[] =
         "Plom Simplex\n"
         "usage:\n"
-        "simplex [-p, --path <path>] [-i, --id <integer>]\n"
-        "        [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>] [--prior]\n"
-        "        [--help]\n"
+        "simplex [implementation] [-p, --path <path>] [-i, --id <integer>]\n"
+        "                         [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>] [--prior]\n"
+        "                         [--help]\n"
+        "where implementation is 'ode' (default)\n"
         "options:\n"
         "-s, --least_square   optimize the sum of square instead of the likelihood\n"
         "-p, --path           path where the outputs will be stored\n"
@@ -46,6 +47,8 @@ int main(int argc, char *argv[])
     int M = 10;
     double CONVERGENCE_STOP_SIMPLEX = 1e-6;
 
+    enum plom_implementations implementation;
+    enum plom_noises_off noises_off = PLOM_NO_DEM_STO| PLOM_NO_ENV_STO | PLOM_NO_DRIFT;
 
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
@@ -54,7 +57,6 @@ int main(int argc, char *argv[])
     LOG_LIKE_MIN = log(1e-17);
     OPTION_LEAST_SQUARE = 0;
     OPTION_PRIOR = 0;
-    N_THREADS = 1; //not an option
     int option_no_trace = 0;
 
     while (1) {
@@ -130,15 +132,21 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
+    if(argc == 0) {
+	implementation = PLOM_ODE;
+    } else {
+        if (!strcmp(argv[0], "ode")) {
+            implementation = PLOM_ODE;
+	} else {
+            print_log(sfr_help_string);
+            return 1;
+        }
+    }
+
     sprintf(str, "Starting Plom-simplex with the following options: i = %d, LIKE_MIN = %g, M = %d, CONVERGENCE_STOP_SIMPLEX = %g", GENERAL_ID, LIKE_MIN, M, CONVERGENCE_STOP_SIMPLEX);
     print_log(str);
 
-    struct s_simplex *p_simplex = build_simplex(GENERAL_ID,OPTION_PRIOR);
-
-    if(p_simplex->p_data->p_it_only_drift->length){
-        print_err("simplex cannot be used with models containing diffusions: use ksimplex or mif instead");
-        return 1;
-    }
+    struct s_simplex *p_simplex = build_simplex(implementation, noises_off, GENERAL_ID, OPTION_PRIOR);
 
     transform_theta(p_simplex->p_best, NULL, NULL, p_simplex->p_data, 1, 1);
 
@@ -164,7 +172,7 @@ int main(int argc, char *argv[])
     print_log("clean up...\n");
 #endif
 
-    clean_simplex(p_simplex);
+    clean_simplex(p_simplex, implementation);
 
     return 0;
 
