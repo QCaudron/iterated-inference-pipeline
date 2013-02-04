@@ -85,7 +85,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 #pragma omp parallel for private(thread_id)
                 for(j=0;j<J;j++) {
                     thread_id = omp_get_thread_num();
-                    reset_inc((*J_p_X)[j]);
+                    reset_inc((*J_p_X)[j], p_data);
                     if (COMMAND_DETER) {
                         f_prediction_with_drift_deter((*J_p_X)[j], nn, nnp1, J_p_par[j], p_data, calc[thread_id]);
                     } else {

@@ -142,7 +142,7 @@ void multinomial_sampling(struct s_likelihood *p_like, struct s_calc *p_calc, in
 void resample_X(unsigned int *select, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_data *p_data)
 {
     int k, j;
-    int size_resample_proj = p_data->p_it_par_sv->nbtot + p_data->p_it_only_drift->nbtot;
+    int size_resample_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
 
     //#pragma omp parallel for private(k) //parallelisation is not efficient here
     for(j=0;j<J;j++) {
@@ -241,7 +241,7 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
 #pragma omp parallel for private(thread_id)
             for(j=0;j<J;j++) {
                 thread_id = omp_get_thread_num();
-                reset_inc(D_J_p_X[nnp1][j]);
+                reset_inc(D_J_p_X[nnp1][j], p_data);
                 (*f_pred)(D_J_p_X[nnp1][j], nn, nnp1, p_par, p_data, calc[thread_id]);
                 //round_inc(D_J_p_X[nnp1][j]);
 

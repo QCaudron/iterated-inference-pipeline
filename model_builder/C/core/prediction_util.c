@@ -22,24 +22,26 @@
 /**
  * reset incidences to 0
  */
-void reset_inc(struct s_X *p_X)
+void reset_inc(struct s_X *p_X, struct s_data *p_data)
 {
     double *X = p_X->proj;
+    int offset = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
     int oi;
     for (oi=0; oi<N_TS_INC_UNIQUE; oi++) {
-        X[N_PAR_SV*N_CAC+oi]=0.0; /*incidence*/
+        X[offset + oi]=0.0; /*incidence*/
     }
 }
 
 /**
  * round incidences
  */
-void round_inc(struct s_X *p_X)
+void round_inc(struct s_X *p_X, struct s_data *p_data)
 {
     double *X = p_X->proj;
+    int offset = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
     int oi;
     for (oi=0; oi<N_TS_INC_UNIQUE; oi++) {
-        X[N_PAR_SV*N_CAC+oi]=round(X[N_PAR_SV*N_CAC+oi]); /*incidence*/
+        X[offset + oi]=round(X[offset + oi]); /*incidence*/
     }
 }
 
@@ -173,7 +175,6 @@ void f_prediction_sde_no_dem_sto_no_env_sto(struct s_X *p_X, double t0, double t
         if (N_DRIFT) {
             compute_drift(p_X, p_par, p_data, p_calc, DT);
         }
-
     }
 }
 
@@ -193,7 +194,6 @@ void f_prediction_psr(struct s_X *p_X, double t0, double t1, struct s_par *p_par
         if (N_DRIFT) {
             compute_drift(p_X, p_par, p_data, p_calc, DT);
         }
-
     }
 }
 

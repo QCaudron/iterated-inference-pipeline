@@ -38,6 +38,7 @@ struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, s
         p_it->length = N_PAR_SV + N_PAR_PROC + N_PAR_OBS;
         if (p_it->length) {
             p_it->ind = init1u_set0(p_it->length);
+
             for (i=0; i<p_it->length; i++) {
                 p_it->ind[i] = i;
             }

@@ -222,7 +222,7 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
 
     {% if is_drift %}
     int d, g;
-    struct s_drift *drift =  p_data->drift;
+    struct s_drift **drift =  p_data->drift;
     {% endif %}
 
     //the automaticaly generated code may need these variables

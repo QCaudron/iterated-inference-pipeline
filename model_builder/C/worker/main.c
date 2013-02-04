@@ -82,7 +82,7 @@ void *worker_routine (void *params) {
                 recv_X(p_X, p_data, server_receiver);
 
                 //do the computations..
-                reset_inc(p_X);
+                reset_inc(p_X, p_data);
 
                 if (COMMAND_DETER) {
                     f_prediction_with_drift_deter(p_X, nn, nnp1, p_par, p_data, p_calc);

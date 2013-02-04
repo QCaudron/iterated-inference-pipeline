@@ -611,8 +611,8 @@ void header_hat(FILE *p_file, struct s_data *p_data);
 void header_best(FILE *p_file, struct s_data *p_data);
 
 /*prediction_util.c*/
-void reset_inc(struct s_X *p_X);
-void round_inc(struct s_X *p_X);
+void reset_inc(struct s_X *p_X, struct s_data *p_data);
+void round_inc(struct s_X *p_X, struct s_data *p_data);
 
 double sum_SV(const double *X_proj, int cac);
 double correct_rate(double rate);

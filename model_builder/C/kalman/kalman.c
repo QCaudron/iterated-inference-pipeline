@@ -217,7 +217,7 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
         for(nn=t0; nn<t1; nn++) {
             store_state_current_n_nn(calc, n, nn);
 
-            reset_inc(p_X);	// reset incidence to 0
+            reset_inc(p_X, p_data);	// reset incidence to 0
             reset_inc_cov(&Ct.matrix);	// reset incidence covariance to 0
 
             // propagate X->proj (containing the covariance Ct) if populations not exploding

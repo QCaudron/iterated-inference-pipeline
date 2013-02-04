@@ -54,7 +54,7 @@ double f_simplex(const gsl_vector *x, void *params)
             /*we have to use this subloop to mimate equaly spaced time step and hence set the incidence to 0 every time unit...*/
             for(nn=t0 ; nn<t1 ; nn++) {
                 store_state_current_n_nn(calc, n, nn);
-                reset_inc(p_X); //reset incidence to 0
+                reset_inc(p_X, p_data); //reset incidence to 0
                 f_prediction_ode_rk(p_X->proj, nn, (nn+1), p_par, calc[0]);
             }
             proj2obs(p_X, p_data);
