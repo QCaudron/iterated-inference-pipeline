@@ -21,30 +21,16 @@
 /**
  * run SMC
  */
-void run_propag(
-                struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_new,
-                struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc,
+void run_propag(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_new,
+                struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred,
                 void *sender, void *receiver, void *controller)
 {
 
     if (OPTION_PIPELINE) {
-
-        if (COMMAND_DETER) {
-            run_SMC_zmq(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_prediction_with_drift_deter, JCHUNK, sender, receiver, controller);
-        } else {
-            run_SMC_zmq(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_prediction_with_drift_sto, JCHUNK, sender, receiver, controller);
-        }
-
+	run_SMC_zmq(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_pred, JCHUNK, sender, receiver, controller);
     } else {
-
-        if (COMMAND_DETER) {
-            run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_prediction_with_drift_deter, 1, NULL, NULL);
-        } else {
-            run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_prediction_with_drift_sto, 1, NULL, NULL);
-        }
-
+	run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_pred, 1, NULL, NULL);
     }
-
 }
 
 
@@ -78,7 +64,7 @@ void propose_new_theta_and_load_X0(double *sd_fac,
                                    struct s_best *p_best, struct s_X *p_X,
                                    struct s_par *p_par,
                                    struct s_data *p_data,
-                                   struct s_pmcmc_calc_data *p_pmcmc_calc_data, struct s_calc *p_calc, int m)
+                                   struct s_pmcmc_calc_data *p_pmcmc_calc_data, struct s_calc *p_calc, enum plom_implementations implementation, int m)
 {
     if (OPTION_FULL_UPDATE) {
         //////////////////////
@@ -110,7 +96,7 @@ void propose_new_theta_and_load_X0(double *sd_fac,
         }
 
         // propose p_best->proposed ~ MVN(p_best->mean, p_best->var)
-        propose_safe_theta_and_load_X0(p_best->proposed, p_best, *sd_fac, p_par, p_X, p_data, p_calc, sfr_rmvnorm, COMMAND_STO);
+        propose_safe_theta_and_load_X0(p_best->proposed, p_best, *sd_fac, p_par, p_X, p_data, p_calc, sfr_rmvnorm, implementation);
 
     } else {
 
@@ -134,7 +120,7 @@ void propose_new_theta_and_load_X0(double *sd_fac,
                 gsl_ran_shuffle(p_calc->randgsl, p_best->to_be_estimated, p_best->n_to_be_estimated, sizeof (unsigned int));
             }
         }
-        propose_safe_theta_and_load_X0(p_best->proposed, p_best, 1.0, p_par, p_X, p_data, p_calc, ran_proposal_sequential, COMMAND_STO);
+        propose_safe_theta_and_load_X0(p_best->proposed, p_best, 1.0, p_par, p_X, p_data, p_calc, ran_proposal_sequential, implementation);
     }
 }
 
@@ -160,7 +146,7 @@ void increment_iteration_counters(struct s_pmcmc_calc_data *p_pmcmc_calc_data, s
 }
 
 
-void pMCMC(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_prev, struct s_hat ***D_p_hat_new, struct s_hat **D_p_hat_best, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc)
+void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_prev, struct s_hat ***D_p_hat_new, struct s_hat **D_p_hat_best, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, enum plom_implementations implementation)
 {
 
     //////////////////
@@ -228,14 +214,14 @@ void pMCMC(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     // initialize SMC arguments (particle 0)
     back_transform_theta2par(p_par, p_best->proposed, p_data->p_it_all, p_data);
     linearize_and_repeat(D_J_p_X[0][0], p_par, p_data, p_data->p_it_par_sv);
-    prop2Xpop_size(D_J_p_X[0][0], p_data, COMMAND_STO);
+    prop2Xpop_size(D_J_p_X[0][0], p_data, implementation);
     theta_driftIC2Xdrift(D_J_p_X[0][0], p_best->proposed, p_data);
 
     //load X_0 for the J-1 other particles
     replicate_J_p_X_0(D_J_p_X[0], p_data);
 
     //run SMC
-    run_propag(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat_new, p_like, p_data, calc, sender, receiver, controller);
+    run_propag(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat_new, p_like, p_data, calc, f_pred, sender, receiver, controller);
 
     p_like->Llike_new = p_like->Llike_best;
 
@@ -280,7 +266,7 @@ void pMCMC(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         swap_D_p_hat(D_p_hat_prev, D_p_hat_new);
 
         // generate new theta
-        propose_new_theta_and_load_X0(&sd_fac, p_best, D_J_p_X[0][0], p_par, p_data, p_pmcmc_calc_data, calc[0], m);
+        propose_new_theta_and_load_X0(&sd_fac, p_best, D_J_p_X[0][0], p_par, p_data, p_pmcmc_calc_data, calc[0], implementation, m);
 
         //load X_0 for the J-1 other particles
         replicate_J_p_X_0(D_J_p_X[0], p_data);
@@ -288,7 +274,7 @@ void pMCMC(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         back_transform_theta2par(p_par, p_best->proposed, p_data->p_it_par_proc_par_obs_no_drift, p_data);
 
         //run SMC
-        run_propag(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat_new, p_like, p_data, calc, sender, receiver, controller);
+        run_propag(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat_new, p_like, p_data, calc, f_pred, sender, receiver, controller);
 
         p_like->Llike_new = p_like->Llike_best;
 

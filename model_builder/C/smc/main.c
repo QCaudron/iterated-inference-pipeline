@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
         "-t, --no_filter    do not filter\n"
         "-b, --no_best      do not write best_<general_id>.output file\n"
         "-h, --no_hat       do not write hat_<general_id>.output file\n"
-        "-r, --no_pred_res   do not write pred_res_<general_id>.output file (prediction residuals)\n"
+        "-r, --no_pred_res  do not write pred_res_<general_id>.output file (prediction residuals)\n"
         "-s, --DT           integration time step\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-J                 number of particles\n"
