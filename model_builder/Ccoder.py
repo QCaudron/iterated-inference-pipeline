@@ -20,7 +20,7 @@ import copy
 from Cmodel import Cmodel
 from sympy import diff, Symbol, sympify
 from sympy.printing import ccode
-import itertools
+import copy
 
 class Ccoder(Cmodel):
     """write the C code from the user input coming from the web interface..."""
@@ -98,7 +98,6 @@ class Ccoder(Cmodel):
                             terms[pos_closing_bracket+1] = ''
 
         ind = 0
-
         while (ind < len(terms)):
             if terms[ind].split('__')[0] in self.special_functions:
                 myf = terms[ind].split('__')
@@ -618,9 +617,18 @@ class Ccoder(Cmodel):
     def eval_Q(self):
         """we assume only one noise term per reaction"""
 
+
+
+
+        ####################
+        # create Ls and Qc #
+        ####################
+        
         # Ls: Dispersion matrix of stochastic differential equation as
         # defined is Sarkka 2006 phD.
         # Ls is of size n*s with n == N_PAR_SV and s == number of independent noise terms
+        
+        # Qc diagonal matrix of size s*s. Here we just get the diagonal (diag_Qc)
 
         N_REAC = len(self.proc_model)
         N_PAR_SV = len(self.par_sv)
@@ -677,9 +685,11 @@ class Ccoder(Cmodel):
                     Ls_proc[i][B_sto_ind] += 1
 
             diag_Qc[B_dem_ind] = self.make_C_term(Qc_term + '/' + self.myN, True)
+            #diag_Qc[B_dem_ind] = Qc_term + '/' + self.myN
+
             if is_noise:
                 diag_Qc[B_sto_ind] = 'pow(({0})*({1}), 2)'.format(self.make_C_term(Qc_term, True), sd) #note: we re-multiply by sd as True ensures that noise__ terms are removed from the rate (ODE)
-
+                #diag_Qc[B_sto_ind] = '({0})*({1})'.format(Qc_term, sd)
 
         ######################
         # observed variables #
@@ -719,22 +729,91 @@ class Ccoder(Cmodel):
                                 Ls_obs[i][B_sto_ind] += 1
 
 
-        ##we create 2 version of Ls_obs, Ls_proc, diag_Qc: one with demographic stochasticity and the other without
-        Ls_proc_deter = []
-        Ls_obs_deter = []
-        for x in Ls_proc:
-            Ls_proc_deter.append(x[N_REAC:len(x)])
-        for x in Ls_obs:
-            Ls_obs_deter.append(x[N_REAC:len(x)])
+        def make_Q(Ls, diag_Qc):
+            """
+            computes Q = Ls Qc Ls' #
+            """
 
-        diag_Qc_deter = diag_Qc[N_REAC:len(diag_Qc)]
+            #Ls Qc: (Qc is diagonal)
+            LsQc = [[0]*len(diag_Qc) for x in range(len(Ls))]
+            for i in range(len(LsQc)):
+                for j, x in enumerate(diag_Qc):
+                    if (Ls[i][j] and x):
+                        LsQc[i][j] = {'mul': Ls[i][j], 'term': x}
 
-        #cache special functions
-        sf = self.cache_special_function_C(diag_Qc, prefix='_sf') ##diag_Qc is modifies in place, special fonction are replaced by _sf[cac][ind]
-        sf_deter = self.cache_special_function_C(diag_Qc_deter, prefix='_sf')
+            #Ls' == tLs (transpose of Ls)
+            tLs = zip(*Ls)
 
-        return {'sto': {'Ls_obs': Ls_obs, 'Ls_proc': Ls_proc, 'diag_Qc': diag_Qc, 'sf': sf, 's': len(Ls_proc[0])},
-                'deter': {'Ls_obs': Ls_obs_deter, 'Ls_proc': Ls_proc_deter, 'diag_Qc': diag_Qc_deter, 'sf': sf_deter, 's': len(Ls_proc_deter[0])}}
+            #Q = L Qc tL:
+            Q = [[0]*(len(Ls)) for x in range(len(Ls))]
+
+            for i in range(len(Q)):
+                for j in range(len(Q)):
+                    for k in range(len(tLs)):
+                        if (LsQc[i][k] and tLs[k][j]):                                        
+                            mul = LsQc[i][k]['mul'] * tLs[k][j]
+                            if mul == -1:
+                                term = '-({0})'.format(LsQc[i][k]['term'])
+                            else:
+                                term = LsQc[i][k]['term']
+
+                            if Q[i][j]:
+                                Q[i][j] +=  ' + ' + term
+                            else:
+                                Q[i][j] =  term
+
+
+            #########################################
+            ##convert to format easy to template in C
+            #########################################
+            Q_proc = []
+            Q_obs = []
+
+            for i in range(len(Q)):
+                for j in range(len(Q)):
+                    if Q[i][j]:
+                        if (i < N_PAR_SV) and (j < N_PAR_SV):
+                            Q_proc.append({'i': i, 'j': j, 'rate': Q[i][j]})
+                        else:
+                            Q_obs.append({'i': {'is_obs': False, 'ind': i} if i < N_PAR_SV else {'is_obs': True, 'ind': i-N_PAR_SV},
+                                          'j': {'is_obs': False, 'ind': j} if j < N_PAR_SV else {'is_obs': True, 'ind': j-N_PAR_SV},
+                                          'rate': Q[i][j]})
+
+
+            #################################################
+            ##cache special functions (sinusoidal forcing...)
+            #################################################
+            rates = [x['rate'] for x in Q_proc + Q_obs]
+            sf = self.cache_special_function_C(rates, prefix='_sf[cac]') ##rates is modifies in place, special fonction are replaced by _sf[cac][ind]
+
+            ##echo back the rates with the cached forced fonctions
+            for i, r in enumerate(Q_proc):
+                Q_proc[i]['rate'] = rates[i]
+
+            for i, r in enumerate(Q_obs):
+                Q_obs[i]['rate'] = rates[len(Q_proc)+i]
+
+
+            return {'Q_proc':Q_proc, 'Q_obs':Q_obs, 'sf': sf}
+
+
+        #################################################################################################
+        ##we create 3 versions of Ls and Qc_diag (no_dem_sto, no_env_sto and full (both dem and env sto))
+        #################################################################################################
+        Ls = Ls_proc + Ls_obs
+
+        calc_Q = {'no_dem_sto': {'Ls':[x[N_REAC:len(diag_Qc)] for x in Ls],
+                                 'diag_Qc': diag_Qc[N_REAC:len(diag_Qc)]},
+                  'no_env_sto': {'Ls':[x[0:N_REAC] for x in Ls],
+                                 'diag_Qc': diag_Qc[0:N_REAC]},
+                  'full': {'Ls': Ls, 'diag_Qc': diag_Qc}}
+
+        Q = {}
+        for k, v in calc_Q.iteritems():
+            Q[k] = make_Q(v['Ls'], v['diag_Qc'])
+
+        return Q
+
 
 
 if __name__=="__main__":
@@ -756,19 +835,7 @@ if __name__=="__main__":
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
     Q = model.eval_Q()
 
-    print model.obs_var_def
-
-    print 'Ls_proc'
-    for x in Q['deter']['Ls_proc']:
-        print x
-
-    print 'Ls_obs'
-    for x in Q['deter']['Ls_obs']:
-        print x
-
-    print Q['deter']['diag_Qc']
-
-    model.prepare()
-    model.write_settings()
-    model.code()
-    model.compile()
+##    model.prepare()
+##    model.write_settings()
+##    model.code()
+##    model.compile()
