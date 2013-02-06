@@ -41,7 +41,7 @@ int weight(struct s_likelihood *p_like, int n)
 
     for(j=0;j<J;j++) {
         /*compute first part of weights (non divided by sum likelihood)*/
-        if (p_like->weights[j] <= LIKE_MIN) {
+        if (p_like->weights[j] <= pow(LIKE_MIN, N_TS)) {
             p_like->weights[j] = 0.0;
             nfailure_n += 1;
         } else {
@@ -59,7 +59,7 @@ int weight(struct s_likelihood *p_like, int n)
         sprintf(str,"warning: nfailure = %d, at n=%d we keep all particles and assign equal weights", nfailure_n , n);
         print_warning(str);
 #endif
-        p_like->Llike_best_n = LOG_LIKE_MIN;
+        p_like->Llike_best_n = LOG_LIKE_MIN*N_TS;
 
         double invJ=1.0/ ((double) J);
         for(j=0;j<J;j++) {

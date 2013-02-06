@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
     sprintf(str, "Starting Plom-simplex with the following options: i = %d, LIKE_MIN = %g, M = %d, CONVERGENCE_STOP_SIMPLEX = %g", GENERAL_ID, LIKE_MIN, M, CONVERGENCE_STOP_SIMPLEX);
     print_log(str);
 
-    struct s_simplex *p_simplex = build_simplex(GENERAL_ID,OPTION_PRIOR);
+    struct s_simplex *p_simplex = build_simplex(GENERAL_ID, OPTION_PRIOR);
 
     if(p_simplex->p_data->p_it_only_drift->length){
         print_err("simplex cannot be used with models containing diffusions: use ksimplex or mif instead");

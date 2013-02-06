@@ -53,18 +53,19 @@ double f_inv_logit(double x, double a, double b)
 }
 
 
-
 double f_logit_ab(double x, double a, double b)
 {
-    //sanititize
-    //NOTE that if a and b given in same unit as x, no need to rescale, the logit_ab transform will always have the same value
-    double safe = ( (x) > (ZERO_LOG + a) ) ? x : ZERO_LOG + a;
-    safe = (safe < (a + ONE_LOGIT*(b-a)) ) ? safe :  a + ONE_LOGIT*(b-a);
-
     if (a == b)
         return x; // nothing will happen in the transformed space for x, so no need to transform it
-    else
-        return log((safe-a)/(b-safe));
+    else{
+	double ratio = (x-a)/(b-x);
+	if(ratio < ZERO_LOG){
+	    ratio = ZERO_LOG;
+	} else if(ratio > (1.0/ZERO_LOG)) {
+	    ratio = 1.0/ZERO_LOG;
+	}
+	return log(ratio);
+    }
 }
 
 double f_inv_logit_ab(double x, double a, double b)
