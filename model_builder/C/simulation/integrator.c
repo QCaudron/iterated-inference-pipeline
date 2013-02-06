@@ -20,17 +20,16 @@
 
 int has_failed(double *y)
 {
-    int failed = 0;
     int i;
     for (i=0; i<(N_PAR_SV*N_CAC); i++) {
-        if (isnan(y[i]) || isinf(y[i]) ) {
-            failed = 1;
+        if ( isnan(y[i]) || isinf(y[i]) ) {
+            return 1;
         }
     }
-    return failed;
+    return 0;
 }
 
-int integrator(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par *p_par, double abs_tol, double rel_tol, struct s_calc *p_calc)
+int integrator(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par *p_par, double abs_tol, double rel_tol, struct s_calc *p_calc, struct s_data *p_data)
 {
     /*numerical integration from t0 to t_end, return 0 if success*/
 
@@ -53,7 +52,7 @@ int integrator(struct s_X *p_X, double *y0, double t0, double t_end, struct s_pa
 
     /* tentative of numerical integration (with a precision of abs_tol et rel_tol) */
     while (t < t_end) {
-        reset_inc(p_X);
+        reset_inc(p_X, p_data);
         status = gsl_odeiv2_evolve_apply(p_calc->evolve, p_calc->control, p_calc->step, &(p_calc->sys), &t, t_end, &h, y);
 
         if ( (status != GSL_SUCCESS) ) { //more stringent: || has_failed(y)
@@ -69,14 +68,14 @@ int integrator(struct s_X *p_X, double *y0, double t0, double t_end, struct s_pa
 }
 
 
-int integrate(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par *p_par, double *abs_tol, double *rel_tol, struct s_calc *p_calc)
+int integrate(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par *p_par, double *abs_tol, double *rel_tol, struct s_calc *p_calc, struct s_data *p_data)
 {
     /* recursive function that decreases abs_tol and rel_tol until integration success */
 
     int integration_error=1;
 
     while( integration_error && (*abs_tol>ABS_TOL_MIN) && (*rel_tol>REL_TOL_MIN)  ) {
-        integration_error = integrator(p_X, y0, t0, t_end, p_par,  *abs_tol, *rel_tol, p_calc);
+        integration_error = integrator(p_X, y0, t0, t_end, p_par,  *abs_tol, *rel_tol, p_calc, p_data);
         if(integration_error) {
             *abs_tol /= 10.0;
             *rel_tol /= 10.0;
@@ -88,11 +87,9 @@ int integrate(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par
 
 
 /**
- * Used for bifurcation analysis ONLY.  Diffusion are not taken into
- * account (makes no sense for bifurcations analysis which focus on
- * the attractor...)
+ * Used for bifurcation analysis ONLY.
  */
-double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, enum plom_implementations implementation, enum plom_noises_off noises_off)
 {
     int i, ts, k;
     double **traj_obs = init2d_set0(N_TS, (int) (t_end-t0));
@@ -102,6 +99,8 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
         p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
     }
 
+    plom_f_pred_t f_pred = get_f_pred(implementation, noises_off);
+
     /* initialize with initial conditions and reset incidence */
     for (i=0; i< (N_PAR_SV*N_CAC) ; i++){
         p_X->proj[i]=y0[i];
@@ -109,19 +108,12 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
 
     for (k= (int) t0 ; k< (int) t_end ; k++) {
 
-        //in bif analysis, we don't want effect of variable pop sizes or birth rates so with stick with nn0
         if ( t_transiant <= N_DATA ) {
             p_calc->current_nn= (k < N_DATA_PAR_FIXED) ? k : N_DATA_PAR_FIXED-1;
         }
 
-        reset_inc(p_X);
-
-        if (COMMAND_DETER) {
-            f_prediction_ode_rk(p_X->proj, k, k+1, p_par, p_calc);
-        } else {
-            f_prediction_euler_multinomial(p_X->proj, k, k+1, p_par, p_data, p_calc);
-        }
-
+        reset_inc(p_X, p_data);
+	f_pred(p_X, k, k+1, p_par, p_data, p_calc);
         proj2obs(p_X, p_data);
 
         for (ts=0; ts<N_TS; ts++) {
@@ -141,8 +133,7 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
 }
 
 
-
-void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc)
+void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, enum plom_implementations implementation, enum plom_noises_off noises_off)
 {
     int j, k, nn;
     int thread_id;
@@ -155,10 +146,12 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
 
     struct s_hat *p_hat = build_hat(p_data);
 
-    //if deter, only the first particle was used to skip the transiant
-    if (COMMAND_DETER && (t_transiant > 0.0) ) {
+    //if ODE, only the first particle was used to skip the transiant
+    if ( (implementation == PLOM_ODE) && (t_transiant > 0.0) ) {
         replicate_J_p_X_0(J_p_X, p_data);
     }
+
+    plom_f_pred_t f_pred = get_f_pred(implementation, noises_off);
 
     for (k= (int) t0 ; k< (int) t_end ; k++) {
 
@@ -170,7 +163,6 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
         }
 #endif
 
-        //in bif analysis, we don't want effect of variable pop sizes or birth rates so with stick with nn0
         if ( t_transiant <= N_DATA ) {
             nn= (k < N_DATA_PAR_FIXED) ? k : N_DATA_PAR_FIXED-1;
             store_state_current_n_nn(calc, nn, nn);
@@ -179,19 +171,10 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
 #pragma omp parallel for private(thread_id)
         for(j=0;j<J;j++) {
             thread_id = omp_get_thread_num();
-            reset_inc(J_p_X[j]);
+            reset_inc(J_p_X[j], p_data);
 
-            if (COMMAND_DETER) {
-                f_prediction_with_drift_deter(J_p_X[j], k, k+1, p_par, p_data, calc[thread_id]);
-            } else {
-                f_prediction_with_drift_sto(J_p_X[j], k, k+1, p_par, p_data, calc[thread_id]);
-            }
-
+	    f_pred(J_p_X[j], k, k+1, p_par, p_data, calc[thread_id]);
             proj2obs(J_p_X[j], p_data);
-
-            if(N_DRIFT_PAR_OBS) {
-                compute_drift(J_p_X[j], p_par, p_data, calc[thread_id], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS, 1.0);
-            }
         }
 
         compute_hat_nn(J_p_X, p_par, p_data, calc, p_hat);

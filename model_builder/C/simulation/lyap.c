@@ -41,15 +41,18 @@ void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0,
     double y[N_PAR_SV*N_CAC*(N_PAR_SV*N_CAC+1)];
 
     //we start from y0 (on the attractor)
-    for(i=0; i<(N_PAR_SV*N_CAC); i++)
+    for(i=0; i<(N_PAR_SV*N_CAC); i++){
         y[i]=y0[i];
+    }
 
     //linear system is initialized by identity matrix
-    for(i=(N_PAR_SV*N_CAC); i<(N_PAR_SV*N_CAC*(N_PAR_SV*N_CAC+1)); i++)
+    for(i=(N_PAR_SV*N_CAC); i<(N_PAR_SV*N_CAC*(N_PAR_SV*N_CAC+1)); i++){
         y[i]=0.0;
-
-    for(i=1;i<=(N_PAR_SV*N_CAC);i++)
+    }
+    for(i=1;i<=(N_PAR_SV*N_CAC);i++){
         y[i*((N_PAR_SV*N_CAC)+1)-1]=1.0;
+    }
+
 
     while (t < t1){
         gsl_odeiv2_evolve_apply (evolve_lyap, control_lyap, step_lyap, &sys_lyap, &t, t1, &h, y);

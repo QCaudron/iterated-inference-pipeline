@@ -33,9 +33,8 @@
 
 void ensure_cst_pop_size(struct s_data *p_data)
 {
-    int nn, cac;
-
     {% if 'mu_b' in order.data and 'mu_d' in order.data %}
+    int nn, cac; 
     print_warning("variable birth and death rate (mu_b and mu_d) detected in covariates. mu_d have been set to mu_b to ensure a constant population size to analyze the attractor");
 
     for (nn=0; nn < N_DATA_PAR_FIXED; nn++) {
@@ -45,7 +44,6 @@ void ensure_cst_pop_size(struct s_data *p_data)
     }
     {% endif %}
 }
-
 
 int func_lyap (double t, const double X[], double f[], void *params)
 {
