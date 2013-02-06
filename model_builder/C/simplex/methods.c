@@ -22,7 +22,7 @@ double f_simplex(const gsl_vector *x, void *params)
 {
     /* function to **minimize** */
     int n, nn;
-    double log_like_tmp, fitness;
+    double fitness;
     int t0, t1;
 
     /* syntax shortcuts */
@@ -63,8 +63,7 @@ double f_simplex(const gsl_vector *x, void *params)
             if (OPTION_LEAST_SQUARE) {
                 fitness += get_sum_square(p_X, p_par, p_data, calc[0]);
             } else {
-                log_like_tmp = get_log_likelihood(p_X, p_par, p_data, calc[0]);
-                fitness += (log_like_tmp>=LOG_LIKE_MIN) ? log_like_tmp : LOG_LIKE_MIN;
+                fitness += get_log_likelihood(p_X, p_par, p_data, calc[0]);
             }
 
             t0=t1;
