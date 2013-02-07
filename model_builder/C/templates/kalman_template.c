@@ -429,6 +429,30 @@ void eval_Q{% if noises_off != 'full' %}_{{ noises_off }}{% endif %}(gsl_matrix 
       find the common cac in between x.i.ind and x.j.ind
     */
 
+    {% if x.i.ind == x.j.ind %}
+
+    ts=0;
+    p_obs2ts = obs2ts[{{ x.i.ind }}];
+
+    for(ts_unique=0; ts_unique < p_obs2ts->n_ts_unique; ts_unique++) {
+        for(stream=0; stream < p_obs2ts->n_stream[ts_unique]; stream++) {
+
+	    i = N_PAR_SV*N_CAC + p_obs2ts->offset + ts;
+	    j = i;
+
+	    //we determine the cac in common between the 2 ts (indexed i and j in Q)
+	    for(n_cac=0; n_cac< p_obs2ts->n_cac[ts_unique]; n_cac++) {
+		cac = p_obs2ts->cac[ts_unique][n_cac][0]*N_AC + p_obs2ts->cac[ts_unique][n_cac][1];
+		//x.rate is a function of cac
+		term = {{ x.rate|safe }};
+		gsl_matrix_set(Q, i, j, term + gsl_matrix_get(Q, i, j));
+	    }
+            ts++;
+	}
+    }
+
+    {% else %}
+
     ts=0;
     p_obs2ts = obs2ts[{{ x.i.ind }}];
     p_obs2ts_j = obs2ts[{{ x.j.ind }}];
@@ -465,6 +489,10 @@ void eval_Q{% if noises_off != 'full' %}_{{ noises_off }}{% endif %}(gsl_matrix 
             ts++;
         }
     }
+
+
+
+    {% endif %}
 
     {% endif %}
 
