@@ -797,9 +797,9 @@ class Ccoder(Cmodel):
             return {'Q_proc':Q_proc, 'Q_obs':Q_obs, 'sf': sf}
 
 
-        #################################################################################################
-        ##we create 3 versions of Ls and Qc_diag (no_dem_sto, no_env_sto and full (both dem and env sto))
-        #################################################################################################
+        ################################################################################################
+        ##we create 4 versions of Ls and Qc_diag (no_dem_sto, no_env_sto, no_dem_sto_no_env_sto and full
+        ################################################################################################
         Ls = Ls_proc + Ls_obs
 
         calc_Q = {'no_dem_sto': {'Ls':[x[N_REAC:len(diag_Qc)] for x in Ls],
@@ -811,7 +811,9 @@ class Ccoder(Cmodel):
         Q = {}
         for k, v in calc_Q.iteritems():
             Q[k] = make_Q(v['Ls'], v['diag_Qc'])
-
+        
+        Q['no_dem_sto_no_env_sto'] = {'Q_proc':[], 'Q_obs':[], 'sf': []}
+        
         return Q
 
 

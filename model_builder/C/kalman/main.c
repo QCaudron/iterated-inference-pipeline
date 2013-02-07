@@ -26,10 +26,11 @@ int main(int argc, char *argv[])
     char sfr_help_string[] =
         "Plom Kalman\n"
         "usage:\n"
-        "kalman <command> [--traj] [-p, --path <path>] [-i, --id <integer>]\n"
-        "                 [-b, --no_best] [-s, --DT <float>]  [--prior] [--transf]\n"
-        "                 [--help]\n"
-        "where command is 'deter' or 'sto'\n"
+        "kalman [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "                        [--traj] [-p, --path <path>] [-i, --id <integer>]\n"
+        "                        [-b, --no_best] [-s, --DT <float>]  [--prior] [--transf]\n"
+        "                        [--help]\n"
+        "where implementation is 'sde' (default)\n"
         "options:\n"
         "--traj             print the trajectories\n"
         "--prior            add log(prior) to the estimated loglik\n"
@@ -56,14 +57,19 @@ int main(int argc, char *argv[])
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
 
-    // commands
-    COMMAND_DETER = 0;
-    COMMAND_STO = 0;
-
-    N_THREADS = 1; //not an option
+    int n_threads = 1;
     J = 1; //not an option, needed for print_X
 
+
+    enum plom_implementations implementation;
+    enum plom_noises_off noises_off = 0;
+
+
     static struct option long_options[] = {
+	{"no_dem_sto", no_argument,       0, 'x'},
+	{"no_env_sto", no_argument,       0, 'y'},
+	{"no_drift",   no_argument,       0, 'z'},
+
         {"help",       no_argument,       0, 'e'},
         {"path",       required_argument, 0, 'p'},
         {"id",         required_argument, 0, 'i'},
@@ -84,6 +90,16 @@ int main(int argc, char *argv[])
     while ((ch = getopt_long (argc, argv, "i:l:s:p:b", long_options, &option_index)) != -1) {
         switch (ch) {
         case 0:
+            break;
+
+        case 'x':
+            noises_off = noises_off | PLOM_NO_DEM_STO;
+            break;
+        case 'y':
+            noises_off = noises_off | PLOM_NO_ENV_STO;
+            break;
+        case 'z':
+            noises_off = noises_off | PLOM_NO_DRIFT;
             break;
 
         case 'e':
@@ -121,15 +137,12 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if(argc != 1) {
-        print_log(sfr_help_string);
-        return 1;
-    }
-    else {
-        if (!strcmp(argv[0], "deter")) {
-            COMMAND_DETER = 1;
-        } else if (!strcmp(argv[0], "sto")) {
-            COMMAND_STO = 1;
+
+    if(argc == 0) {
+	implementation = PLOM_ODE; //with Kalman the SDE uses f_pred of PLOM_ODE (OK will do better)...
+    } else {
+        if (!strcmp(argv[0], "sde")) {
+            implementation = PLOM_ODE;
         } else {
             print_log(sfr_help_string);
             return 1;
@@ -147,19 +160,13 @@ int main(int argc, char *argv[])
     DELTA_STO = round(1.0/DT);
     DT = 1.0/ ((double) DELTA_STO);
 
+#if FLAG_VERBOSE
     snprintf(str, STR_BUFFSIZE, "Starting Plom Kalman with the following options: i = %d, LIKE_MIN = %g DT = %g DELTA_STO = %g", GENERAL_ID, LIKE_MIN, DT, DELTA_STO );
     print_log(str);
-
-#if FLAG_VERBOSE
-    print_log("memory allocation and inputs loading...\n");
 #endif
 
-    struct s_kalman *p_kalman = build_kalman(settings, OPTION_PRIOR, 0);
+    struct s_kalman *p_kalman = build_kalman(settings, implementation,  noises_off, &n_threads, OPTION_PRIOR, 0);
     json_decref(settings);
-
-#if FLAG_VERBOSE
-    print_log("starting computations...\n");
-#endif
 
     transform_theta(p_kalman->p_best, NULL, NULL, p_kalman->p_data, 1, 1);
 
@@ -170,7 +177,7 @@ int main(int argc, char *argv[])
 
     back_transform_theta2par(p_kalman->p_par, p_kalman->p_best->mean, p_kalman->p_data->p_it_all, p_kalman->p_data);
     linearize_and_repeat(p_kalman->p_X, p_kalman->p_par, p_kalman->p_data, p_kalman->p_data->p_it_par_sv);
-    prop2Xpop_size(p_kalman->p_X, p_kalman->p_data, COMMAND_STO);
+    prop2Xpop_size(p_kalman->p_X, p_kalman->p_data, implementation);
     theta_driftIC2Xdrift(p_kalman->p_X, p_kalman->p_best->mean, p_kalman->p_data);
 
     FILE *p_file_X = NULL;
@@ -178,7 +185,7 @@ int main(int argc, char *argv[])
         p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_kalman->p_data);
     }
 
-    double log_like = run_kalman(p_kalman->p_X, p_kalman->p_best, p_kalman->p_par, p_kalman->p_kal, p_kalman->p_data, p_kalman->calc, p_file_X, 0);
+    double log_like = run_kalman(p_kalman->p_X, p_kalman->p_best, p_kalman->p_par, p_kalman->p_kal, p_kalman->p_data, p_kalman->calc, get_f_pred(implementation, noises_off), p_file_X, 0);
 
     if (OPTION_TRAJ) {
         sfr_fclose(p_file_X);
@@ -202,7 +209,7 @@ int main(int argc, char *argv[])
     print_log("clean up...\n");
 #endif
 
-    clean_kalman(p_kalman);
+    clean_kalman(p_kalman, implementation, n_threads);
 
     return 0;
 }
