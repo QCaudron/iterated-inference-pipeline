@@ -324,7 +324,6 @@ void eval_Q{% if noises_off != 'full' %}_{{ noises_off }}{% endif %}(gsl_matrix 
     // reset Q
     gsl_matrix_set_zero(Q);
 
-
     ////////////////
     // drift term //
     ////////////////
@@ -453,7 +452,7 @@ void eval_Q{% if noises_off != 'full' %}_{{ noises_off }}{% endif %}(gsl_matrix 
 
                             if(cac == cac_j){
                                 //x.rate is a function of cac
-                                term = {{ x.sign}} pow({{ x.rate|safe }}, 2);
+                                term = {{ x.rate|safe }};
                                 gsl_matrix_set(Q, i, j, term + gsl_matrix_get(Q, i, j));
                             }
                         }

@@ -617,9 +617,6 @@ class Ccoder(Cmodel):
     def eval_Q(self):
         """we assume only one noise term per reaction"""
 
-
-
-
         ####################
         # create Ls and Qc #
         ####################
@@ -689,7 +686,6 @@ class Ccoder(Cmodel):
 
             if is_noise:
                 diag_Qc[B_sto_ind] = 'pow(({0})*({1}), 2)'.format(self.make_C_term(Qc_term, True), sd) #note: we re-multiply by sd as True ensures that noise__ terms are removed from the rate (ODE)
-                #diag_Qc[B_sto_ind] = '({0})*({1})'.format(Qc_term, sd)
 
         ######################
         # observed variables #
