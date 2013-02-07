@@ -614,18 +614,19 @@ class Ccoder(Cmodel):
         return self.make_C_term(self.obs_model['mean'], is_ode=True, derivate='x')
 
 
-    def eval_Q(self):
-        """we assume only one noise term per reaction"""
 
-        ####################
-        # create Ls and Qc #
-        ####################
+    def eval_Q(self):
+        """
+        create Ls and Qc
         
-        # Ls: Dispersion matrix of stochastic differential equation as
-        # defined is Sarkka 2006 phD.
-        # Ls is of size n*s with n == N_PAR_SV and s == number of independent noise terms
+        Ls: Dispersion matrix of stochastic differential equation as
+        defined is Sarkka 2006 phD.
+        Ls is of size n*s with n == N_PAR_SV and s == number of independent noise terms
         
-        # Qc diagonal matrix of size s*s. Here we just get the diagonal (diag_Qc)
+        Qc diagonal matrix of size s*s. Here we just get the diagonal (diag_Qc)
+
+        Note: we assume only one noise term per reaction
+        """
 
         N_REAC = len(self.proc_model)
         N_PAR_SV = len(self.par_sv)
@@ -682,10 +683,9 @@ class Ccoder(Cmodel):
                     Ls_proc[i][B_sto_ind] += 1
 
             diag_Qc[B_dem_ind] = self.make_C_term(Qc_term + '/' + self.myN, True)
-            #diag_Qc[B_dem_ind] = Qc_term + '/' + self.myN
-
             if is_noise:
                 diag_Qc[B_sto_ind] = 'pow(({0})*({1}), 2)'.format(self.make_C_term(Qc_term, True), sd) #note: we re-multiply by sd as True ensures that noise__ terms are removed from the rate (ODE)
+
 
         ######################
         # observed variables #
@@ -725,92 +725,32 @@ class Ccoder(Cmodel):
                                 Ls_obs[i][B_sto_ind] += 1
 
 
-        def make_Q(Ls, diag_Qc):
-            """
-            computes Q = Ls Qc Ls' #
-            """
-
-            #Ls Qc: (Qc is diagonal)
-            LsQc = [[0]*len(diag_Qc) for x in range(len(Ls))]
-            for i in range(len(LsQc)):
-                for j, x in enumerate(diag_Qc):
-                    if (Ls[i][j] and x):
-                        LsQc[i][j] = {'mul': Ls[i][j], 'term': x}
-
-            #Ls' == tLs (transpose of Ls)
-            tLs = zip(*Ls)
-
-            #Q = L Qc tL:
-            Q = [[0]*(len(Ls)) for x in range(len(Ls))]
-
-            for i in range(len(Q)):
-                for j in range(len(Q)):
-                    for k in range(len(tLs)):
-                        if (LsQc[i][k] and tLs[k][j]):                                        
-                            mul = LsQc[i][k]['mul'] * tLs[k][j]
-                            if mul == -1:
-                                term = '-({0})'.format(LsQc[i][k]['term'])
-                            else:
-                                term = LsQc[i][k]['term']
-
-                            if Q[i][j]:
-                                Q[i][j] +=  ' + ' + term
-                            else:
-                                Q[i][j] =  term
-
-
-            #########################################
-            ##convert to format easy to template in C
-            #########################################
-            Q_proc = []
-            Q_obs = []
-
-            for i in range(len(Q)):
-                for j in range(len(Q)):
-                    if Q[i][j]:
-                        if (i < N_PAR_SV) and (j < N_PAR_SV):
-                            Q_proc.append({'i': i, 'j': j, 'rate': Q[i][j]})
-                        else:
-                            Q_obs.append({'i': {'is_obs': False, 'ind': i} if i < N_PAR_SV else {'is_obs': True, 'ind': i-N_PAR_SV},
-                                          'j': {'is_obs': False, 'ind': j} if j < N_PAR_SV else {'is_obs': True, 'ind': j-N_PAR_SV},
-                                          'rate': Q[i][j]})
-
-
-            #################################################
-            ##cache special functions (sinusoidal forcing...)
-            #################################################
-            rates = [x['rate'] for x in Q_proc + Q_obs]
-            sf = self.cache_special_function_C(rates, prefix='_sf[cac]') ##rates is modifies in place, special fonction are replaced by _sf[cac][ind]
-
-            ##echo back the rates with the cached forced fonctions
-            for i, r in enumerate(Q_proc):
-                Q_proc[i]['rate'] = rates[i]
-
-            for i, r in enumerate(Q_obs):
-                Q_obs[i]['rate'] = rates[len(Q_proc)+i]
-
-
-            return {'Q_proc':Q_proc, 'Q_obs':Q_obs, 'sf': sf}
 
 
         ################################################################################################
         ##we create 4 versions of Ls and Qc_diag (no_dem_sto, no_env_sto, no_dem_sto_no_env_sto and full
         ################################################################################################
-        Ls = Ls_proc + Ls_obs
 
-        calc_Q = {'no_dem_sto': {'Ls':[x[N_REAC:len(diag_Qc)] for x in Ls],
+        calc_Q = {'no_dem_sto': {'Ls_proc':[x[N_REAC:len(diag_Qc)] for x in Ls_proc],
+                                 'Ls_obs':[x[N_REAC:len(diag_Qc)] for x in Ls_obs],
                                  'diag_Qc': diag_Qc[N_REAC:len(diag_Qc)]},
-                  'no_env_sto': {'Ls':[x[0:N_REAC] for x in Ls],
+                  'no_env_sto': {'Ls_proc':[x[0:N_REAC] for x in Ls_proc],
+                                 'Ls_obs':[x[0:N_REAC] for x in Ls_obs],
                                  'diag_Qc': diag_Qc[0:N_REAC]},
-                  'full': {'Ls': Ls, 'diag_Qc': diag_Qc}}
+                  'full': {'Ls_proc': Ls_proc,
+                           'Ls_obs': Ls_obs,
+                           'diag_Qc': diag_Qc},
+                  'no_dem_sto_no_env_sto': {'Ls_proc': [],
+                                            'Ls_obs': [],
+                                            'diag_Qc': []}}
 
-        Q = {}
-        for k, v in calc_Q.iteritems():
-            Q[k] = make_Q(v['Ls'], v['diag_Qc'])
-        
-        Q['no_dem_sto_no_env_sto'] = {'Q_proc':[], 'Q_obs':[], 'sf': []}
-        
-        return Q
+        ##cache special functions
+        for key in calc_Q:
+            calc_Q[key]['s'] = len(calc_Q[key]['diag_Qc'])
+            calc_Q[key]['sf'] = self.cache_special_function_C(calc_Q[key]['diag_Qc'], prefix='_sf')
+            
+        return calc_Q
+
 
 
 

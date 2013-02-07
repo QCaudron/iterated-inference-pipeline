@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
         p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_kalman->p_data);
     }
 
-    double log_like = run_kalman(p_kalman->p_X, p_kalman->p_best, p_kalman->p_par, p_kalman->p_kal, p_kalman->p_data, p_kalman->calc, get_f_pred(implementation, noises_off), p_file_X, 0);
+    double log_like = run_kalman(p_kalman->p_X, p_kalman->p_best, p_kalman->p_par, p_kalman->p_kalman_update, p_kalman->p_data, p_kalman->calc, get_f_pred(implementation, noises_off), p_file_X, 0);
 
     if (OPTION_TRAJ) {
         sfr_fclose(p_file_X);

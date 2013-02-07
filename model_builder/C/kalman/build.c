@@ -18,49 +18,6 @@
 
 #include "kalman.h"
 
-struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data, enum plom_implementations implementation,  enum plom_noises_off noises_off)
-{
-    int i;
-
-    struct s_kalman_specific_data *p;
-    p = malloc(sizeof(struct s_kalman_specific_data));
-    if(p==NULL){
-        char str[STR_BUFFSIZE];
-        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
-        print_err(str);
-        exit(EXIT_FAILURE);
-    }
-
-    //compo_groups_drift_par_proc
-    p->compo_groups_drift_par_proc = malloc(N_DRIFT* sizeof (struct s_group **));
-    if(p->compo_groups_drift_par_proc==NULL) {
-        char str[STR_BUFFSIZE];
-        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
-        print_err(str);
-        exit(EXIT_FAILURE);
-    }
-    for(i=0; i<N_DRIFT; i++) {
-        p->compo_groups_drift_par_proc[i] = get_groups_compo(p_data->routers[ p_data->drift[i]->ind_par_Xdrift_applied ]);
-    }
-
-    p->Ft = gsl_matrix_calloc(N_KAL, N_KAL);
-    p->FtCt = gsl_matrix_alloc(N_KAL, N_KAL);
-    p->Q = gsl_matrix_calloc(N_KAL, N_KAL);
-
-    if ( (noises_off & (PLOM_NO_DEM_STO)) && (noises_off & (PLOM_NO_ENV_STO)) )  {
-	p->eval_Q = &eval_Q_no_dem_sto_no_env_sto;
-    } else if ((noises_off & PLOM_NO_DEM_STO) && !(noises_off & PLOM_NO_ENV_STO)) {
-	p->eval_Q = &eval_Q_no_dem_sto;	
-    } else if (!(noises_off & PLOM_NO_DEM_STO) && (noises_off & PLOM_NO_ENV_STO)) {
-	p->eval_Q = &eval_Q_no_env_sto;	
-    } else {
-	p->eval_Q = &eval_Q;	
-    }
-
-    return p;
-}
-
-
 void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data)
 {
     int i;
@@ -80,35 +37,36 @@ void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data)
     FREE(p);
 }
 
-struct s_kal *build_kal(int n_kal)
+
+struct s_kalman_update *build_kalman_update(int n_kal)
 {
-    struct s_kal *p_kal;
-    p_kal = malloc(sizeof(struct s_kal));
-    if(p_kal==NULL) {
+    struct s_kalman_update *p;
+    p = malloc(sizeof(struct s_kalman_update));
+    if(p==NULL) {
         char str[STR_BUFFSIZE];
         sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
 
-    p_kal->xk = gsl_vector_calloc(n_kal);
-    p_kal->kt = gsl_vector_calloc(n_kal);
-    p_kal->ht = gsl_vector_calloc(n_kal);
+    p->xk = gsl_vector_calloc(n_kal);
+    p->kt = gsl_vector_calloc(n_kal);
+    p->ht = gsl_vector_calloc(n_kal);
 
-    p_kal->sc_st = 0.0;
-    p_kal->sc_pred_error = 0.0;
-    p_kal->sc_rt = 0.0;
+    p->sc_st = 0.0;
+    p->sc_pred_error = 0.0;
+    p->sc_rt = 0.0;
 
-    return p_kal;
+    return p;
 }
 
-void clean_kal(struct s_kal *p_kal)
+void clean_kalman_update(struct s_kalman_update *p)
 {
-    gsl_vector_free(p_kal->xk);
-    gsl_vector_free(p_kal->kt);
-    gsl_vector_free(p_kal->ht);
+    gsl_vector_free(p->xk);
+    gsl_vector_free(p->kt);
+    gsl_vector_free(p->ht);
 
-    FREE(p_kal);
+    FREE(p);
 }
 
 
@@ -139,7 +97,7 @@ struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implem
     p_kalman->p_par = build_par(p_kalman->p_data);
 
     p_kalman->smallest_log_like = get_smallest_log_likelihood(p_kalman->p_data->data_ind);
-    p_kalman->p_kal = build_kal(N_KAL);
+    p_kalman->p_kalman_update = build_kalman_update(N_KAL);
 
     for(nt=0; nt< *n_threads; nt++) {
         p_kalman->calc[nt]->method_specific_thread_safe_data = build_kalman_specific_data(p_kalman->p_data, implementation, noises_off);
@@ -156,7 +114,7 @@ void clean_kalman(struct s_kalman *p_kalman, enum plom_implementations implement
     clean_X(p_kalman->p_X);
     clean_best(p_kalman->p_best);
     clean_par(p_kalman->p_par);
-    clean_kal(p_kalman->p_kal);
+    clean_kalman_update(p_kalman->p_kalman_update);
 
     for(nt=0; nt< n_threads; nt++) {
         clean_kalman_specific_data(p_kalman->calc[nt], p_kalman->p_data);

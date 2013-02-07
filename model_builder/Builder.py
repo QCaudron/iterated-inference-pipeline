@@ -203,7 +203,7 @@ class PlomModelBuilder(Context, Ccoder):
         c = DjangoContext({'order':order,
                            'jacobian':jac,
                            'jac_proc_obs':self.jac_proc_obs(),
-                           'all_Q': self.eval_Q(),
+                           'calc_Q': self.eval_Q(),
                            'is_drift': is_drift,
                            'print_ode': ode})
         f = open(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_tpl.c'),'w')
