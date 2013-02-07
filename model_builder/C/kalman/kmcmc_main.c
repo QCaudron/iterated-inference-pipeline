@@ -25,14 +25,18 @@ int main(int argc, char *argv[])
 
     /* set default values for the options */
     char sfr_help_string[] =
-        "Plom KMCMC\n"
+        "PloM kmcmc\n"
         "usage:\n"
-        "kmcmc <command> [--full] [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
-        "                [-s, --DT <float>] [-l, --LIKE_MIN <float>] [-M, --iter <integer>]\n"
-        "                [-c --cov] [-a --cooling <float>] [-S --switch <int>]\n"
-        "                [--help]\n"
-        "where command is 'deter' or 'sto'\n"
+        "kmcmc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "                       [--full] [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
+        "                       [-s, --DT <float>] [-l, --LIKE_MIN <float>] [-M, --iter <integer>]\n"
+        "                       [-c --cov] [-a --cooling <float>] [-S --switch <int>]\n"
+        "                       [--help]\n"
+        "where implementation is 'sde' (default)\n"
         "options:\n"
+        "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
+        "--no_env_sto       turn off environmental stochasticity (if any)\n"
+        "--no_drift         turn off drift (if any)\n"
         "--full             full update MVN mode\n"
         "--traj             print the trajectories\n"
         "-c, --cov          load an initial covariance from the settings\n"
@@ -61,12 +65,15 @@ int main(int argc, char *argv[])
     OPTION_FULL_UPDATE = 0;
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
-    COMMAND_DETER = 0;
-    COMMAND_STO = 0;
     OPTION_TRAJ = 0;
 
-    N_THREADS = 1;   //not an option
-    J = 1;           //not an option, needed for print_X
+    int n_threads = 1;
+    J = 1; //not an option, needed for print_X
+
+
+    enum plom_implementations implementation;
+    enum plom_noises_off noises_off = 0;
+
 
     while (1) {
         static struct option long_options[] =
@@ -77,8 +84,13 @@ int main(int argc, char *argv[])
                 {"prior",       no_argument, &OPTION_PRIOR,       1},
                 {"transf",      no_argument, &OPTION_TRANSF,      1},
 
-                {"cov",         no_argument, 0, 'c'},
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
+		{"no_dem_sto", no_argument,       0, 'x'},
+		{"no_env_sto", no_argument,       0, 'y'},
+		{"no_drift",   no_argument,       0, 'z'},
+
+                {"cov",         no_argument, 0, 'c'},
+
                 {"help",        no_argument,        0, 'e'},
                 {"path",        required_argument,  0, 'p'},
                 {"id",          required_argument,  0, 'i'},
@@ -109,6 +121,16 @@ int main(int argc, char *argv[])
             }
             break;
 
+        case 'x':
+            noises_off = noises_off | PLOM_NO_DEM_STO;
+            break;
+        case 'y':
+            noises_off = noises_off | PLOM_NO_ENV_STO;
+            break;
+        case 'z':
+            noises_off = noises_off | PLOM_NO_DRIFT;
+            break;
+
         case 'e':
             print_log(sfr_help_string);
             return 1;
@@ -120,7 +142,7 @@ int main(int argc, char *argv[])
             snprintf(SFR_PATH, STR_BUFFSIZE, "%s", optarg);
             break;
         case 'P':
-            N_THREADS = atoi(optarg);
+            n_threads = atoi(optarg);
             break;
         case 'i':
             GENERAL_ID = atoi(optarg);
@@ -156,15 +178,12 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if(argc != 1) {
-        print_log(sfr_help_string);
-        return 1;
-    }
-    else {
-        if (!strcmp(argv[0], "deter")) {
-            COMMAND_DETER = 1;
-        } else if (!strcmp(argv[0], "sto")) {
-            COMMAND_STO = 1;
+
+    if(argc == 0) {
+	implementation = PLOM_ODE; //with Kalman the SDE uses f_pred of PLOM_ODE (OK will do better)...
+    } else {
+        if (!strcmp(argv[0], "sde")) {
+            implementation = PLOM_ODE;
         } else {
             print_log(sfr_help_string);
             return 1;
@@ -183,8 +202,7 @@ int main(int argc, char *argv[])
     DT = 1.0/ ((double) DELTA_STO);
 
     int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?
-
-    struct s_kalman *p_kalman = build_kalman(settings, 1, update_covariance);
+    struct s_kalman *p_kalman = build_kalman(settings, implementation,  noises_off, &n_threads, 1, update_covariance);
     json_decref(settings);
 
     sanitize_best_to_prior(p_kalman->p_best, p_kalman->p_data);
@@ -197,9 +215,7 @@ int main(int argc, char *argv[])
 
     p_kalman->calc[0]->method_specific_shared_data = p_mcmc_calc_data; //needed to use ran_proposal_sequential in pmcmc
 
-
-
-    kmcmc(p_kalman, p_like, p_mcmc_calc_data);
+    kmcmc(p_kalman, p_like, p_mcmc_calc_data, get_f_pred(implementation, noises_off), implementation);
 
     // print empirical covariance
     if (OPTION_FULL_UPDATE) {
@@ -214,7 +230,7 @@ int main(int argc, char *argv[])
 
     clean_pmcmc_calc_data(p_mcmc_calc_data);
     clean_likelihood(p_like);
-    clean_kalman(p_kalman);
+    clean_kalman(p_kalman, implementation, n_threads);
 
     return 0;
 }

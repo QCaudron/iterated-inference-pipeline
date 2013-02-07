@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
     /* set default values for the options */
 
     char sfr_help_string[] =
-        "Plom Worker\n"
+        "PloM Worker\n"
         "usage:\n"
         "worker [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
         "                        [-i, --id <integer>] [-I, --IPv4 <ip address or DNS>] [-P, --N_THREAD <integer>]\n"

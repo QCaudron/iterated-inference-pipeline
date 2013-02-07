@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     char str[STR_BUFFSIZE];
 
     char sfr_help_string[] =
-        "Plom Kalman\n"
+        "PloM Kalman\n"
         "usage:\n"
         "kalman [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
         "                        [--traj] [-p, --path <path>] [-i, --id <integer>]\n"
@@ -32,6 +32,9 @@ int main(int argc, char *argv[])
         "                        [--help]\n"
         "where implementation is 'sde' (default)\n"
         "options:\n"
+        "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
+        "--no_env_sto       turn off environmental stochasticity (if any)\n"
+        "--no_drift         turn off drift (if any)\n"
         "--traj             print the trajectories\n"
         "--prior            add log(prior) to the estimated loglik\n"
         "--transf           add log(JacobianDeterminant(transf)) to the estimated loglik. (combined to --prior, gives posterior density in transformed space)\n"

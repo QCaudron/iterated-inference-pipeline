@@ -26,13 +26,13 @@ double f_simplex_kalman(const gsl_vector *x, void *params)
 
     back_transform_theta2par(p->p_par, p->p_best->mean, p->p_data->p_it_all, p->p_data);
     linearize_and_repeat(p->p_X, p->p_par, p->p_data, p->p_data->p_it_par_sv);
-    prop2Xpop_size(p->p_X, p->p_data, COMMAND_STO);
+    prop2Xpop_size(p->p_X, p->p_data, PLOM_ODE);
     theta_driftIC2Xdrift(p->p_X, p->p_best->mean, p->p_data);
 
-    double log_lik = run_kalman(p->p_X, p->p_best, p->p_par, p->p_kal, p->p_data, p->calc, NULL, 0);
+    double log_like = run_kalman(p->p_X, p->p_best, p->p_par, p->p_kal, p->p_data, p->calc, f_prediction_ode,  NULL, 0);
 
     // "-": simplex minimizes hence the "-"
-    return - log_lik;
+    return - log_like;
 }
 
 
@@ -44,14 +44,18 @@ int main(int argc, char *argv[])
     char str[STR_BUFFSIZE];
 
     char sfr_help_string[] =
-        "Plom simplex kalman\n"
+        "PloM ksimplex\n"
         "usage:\n"
-        "ksimplex <command> [-p, --path <path>] [-i, --id <integer>]\n"
-        "                   [-s, --DT <float>] [--prior] [--transf]\n"
-        "                   [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>]\n"
-        "                   [--help]\n"
-        "where command is 'deter' or 'sto'\n"
+        "ksimplex [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "                          [-p, --path <path>] [-i, --id <integer>]\n"
+        "                          [-s, --DT <float>] [--prior] [--transf]\n"
+        "                          [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>]\n"
+        "                          [--help]\n"
+        "where implementation is 'sde' (default)\n"
         "options:\n"
+        "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
+        "--no_env_sto       turn off environmental stochasticity (if any)\n"
+        "--no_drift         turn off drift (if any)\n"
         "--prior            to maximize posterior density in natural space\n"
         "--transf           to maximize posterior density in transformed space (if combined with --prior)\n"
         "-p, --path         path where the outputs will be stored\n"
@@ -84,15 +88,19 @@ int main(int argc, char *argv[])
     OPTION_TRANSF = 0;
 
     int option_no_trace = 0;
+    int n_threads = 1;
 
+    enum plom_implementations implementation;
+    enum plom_noises_off noises_off = 0;
 
-    // commands
-    COMMAND_DETER = 0;
-    COMMAND_STO = 0;
 
     static struct option long_options[] = {
         {"help",       no_argument,       0, 'e'},
         {"no_trace",   no_argument,  0, 'b'},
+
+	{"no_dem_sto", no_argument,       0, 'x'},
+	{"no_env_sto", no_argument,       0, 'y'},
+	{"no_drift",   no_argument,       0, 'z'},
 
         {"path",       required_argument, 0, 'p'},
         {"id",         required_argument, 0, 'i'},
@@ -108,13 +116,20 @@ int main(int argc, char *argv[])
         {0, 0, 0, 0}
     };
 
-
-    N_THREADS = 1; //not an option
-
     int option_index = 0;
     while ((ch = getopt_long (argc, argv, "i:l:s:p:S:M:b", long_options, &option_index)) != -1) {
         switch (ch) {
         case 0:
+            break;
+
+        case 'x':
+            noises_off = noises_off | PLOM_NO_DEM_STO;
+            break;
+        case 'y':
+            noises_off = noises_off | PLOM_NO_ENV_STO;
+            break;
+        case 'z':
+            noises_off = noises_off | PLOM_NO_DRIFT;
             break;
 
         case 'e':
@@ -159,15 +174,11 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if(argc != 1) {
-        print_log(sfr_help_string);
-        return 1;
-    }
-    else {
-        if (!strcmp(argv[0], "deter")) {
-            COMMAND_DETER = 1;
-        } else if (!strcmp(argv[0], "sto")) {
-            COMMAND_STO = 1;
+    if(argc == 0) {
+	implementation = PLOM_ODE; //with Kalman the SDE uses f_pred of PLOM_ODE (OK will do better)...
+    } else {
+        if (!strcmp(argv[0], "sde")) {
+            implementation = PLOM_ODE;
         } else {
             print_log(sfr_help_string);
             return 1;
@@ -185,21 +196,13 @@ int main(int argc, char *argv[])
     DT = 1.0/ ((double) DELTA_STO);
 
 #if FLAG_VERBOSE
-    snprintf(str, STR_BUFFSIZE, "Starting Plom ksimplex with the following options: i = %d, LIKE_MIN = %g DT = %g DELTA_STO = %g", GENERAL_ID, LIKE_MIN, DT, DELTA_STO );
+    snprintf(str, STR_BUFFSIZE, "Starting PloM ksimplex with the following options: i = %d, LIKE_MIN = %g DT = %g DELTA_STO = %g", GENERAL_ID, LIKE_MIN, DT, DELTA_STO );
     print_log(str);
 #endif
 
 
-#if FLAG_VERBOSE
-    print_log("memory allocation and inputs loading...\n");
-#endif
-
-    struct s_kalman *p_kalman = build_kalman(settings, OPTION_PRIOR, 0);
+    struct s_kalman *p_kalman = build_kalman(settings, implementation,  noises_off, &n_threads, OPTION_PRIOR, 0);
     json_decref(settings);
-
-#if FLAG_VERBOSE
-    print_log("starting computations...\n");
-#endif
 
     if (OPTION_PRIOR) {
         sanitize_best_to_prior(p_kalman->p_best, p_kalman->p_data);
@@ -213,7 +216,7 @@ int main(int argc, char *argv[])
     print_log("clean up...\n");
 #endif
 
-    clean_kalman(p_kalman);
+    clean_kalman(p_kalman, implementation, n_threads);
 
     return 0;
 }

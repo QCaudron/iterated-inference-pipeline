@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
     /* set default values for the options */
 
     char sfr_help_string[] =
-        "Plom Sequential Monte Carlo\n"
+        "PloM Sequential Monte Carlo\n"
         "usage:\n"
         "smc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
         "                     [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"

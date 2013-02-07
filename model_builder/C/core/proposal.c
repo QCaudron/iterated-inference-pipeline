@@ -56,7 +56,7 @@ void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, do
         }
     while (check_IC(p_X, p_data) > 0);
 
-    //load p_X->drift
+    //load X drift
     theta_driftIC2Xdrift(p_X, proposed, p_data);
 }
 
