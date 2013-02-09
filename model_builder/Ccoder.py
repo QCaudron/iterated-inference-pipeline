@@ -260,9 +260,11 @@ class Ccoder(Cmodel):
         we need the if statement to avoid division by 0
         """
 
-        rates = list(set(r['rate'] for r in self.proc_model if r['from'] not in self.universes))
+        proc_model = copy.deepcopy(self.proc_model) ##we are going to modify it...
+
+        rates = list(set(r['rate'] for r in proc_model if r['from'] not in self.universes))
         caches = map(lambda x: self.make_C_term(x), rates)
-        for r in self.proc_model:
+        for r in proc_model:
             if r['from'] not in self.universes:
                 r['ind_cache'] = rates.index(r['rate'])
 
@@ -271,7 +273,7 @@ class Ccoder(Cmodel):
         Ccode=''
 
         for s in self.par_sv:
-            myexit = [r for r in self.proc_model if r['from'] == s]
+            myexit = [r for r in proc_model if r['from'] == s]
             exitlist=[]
 
             if len(myexit)>0:
@@ -384,23 +386,26 @@ class Ccoder(Cmodel):
         return sf
 
     def print_ode(self):
+
+        proc_model = copy.deepcopy(self.proc_model) ##we are going to modify it...
+
         odeDict = dict([(x,'') for x in self.par_sv])
 
-        rates = list(set(r['rate'] for r in self.proc_model))
+        rates = list(set(r['rate'] for r in proc_model))
         caches = map(lambda x: self.make_C_term(x, True), rates)
-        for r in self.proc_model:
+        for r in proc_model:
             r['ind_cache'] = rates.index(r['rate'])
 
         sf = self.cache_special_function_C(caches, prefix='_sf[cac]')
 
         ##outputs
-        for r in self.proc_model:
+        for r in proc_model:
             if r['from'] not in self.universes:
                 rate= ' - _r[cac][{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
                 odeDict[r['from']] += rate
 
         ##inputs
-        for r in self.proc_model:
+        for r in proc_model:
             if r['to'] not in self.universes:
                 if r['from'] not in self.universes:
                     rate= ' + _r[cac][{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
@@ -428,9 +433,9 @@ class Ccoder(Cmodel):
             if isinstance(self.obs_var_def[i][0], dict): ##incidence
 
                 for j in range(len(self.obs_var_def[i])):
-                    id_out = [self.proc_model.index(r) for r in self.proc_model if ((r['from'] == self.obs_var_def[i][j]['from']) and (r['to'] == self.obs_var_def[i][j]['to']) and (r['rate'] == self.obs_var_def[i][j]['rate'])) ]
+                    id_out = [proc_model.index(r) for r in proc_model if ((r['from'] == self.obs_var_def[i][j]['from']) and (r['to'] == self.obs_var_def[i][j]['to']) and (r['rate'] == self.obs_var_def[i][j]['rate'])) ]
                     for o in id_out:
-                        reaction = self.proc_model[o]
+                        reaction = proc_model[o]
                         if self.obs_var_def[i][j]['from'] in self.universes:
                             right_hand_side += ' + _r[cac][{0}]'.format(reaction['ind_cache'])
                         else:
@@ -616,55 +621,88 @@ class Ccoder(Cmodel):
 
 
     def eval_Q(self):
-        """
-        create Ls and Qc
+        """create Ls and Qc
         
         Ls: Dispersion matrix of stochastic differential equation as
         defined is Sarkka 2006 phD.
-        Ls is of size n*s with n == N_PAR_SV and s == number of independent noise terms
+        Ls is of size n*s with n == N_PAR_SV and s == number of noise terms
         
-        Qc diagonal matrix of size s*s. Here we just get the diagonal (diag_Qc)
+        Qc matrix of size s*s.
 
-        Note: we assume only one noise term per reaction
+        Qc is composed of 2 blocks: Qc_dem (for demographic
+        stochasticity) and Qc_sto (for environmental stochasticity)
+
+        Qc_dem: diagonal matrix (one term per reaction: rate/N)
+
+        Qc_env: we build it using the following procedure:
+
+        - enumerate all noise terms coming from environmental sto.
+        Let's say we have p noise terms, s reactions and n state
+        variables.
+
+        - build a "noise to rate" dispersion matrix Lc (s*p) that is
+        analog to a soechiometric matrix (L above): each column
+        illustrates the impact of a noise term on each reaction.  The
+        component (i,j) of Lc is equal to the rate of reaction i if it
+        is concerned with noise term j.
+
+        - build a noise diffusion matrix Qc (p*p) that is diagonal,
+        with diagonal terms equal to sto^2. 
+
+        - Qc_env is then simply given by Lc Qn Lc'
+
+
+        Note: we assume only one environmental noise term per reaction
+
         """
+        proc_model = copy.deepcopy(self.proc_model) ##we are going to modify it...
 
-        N_REAC = len(self.proc_model)
+        N_REAC = len(proc_model)
         N_PAR_SV = len(self.par_sv)
         N_OBS = len(self.obs_var_def)
 
-        env_sto = self.get_gamma_noise_terms()
-        env_sto_name = [x[0] for x in env_sto]
-        N_ENV_STO =  len(env_sto)
-
-        s = N_REAC + N_ENV_STO ##for demographic stochasticity, one independent noise term for reaction
-
-        #we split Ls into Ls_proc and Ls_obs
-        Ls_proc = [[0]*s for x in range(N_PAR_SV)]
-        Ls_obs = [[0]*s for x in range(N_OBS)]
-        diag_Qc = [0]*s
-
-        def get_noise(rate):
-            Qc_index = []
-            sd = [] #list of noise intensities
+        def get_sd(rate):
             terms = self.change_user_input(rate)
             for x in terms:
                 if 'noise__' in x:
                     ind = terms.index(x)
-                    Qc_index.append(env_sto_name.index(x))
                     while terms[ind] != ')':
                         if terms[ind] in self.par_proc:
-                            sd.append(self.toC(terms[ind]))
-                        ind +=1
+                            return terms[ind], x
+                        ind+=1
 
-            return N_REAC + Qc_index[0], sd[0]
+        unique_noises = self.get_gamma_noise_terms()
+        unique_noises_names = [x[0] for x in unique_noises]
 
-        ###################
-        # state variables #
-        ###################
-        for B_dem_ind, r in enumerate(self.proc_model):
+        N_ENV_STO_UNIQUE = len(unique_noises)
+
+
+        ##add sd and order properties to noisy reactions
+        N_ENV_STO = 0
+        for r in proc_model:
+            if 'noise__' in r['rate']:
+                r['sd'], noise_name = get_sd(r['rate'])
+                r['order_env_sto_unique'] = unique_noises_names.index(noise_name)
+                r['order_env_sto'] = N_ENV_STO
+                N_ENV_STO += 1
+
+        s = N_REAC + N_ENV_STO ##for demographic stochasticity, one independent noise term per reaction
+
+        #we split Ls into Ls_proc and Ls_obs
+        Ls_proc = [[0]*s for x in range(N_PAR_SV)]
+        Ls_obs = [[0]*s for x in range(N_OBS)]
+
+        diag_Qc_dem_tpl = []
+        
+        ###########################################
+        # Create Ls_proc, Ls_obs and diag_Qc_dem  #
+        ###########################################
+
+        #state variables
+        for B_dem_ind, r in enumerate(proc_model):
             is_noise = 'noise__' in r['rate']
             if is_noise:
-                B_sto_ind, sd = get_noise(r['rate'])
+                B_sto_ind = N_REAC + r['order_env_sto']
 
             if r['from'] not in self.universes:
                 i = self.par_sv.index(r['from'])
@@ -682,24 +720,17 @@ class Ccoder(Cmodel):
                 if is_noise:
                     Ls_proc[i][B_sto_ind] += 1
 
-            diag_Qc[B_dem_ind] = self.make_C_term(Qc_term + '/' + self.myN, True)
-            if is_noise:
-                diag_Qc[B_sto_ind] = 'pow(({0})*({1}), 2)'.format(self.make_C_term(Qc_term, True), sd) #note: we re-multiply by sd as True ensures that noise__ terms are removed from the rate (ODE)
+            diag_Qc_dem_tpl.append({'i': B_dem_ind, 'j': B_dem_ind, 'rate':self.make_C_term(Qc_term + '/' + self.myN, True)}) ##TODO: check if / self.myN is needed
 
+        # observed variables 
+        for i in range(len(self.obs_var_def)): #(for every obs variable)
 
-        ######################
-        # observed variables #
-        ######################
-
-        # for every observed variable
-        for i in range(len(self.obs_var_def)):
-
-            for B_dem_ind, r in enumerate(self.proc_model):
+            for B_dem_ind, r in enumerate(proc_model):
                 is_noise = 'noise__' in r['rate']
                 if is_noise:
-                    B_sto_ind, sd = get_noise(r['rate'])
+                    B_sto_ind = N_REAC + r['order_env_sto']
 
-                ##prevalence:
+                ##prevalence: (TODO: get rid of prevalence)
                 if not isinstance(self.obs_var_def[i][0], dict):
 
                     # if it involves prevalence as input
@@ -726,29 +757,87 @@ class Ccoder(Cmodel):
 
 
 
+        ############################
+        ## Create Qc_env = Lc Qn Lc'
+        ############################
+        Lc = [[0]*N_ENV_STO_UNIQUE for x in range(N_ENV_STO)]
+        Qn = [[0]*N_ENV_STO_UNIQUE for x in range(N_ENV_STO_UNIQUE)]
+
+        for r in proc_model:
+            if 'noise__' in r['rate']:
+                if r['from'] not in self.universes:
+                    Qn_term = '({0})*{1}'.format(r['rate'], r['from'])
+                else:
+                    Qn_term = r['rate']
+
+                Lc[r['order_env_sto']][r['order_env_sto_unique']] = self.make_C_term(Qn_term, True) #True ensures that noise__ terms are removed from the rate (ODE)
+                Qn[r['order_env_sto_unique']][r['order_env_sto_unique']] = 'pow({0}, 2)'.format(self.toC(r['sd']))
+
+        
+        #Qc_env = Lc Qn tLc:
+        Qc_env = [[0]*N_ENV_STO for x in range(N_ENV_STO)]
+    
+        def matrix_product(A, B):
+            res = [[0]*len(B[0]) for x in range(len(A))]
+
+            for i in range(len(A)):
+                for j in range(len(B[0])):
+                    for k in range(len(B)):
+                        if (A[i][k] and B[k][j]):                                        
+                            term = ('({0})*({1})').format(A[i][k], B[k][j])
+
+                            if res[i][j]: #should never happen
+                               res[i][j] = res[i][j] + ' + {0}'.format(term)
+                            else:
+                               res[i][j] = term 
+
+            return res
+
+
+        Qc_env = matrix_product(Lc, Qn)
+        Qc_env = matrix_product(Qc_env, zip(*Lc))
+
+        #convert in a version easy to template in C
+        Qc_env_tpl = []
+        for i, row in enumerate(Qc_env):
+            for j, term in enumerate(row):
+                if Qc_env[i][j]:
+                  Qc_env_tpl.append({'i': N_REAC + i, 'j': N_REAC + j, 'rate': term})  
+
 
         ################################################################################################
         ##we create 4 versions of Ls and Qc_diag (no_dem_sto, no_env_sto, no_dem_sto_no_env_sto and full
         ################################################################################################
-
-        calc_Q = {'no_dem_sto': {'Ls_proc':[x[N_REAC:len(diag_Qc)] for x in Ls_proc],
-                                 'Ls_obs':[x[N_REAC:len(diag_Qc)] for x in Ls_obs],
-                                 'diag_Qc': diag_Qc[N_REAC:len(diag_Qc)]},
+        calc_Q = {'no_dem_sto': {'Ls_proc':[x[N_REAC:(N_REAC + N_ENV_STO)] for x in Ls_proc],
+                                 'Ls_obs':[x[N_REAC:(N_REAC + N_ENV_STO)] for x in Ls_obs],
+                                 'Qc_tpl': Qc_env_tpl},
                   'no_env_sto': {'Ls_proc':[x[0:N_REAC] for x in Ls_proc],
                                  'Ls_obs':[x[0:N_REAC] for x in Ls_obs],
-                                 'diag_Qc': diag_Qc[0:N_REAC]},
+                                 'Qc_tpl': diag_Qc_dem_tpl},
                   'full': {'Ls_proc': Ls_proc,
                            'Ls_obs': Ls_obs,
-                           'diag_Qc': diag_Qc},
+                           'Qc_tpl': copy.deepcopy(diag_Qc_dem_tpl + Qc_env_tpl)}, #we deepcopy as we are going to modify diag_Qc_dem_tpl and Qc_env_tpl
                   'no_dem_sto_no_env_sto': {'Ls_proc': [],
                                             'Ls_obs': [],
-                                            'diag_Qc': []}}
+                                            'Qc_tpl': []}}
+
+        #fix index for no_dem_sto
+        for x in calc_Q['no_dem_sto']['Qc_tpl']:
+            x['i'] -= N_REAC
+            x['j'] -= N_REAC
 
         ##cache special functions
         for key in calc_Q:
-            calc_Q[key]['s'] = len(calc_Q[key]['diag_Qc'])
-            calc_Q[key]['sf'] = self.cache_special_function_C(calc_Q[key]['diag_Qc'], prefix='_sf')
-            
+            s = len(calc_Q[key]['Qc_tpl'])
+            calc_Q[key]['s'] = s
+            if s:
+                optim_rates = [x['rate'] for x in calc_Q[key]['Qc_tpl']]
+                calc_Q[key]['sf'] = self.cache_special_function_C(optim_rates, prefix='_sf')
+                for i in range(len(optim_rates)):
+                    calc_Q[key]['Qc_tpl'][i]['rate'] = optim_rates[i]
+            else:
+                calc_Q[key]['sf'] = []
+
         return calc_Q
 
 

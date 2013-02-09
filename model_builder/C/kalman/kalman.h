@@ -56,11 +56,11 @@ struct s_kalman_specific_data
 
     gsl_matrix *FtCt;	/**< for Ft*Ct (product of the jacobian matrix and the covariance matrix) */
 
-    double *diag_Qc; /**< Diagonal of the diffusion matrix of the Brownian motion (as many terms as independent noises (Brownian motion)) */
+    gsl_matrix *Qc; /**< Diffusion matrix of the Brownian motion (as many terms as noises (Brownian motion)) */
     gsl_matrix *L;   /**< Dispersion matrix as found in Sarkka phD thesis (2006) : as many rows as state variables (including observed variables),  as many columns as independent noises (Brownian motion) */
     gsl_matrix *LQc; /**< intermetiate step in the computation of Q = L Qc L' */
 
-    void (*eval_diag_Qc) (double *diag_Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
+    void (*eval_Qc) (gsl_matrix *Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
 };
 
 
@@ -132,10 +132,10 @@ void eval_L_no_env_sto(gsl_matrix *L, struct s_data *p_data);
 void eval_L_no_dem_sto_no_env_sto(gsl_matrix *L, struct s_data *p_data);
 
 
-void eval_diag_Qc_full(double *diag_Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
-void eval_diag_Qc_no_dem_sto(double *diag_Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
-void eval_diag_Qc_no_env_sto(double *diag_Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
-void eval_diag_Qc_no_dem_sto_no_env_sto(double *diag_Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
+void eval_Qc_full(gsl_matrix *Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
+void eval_Qc_no_dem_sto(gsl_matrix *Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
+void eval_Qc_no_env_sto(gsl_matrix *Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
+void eval_Qc_no_dem_sto_no_env_sto(gsl_matrix *Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
 
 void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_kalman_specific_data *p_kalman_specific_data, double t);
 

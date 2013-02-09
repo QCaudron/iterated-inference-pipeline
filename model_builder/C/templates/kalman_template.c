@@ -67,19 +67,19 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data,
     if ( (noises_off & (PLOM_NO_DEM_STO)) && (noises_off & (PLOM_NO_ENV_STO)) )  {
         n_noises = {{ calc_Q.no_dem_sto_no_env_sto.s }}*N_CAC;
 	eval_L = &eval_L_no_dem_sto_no_env_sto;
-	p->eval_diag_Qc = &eval_diag_Qc_no_dem_sto_no_env_sto;
+	p->eval_Qc = &eval_Qc_no_dem_sto_no_env_sto;
     } else if ((noises_off & PLOM_NO_DEM_STO) && !(noises_off & PLOM_NO_ENV_STO)) {
         n_noises = {{ calc_Q.no_dem_sto.s }}*N_CAC;
 	eval_L = &eval_L_no_dem_sto;
-	p->eval_diag_Qc = &eval_diag_Qc_no_dem_sto;
+	p->eval_Qc = &eval_Qc_no_dem_sto;
     } else if (!(noises_off & PLOM_NO_DEM_STO) && (noises_off & PLOM_NO_ENV_STO)) {
         n_noises = {{ calc_Q.no_env_sto.s }}*N_CAC;
 	eval_L = &eval_L_no_env_sto;
-	p->eval_diag_Qc = &eval_diag_Qc_no_env_sto;
+	p->eval_Qc = &eval_Qc_no_env_sto;
     } else {
         n_noises = {{ calc_Q.full.s }}*N_CAC;
 	eval_L = &eval_L_full;
-	p->eval_diag_Qc = &eval_diag_Qc_full;
+	p->eval_Qc = &eval_Qc_full;
     }
 
     n_noises += p_data->p_it_only_drift->nbtot;
@@ -88,7 +88,7 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data,
         print_err("kalman methods must be used with at least one brownian motion, try running with the sto command or add noise into your process model");
         exit(EXIT_FAILURE);
     } else {
-	p->diag_Qc = init1d_set0(n_noises);
+	p->Qc = gsl_matrix_calloc(n_noises, n_noises);
 	p->L = gsl_matrix_calloc(N_KAL, n_noises);
 	eval_L(p->L, p_data);
 	p->LQc = gsl_matrix_calloc(N_KAL, n_noises);
@@ -383,7 +383,7 @@ void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data 
 void eval_L_{{ noises_off }}(gsl_matrix *L, struct s_data *p_data)
 {
 
-    {% if Q.diag_Qc %}
+    {% if Q.Qc_tpl %}
     int c, ac, cac;
     int ts, ts_unique, stream, n_cac;
     struct s_obs2ts **obs2ts = p_data->obs2ts;
@@ -445,7 +445,7 @@ void eval_L_{{ noises_off }}(gsl_matrix *L, struct s_data *p_data)
 /**
  * evaluate the diagonal of Qc ({{ noises_off }})
  */
-void eval_diag_Qc_{{ noises_off }}(double *diag_Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t)
+void eval_Qc_{{ noises_off }}(gsl_matrix *Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t)
 {
     // X is p_X->proj
 
@@ -456,7 +456,7 @@ void eval_diag_Qc_{{ noises_off }}(double *diag_Qc, const double *X, struct s_pa
     double ***covar = p_data->par_fixed;
 
 
-    {% if Q.diag_Qc %}
+    {% if Q.Qc_tpl %}
     int cac;
 
     for(cac=0; cac<N_CAC; cac++) {
@@ -467,8 +467,8 @@ void eval_diag_Qc_{{ noises_off }}(double *diag_Qc, const double *X, struct s_pa
 	{% for sf in Q.sf %}
 	_sf[{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
 
-	{% for term in Q.diag_Qc %}
-	diag_Qc[{{ forloop.counter0 }}*N_CAC+cac] = {{ term|safe }};{% endfor %}
+	{% for term in Q.Qc_tpl %}
+	gsl_matrix_set(Qc, {{ term.i }}*N_CAC+cac, {{ term.j }}*N_CAC+cac, {{ term.rate|safe }});{% endfor %}
     }
 
     {% endif %}
@@ -478,10 +478,10 @@ void eval_diag_Qc_{{ noises_off }}(double *diag_Qc, const double *X, struct s_pa
     //////////////////////////////
     struct s_iterator *p_it = p_data->p_it_only_drift;
     int i, k;
-    int offset = 0;
+    int offset = {{ Q.s }}*N_CAC;
     for(i=0; i<p_it->length; i++) {
 	for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-	    diag_Qc[{{ Q.diag_Qc|length }}*N_CAC + offset] = pow(par[ p_data->drift[i]->ind_volatility_Xdrift ][k], 2);
+	    gsl_matrix_set(Qc, offset, offset, pow(par[ p_data->drift[i]->ind_volatility_Xdrift ][k], 2));
 	    offset++;
 	}
     }
@@ -492,28 +492,16 @@ void eval_diag_Qc_{{ noises_off }}(double *diag_Qc, const double *X, struct s_pa
 
 void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_kalman_specific_data *p_kalman_specific_data, double t)
 {
-
-    // matrices initializations
-    double *diag_Qc = p_kalman_specific_data->diag_Qc;
+    gsl_matrix *Qc = p_kalman_specific_data->Qc;
     gsl_matrix *L = p_kalman_specific_data->L;
     gsl_matrix *LQc = p_kalman_specific_data->LQc;
 
-    p_kalman_specific_data->eval_diag_Qc(diag_Qc, X, p_par, p_data, p_calc, t);
+    p_kalman_specific_data->eval_Qc(Qc, X, p_par, p_data, p_calc, t);
 
-    // L*Qc
-    int row, col;
-    for(row=0; row<L->size1; row++) {
-        for(col=0; col<L->size2; col++) {
-            gsl_matrix_set(LQc, row, col, gsl_matrix_get(L, row, col)*diag_Qc[col]);
-        }
-    }
+    // LQc = L*Qc
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, L, Qc, 0.0, LQc);
 
     // Q = L Qc L'
-    int status = gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, LQc, L, 0.0, Q);
-#if FLAG_VERBOSE
-    if(status) {
-        fprintf(stderr, "error: %s\n", gsl_strerror (status));
-    }
-#endif
+    gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, LQc, L, 0.0, Q);
 
 }
