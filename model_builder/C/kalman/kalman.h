@@ -118,12 +118,11 @@ void ekf_gain_computation(double xk_t_ts, double data_t_ts, gsl_matrix *Ct, gsl_
 double ekf_update(gsl_vector *xk, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt, double sc_st, double sc_pred_error);
 
 /* kalman_template.c */
-int func_kal(double t, const double X[], double f[], void *params);
+int step_ode_ekf(double t, const double X[], double f[], void *params);
 
 int cac_drift_in_cac_ts(int cac_drift, int o, int ts_unique, struct s_obs2ts **obs2ts);
 void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_group ***compo_groups_drift_par_proc, double t);
 void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
-
 
 
 void eval_L_full(gsl_matrix *L, struct s_data *p_data);

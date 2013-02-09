@@ -814,8 +814,14 @@ double obs_var(double x, struct s_par *p_par, struct s_data *p_data, struct s_ca
 double observation(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
 
 void proj2obs(struct s_X *p_X, struct s_data *p_data);
-void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
-int func (double t, const double X[], double f[], void *params);
 
+
+void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double dt);
+
+int step_ode(double t, const double X[], double f[], void *params);
+
+void step_sde_full(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double dt);
+void step_sde_no_dem_sto(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double dt);
+void step_sde_no_env_sto(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double dt);
 
 #endif

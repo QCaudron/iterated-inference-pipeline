@@ -237,6 +237,17 @@ class Ccoder(Cmodel):
         return zip(gamma_noise_name, gamma_noise_sd)
 
 
+    def get_sd(self, rate):
+        terms = self.change_user_input(rate)
+        for x in terms:
+            if 'noise__' in x:
+                ind = terms.index(x)
+                while terms[ind] != ')':
+                    if terms[ind] in self.par_proc:
+                        return terms[ind], x
+                    ind+=1
+
+
     def make_prob(self, exitlist):
         probstring=''
         for r in exitlist:
@@ -385,65 +396,145 @@ class Ccoder(Cmodel):
 
         return sf
 
+
     def print_ode(self):
 
         proc_model = copy.deepcopy(self.proc_model) ##we are going to modify it...
 
-        odeDict = dict([(x,'') for x in self.par_sv])
+        odeDict = dict([(x, []) for x in self.par_sv])
 
         rates = list(set(r['rate'] for r in proc_model))
         caches = map(lambda x: self.make_C_term(x, True), rates)
-        for r in proc_model:
+        for i, r in enumerate(proc_model):
             r['ind_cache'] = rates.index(r['rate'])
+            r['ind_dem_sto'] = i
 
         sf = self.cache_special_function_C(caches, prefix='_sf[cac]')
+
+        def get_rhs_term(sign, cached, reaction):
+            if 'noise__' in reaction['rate']:
+                noise_name, noise_sd = self.get_sd(reaction['rate'])
+                noise_sd = self.toC(noise_sd)
+            else: 
+                noise_name = None
+                noise_sd= None
+            
+            return {'sign': sign, 'term': cached, 'noise_name': noise_name, 'noise_sd': noise_sd, 'ind_dem_sto': reaction['ind_dem_sto']}
+
+
+        ################################
+        ##Dynamic of the state variables
+        ################################
 
         ##outputs
         for r in proc_model:
             if r['from'] not in self.universes:
-                rate= ' - _r[cac][{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
-                odeDict[r['from']] += rate
+                cached = '_r[cac][{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
+                odeDict[r['from']].append(get_rhs_term('-', cached, r))
 
         ##inputs
         for r in proc_model:
             if r['to'] not in self.universes:
                 if r['from'] not in self.universes:
-                    rate= ' + _r[cac][{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
-                    odeDict[r['to']] += rate
+                    cached = '_r[cac][{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
                 else:
-                    rate= ' + _r[cac][{0}]'.format(r['ind_cache'])
-                    odeDict[r['to']] += rate
+                    cached= '_r[cac][{0}]'.format(r['ind_cache'])
 
-        ##output the system...
-        Cstring=''
-        for s in self.par_sv:
-            Cstring += 'f[ORDER_{0}{2}] = {1};\n'.format(s, odeDict[s], '*N_CAC+cac')
+                odeDict[r['to']].append(get_rhs_term('+', cached, r))
 
-        #################
-        ##generate C code to compute the dynamic of the observed **incidence** in case of ODE models and put in into a Clist
-        ##Clist = [{'true_ind_obs':'i (i count both incidence and prevalence (N_OBS_ALL))', 'right_hand_side':'f(X[i,c,ac]'}]
-        #################
+        
+        #######################################
+        ##Dynamic of the observed **incidence**
+        #######################################
 
-        Clist = []
+        obs_list = []
 
         for i in range(len(self.obs_var_def)):
             true_ind_obs = str(i)
-            right_hand_side=''
+            eq = []
 
             if isinstance(self.obs_var_def[i][0], dict): ##incidence
-
                 for j in range(len(self.obs_var_def[i])):
                     id_out = [proc_model.index(r) for r in proc_model if ((r['from'] == self.obs_var_def[i][j]['from']) and (r['to'] == self.obs_var_def[i][j]['to']) and (r['rate'] == self.obs_var_def[i][j]['rate'])) ]
                     for o in id_out:
                         reaction = proc_model[o]
                         if self.obs_var_def[i][j]['from'] in self.universes:
-                            right_hand_side += ' + _r[cac][{0}]'.format(reaction['ind_cache'])
+                            cached = '_r[cac][{0}]'.format(reaction['ind_cache'])
                         else:
-                            right_hand_side += ' + _r[cac][{0}]*X[ORDER_{1}{2}]'.format(reaction['ind_cache'], self.obs_var_def[i][j]['from'], '*N_CAC+cac')
+                            cached = '_r[cac][{0}]*X[ORDER_{1}{2}]'.format(reaction['ind_cache'], self.obs_var_def[i][j]['from'], '*N_CAC+cac')
 
-                Clist.append({'true_ind_obs':true_ind_obs, 'right_hand_side':right_hand_side})
+                        eq.append(get_rhs_term('+', cached, reaction))
 
-        return {'sys': Cstring, 'caches': caches, 'obs':Clist, 'sf': sf}
+                obs_list.append({'index':i, 'eq': eq})
+
+
+
+        #################################################################################################
+        ##we create 4 versions of the ODE system (no_dem_sto, no_env_sto, no_dem_sto_no_env_sto and full)
+        #################################################################################################
+        unique_noises = self.get_gamma_noise_terms()
+        unique_noises_names = [x[0] for x in unique_noises]
+
+        dem_sto_names = ['dem_sto__' +str(i) for i, x in enumerate(self.proc_model)]
+
+
+        def eq_dem_env(eq_list):
+            eq = ''  #deter skeleton          
+            dem = '' #demographic stochasticity
+            env = '' #env stochasticity
+
+            for x in eq_list:
+                eq += ' {0} ({1})'.format(x['sign'], x['term'])
+
+                #dem sto
+                dem += '{0} sqrt(({1})/{2})*dem_sto__{3}[cac]'.format(x['sign'], x['term'], self.toC(self.myN), x['ind_dem_sto'])
+
+                #env sto
+                if x['noise_name']:
+                    env += '{0} ({1})*{2}*{3}[cac]'.format(x['sign'], x['term'], x['noise_sd'], x['noise_name'])
+
+            return (eq, dem, env)
+
+        #state variables
+        func = {'no_dem_sto': {'proc': {'system':[], 'noises': unique_noises_names},
+                               'obs': []},
+                'no_env_sto': {'proc': {'system':[], 'noises': dem_sto_names},
+                               'obs': []},
+                'full': {'proc': {'system':[], 'noises': dem_sto_names + unique_noises_names},
+                         'obs': []},
+                'no_dem_sto_no_env_sto': {'proc':{'system':[], 'noises':[]},
+                                          'obs':[]}}
+
+        for i, s in enumerate(self.par_sv):
+
+            eq, dem, env = eq_dem_env(odeDict[s])
+
+            #TODO get rid of the 'dt' for Euler Maruyama (should be handled on the C side as sqrt(dt))'
+            func['no_dem_sto_no_env_sto']['proc']['system'].append({'index': i, 'eq': eq})
+            func['no_dem_sto']['proc']['system'].append({'index': i, 'eq': '({0})*dt + {1}'.format(eq, env)})
+            func['no_env_sto']['proc']['system'].append({'index': i, 'eq': '({0})*dt + {1}'.format(eq, dem)})
+            func['full']['proc']['system'].append({'index': i, 'eq': '({0})*dt + {1} + {2}'.format(eq, dem, env)})
+
+        #observed incidence
+        obs = {'no_dem_sto': [],
+                'no_env_sto': [],
+                'full': [],
+                'no_dem_sto_no_env_sto': []}
+
+        
+        for myobs in obs_list:
+
+            eq, dem, env = eq_dem_env(myobs['eq'])
+            #TODO get rid of the 'dt' for Euler Maruyama (should be handled on the C side as sqrt(dt))'
+            func['no_dem_sto_no_env_sto']['obs'].append({'index': myobs['index'], 'eq': eq})
+            func['no_dem_sto']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt + {1}'.format(eq, env)})
+            func['no_env_sto']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt + {1}'.format(eq, dem)})
+            func['full']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt + {1} + {2}'.format(eq, dem, env)})
+                
+
+        return {'func': func, 'caches': caches, 'sf': sf}
+
+
 
 
     def print_order(self):
@@ -661,15 +752,6 @@ class Ccoder(Cmodel):
         N_PAR_SV = len(self.par_sv)
         N_OBS = len(self.obs_var_def)
 
-        def get_sd(rate):
-            terms = self.change_user_input(rate)
-            for x in terms:
-                if 'noise__' in x:
-                    ind = terms.index(x)
-                    while terms[ind] != ')':
-                        if terms[ind] in self.par_proc:
-                            return terms[ind], x
-                        ind+=1
 
         unique_noises = self.get_gamma_noise_terms()
         unique_noises_names = [x[0] for x in unique_noises]
@@ -681,7 +763,7 @@ class Ccoder(Cmodel):
         N_ENV_STO = 0
         for r in proc_model:
             if 'noise__' in r['rate']:
-                r['sd'], noise_name = get_sd(r['rate'])
+                r['sd'], noise_name = self.get_sd(r['rate'])
                 r['order_env_sto_unique'] = unique_noises_names.index(noise_name)
                 r['order_env_sto'] = N_ENV_STO
                 N_ENV_STO += 1
@@ -860,7 +942,8 @@ if __name__=="__main__":
         x['source'] = os.path.join('example', 'noise', x['source'])
 
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
-    Q = model.eval_Q()
+
+    model.print_ode()
 
 ##    model.prepare()
 ##    model.write_settings()

@@ -105,7 +105,7 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data,
  *
  * it is an expanded copy of core/prediction.c/func
  */
-int func_kal(double t, const double X[], double f[], void *params)
+int step_ode_ekf(double t, const double X[], double f[], void *params)
 {
     struct s_calc *p_calc = (struct s_calc *) params;
     struct s_par *p_par = p_calc->p_par;  /* syntaxic shortcut */

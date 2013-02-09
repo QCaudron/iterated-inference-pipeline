@@ -99,7 +99,8 @@ void proj2obs(struct s_X *p_X, struct s_data *p_data)
     {% endfor %}
 }
 
-void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+
+void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double dt)
 {
     /* t is the time in unit of the data */
 
@@ -149,7 +150,7 @@ void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_d
 
             /*1-generate noise increments (automaticaly generated code)*/
             {% for n in gamma_noise %}
-            {{ n.0|safe }} = gsl_ran_gamma(p_calc->randgsl, (DT)/ pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2), pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2))/DT;{% endfor %}
+            {{ n.0|safe }} = gsl_ran_gamma(p_calc->randgsl, (dt)/ pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2), pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2))/dt;{% endfor %}
 
             /*2-generate process increments (automaticaly generated code)*/
             {% for sf in print_prob.sf %}
@@ -196,13 +197,22 @@ void step_euler_multinomial(double *X, double t, struct s_par *p_par, struct s_d
 }
 
 
+//stepping functions for ODE and SDEs
 
-int func(double t, const double X[], double f[], void *params)
+{% for noises_off, func in print_ode.func.items %}
+{% if noises_off == 'no_dem_sto_no_env_sto'%}
+int step_ode(double t, const double X[], double f[], void *params)
+{% else %}
+void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double dt)
+{% endif %}
 {
 
+    {% if noises_off == 'no_dem_sto_no_env_sto'%}
     struct s_calc *p_calc = (struct s_calc *) params;
-    struct s_par *p_par = p_calc->p_par;
     struct s_data *p_data = p_calc->p_data;
+    struct s_par *p_par = p_calc->p_par;
+    {% endif %}
+
     struct s_obs2ts **obs2ts = p_data->obs2ts;
     struct s_router **routers = p_data->routers;
 
@@ -215,40 +225,35 @@ int func(double t, const double X[], double f[], void *params)
     double **par = p_par->natural;
     double ***covar = p_data->par_fixed;
 
-    //  /*gravity model parameters*/
-    //  double gravity;
-    //  int cc;
 
     double _r[N_CAC][{{print_ode.caches|length}}];
+
     {% if print_ode.sf %}
     double _sf[N_CAC][{{print_ode.sf|length}}];{% endif %}
+
+    {% for noise in func.proc.noises %}
+    double {{ noise|safe }}[N_CAC];{% endfor %}
+
     for(cac=0;cac<N_CAC;cac++) {
         {% for sf in print_ode.sf %}
         _sf[cac][{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
 
         {% for cache in print_ode.caches %}
         _r[cac][{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
+
+        {% for noise in func.proc.noises %}
+	{{ noise|safe }}[cac] = sqrt(dt)*gsl_ran_ugaussian(p_calc->randgsl);{% endfor %}
     }
 
     for(c=0;c<N_C;c++) {
         for(ac=0; ac<N_AC; ac++) {
             cac = c*N_AC+ac;
 
-            //      /*compute sum i !=j N_j^nu/d_ij^gamma*I^j */
-            //      gravity=0.0;
-            //      for(cc=0;cc<N_C;cc++)
-            //	{
-            //    if(cc !=c)
-            //      {
-            //        gravity += (pow(X[ORDER_I*N_CAC+cc*N_AC+ac], p_par->proc[ORDER_g_nu][cc][ac])/pow(p_data->mat_d[c][cc], p_par->proc[ORDER_gamma][cc][ac]));
-            //      }
-            //	}
-            //      gravity *= iota*pow(p_data->p_t[n][c], p_par->proc[ORDER_g_mu][c][ac]);
-
             /*automaticaly generated code:*/
             /*ODE system*/
+	    {% for eq in func.proc.system %}
+	    {% if noises_off == 'no_dem_sto_no_env_sto'%}f{% else %}X{% endif %}[{{eq.index}}*N_CAC+cac] {% if noises_off == 'no_dem_sto_no_env_sto'%}={% else %}+={% endif %} {{ eq.eq|safe }};{% endfor %}
 
-            {{ print_ode.sys|safe }}
         }
     }
 
@@ -262,8 +267,9 @@ int func(double t, const double X[], double f[], void *params)
     /*compute incidence:integral between t and t+1*/
 
     offset = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
-    {% for eq in print_ode.obs %}
-    o = {{ eq.true_ind_obs|safe }};
+
+    {% for eq in func.obs %}
+    o = {{ eq.index|safe }};
 
     for (ts=0; ts<obs2ts[o]->n_ts_unique; ts++) {
         sum_inc = 0.0;
@@ -272,16 +278,19 @@ int func(double t, const double X[], double f[], void *params)
             ac = obs2ts[o]->cac[ts][n_cac][1];
             cac = c*N_AC+ac;
 
-            sum_inc += {{ eq.right_hand_side|safe }};
+            sum_inc += {{ eq.eq|safe }};
         }
 
-        f[offset] = sum_inc;
+	{% if noises_off == 'no_dem_sto_no_env_sto'%}f{% else %}X{% endif %}[offset] {% if noises_off == 'no_dem_sto_no_env_sto'%}={% else %}+={% endif %} sum_inc;
         offset++;
     }
     {% endfor %}
 
+    {% if noises_off == 'no_dem_sto_no_env_sto'%}
     return GSL_SUCCESS;
+    {% endif %}
 }
+{% endfor %}
 
 
 double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
