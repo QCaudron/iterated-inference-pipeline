@@ -119,8 +119,9 @@ int func_kal(double t, const double X[], double f[], void *params)
     gsl_matrix *Q = p_kalman_specific_data->Q;
     struct s_group ***compo_groups_drift_par_proc = p_kalman_specific_data->compo_groups_drift_par_proc;
     gsl_matrix *FtCt = p_kalman_specific_data->FtCt;
-    gsl_matrix_const_view Ct   = gsl_matrix_const_view_array(&X[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE],N_KAL,N_KAL);
-    gsl_matrix_view res2 = gsl_matrix_view_array(&f[N_PAR_SV*N_CAC+N_TS_INC_UNIQUE],N_KAL,N_KAL);
+
+    gsl_matrix_const_view Ct   = gsl_matrix_const_view_array(&X[N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE], N_KAL, N_KAL);
+    gsl_matrix_view res2 = gsl_matrix_view_array(&f[N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE], N_KAL, N_KAL);
 
     int i, c, ac, cac, n_cac, ts, o;
     double sum_inc = 0.0;
