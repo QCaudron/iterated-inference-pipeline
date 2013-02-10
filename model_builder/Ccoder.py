@@ -452,7 +452,6 @@ class Ccoder(Cmodel):
         obs_list = []
 
         for i in range(len(self.obs_var_def)):
-            true_ind_obs = str(i)
             eq = []
 
             if isinstance(self.obs_var_def[i][0], dict): ##incidence
@@ -532,8 +531,8 @@ class Ccoder(Cmodel):
                 env = ' + ' + env
 
             #TODO get rid of the 'dt' for Euler Maruyama (should be handled on the C side as sqrt(dt))'
-            func['ode']['obs'].append({'index': i, 'eq': eq})
-            func['no_dem_sto_no_env_sto']['obs'].append({'index': i, 'eq': '({0})*dt'.format(eq)})
+            func['ode']['obs'].append({'index': myobs['index'], 'eq': eq})
+            func['no_dem_sto_no_env_sto']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt'.format(eq)})
             func['no_dem_sto']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt {1}'.format(eq, env)})
             func['no_env_sto']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt {1}'.format(eq, dem)})
             func['full']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt + {1} {2}'.format(eq, dem, env)})
