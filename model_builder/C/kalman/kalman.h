@@ -125,10 +125,10 @@ void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_da
 void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
 
 
-void eval_L_full(gsl_matrix *L, struct s_data *p_data);
-void eval_L_no_dem_sto(gsl_matrix *L, struct s_data *p_data);
-void eval_L_no_env_sto(gsl_matrix *L, struct s_data *p_data);
-void eval_L_no_dem_sto_no_env_sto(gsl_matrix *L, struct s_data *p_data);
+void eval_L_full(gsl_matrix *L, struct s_calc *p_calc, struct s_data *p_data);
+void eval_L_no_dem_sto(gsl_matrix *L, struct s_calc *p_calc, struct s_data *p_data);
+void eval_L_no_env_sto(gsl_matrix *L, struct s_calc *p_calc, struct s_data *p_data);
+void eval_L_no_dem_sto_no_env_sto(gsl_matrix *L, struct s_calc *p_calc, struct s_data *p_data);
 
 
 void eval_Qc_full(gsl_matrix *Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);

@@ -63,7 +63,7 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_calc *p_calc,
 
     enum plom_noises_off noises_off = p_calc->noises_off;
     int n_noises;
-    void (*eval_L) (gsl_matrix *L, struct s_data *p_data);
+    void (*eval_L) (gsl_matrix *L, struct s_calc *p_calc, struct s_data *p_data);
 
     if ( (noises_off & (PLOM_NO_DEM_STO)) && (noises_off & (PLOM_NO_ENV_STO)) )  {
         n_noises = {{ calc_Q.no_dem_sto_no_env_sto.s }}*N_CAC;
@@ -83,7 +83,9 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_calc *p_calc,
 	p->eval_Qc = &eval_Qc_full;
     }
 
-    n_noises += p_data->p_it_only_drift->nbtot;
+    if(!(noises_off & PLOM_NO_DRIFT)){
+	n_noises += p_data->p_it_only_drift->nbtot;
+    }
 
     if(n_noises == 0){
         print_err("kalman methods must be used with at least one brownian motion.");
@@ -91,7 +93,7 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_calc *p_calc,
     } else {
 	p->Qc = gsl_matrix_calloc(n_noises, n_noises);
 	p->L = gsl_matrix_calloc(N_KAL, n_noises);
-	eval_L(p->L, p_data);
+	eval_L(p->L, p_calc, p_data);
 	p->LQc = gsl_matrix_calloc(N_KAL, n_noises);
     }
 
@@ -382,7 +384,7 @@ void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data 
 /**
  * evaluate dispersion matrix L ({{ noises_off }}) (as described in Sarkka phD (2006))
  */
-void eval_L_{{ noises_off }}(gsl_matrix *L, struct s_data *p_data)
+void eval_L_{{ noises_off }}(gsl_matrix *L, struct s_calc *p_calc, struct s_data *p_data)
 {
 
     {% if Q.Qc_tpl %}
@@ -430,13 +432,13 @@ void eval_L_{{ noises_off }}(gsl_matrix *L, struct s_data *p_data)
     ////////////////
     // drift part //
     ////////////////
-
-    struct s_iterator *p_it = p_data->p_it_only_drift;
-    int i;
-    for(i=0; i<p_it->nbtot; i++) {
-	gsl_matrix_set(L, N_PAR_SV*N_CAC+N_TS + i, {{ Q.s }}*N_CAC + i, 1.0);
+    if(!(p_calc->noises_off & PLOM_NO_DRIFT)){
+	struct s_iterator *p_it = p_data->p_it_only_drift;
+	int i;
+	for(i=0; i<p_it->nbtot; i++) {
+	    gsl_matrix_set(L, N_PAR_SV*N_CAC+N_TS + i, {{ Q.s }}*N_CAC + i, 1.0);
+	}
     }
-
 }
 {% endfor %}
 
@@ -478,16 +480,17 @@ void eval_Qc_{{ noises_off }}(gsl_matrix *Qc, const double *X, struct s_par *p_p
     //////////////////////////////
     // drift term (volatility^2)//
     //////////////////////////////
-    struct s_iterator *p_it = p_data->p_it_only_drift;
-    int i, k;
-    int offset = {{ Q.s }}*N_CAC;
-    for(i=0; i<p_it->length; i++) {
-	for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-	    gsl_matrix_set(Qc, offset, offset, pow(par[ p_data->drift[i]->ind_volatility_Xdrift ][k], 2));
-	    offset++;
+    if(!(p_calc->noises_off & PLOM_NO_DRIFT)){
+	struct s_iterator *p_it = p_data->p_it_only_drift;
+	int i, k;
+	int offset = {{ Q.s }}*N_CAC;
+	for(i=0; i<p_it->length; i++) {
+	    for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
+		gsl_matrix_set(Qc, offset, offset, pow(par[ p_data->drift[i]->ind_volatility_Xdrift ][k], 2));
+		offset++;
+	    }
 	}
     }
-
 }
 {% endfor %}
 
