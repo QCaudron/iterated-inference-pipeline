@@ -49,4 +49,4 @@ double f_simplex(const gsl_vector *x, void *params);
 
 /* build.c */
 struct s_simplex *build_simplex(enum plom_implementations implementation,  enum plom_noises_off noises_off, int general_id, int is_bayesian);
-void clean_simplex(struct s_simplex *p_simplex, enum plom_implementations implementation);
+void clean_simplex(struct s_simplex *p_simplex);

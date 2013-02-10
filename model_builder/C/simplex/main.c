@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     double CONVERGENCE_STOP_SIMPLEX = 1e-6;
 
     enum plom_implementations implementation;
-    enum plom_noises_off noises_off = PLOM_NO_DEM_STO| PLOM_NO_ENV_STO | PLOM_NO_DRIFT;
+    enum plom_noises_off noises_off = (PLOM_NO_DEM_STO | PLOM_NO_ENV_STO | PLOM_NO_DRIFT);
 
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
     print_log("clean up...\n");
 #endif
 
-    clean_simplex(p_simplex, implementation);
+    clean_simplex(p_simplex);
 
     return 0;
 

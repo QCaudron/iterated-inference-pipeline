@@ -43,17 +43,17 @@ struct s_simplex *build_simplex(enum plom_implementations implementation,  enum 
   json_decref(theta);
 
   int n_threads = omp_get_max_threads();
-  p_simplex->calc = build_calc(&n_threads, general_id, implementation, 1, size_proj, func, p_simplex->p_data);
+  p_simplex->calc = build_calc(&n_threads, general_id, implementation, noises_off, 0, 1, size_proj, step_ode, p_simplex->p_data);
   p_simplex->smallest_log_like = get_smallest_log_likelihood(p_simplex->p_data->data_ind);
 
   return p_simplex;
 }
 
 
-void clean_simplex(struct s_simplex *p_simplex, enum plom_implementations implementation)
+void clean_simplex(struct s_simplex *p_simplex)
 {
 
-    clean_calc(p_simplex->calc, implementation);
+    clean_calc(p_simplex->calc);
     clean_X(p_simplex->p_X);
     clean_best(p_simplex->p_best);
     clean_par(p_simplex->p_par);
