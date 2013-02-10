@@ -243,7 +243,6 @@ void clean_router(struct s_router *p_router)
     FREE(p_router);
 }
 
-
 struct s_router **build_routers(json_t *settings, json_t *theta, int is_bayesian)
 {
     int i, j, offset;
@@ -765,7 +764,7 @@ void clean_data(struct s_data *p_data)
 
 
 
-struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementations implementation, int J, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data)
+struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementations implementation, enum plom_noises_off noises_off, double dt, int J, int dim_ode, int (*step_ode) (double, const double *, double *, void *), struct s_data *p_data)
 {
     char str[STR_BUFFSIZE];
     int nt;
@@ -805,24 +804,37 @@ struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementat
     /* we create as many rng as parallel threads *but* note that for the operations not prarallelized, we always use cacl[0].randgsl */
 
     for (nt=0; nt< *n_threads; nt++) {
-        calc[nt] = build_p_calc(*n_threads, nt, seed, implementation, dim_ode, func_ode, p_data);
+        calc[nt] = build_p_calc(*n_threads, nt, seed, implementation, noises_off, dt, dim_ode, step_ode, p_data);
     }
 
     return calc;
 }
 
 
-struct s_calc *build_p_calc(int n_threads, int nt, int seed, enum plom_implementations implementation, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data)
-{
-    char str[STR_BUFFSIZE];
+/**
+ * dt: integration time step. If <=0.0, default to 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT
+ */
 
+struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, enum plom_implementations implementation, enum plom_noises_off noises_off, double dt, int dim_ode, int (*step_ode) (double, const double *, double *, void *), struct s_data *p_data)
+{
     struct s_calc *p_calc = malloc(sizeof(struct s_calc));
     if (p_calc==NULL) {
-
+	char str[STR_BUFFSIZE];
         snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
+
+    p_calc->implementation = implementation;
+    p_calc->noises_off = noises_off;
+
+
+    //integration time step
+    if (dt <= 0.0){ //default to 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT
+	dt = 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT;
+    }
+    //IMPORTANT: we ensure an integer multiple of dt in between 2 data points    
+    p_calc->dt = 1.0/ ((double) round(1.0/dt));
 
     p_calc->n_threads = n_threads;
 
@@ -833,7 +845,7 @@ struct s_calc *build_p_calc(int n_threads, int nt, int seed, enum plom_implement
     p_calc->p_data = p_data;
 
     /* thread_id */
-    p_calc->thread_id = nt;
+    p_calc->thread_id = thread_id;
 
 
     /*random numbers...*/
@@ -861,21 +873,22 @@ struct s_calc *build_p_calc(int n_threads, int nt, int seed, enum plom_implement
 
     /* rng */
     p_calc->randgsl=gsl_rng_alloc(Type);
-    gsl_rng_set(p_calc->randgsl, seed+nt);
+    gsl_rng_set(p_calc->randgsl, seed + thread_id);
 
-    if (implementation == PLOM_ODE || implementation == PLOM_SDE){
+    if (implementation == PLOM_ODE){
 
         p_calc->T = gsl_odeiv2_step_rkf45;
         p_calc->control = gsl_odeiv2_control_y_new(ABS_TOL, REL_TOL); /*abs and rel error (eps_abs et eps_rel) */
         p_calc->step = gsl_odeiv2_step_alloc(p_calc->T, dim_ode);
         p_calc->evolve = gsl_odeiv2_evolve_alloc(dim_ode);
-        (p_calc->sys).function = func_ode;
+        (p_calc->sys).function = step_ode;
         (p_calc->sys).jacobian = jac;
         (p_calc->sys).dimension=(dim_ode);
         (p_calc->sys).params= p_calc;
 
         p_calc->yerr = init1d_set0(dim_ode);
-
+    } else if (implementation == PLOM_SDE){
+	p_calc->y_pred = init1d_set0(dim_ode);
     } else if (implementation == PLOM_PSR){
         build_psr(p_calc);
     }
@@ -888,11 +901,11 @@ struct s_calc *build_p_calc(int n_threads, int nt, int seed, enum plom_implement
 }
 
 
-void clean_p_calc(struct s_calc *p_calc, enum plom_implementations implementation)
+void clean_p_calc(struct s_calc *p_calc)
 {
     gsl_rng_free(p_calc->randgsl);
 
-    if (implementation == PLOM_ODE || implementation == PLOM_SDE){
+    if (p_calc->implementation == PLOM_ODE){
 
         gsl_odeiv2_step_free(p_calc->step);
         gsl_odeiv2_evolve_free(p_calc->evolve);
@@ -900,7 +913,10 @@ void clean_p_calc(struct s_calc *p_calc, enum plom_implementations implementatio
 
         FREE(p_calc->yerr);
 
-    } else if (implementation == PLOM_PSR){
+    } else if (p_calc->implementation == PLOM_SDE){
+	FREE(p_calc->y_pred);
+
+    } else if (p_calc->implementation == PLOM_PSR){
 
         clean2d(p_calc->prob, N_PAR_SV+2); //+2 for U and DU of the universes
         clean3u(p_calc->inc, N_PAR_SV+2, N_CAC); //+2 for U and DU of the universes
@@ -913,14 +929,14 @@ void clean_p_calc(struct s_calc *p_calc, enum plom_implementations implementatio
 }
 
 
-void clean_calc(struct s_calc **calc, enum plom_implementations implementation)
+void clean_calc(struct s_calc **calc)
 {
     int nt;
     int n_threads = calc[0]->n_threads;
 
     /*clean calc*/
     for(nt=0; nt<n_threads; nt++) {
-        clean_p_calc(calc[nt], implementation);
+        clean_p_calc(calc[nt]);
     }
 
     FREE(calc);

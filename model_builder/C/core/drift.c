@@ -21,12 +21,13 @@
 /**
  *   Euler Maruyama
  *   ind_drift_start and ind_drift_end are used to separate (if needed) in between drift on par_proc and drift on par_obs
+ *   X is s_X.proj
  */
 
-void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double delta_t)
+void compute_drift(double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
-
     int i, k;
+    double dt = p_calc->dt;
 
     struct s_router **routers = p_data->routers;
 
@@ -35,7 +36,7 @@ void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, 
         int ind_par_Xdrift_applied = p_drift->ind_par_Xdrift_applied;
         int ind_volatility_Xdrift = p_drift->ind_volatility_Xdrift;
         for(k=0; k< routers[ind_par_Xdrift_applied]->n_gp; k++) {
-            p_X->proj[p_drift->offset +k] += p_par->natural[ ind_volatility_Xdrift ][k]*sqrt(delta_t)*gsl_ran_ugaussian(p_calc->randgsl);
+            X[p_drift->offset +k] += p_par->natural[ ind_volatility_Xdrift ][k]*sqrt(dt)*gsl_ran_ugaussian(p_calc->randgsl);
         }
     }
 }

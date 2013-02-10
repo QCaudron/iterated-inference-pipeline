@@ -483,9 +483,7 @@ json_t *load_settings(const char *path)
 
     IS_SCHOOL_TERMS = fast_get_json_integer(cst, "IS_SCHOOL_TERMS");
 
-    /*numerical integration parameters*/
-    DELTA_STO = fast_get_json_real(cst, "DELTA_STO");
-    DT = 1.0 / DELTA_STO;
+    /* unit */
     ONE_YEAR_IN_DATA_UNIT = fast_get_json_real(cst, "ONE_YEAR_IN_DATA_UNIT");
 
     return settings;
@@ -549,7 +547,7 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, enum
         }
     }
 
-    //turn off some noises parameters
+    //turn off sd_transf of env noises parameters
     if(noises_off & PLOM_NO_ENV_STO){
         struct s_iterator *p_it_noise = p_data->p_it_noise;
         for(i=0; i<p_it_noise->length; i++){
@@ -559,7 +557,7 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, enum
         }
     }
 
-    //we turn off the **volatilities**
+    //we turn off sd_transf of the volatilities
     if(noises_off & PLOM_NO_DRIFT){
         struct s_iterator *p_it_drift = p_data->p_it_only_drift;
         for(i=0; i<p_it_drift->length; i++) {

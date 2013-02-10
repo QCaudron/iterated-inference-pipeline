@@ -121,6 +121,8 @@ class Ccoder(Cmodel):
                     yield ',t'
                 elif myf[0] == 'step_lin':
                     yield ',t'
+                elif myf[0] == 'correct_rate' and not is_ode:
+                    yield ',dt'
 
                 ##close bracket
                 if myf[0] != 'noise':
@@ -290,7 +292,7 @@ class Ccoder(Cmodel):
             if len(myexit)>0:
 
                 for e in myexit:
-                    exitlist.append('_r[{0}]*DT'.format(e['ind_cache']))
+                    exitlist.append('_r[{0}]*dt'.format(e['ind_cache']))
 
                 Csum= 'sum = ' + '+'.join(exitlist) + ';\n' #.join() doesn't add '+' if len(list)==1
                 Ccode += Csum+ 'if(sum>0.0){\none_minus_exp_sum = (1.0-exp(-sum));\n'
@@ -347,7 +349,7 @@ class Ccoder(Cmodel):
         for s in self.universes:
             reac_from_univ = [r for r in self.proc_model if r['from'] == s]
             for nbreac in range(len(reac_from_univ)):
-                poisson.append('p_calc->inc[ORDER_{0}][cac][{1}] = gsl_ran_poisson(p_calc->randgsl, ({2})*DT)'.format(s, nbreac, self.make_C_term(reac_from_univ[nbreac]['rate'])))
+                poisson.append('p_calc->inc[ORDER_{0}][cac][{1}] = gsl_ran_poisson(p_calc->randgsl, ({2})*dt)'.format(s, nbreac, self.make_C_term(reac_from_univ[nbreac]['rate'])))
                 incDict[reac_from_univ[nbreac]['to']] += ' + p_calc->inc[ORDER_{0}][cac][{1}]'.format(s, nbreac)
 
 
@@ -413,7 +415,7 @@ class Ccoder(Cmodel):
 
         def get_rhs_term(sign, cached, reaction):
             if 'noise__' in reaction['rate']:
-                noise_name, noise_sd = self.get_sd(reaction['rate'])
+                noise_sd, noise_name = self.get_sd(reaction['rate'])
                 noise_sd = self.toC(noise_sd)
             else: 
                 noise_name = None
@@ -469,9 +471,9 @@ class Ccoder(Cmodel):
 
 
 
-        #################################################################################################
-        ##we create 4 versions of the ODE system (no_dem_sto, no_env_sto, no_dem_sto_no_env_sto and full)
-        #################################################################################################
+        ##############################################################################################################
+        ##we create the ODE and  4 versions of the SDE system (no_dem_sto, no_env_sto, no_dem_sto_no_env_sto and full)
+        ##############################################################################################################
         unique_noises = self.get_gamma_noise_terms()
         unique_noises_names = [x[0] for x in unique_noises]
 
@@ -487,7 +489,7 @@ class Ccoder(Cmodel):
                 eq += ' {0} ({1})'.format(x['sign'], x['term'])
 
                 #dem sto
-                dem += '{0} sqrt(({1})/{2})*dem_sto__{3}[cac]'.format(x['sign'], x['term'], self.toC(self.myN), x['ind_dem_sto'])
+                dem += '{0} sqrt(({1}))*dem_sto__{2}[cac]'.format(x['sign'], x['term'], x['ind_dem_sto'])
 
                 #env sto
                 if x['noise_name']:
@@ -495,7 +497,7 @@ class Ccoder(Cmodel):
 
             return (eq, dem, env)
 
-        #state variables
+
         func = {'no_dem_sto': {'proc': {'system':[], 'noises': unique_noises_names},
                                'obs': []},
                 'no_env_sto': {'proc': {'system':[], 'noises': dem_sto_names},
@@ -503,35 +505,40 @@ class Ccoder(Cmodel):
                 'full': {'proc': {'system':[], 'noises': dem_sto_names + unique_noises_names},
                          'obs': []},
                 'no_dem_sto_no_env_sto': {'proc':{'system':[], 'noises':[]},
-                                          'obs':[]}}
+                                          'obs':[]},
+                'ode': {'proc':{'system':[], 'noises':[]},
+                        'obs':[]}}
 
+
+        #state variables
         for i, s in enumerate(self.par_sv):
 
             eq, dem, env = eq_dem_env(odeDict[s])
+            if env:
+                env = '+ ' + env
 
             #TODO get rid of the 'dt' for Euler Maruyama (should be handled on the C side as sqrt(dt))'
-            func['no_dem_sto_no_env_sto']['proc']['system'].append({'index': i, 'eq': eq})
-            func['no_dem_sto']['proc']['system'].append({'index': i, 'eq': '({0})*dt + {1}'.format(eq, env)})
+            func['ode']['proc']['system'].append({'index': i, 'eq': eq})
+            func['no_dem_sto_no_env_sto']['proc']['system'].append({'index': i, 'eq': '({0})*dt'.format(eq)})
+            func['no_dem_sto']['proc']['system'].append({'index': i, 'eq': '({0})*dt {1}'.format(eq, env)})
             func['no_env_sto']['proc']['system'].append({'index': i, 'eq': '({0})*dt + {1}'.format(eq, dem)})
-            func['full']['proc']['system'].append({'index': i, 'eq': '({0})*dt + {1} + {2}'.format(eq, dem, env)})
+            func['full']['proc']['system'].append({'index': i, 'eq': '({0})*dt + {1} {2}'.format(eq, dem, env)})
 
-        #observed incidence
-        obs = {'no_dem_sto': [],
-                'no_env_sto': [],
-                'full': [],
-                'no_dem_sto_no_env_sto': []}
-
-        
+        #observed incidence        
         for myobs in obs_list:
 
             eq, dem, env = eq_dem_env(myobs['eq'])
-            #TODO get rid of the 'dt' for Euler Maruyama (should be handled on the C side as sqrt(dt))'
-            func['no_dem_sto_no_env_sto']['obs'].append({'index': myobs['index'], 'eq': eq})
-            func['no_dem_sto']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt + {1}'.format(eq, env)})
-            func['no_env_sto']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt + {1}'.format(eq, dem)})
-            func['full']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt + {1} + {2}'.format(eq, dem, env)})
-                
+            if env:
+                env = ' + ' + env
 
+            #TODO get rid of the 'dt' for Euler Maruyama (should be handled on the C side as sqrt(dt))'
+            func['ode']['obs'].append({'index': i, 'eq': eq})
+            func['no_dem_sto_no_env_sto']['obs'].append({'index': i, 'eq': '({0})*dt'.format(eq)})
+            func['no_dem_sto']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt {1}'.format(eq, env)})
+            func['no_env_sto']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt {1}'.format(eq, dem)})
+            func['full']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt + {1} {2}'.format(eq, dem, env)})
+
+        
         return {'func': func, 'caches': caches, 'sf': sf}
 
 

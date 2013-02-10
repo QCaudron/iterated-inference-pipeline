@@ -100,7 +100,7 @@ void proj2obs(struct s_X *p_X, struct s_data *p_data)
 }
 
 
-void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double dt)
+void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     /* t is the time in unit of the data */
 
@@ -118,27 +118,13 @@ void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, s
     double **par = p_par->natural;
     double ***covar = p_data->par_fixed;
 
+    double dt = p_calc->dt;
+
 
     /*automaticaly generated code:*/
     /*0-declaration of noise terms*/
     {% for n in gamma_noise %}
     double {{ n.0|safe }};{% endfor %}
-
-    //ac=0;
-
-    //      /*compute sum i !=j N_j^nu/d_ij^gamma*I^j */
-    //      for(c=0;c<N_C;c++)
-    //	{
-    //    p_calc->gravity[c]=0.0;
-    //    for(cc=0;cc<N_C;cc++)
-    //      {
-    //        if(cc !=c)
-    //		{
-    //            p_calc->gravity[c] += (pow(X[ORDER_I*N_CAC+cc*N_AC+ac], p_par->proc[ORDER_g_nu][cc][ac])/pow(p_data->mat_d[c][cc], p_par->proc[ORDER_gamma][cc][ac]));
-    //		}
-    //      }
-    //    p_calc->gravity[c] *= p_par->proc[ORDER_iota][c][ac]*pow(p_data->p_t[n][c], p_par->proc[ORDER_g_mu][c][ac]);
-    //	}
 
     double _r[{{print_prob.caches|length}}];
     {% if print_prob.sf %}
@@ -149,8 +135,13 @@ void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, s
             cac = c*N_AC+ac;
 
             /*1-generate noise increments (automaticaly generated code)*/
-            {% for n in gamma_noise %}
-            {{ n.0|safe }} = gsl_ran_gamma(p_calc->randgsl, (dt)/ pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2), pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2))/dt;{% endfor %}
+	    if(p_calc->noises_off & PLOM_NO_ENV_STO){
+		{% for n in gamma_noise %}
+		{{ n.0|safe }} = 1.0;{% endfor %}
+	    } else {
+		{% for n in gamma_noise %}
+		{{ n.0|safe }} = gsl_ran_gamma(p_calc->randgsl, (dt)/ pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2), pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2))/dt;{% endfor %}
+	    }
 
             /*2-generate process increments (automaticaly generated code)*/
             {% for sf in print_prob.sf %}
@@ -200,17 +191,20 @@ void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, s
 //stepping functions for ODE and SDEs
 
 {% for noises_off, func in print_ode.func.items %}
-{% if noises_off == 'no_dem_sto_no_env_sto'%}
+{% if noises_off == 'ode'%}
 int step_ode(double t, const double X[], double f[], void *params)
 {% else %}
-void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double dt)
+void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {% endif %}
 {
 
-    {% if noises_off == 'no_dem_sto_no_env_sto'%}
+    {% if noises_off == 'ode'%}
     struct s_calc *p_calc = (struct s_calc *) params;
     struct s_data *p_data = p_calc->p_data;
     struct s_par *p_par = p_calc->p_par;
+    {% else %}
+    double dt = p_calc->dt;
+    double *f = p_calc->y_pred;
     {% endif %}
 
     struct s_obs2ts **obs2ts = p_data->obs2ts;
@@ -252,20 +246,20 @@ void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct 
             /*automaticaly generated code:*/
             /*ODE system*/
 	    {% for eq in func.proc.system %}
-	    {% if noises_off == 'no_dem_sto_no_env_sto'%}f{% else %}X{% endif %}[{{eq.index}}*N_CAC+cac] {% if noises_off == 'no_dem_sto_no_env_sto'%}={% else %}+={% endif %} {{ eq.eq|safe }};{% endfor %}
-
+	    f[{{eq.index}}*N_CAC+cac] {% if noises_off == 'ode'%}={% else %}= X[{{eq.index}}*N_CAC+cac] + {% endif %} {{ eq.eq|safe }};{% endfor %}
         }
     }
 
+    {% if noises_off == 'ode'%}
     //drift
-    offset = N_PAR_SV*N_CAC;
-    for(i=0; i<p_data->p_it_only_drift->nbtot; i++){
-        f[offset+i] = 0.0;
+    for(i=N_PAR_SV*N_CAC; i<(N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot); i++){
+        f[i] = 0.0;
     }
+    {% endif %}
+
 
     /*automaticaly generated code:*/
     /*compute incidence:integral between t and t+1*/
-
     offset = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
 
     {% for eq in func.obs %}
@@ -281,14 +275,24 @@ void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct 
             sum_inc += {{ eq.eq|safe }};
         }
 
-	{% if noises_off == 'no_dem_sto_no_env_sto'%}f{% else %}X{% endif %}[offset] {% if noises_off == 'no_dem_sto_no_env_sto'%}={% else %}+={% endif %} sum_inc;
+	f[offset] {% if noises_off == 'ode'%}={% else %}= X[offset] + {% endif %} sum_inc;
         offset++;
     }
     {% endfor %}
 
-    {% if noises_off == 'no_dem_sto_no_env_sto'%}
+    {% if noises_off == 'ode'%}
     return GSL_SUCCESS;
+    {% else %}
+    //y_pred (f) -> X (and we ensure that X is > 0.0)
+    for(i=0; i<N_PAR_SV*N_CAC; i++){
+	X[i] =  (f[i] < 0.0) ? 0.0 : f[i]; 
+    }
+
+    for(i=N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot; i<N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot +N_TS_INC_UNIQUE; i++){
+	X[i] = (f[i] < 0.0) ? 0.0 : f[i]; 
+    }
     {% endif %}
+
 }
 {% endfor %}
 

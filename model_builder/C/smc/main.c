@@ -54,12 +54,12 @@ int main(int argc, char *argv[])
 
     int filter = 1;
     int output_best = 1, output_hat = 1, output_pred_res =1;
-    int has_dt_be_specified = 0;
-    double dt_option;
+    double dt = 0.0;
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
 
+    
     OPTION_TRAJ = 0;
     OPTION_PRIOR = 0;
     GENERAL_ID =0;
@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
     int n_threads=omp_get_max_threads();
+    
 
     while (1) {
         static struct option long_options[] =
@@ -153,8 +154,7 @@ int main(int argc, char *argv[])
             output_pred_res = 0;
             break;
         case 's':
-            dt_option = atof(optarg);
-            has_dt_be_specified =1;
+            dt = atof(optarg);
             break;
 
         case '?':
@@ -188,15 +188,6 @@ int main(int argc, char *argv[])
 
     json_t *settings = load_settings(PATH_SETTINGS);
 
-    if (has_dt_be_specified) {
-        DT = dt_option;
-    }
-
-    //IMPORTANT: update DELTA_STO so that DT = 1.0/DELTA_STO
-    DELTA_STO = round(1.0/DT);
-    DT = 1.0/ ((double) DELTA_STO);
-
-
     json_t *theta = load_json();
     struct s_data *p_data = build_data(settings, theta, 0);
     json_decref(settings);
@@ -211,14 +202,14 @@ int main(int argc, char *argv[])
     json_decref(theta);
     struct s_likelihood *p_like = build_likelihood();
 
-    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, implementation, J, size_proj, func, p_data);
+    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, implementation, noises_off, dt, J, size_proj, step_ode, p_data);
 
     FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
     FILE *p_file_pred_res = (output_pred_res==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals, p_data): NULL;
 
 
 #if FLAG_VERBOSE
-    snprintf(str, STR_BUFFSIZE, "Starting Plom-smc with the following options: i = %d, J = %d, LIKE_MIN = %g, DT = %g, DELTA_STO = %g N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, DT, DELTA_STO, n_threads);
+    snprintf(str, STR_BUFFSIZE, "Starting Plom-smc with the following options: i = %d, J = %d, LIKE_MIN = %g, DT = %g, N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, calc[0]->dt, n_threads);
     print_log(str);
 
     int64_t time_begin, time_end;
@@ -272,7 +263,7 @@ int main(int argc, char *argv[])
     print_log("clean up...");
 #endif
 
-    clean_calc(calc, implementation);
+    clean_calc(calc);
     clean_D_J_p_X(D_J_p_X);
     clean_D_J_p_X(D_J_p_X_tmp);
     clean_D_p_hat(D_p_hat, p_data);

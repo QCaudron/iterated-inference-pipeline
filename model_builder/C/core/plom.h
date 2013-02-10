@@ -116,8 +116,6 @@ char SFR_PATH[STR_BUFFSIZE]; /**< path where the output files will be written */
 int GENERAL_ID;              /**< general identifiant to make the output files unique */
 
 /* numerical integration parameters (read from JSON) */
-double DELTA_STO; /**< @c DELTA_STO time steps equal 1 data unit */
-double DT; /**< @c 1.0/DELTA_STO */
 double ONE_YEAR_IN_DATA_UNIT;
 
 /* option and commands */
@@ -288,10 +286,17 @@ struct s_data{
  * and store transiant states in a thread-safe way
  */
 
-struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get_max_threads() replication of the stucture...*/
+struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get_max_threads() replication of the structure...*/
 {
     int n_threads; /**< the total number of threads */
     int thread_id; /**< the id of the thread where the computation are being run */
+
+
+    enum plom_implementations implementation;
+    enum plom_noises_off noises_off;
+    
+    double dt;   /**< integration time step */
+
 
     int current_n;  /**< current value of the N_DATA_NONAN index*/
     int current_nn; /**< current value of the time index (N_DATA) (usefull for covariates when there are missing data but we know the covariates)*/
@@ -317,6 +322,8 @@ struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get
     gsl_odeiv2_system sys;
     double *yerr;
 
+    /* SDE */
+    double *y_pred; /**< used to store y predicted for Euler Maruyama */
 
 
     //  double *gravity; /*[NUMC] additional term specific to measles model*/
@@ -571,11 +578,11 @@ void clean_drift(struct s_drift **drift);
 struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian);
 void clean_data(struct s_data *p_data);
 
-struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementations implementation, int J, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
-struct s_calc *build_p_calc(int n_threads, int nt, int seed, enum plom_implementations implementation, int dim_ode, int (*func_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementations implementation, enum plom_noises_off noises_off, double dt, int J, int dim_ode, int (*step_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, enum plom_implementations implementation, enum plom_noises_off noises_off, double dt, int dim_ode, int (*step_ode) (double, const double *, double *, void *), struct s_data *p_data);
 
-void clean_p_calc(struct s_calc *p_calc, enum plom_implementations implementation);
-void clean_calc(struct s_calc **calc, enum plom_implementations implementation);
+void clean_p_calc(struct s_calc *p_calc);
+void clean_calc(struct s_calc **calc);
 
 struct s_X *build_X(int size_proj, int size_obs, struct s_data *p_data);
 struct s_X **build_J_p_X(int size_proj, int size_obs, struct s_data *p_data);
@@ -623,15 +630,24 @@ void reset_inc(struct s_X *p_X, struct s_data *p_data);
 void round_inc(struct s_X *p_X, struct s_data *p_data);
 
 double sum_SV(const double *X_proj, int cac);
-double correct_rate(double rate);
+double correct_rate(double rate, double dt);
 
 void linearize_and_repeat(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, const struct s_iterator *p_it);
 void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, enum plom_implementations implementation);
 void theta_driftIC2Xdrift(struct s_X *p_X, const theta_t *best_mean, struct s_data *p_data);
 
 plom_f_pred_t get_f_pred(enum plom_implementations implementation, enum plom_noises_off noises_off);
+
 void f_prediction_ode(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+
 void f_prediction_sde_no_dem_sto_no_env_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void f_prediction_sde_no_dem_sto_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void f_prediction_sde_no_env_sto_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void f_prediction_sde_no_dem_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void f_prediction_sde_no_env_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void f_prediction_sde_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void f_prediction_sde_full(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+
 void f_prediction_psr(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 void f_prediction_psr_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 
@@ -765,7 +781,7 @@ json_t *load_json(void);
 void print_json_on_stdout(json_t *root);
 
 /* drift.c */
-void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double delta_t);
+void compute_drift(double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 
 /* group.c */
 void get_c_ac(int cac, int *c, int *ac);
@@ -816,12 +832,13 @@ double observation(double x, struct s_par *p_par, struct s_data *p_data, struct 
 void proj2obs(struct s_X *p_X, struct s_data *p_data);
 
 
-void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double dt);
+void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 
 int step_ode(double t, const double X[], double f[], void *params);
 
-void step_sde_full(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double dt);
-void step_sde_no_dem_sto(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double dt);
-void step_sde_no_env_sto(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double dt);
+void step_sde_full(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void step_sde_no_dem_sto(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void step_sde_no_env_sto(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void step_sde_no_dem_sto_no_env_sto(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 
 #endif

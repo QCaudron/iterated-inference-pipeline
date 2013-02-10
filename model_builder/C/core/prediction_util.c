@@ -70,9 +70,9 @@ double sum_SV(const double *X_proj, int cac)
    exponential. So we ensure that the rate has the correct magnitude
    by correcting it
 */
-double correct_rate(double rate)
+double correct_rate(double rate, double dt)
 {
-    return -log(1.0-rate/DELTA_STO)*DELTA_STO;
+    return -log(1.0-rate*dt)/dt;
 }
 
 
@@ -148,11 +148,27 @@ plom_f_pred_t get_f_pred(enum plom_implementations implementation, enum plom_noi
 	return &f_prediction_ode;
 
     } else if (implementation == PLOM_SDE){
-	if ( (noises_off & (PLOM_NO_DEM_STO)) && (noises_off & (PLOM_NO_ENV_STO)) )  {
+
+	if (noises_off == (PLOM_NO_DEM_STO | PLOM_NO_ENV_STO | PLOM_NO_DRIFT) ) {
+	    return &f_prediction_ode;
+	} else if (noises_off == (PLOM_NO_DEM_STO | PLOM_NO_ENV_STO) ) {
 	    return &f_prediction_sde_no_dem_sto_no_env_sto;
+	} else if (noises_off == (PLOM_NO_DEM_STO | PLOM_NO_DRIFT) ) {
+	    return &f_prediction_sde_no_dem_sto_no_drift;
+	} else if (noises_off == (PLOM_NO_ENV_STO | PLOM_NO_DRIFT) ) {
+	    return &f_prediction_sde_no_env_sto_no_drift;
+	} else if (noises_off == PLOM_NO_DEM_STO ) {
+	    return &f_prediction_sde_no_dem_sto;
+	} else if (noises_off == PLOM_NO_ENV_STO ) {
+	    return &f_prediction_sde_no_env_sto;	   
+	} else if (noises_off == PLOM_NO_DRIFT ) {
+	    return &f_prediction_sde_no_drift;
+	} else {
+	    return &f_prediction_sde_full;
 	}
 
     } else if (implementation == PLOM_PSR){
+	//no_sto_env is handled within the step funciton
 	if(noises_off & PLOM_NO_DRIFT){
 	    return &f_prediction_psr_no_drift;
 	} else {
@@ -163,10 +179,11 @@ plom_f_pred_t get_f_pred(enum plom_implementations implementation, enum plom_noi
     return NULL;
 }
 
+
 void f_prediction_ode(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     double t=t0;
-    double h = DT; //h is the initial integration step size
+    double h = p_calc->dt; //h is the initial integration step size
     p_calc->p_par = p_par; //pass the ref to p_par so that it is available wihtin the function to integrate
 
     double *y = p_X->proj;
@@ -183,19 +200,103 @@ void f_prediction_ode(struct s_X *p_X, double t0, double t1, struct s_par *p_par
 }
 
 
+
 void f_prediction_sde_no_dem_sto_no_env_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
-    int k;
-    double t;
+    double t = t0;
+    double *y = p_X->proj;
 
-    for(k= (int) (t0*DELTA_STO) ; k< (int) (t1*DELTA_STO) ;k++) {
-        t = (double) k/DELTA_STO;
-
-        f_prediction_ode(p_X, t, t+DT, p_par, p_data, p_calc);
-
+    while (t < t1) {
+	step_sde_no_dem_sto_no_env_sto(y, t, p_par, p_data, p_calc);
         if (N_DRIFT) {
-            compute_drift(p_X, p_par, p_data, p_calc, DT);
+            compute_drift(y, p_par, p_data, p_calc);
         }
+
+	t += p_calc->dt;
+    }
+}
+
+void f_prediction_sde_no_dem_sto_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+{
+    double t = t0;
+    double *y = p_X->proj;
+
+    while (t < t1) {
+	step_sde_no_dem_sto(y, t, p_par, p_data, p_calc);
+
+	t += p_calc->dt;
+    }
+}
+
+
+void f_prediction_sde_no_env_sto_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+{
+    double t = t0;
+    double *y = p_X->proj;
+
+    while (t < t1) {
+	step_sde_no_env_sto(y, t, p_par, p_data, p_calc);
+
+	t += p_calc->dt;
+    }
+}
+
+
+void f_prediction_sde_no_dem_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+{
+    double t = t0;
+    double *y = p_X->proj;
+
+    while (t < t1) {
+	step_sde_no_dem_sto(y, t, p_par, p_data, p_calc);
+        if (N_DRIFT) {
+            compute_drift(y, p_par, p_data, p_calc);
+        }
+
+	t += p_calc->dt;
+    }
+}
+
+
+void f_prediction_sde_no_env_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+{
+    double t = t0;
+    double *y = p_X->proj;
+
+    while (t < t1) {
+	step_sde_no_env_sto(y, t, p_par, p_data, p_calc);
+        if (N_DRIFT) {
+            compute_drift(y, p_par, p_data, p_calc);
+        }
+
+	t += p_calc->dt;
+    }
+}
+
+void f_prediction_sde_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+{
+    double t = t0;
+    double *y = p_X->proj;
+
+    while (t < t1) {
+	step_sde_full(y, t, p_par, p_data, p_calc);
+
+	t += p_calc->dt;
+    }
+}
+
+void f_prediction_sde_full(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+{
+    double t = t0;
+    double *y = p_X->proj;
+
+    while (t < t1) {
+	step_sde_full(y, t, p_par, p_data, p_calc);
+        if (N_DRIFT) {
+            compute_drift(y, p_par, p_data, p_calc);
+        }
+
+	t += p_calc->dt;
     }
 }
 
@@ -203,34 +304,31 @@ void f_prediction_sde_no_dem_sto_no_env_sto(struct s_X *p_X, double t0, double t
 
 void f_prediction_psr(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
-    int k;
-    double t;
+    double t = t0;
     double *y = p_X->proj;
 
-    for (k= (int) (t0*DELTA_STO) ; k< (int) (t1*DELTA_STO) ;k++) {
-        t = (double) k/DELTA_STO;
-
-        step_euler_multinomial(y, t, p_par, p_data, p_calc);
-
+    while (t < t1) {
+        step_psr(y, t, p_par, p_data, p_calc);
         if (N_DRIFT) {
-            compute_drift(p_X, p_par, p_data, p_calc, DT);
+            compute_drift(y, p_par, p_data, p_calc);
         }
+	t += p_calc->dt;
     }
+
 }
+
 
 
 void f_prediction_psr_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
-    int k;
+    double t = t0;
     double *y = p_X->proj;
 
-    for(k= (int) (t0*DELTA_STO) ; k< (int) (t1*DELTA_STO) ;k++) {
-        step_euler_multinomial(y, (double) k/DELTA_STO, p_par, p_data, p_calc);
+    while (t < t1) {
+        step_psr(y, t, p_par, p_data, p_calc);
+	t += p_calc->dt;
     }
 }
-
-
-
 
 
 
@@ -261,8 +359,6 @@ void sfr_ran_multinomial (const gsl_rng * r, const size_t K, unsigned int N, con
         sum_n += n[k];
     }
 }
-
-
 
 
 

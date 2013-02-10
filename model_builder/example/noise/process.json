@@ -13,8 +13,8 @@
 
  "model": [{"from": "U", "to": "S",  "rate": "mu_b*N", "comment":"birth"},
            {"from": "S", "to": "I",  "rate": "noise__trans(sto)*r0/N*v*I", "tag":[{"id": "transmission", "by":["I"]}], "comment":"infection with noise on r0"},
-           {"from": "I", "to": "DU", "rate": "v", "comment":"recovery"},
-           {"from": "I", "to": "I",  "rate": "v", "tag":[{"id": "erlang", "shape":2}], "comment":"erlang waiting time"},
+           {"from": "I", "to": "DU", "rate": "correct_rate(v)", "comment":"recovery"},
+           {"from": "I", "to": "I",  "rate": "correct_rate(v)", "tag":[{"id": "erlang", "shape":2}], "comment":"erlang waiting time"},
            {"from": "S", "to": "U",  "rate": "mu_d", "comment":"death"},
            {"from": "I", "to": "U",  "rate": "mu_d", "comment":"death"}],
 

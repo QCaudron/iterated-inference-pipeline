@@ -120,7 +120,6 @@ def make_settings_json(self):
                        'N_OBS_INC': len([x for x in self.obs_var_def if isinstance(x[0], dict)]),
                        'N_OBS_PREV': len([x for x in self.obs_var_def if not isinstance(x[0], dict) ]),
                        'FREQUENCY': self.frequency,
-                       'DELTA_STO': {'D':2.0, 'W':14.0, 'M':61.0, 'Y':730.0}[self.frequency],
                        'ONE_YEAR_IN_DATA_UNIT': {'D':365.0, 'W':365.0/7.0, 'M':12.0, 'Y':1.0 }[self.frequency],
                        'N_DRIFT':len(self.drift_par_proc) + len(self.drift_par_obs),
                        'IS_SCHOOL_TERMS':1 if any(map(lambda x: 'terms_forcing' in x, [r['rate'] for r in self.proc_model])) else 0}
