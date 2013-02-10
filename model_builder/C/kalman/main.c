@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
         "usage:\n"
         "kalman [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
         "                        [--traj] [-p, --path <path>] [-i, --id <integer>]\n"
-        "                        [-b, --no_best] [-s, --DT <float>]  [--prior] [--transf]\n"
+        "                        [-b, --no_best] [--prior] [--transf]\n"
         "                        [--help]\n"
         "where implementation is 'sde' (default)\n"
         "options:\n"
@@ -41,14 +41,10 @@ int main(int argc, char *argv[])
         "-p, --path         path where the outputs will be stored\n"
         "-b, --no_best      do not write best_<general_id>.output file\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
-        "-s, --DT           integration time step\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "--help             print the usage on stdout\n";
 
     // general options
-    int has_dt_be_specified = 0;
-    double dt_option;
-
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
     LIKE_MIN = 1e-17;
@@ -60,7 +56,6 @@ int main(int argc, char *argv[])
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
 
-    int n_threads = 1;
     J = 1; //not an option, needed for print_X
 
 
@@ -82,7 +77,6 @@ int main(int argc, char *argv[])
         {"prior", no_argument, &OPTION_PRIOR, 1},
         {"transf", no_argument, &OPTION_TRANSF, 1},
 
-        {"DT",         required_argument, 0, 's'},
         {"LIKE_MIN",   required_argument, 0, 'l'},
 
         {0, 0, 0, 0}
@@ -90,7 +84,7 @@ int main(int argc, char *argv[])
 
 
     int option_index = 0;
-    while ((ch = getopt_long (argc, argv, "i:l:s:p:b", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long (argc, argv, "i:l:p:b", long_options, &option_index)) != -1) {
         switch (ch) {
         case 0:
             break;
@@ -114,10 +108,6 @@ int main(int argc, char *argv[])
             break;
         case 'i':
             GENERAL_ID = atoi(optarg);
-            break;
-        case 's':
-            dt_option = atof(optarg);
-            has_dt_be_specified =1;
             break;
         case 'l':
             LIKE_MIN = atof(optarg);
@@ -155,20 +145,12 @@ int main(int argc, char *argv[])
 
     json_t *settings = load_settings(PATH_SETTINGS);
 
-    if (has_dt_be_specified) {
-        DT = dt_option;
-    }
-
-    //IMPORTANT: update DELTA_STO so that DT = 1.0/DELTA_STO
-    DELTA_STO = round(1.0/DT);
-    DT = 1.0/ ((double) DELTA_STO);
-
 #if FLAG_VERBOSE
-    snprintf(str, STR_BUFFSIZE, "Starting Plom Kalman with the following options: i = %d, LIKE_MIN = %g DT = %g DELTA_STO = %g", GENERAL_ID, LIKE_MIN, DT, DELTA_STO );
+    snprintf(str, STR_BUFFSIZE, "Starting Plom Kalman with the following options: i = %d, LIKE_MIN = %g", GENERAL_ID, LIKE_MIN );
     print_log(str);
 #endif
 
-    struct s_kalman *p_kalman = build_kalman(settings, implementation,  noises_off, &n_threads, OPTION_PRIOR, 0);
+    struct s_kalman *p_kalman = build_kalman(settings, implementation, noises_off, OPTION_PRIOR, 0);
     json_decref(settings);
 
     transform_theta(p_kalman->p_best, NULL, NULL, p_kalman->p_data, 1, 1);
@@ -180,7 +162,7 @@ int main(int argc, char *argv[])
 
     back_transform_theta2par(p_kalman->p_par, p_kalman->p_best->mean, p_kalman->p_data->p_it_all, p_kalman->p_data);
     linearize_and_repeat(p_kalman->p_X, p_kalman->p_par, p_kalman->p_data, p_kalman->p_data->p_it_par_sv);
-    prop2Xpop_size(p_kalman->p_X, p_kalman->p_data, implementation);
+    prop2Xpop_size(p_kalman->p_X, p_kalman->p_data, p_kalman->calc[0]->implementation);
     theta_driftIC2Xdrift(p_kalman->p_X, p_kalman->p_best->mean, p_kalman->p_data);
 
     FILE *p_file_X = NULL;
@@ -188,12 +170,11 @@ int main(int argc, char *argv[])
         p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_kalman->p_data);
     }
 
-    double log_like = run_kalman(p_kalman->p_X, p_kalman->p_best, p_kalman->p_par, p_kalman->p_kalman_update, p_kalman->p_data, p_kalman->calc, get_f_pred(implementation, noises_off), p_file_X, 0);
+    double log_like = run_kalman(p_kalman->p_X, p_kalman->p_best, p_kalman->p_par, p_kalman->p_kalman_update, p_kalman->p_data, p_kalman->calc, f_prediction_ode, p_file_X, 0);
 
     if (OPTION_TRAJ) {
         sfr_fclose(p_file_X);
     }
-
 
 #if FLAG_VERBOSE
     time_end = s_clock();
@@ -212,7 +193,7 @@ int main(int argc, char *argv[])
     print_log("clean up...\n");
 #endif
 
-    clean_kalman(p_kalman, implementation, n_threads);
+    clean_kalman(p_kalman);
 
     return 0;
 }

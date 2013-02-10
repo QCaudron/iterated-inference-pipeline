@@ -578,8 +578,8 @@ void clean_drift(struct s_drift **drift);
 struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian);
 void clean_data(struct s_data *p_data);
 
-struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementations implementation, enum plom_noises_off noises_off, double dt, int J, int dim_ode, int (*step_ode) (double, const double *, double *, void *), struct s_data *p_data);
-struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, enum plom_implementations implementation, enum plom_noises_off noises_off, double dt, int dim_ode, int (*step_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementations implementation, enum plom_noises_off noises_off, double dt, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, enum plom_implementations implementation, enum plom_noises_off noises_off, double dt, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
 
 void clean_p_calc(struct s_calc *p_calc);
 void clean_calc(struct s_calc **calc);

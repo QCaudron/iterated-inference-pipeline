@@ -28,8 +28,8 @@ int main(int argc, char *argv[])
         "PloM kmcmc\n"
         "usage:\n"
         "kmcmc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
-        "                       [--full] [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
-        "                       [-s, --DT <float>] [-l, --LIKE_MIN <float>] [-M, --iter <integer>]\n"
+        "                       [--full] [--traj] [-p, --path <path>] [-i, --id <integer>]\n"
+        "                       [-l, --LIKE_MIN <float>] [-M, --iter <integer>]\n"
         "                       [-c --cov] [-a --cooling <float>] [-S --switch <int>]\n"
         "                       [--help]\n"
         "where implementation is 'sde' (default)\n"
@@ -42,20 +42,15 @@ int main(int argc, char *argv[])
         "-c, --cov          load an initial covariance from the settings\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
-        "-P, --N_THREAD     number of threads to be used (default to the number of cores)\n"
-        "-s, --DT           integration time step\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-M, --iter         number of pMCMC iterations\n"
         "-a, --cooling      cooling rate for sampling covariance live tuning\n"
         "-S, --switch       select switching iteration from initial covariance to empirical one\n"
         "--help             print the usage on stdout\n";
 
-    int has_dt_be_specified = 0;
-    double dt_option;
     int load_cov = 0;
     int m_switch = -1;
     double a = 0.999;
-
 
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
@@ -67,9 +62,7 @@ int main(int argc, char *argv[])
     OPTION_TRANSF = 0;
     OPTION_TRAJ = 0;
 
-    int n_threads = 1;
     J = 1; //not an option, needed for print_X
-
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
@@ -94,9 +87,6 @@ int main(int argc, char *argv[])
                 {"help",        no_argument,        0, 'e'},
                 {"path",        required_argument,  0, 'p'},
                 {"id",          required_argument,  0, 'i'},
-                {"N_THREAD",    required_argument,  0, 'P'},
-
-                {"DT",          required_argument,   0, 's'},
                 {"LIKE_MIN",    required_argument,   0, 'l'},
                 {"iter",        required_argument,   0, 'M'},
                 {"switch",      required_argument,   0, 'S'},
@@ -107,7 +97,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "ci:l:M:p:s:P:S:a:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "ci:l:M:p:S:a:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -141,9 +131,6 @@ int main(int argc, char *argv[])
         case 'p':
             snprintf(SFR_PATH, STR_BUFFSIZE, "%s", optarg);
             break;
-        case 'P':
-            n_threads = atoi(optarg);
-            break;
         case 'i':
             GENERAL_ID = atoi(optarg);
             break;
@@ -153,10 +140,6 @@ int main(int argc, char *argv[])
             break;
         case 'M':
             M = atoi(optarg);
-            break;
-        case 's':
-            dt_option = atof(optarg);
-            has_dt_be_specified =1;
             break;
         case 'a':
             a = atof(optarg);
@@ -190,19 +173,10 @@ int main(int argc, char *argv[])
         }
     }
 
-
     json_t *settings = load_settings(PATH_SETTINGS);
 
-    if (has_dt_be_specified) {
-        DT = dt_option;
-    }
-
-    //IMPORTANT: update DELTA_STO so that DT = 1.0/DELTA_STO
-    DELTA_STO = round(1.0/DT);
-    DT = 1.0/ ((double) DELTA_STO);
-
     int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?
-    struct s_kalman *p_kalman = build_kalman(settings, implementation,  noises_off, &n_threads, 1, update_covariance);
+    struct s_kalman *p_kalman = build_kalman(settings, implementation,  noises_off, 1, update_covariance);
     json_decref(settings);
 
     sanitize_best_to_prior(p_kalman->p_best, p_kalman->p_data);
@@ -215,7 +189,7 @@ int main(int argc, char *argv[])
 
     p_kalman->calc[0]->method_specific_shared_data = p_mcmc_calc_data; //needed to use ran_proposal_sequential in pmcmc
 
-    kmcmc(p_kalman, p_like, p_mcmc_calc_data, get_f_pred(implementation, noises_off), implementation);
+    kmcmc(p_kalman, p_like, p_mcmc_calc_data, f_prediction_ode);
 
     // print empirical covariance
     if (OPTION_FULL_UPDATE) {
@@ -230,7 +204,7 @@ int main(int argc, char *argv[])
 
     clean_pmcmc_calc_data(p_mcmc_calc_data);
     clean_likelihood(p_like);
-    clean_kalman(p_kalman, implementation, n_threads);
+    clean_kalman(p_kalman);
 
     return 0;
 }

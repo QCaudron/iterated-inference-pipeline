@@ -206,7 +206,6 @@ int main(int argc, char *argv[])
         }
     }
 
-
     json_t *settings = load_settings(PATH_SETTINGS);
 
     int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?

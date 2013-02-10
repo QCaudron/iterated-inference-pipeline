@@ -93,13 +93,13 @@ struct s_kalman
 
 
 /* build.c */
-struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data, enum plom_implementations implementation,  enum plom_noises_off noises_off);
+struct s_kalman_specific_data *build_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data);
 void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data);
 struct s_kalman_update *build_kalman_update(int n_kalman_update);
 void clean_kalman_update(struct s_kalman_update *p_kalman_update);
 
-struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implementation,  enum plom_noises_off noises_off, int *n_threads, int is_bayesian, int update_covariance);
-void clean_kalman(struct s_kalman *p_kalman, enum plom_implementations implementation, int n_threads);
+struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int update_covariance);
+void clean_kalman(struct s_kalman *p_kalman);
 
 /* kalman.c */
 double drift_derivative(double jac_tpl, double jac_der, struct s_router *r, int cac);
@@ -140,4 +140,4 @@ void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *
 
 
 /* kmcmc.c */
-void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcmc_calc_data *p_pmcmc_calc_data, plom_f_pred_t f_pred, enum plom_implementations implementation);
+void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcmc_calc_data *p_pmcmc_calc_data, plom_f_pred_t f_pred);

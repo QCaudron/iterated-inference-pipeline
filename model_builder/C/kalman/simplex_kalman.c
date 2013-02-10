@@ -26,7 +26,7 @@ double f_simplex_kalman(const gsl_vector *x, void *params)
 
     back_transform_theta2par(p->p_par, p->p_best->mean, p->p_data->p_it_all, p->p_data);
     linearize_and_repeat(p->p_X, p->p_par, p->p_data, p->p_data->p_it_par_sv);
-    prop2Xpop_size(p->p_X, p->p_data, PLOM_ODE);
+    prop2Xpop_size(p->p_X, p->p_data, p->calc[0]->implementation);
     theta_driftIC2Xdrift(p->p_X, p->p_best->mean, p->p_data);
 
     double log_like = run_kalman(p->p_X, p->p_best, p->p_par, p->p_kalman_update, p->p_data, p->calc, f_prediction_ode,  NULL, 0);
@@ -36,10 +36,8 @@ double f_simplex_kalman(const gsl_vector *x, void *params)
 }
 
 
-
 int main(int argc, char *argv[])
 {
-
     char ch;
     char str[STR_BUFFSIZE];
 
@@ -48,7 +46,7 @@ int main(int argc, char *argv[])
         "usage:\n"
         "ksimplex [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
         "                          [-p, --path <path>] [-i, --id <integer>]\n"
-        "                          [-s, --DT <float>] [--prior] [--transf]\n"
+        "                          [--prior] [--transf]\n"
         "                          [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>]\n"
         "                          [--help]\n"
         "where implementation is 'sde' (default)\n"
@@ -60,22 +58,17 @@ int main(int argc, char *argv[])
         "--transf           to maximize posterior density in transformed space (if combined with --prior)\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
-        "-s, --DT           integration time step\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-M, --iter         maximum number of iterations\n"
         "-S, --size         simplex size used as a stopping criteria\n"
         "-b, --no_traces    do not write the traces\n"
         "--help             print the usage on stdout\n";
 
-
     // simplex options
     M = 10;
     CONVERGENCE_STOP_SIMPLEX = 1e-6;
 
     // general options
-    int has_dt_be_specified = 0;
-    double dt_option;
-
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
     J=1;
@@ -88,7 +81,6 @@ int main(int argc, char *argv[])
     OPTION_TRANSF = 0;
 
     int option_no_trace = 0;
-    int n_threads = 1;
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
@@ -108,7 +100,6 @@ int main(int argc, char *argv[])
         {"prior",  no_argument, &OPTION_PRIOR,  1},
         {"transf", no_argument, &OPTION_TRANSF, 1},
 
-        {"DT",       required_argument, 0, 's'},
         {"LIKE_MIN", required_argument, 0, 'l'},
         {"iter",     required_argument,   0, 'M'},
         {"size",     required_argument,   0, 'S'},
@@ -117,7 +108,7 @@ int main(int argc, char *argv[])
     };
 
     int option_index = 0;
-    while ((ch = getopt_long (argc, argv, "i:l:s:p:S:M:b", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long (argc, argv, "i:l:p:S:M:b", long_options, &option_index)) != -1) {
         switch (ch) {
         case 0:
             break;
@@ -145,10 +136,6 @@ int main(int argc, char *argv[])
             break;
         case 'i':
             GENERAL_ID = atoi(optarg);
-            break;
-        case 's':
-            dt_option = atof(optarg);
-            has_dt_be_specified =1;
             break;
 
         case 'l':
@@ -184,24 +171,14 @@ int main(int argc, char *argv[])
             return 1;
         }
     }
-
     json_t *settings = load_settings(PATH_SETTINGS);
 
-    if (has_dt_be_specified) {
-        DT = dt_option;
-    }
-
-    //IMPORTANT: update DELTA_STO so that DT = 1.0/DELTA_STO
-    DELTA_STO = round(1.0/DT);
-    DT = 1.0/ ((double) DELTA_STO);
-
 #if FLAG_VERBOSE
-    snprintf(str, STR_BUFFSIZE, "Starting PloM ksimplex with the following options: i = %d, LIKE_MIN = %g DT = %g DELTA_STO = %g", GENERAL_ID, LIKE_MIN, DT, DELTA_STO );
+    snprintf(str, STR_BUFFSIZE, "Starting PloM ksimplex with the following options: i = %d, LIKE_MIN = %g", GENERAL_ID, LIKE_MIN);
     print_log(str);
 #endif
 
-
-    struct s_kalman *p_kalman = build_kalman(settings, implementation,  noises_off, &n_threads, OPTION_PRIOR, 0);
+    struct s_kalman *p_kalman = build_kalman(settings, implementation, noises_off, OPTION_PRIOR, 0);
     json_decref(settings);
 
     if (OPTION_PRIOR) {
@@ -216,7 +193,7 @@ int main(int argc, char *argv[])
     print_log("clean up...\n");
 #endif
 
-    clean_kalman(p_kalman, implementation, n_threads);
+    clean_kalman(p_kalman);
 
     return 0;
 }

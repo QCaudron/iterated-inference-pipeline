@@ -37,7 +37,6 @@ void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data)
     FREE(p);
 }
 
-
 struct s_kalman_update *build_kalman_update(int n_kal)
 {
     struct s_kalman_update *p;
@@ -70,10 +69,9 @@ void clean_kalman_update(struct s_kalman_update *p)
 }
 
 
-struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implementation,  enum plom_noises_off noises_off, int *n_threads, int is_bayesian, int update_covariance)
+struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int update_covariance)
 {
     char str[STR_BUFFSIZE];
-    int nt;
 
     struct s_kalman *p_kalman;
     p_kalman = malloc(sizeof(struct s_kalman));
@@ -93,34 +91,29 @@ struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implem
     p_kalman->p_best = build_best(p_kalman->p_data, theta, noises_off, update_covariance);
     json_decref(theta);
 
-    p_kalman->calc = build_calc(n_threads, GENERAL_ID, implementation, 1, size_proj, func_kal, p_kalman->p_data);
+    int n_threads =1;
+    p_kalman->calc = build_calc(&n_threads, GENERAL_ID, implementation, noises_off, 0, 1, size_proj, step_ode_ekf, p_kalman->p_data);
     p_kalman->p_par = build_par(p_kalman->p_data);
 
     p_kalman->smallest_log_like = get_smallest_log_likelihood(p_kalman->p_data->data_ind);
     p_kalman->p_kalman_update = build_kalman_update(N_KAL);
 
-    for(nt=0; nt< *n_threads; nt++) {
-        p_kalman->calc[nt]->method_specific_thread_safe_data = build_kalman_specific_data(p_kalman->p_data, implementation, noises_off);
-    }
+    p_kalman->calc[0]->method_specific_thread_safe_data = build_kalman_specific_data(p_kalman->calc[0], p_kalman->p_data);
 
     return p_kalman;
 }
 
 
-void clean_kalman(struct s_kalman *p_kalman, enum plom_implementations implementation, int n_threads)
+void clean_kalman(struct s_kalman *p_kalman)
 {
-    int nt;
-
     clean_X(p_kalman->p_X);
     clean_best(p_kalman->p_best);
     clean_par(p_kalman->p_par);
     clean_kalman_update(p_kalman->p_kalman_update);
 
-    for(nt=0; nt< n_threads; nt++) {
-        clean_kalman_specific_data(p_kalman->calc[nt], p_kalman->p_data);
-    }
+    clean_kalman_specific_data(p_kalman->calc[0], p_kalman->p_data);
 
-    clean_calc(p_kalman->calc, implementation);
+    clean_calc(p_kalman->calc);
     clean_data(p_kalman->p_data);
 
     FREE(p_kalman);

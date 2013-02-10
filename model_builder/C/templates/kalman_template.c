@@ -32,7 +32,7 @@
 #define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
 
 
-struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data, enum plom_implementations implementation,  enum plom_noises_off noises_off)
+struct s_kalman_specific_data *build_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data)
 {
     int i;
 
@@ -61,6 +61,7 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data,
     p->Q = gsl_matrix_calloc(N_KAL, N_KAL);
     p->Ft = gsl_matrix_calloc(N_KAL, N_KAL);
 
+    enum plom_noises_off noises_off = p_calc->noises_off;
     int n_noises;
     void (*eval_L) (gsl_matrix *L, struct s_data *p_data);
 
@@ -85,7 +86,7 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data,
     n_noises += p_data->p_it_only_drift->nbtot;
 
     if(n_noises == 0){
-        print_err("kalman methods must be used with at least one brownian motion, try running with the sto command or add noise into your process model");
+        print_err("kalman methods must be used with at least one brownian motion.");
         exit(EXIT_FAILURE);
     } else {
 	p->Qc = gsl_matrix_calloc(n_noises, n_noises);
@@ -154,7 +155,8 @@ int step_ode_ekf(double t, const double X[], double f[], void *params)
         for(ac=0; ac<N_AC; ac++) {
             cac = c*N_AC+ac;
 
-            {{ print_ode.sys|safe }}
+	    {% for eq in print_ode.func.ode.proc.system %}
+	    f[{{eq.index}}*N_CAC+cac] = {{ eq.eq|safe }};{% endfor %}
         }
     }
 
@@ -168,8 +170,8 @@ int step_ode_ekf(double t, const double X[], double f[], void *params)
     /*compute incidence:integral between t and t+1*/
 
     offset = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
-    {% for eq in print_ode.obs %}
-    o = {{ eq.true_ind_obs|safe }};
+    {% for eq in print_ode.func.ode.obs %}
+    o = {{ eq.index|safe }};
 
     for (ts=0; ts<obs2ts[o]->n_ts_unique; ts++) {
         sum_inc = 0.0;
@@ -178,14 +180,13 @@ int step_ode_ekf(double t, const double X[], double f[], void *params)
             ac = obs2ts[o]->cac[ts][n_cac][1];
             cac = c*N_AC+ac;
 
-            sum_inc += {{ eq.right_hand_side|safe }};
+            sum_inc += {{ eq.eq|safe }};
         }
 
         f[offset] = sum_inc;
         offset++;
     }
     {% endfor %}
-
 
     ////////////////
     // covariance //
