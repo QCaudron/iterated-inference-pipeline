@@ -54,8 +54,7 @@ int main(int argc, char *argv[])
         "-E, --epsilon      select number of burnin iterations before tuning epsilon\n"
         "--help             print the usage on stdout\n";
 
-    int has_dt_be_specified = 0;
-    double dt_option = 0.0;
+    double dt = 0.0;
     int load_cov = 0;
     int m_switch = -1;
     int m_eps = 50;
@@ -166,8 +165,7 @@ int main(int argc, char *argv[])
             M = atoi(optarg);
             break;
         case 's':
-            dt_option = atof(optarg);
-            has_dt_be_specified =1;
+            dt = atof(optarg);
             break;
         case 'a':
             a = atof(optarg);
@@ -212,7 +210,7 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
 
     int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?
-    struct s_pmcmc *p_pmcmc = build_pmcmc(implementation, noises_off, settings, has_dt_be_specified, dt_option, a, m_switch, m_eps, update_covariance, J, &n_threads);
+    struct s_pmcmc *p_pmcmc = build_pmcmc(implementation, noises_off, settings, dt, a, m_switch, m_eps, update_covariance, J, &n_threads);
     json_decref(settings);
 
     sanitize_best_to_prior(p_pmcmc->p_best, p_pmcmc->p_data);
@@ -220,7 +218,7 @@ int main(int argc, char *argv[])
     transform_theta(p_pmcmc->p_best, NULL, NULL, p_pmcmc->p_data, 1, !update_covariance);
     gsl_vector_memcpy(p_pmcmc->p_best->proposed, p_pmcmc->p_best->mean);
 
-    pmcmc(p_pmcmc->p_best, p_pmcmc->D_J_p_X, p_pmcmc->D_J_p_X_tmp, p_pmcmc->p_par, &(p_pmcmc->D_p_hat_prev), &(p_pmcmc->D_p_hat_new), p_pmcmc->D_p_hat_best, p_pmcmc->p_like, p_pmcmc->p_data, p_pmcmc->calc, get_f_pred(implementation, noises_off), implementation);
+    pmcmc(p_pmcmc->p_best, p_pmcmc->D_J_p_X, p_pmcmc->D_J_p_X_tmp, p_pmcmc->p_par, &(p_pmcmc->D_p_hat_prev), &(p_pmcmc->D_p_hat_new), p_pmcmc->D_p_hat_best, p_pmcmc->p_like, p_pmcmc->p_data, p_pmcmc->calc, get_f_pred(implementation, noises_off));
 
     FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_pmcmc->p_data);
     print_hat(p_file_hat, p_pmcmc->D_p_hat_best, p_pmcmc->p_data);
@@ -235,7 +233,7 @@ int main(int argc, char *argv[])
     print_log("clean up...\n");
 #endif
 
-    clean_pmcmc(p_pmcmc, implementation);
+    clean_pmcmc(p_pmcmc);
 
     return 0;
 }

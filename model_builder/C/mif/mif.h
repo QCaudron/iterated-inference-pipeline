@@ -85,8 +85,8 @@ void update_IC(theta_t *best_mean, struct s_likelihood *p_like, double **J_initi
 void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, gsl_vector **J_theta, double ***J_IC_grouped, struct s_data *p_data, int n_max, int n, const int lag);
 
 /* build.c */
-struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noises_off noises_off, int has_dt_be_specified, double dt_option, double prop_L_option, int J, int *n_threads);
-void clean_mif(struct s_mif *p_mif, enum plom_implementations implementation);
+struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double prop_L_option, int J, int *n_threads);
+void clean_mif(struct s_mif *p_mif);
 
 /* mif.c */
-void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_par **J_p_par, struct s_likelihood *p_like, gsl_matrix *var_theta, gsl_vector **J_theta, gsl_vector **J_theta_tmp, double ***J_IC_grouped, double ***J_IC_grouped_tmp, double **D_theta_bart, double **D_theta_Vt, plom_f_pred_t f_pred, enum plom_implementations implementation);
+void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_par **J_p_par, struct s_likelihood *p_like, gsl_matrix *var_theta, gsl_vector **J_theta, gsl_vector **J_theta_tmp, double ***J_IC_grouped, double ***J_IC_grouped_tmp, double **D_theta_bart, double **D_theta_Vt, plom_f_pred_t f_pred);

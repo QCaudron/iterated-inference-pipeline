@@ -18,22 +18,14 @@
 
 #include "mif.h"
 
-struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noises_off noises_off, int has_dt_be_specified, double dt_option, double prop_L_option, int J, int *n_threads)
+struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double prop_L_option, int J, int *n_threads)
 {
     char str[STR_BUFFSIZE];
 
     json_t *settings = load_settings(PATH_SETTINGS);
     json_t *theta = load_json();
 
-    if (has_dt_be_specified) {
-        DT = dt_option;
-    }
-
     L = (int) floor(prop_L_option*N_DATA);
-
-    //IMPORTANT: update DELTA_STO so that DT = 1.0/DELTA_STO
-    DELTA_STO = round(1.0/DT);
-    DT = 1.0/ ((double) DELTA_STO);
 
     struct s_mif *p_mif;
     p_mif = malloc(sizeof(struct s_mif));
@@ -62,7 +54,7 @@ struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noi
     p_mif->J_p_par = build_J_p_par(p_mif->p_data);
     p_mif->p_like = build_likelihood();
 
-    p_mif->calc = build_calc(n_threads, GENERAL_ID, implementation, J, size_proj, func, p_mif->p_data);
+    p_mif->calc = build_calc(n_threads, GENERAL_ID, implementation, noises_off, dt, J, size_proj, step_ode, p_mif->p_data);
 
     /*MIF specific*/
 
@@ -83,13 +75,12 @@ struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noi
     p_mif->D_theta_Vt = init2d_set0(N_DATA_NONAN+1, N_THETA_MIF);
 
     return p_mif;
-
 }
 
 
-void clean_mif(struct s_mif *p_mif, enum plom_implementations implementation)
+void clean_mif(struct s_mif *p_mif)
 {
-    clean_calc(p_mif->calc, implementation);
+    clean_calc(p_mif->calc);
     clean_best(p_mif->p_best);
 
     clean_J_p_par(p_mif->J_p_par);

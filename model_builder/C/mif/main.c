@@ -59,8 +59,7 @@ int main(int argc, char *argv[])
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
 
-    int has_dt_be_specified = 0;
-    double dt_option = 0.0;
+    double dt = 0.0;
     double prop_L_option = 0.75;
 
     GENERAL_ID =0;
@@ -178,8 +177,7 @@ int main(int argc, char *argv[])
             break;
 
         case 's':
-            dt_option = atof(optarg);
-            has_dt_be_specified =1;
+            dt = atof(optarg);
             break;
 
         case '?':
@@ -217,10 +215,10 @@ int main(int argc, char *argv[])
     print_log("memory allocation and inputs loading...\n");
 #endif
 
-    struct s_mif *p_mif = build_mif(implementation, noises_off, has_dt_be_specified, dt_option, prop_L_option, J, &n_threads);
+    struct s_mif *p_mif = build_mif(implementation, noises_off, dt, prop_L_option, J, &n_threads);
 
 #if FLAG_VERBOSE
-    snprintf(str, STR_BUFFSIZE, "Starting Simforence-MIF with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, a = %g, b = %g, L = %g, SWITCH = %d, DT = %g, DELTA_STO = %g  N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, M, MIF_a, MIF_b, prop_L_option, SWITCH, DT, DELTA_STO, n_threads);
+    snprintf(str, STR_BUFFSIZE, "Starting Simforence-MIF with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, a = %g, b = %g, L = %g, SWITCH = %d, DT = %g, N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, M, MIF_a, MIF_b, prop_L_option, SWITCH, p_mif->calc[0]->dt, n_threads);
     print_log(str);
 #endif
 
@@ -232,13 +230,13 @@ int main(int argc, char *argv[])
     transform_theta(p_mif->p_best, transit_mif, NULL, p_mif->p_data, 1, 1);
     get_submatrix_var_theta_mif(p_mif->var_theta, p_mif->p_best, p_mif->p_data);
 
-    mif(p_mif->calc, p_mif->p_data, p_mif->p_best, &(p_mif->J_p_X), &(p_mif->J_p_X_tmp), p_mif->J_p_par, p_mif->p_like, p_mif->var_theta, p_mif->J_theta, p_mif->J_theta_tmp, &(p_mif->J_IC_grouped), &(p_mif->J_IC_grouped_tmp), p_mif->D_theta_bart, p_mif->D_theta_Vt, get_f_pred(implementation, noises_off), implementation);
+    mif(p_mif->calc, p_mif->p_data, p_mif->p_best, &(p_mif->J_p_X), &(p_mif->J_p_X_tmp), p_mif->J_p_par, p_mif->p_like, p_mif->var_theta, p_mif->J_theta, p_mif->J_theta_tmp, &(p_mif->J_IC_grouped), &(p_mif->J_IC_grouped_tmp), p_mif->D_theta_bart, p_mif->D_theta_Vt, get_f_pred(implementation, noises_off));
 
 #if FLAG_VERBOSE
     print_log("clean up...\n");
 #endif
 
-    clean_mif(p_mif, implementation);
+    clean_mif(p_mif);
 
     return 0;
 }

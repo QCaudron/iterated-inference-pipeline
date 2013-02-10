@@ -26,6 +26,7 @@ struct s_thread_params
     struct s_data *p_data;
     enum plom_implementations implementation;
     enum plom_noises_off noises_off;
+    double dt;
     char *IPv4;
     void *context;
 };
@@ -52,13 +53,11 @@ void *worker_routine (void *params) {
     snprintf(str, STR_BUFFSIZE, "tcp://%s:%d", p->IPv4, 5558);
     zmq_connect (server_sender, str);
 
-
-
     struct s_data *p_data = p->p_data;
     struct s_par *p_par = build_par(p_data);
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
     struct s_X *p_X = build_X(size_proj, N_TS, p_data);
-    struct s_calc *p_calc = build_p_calc(p->n_threads, p->thread_id, GENERAL_ID, p->implementation, size_proj, func, p_data);
+    struct s_calc *p_calc = build_p_calc(p->n_threads, p->thread_id, GENERAL_ID, p->implementation, p->noises_off, p->dt, size_proj, step_ode, p_data);
 
     double like = 0.0;
 
@@ -123,7 +122,7 @@ void *worker_routine (void *params) {
 
     clean_par(p_par);
     clean_X(p_X);
-    clean_p_calc(p_calc, p->implementation);
+    clean_p_calc(p_calc);
 
     printf("thread %d done\n", p->thread_id);
 
@@ -160,8 +159,7 @@ int main(int argc, char *argv[])
         "--help             print the usage on stdout\n";
 
 
-    int has_dt_be_specified = 0;
-    double dt_option;
+    double dt = 0.0;
     GENERAL_ID =0;
     J = 1; //here J is actualy Jchunk!
     int n_threads = omp_get_max_threads();
@@ -242,10 +240,9 @@ int main(int argc, char *argv[])
             LIKE_MIN = atof(optarg);
             LOG_LIKE_MIN = log(LIKE_MIN);
             break;
-
+	    
         case 's':
-            dt_option = atof(optarg);
-            has_dt_be_specified =1;
+            dt = atof(optarg);
             break;
 
         case '?':
@@ -281,16 +278,10 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
     json_t *theta = load_json();
 
-    if (has_dt_be_specified) {
-        DT = dt_option;
-    }
-    DELTA_STO = round(1.0/DT);
-    DT = 1.0/ ((double) DELTA_STO);
-
     n_threads = sanitize_n_threads(n_threads, J);
 
 #if FLAG_VERBOSE
-    snprintf(str, STR_BUFFSIZE, "Starting Plom-worker with the following options: i = %d, LIKE_MIN = %g, DT = %g, DELTA_STO = %g N_THREADS = %d", GENERAL_ID, LIKE_MIN, DT, DELTA_STO, n_threads);
+    snprintf(str, STR_BUFFSIZE, "Starting Plom-worker with the following options: i = %d, LIKE_MIN = %g, N_THREADS = %d", GENERAL_ID, LIKE_MIN, n_threads);
     print_log(str);
 #endif
 
@@ -315,6 +306,7 @@ int main(int argc, char *argv[])
         p_thread_params[nt].n_threads = n_threads;
         p_thread_params[nt].implementation = implementation;
         p_thread_params[nt].noises_off = noises_off;
+        p_thread_params[nt].dt = dt;
         p_thread_params[nt].IPv4 = IPv4;
         p_thread_params[nt].p_data = p_data;
         p_thread_params[nt].context = context;

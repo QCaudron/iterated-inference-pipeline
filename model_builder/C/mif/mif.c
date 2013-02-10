@@ -18,7 +18,7 @@
 
 #include "mif.h"
 
-void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_par **J_p_par, struct s_likelihood *p_like, gsl_matrix *var_theta, gsl_vector **J_theta, gsl_vector **J_theta_tmp, double ***J_IC_grouped, double ***J_IC_grouped_tmp, double **D_theta_bart, double **D_theta_Vt, plom_f_pred_t f_pred, enum plom_implementations implementation)
+void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_par **J_p_par, struct s_likelihood *p_like, gsl_matrix *var_theta, gsl_vector **J_theta, gsl_vector **J_theta_tmp, double ***J_IC_grouped, double ***J_IC_grouped_tmp, double **D_theta_bart, double **D_theta_Vt, plom_f_pred_t f_pred)
 {
     int j;
     int m, n, nn, nnp1; /*m:filtering iteration index, n: indeces N_DATA and nn N_DATA_NONAN */
@@ -55,7 +55,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
         fill_theta_bart_and_Vt_mif(D_theta_bart, D_theta_Vt, p_best, p_data, m);
 
         for(j=0; j<J; j++) {
-            propose_safe_theta_and_load_X0(p_best->proposed, p_best, MIF_b*FREEZE, J_p_par[j], (*J_p_X)[j], p_data, calc[0], ran_proposal, implementation);
+            propose_safe_theta_and_load_X0(p_best->proposed, p_best, MIF_b*FREEZE, J_p_par[j], (*J_p_X)[j], p_data, calc[0], ran_proposal);
             split_theta_mif(p_best->proposed, J_theta[j], (*J_IC_grouped)[j], p_data); // JD J_theta and J_IC, with corresponding intialisations!
         }
 

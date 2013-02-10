@@ -749,7 +749,7 @@ double pseudo_unif_prior(double x, double min, double max);
 
 /* proposal.c */
 void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_par *p_par, struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc,
-                                    void (*ran_proposal) (theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc), enum plom_implementations implementation);
+                                    void (*ran_proposal) (theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc));
 void ran_proposal(theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc);
 
 int check_IC(struct s_X *p_X, struct s_data *p_data);

@@ -39,7 +39,7 @@ void apply_following_constraints(theta_t *proposed, struct s_best *p_best, struc
    the initial conditions.
 */
 void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_par *p_par, struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc,
-                                    void (*ran_proposal) (theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc), enum plom_implementations implementation)
+                                    void (*ran_proposal) (theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc))
 {
 
     do
@@ -52,7 +52,7 @@ void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, do
             //load_X0 (p_X->proj)
             back_transform_theta2par(p_par, proposed, p_data->p_it_par_sv, p_data);
             linearize_and_repeat(p_X, p_par, p_data, p_data->p_it_par_sv);
-            prop2Xpop_size(p_X, p_data, implementation); //If POP_SIZE_EQ_SUM_SV the last state is replaced by pop_size-sum_every_state_except_the_last.
+            prop2Xpop_size(p_X, p_data, p_calc->implementation); //If POP_SIZE_EQ_SUM_SV the last state is replaced by pop_size-sum_every_state_except_the_last.
         }
     while (check_IC(p_X, p_data) > 0);
 

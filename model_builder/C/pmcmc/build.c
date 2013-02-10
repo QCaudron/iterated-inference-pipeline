@@ -73,19 +73,11 @@ void clean_pmcmc_calc_data(struct s_pmcmc_calc_data *p_pmcmc_calc_data)
 }
 
 
-struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_noises_off noises_off, json_t *settings, int has_dt_be_specified, double dt_option, double a, int m_switch, int m_eps, int update_covariance, int J, int *n_threads)
+struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_noises_off noises_off, json_t *settings, double dt, double a, int m_switch, int m_eps, int update_covariance, int J, int *n_threads)
 {
     char str[STR_BUFFSIZE];
 
     int nt;
-
-    if (has_dt_be_specified) {
-        DT = dt_option;
-    }
-
-    //IMPORTANT: update DELTA_STO so that DT = 1.0/DELTA_STO
-    DELTA_STO = round(1.0/DT);
-    DT = 1.0/ ((double) DELTA_STO);
 
     if (OPTION_PIPELINE) {
         //be sure that J is a multiple of JCHUNK
@@ -121,7 +113,7 @@ struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_
 
     p_pmcmc->p_like = build_likelihood();
 
-    p_pmcmc->calc = build_calc(n_threads, GENERAL_ID, implementation, J, size_proj,  func, p_pmcmc->p_data);
+    p_pmcmc->calc = build_calc(n_threads, GENERAL_ID, implementation, noises_off, dt, J, size_proj, step_ode, p_pmcmc->p_data);
 
     struct s_pmcmc_calc_data *p_pmcmc_calc_data = build_pmcmc_calc_data(p_pmcmc->p_best, a, m_switch, m_eps);
     //store the ref for each element of calc
@@ -129,14 +121,14 @@ struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_
         p_pmcmc->calc[nt]->method_specific_shared_data = p_pmcmc_calc_data;
     }
 
-    sprintf(str, "Starting Simforence-pmcmc with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, DT = %g, DELTA_STO = %g N_THREADS = %d SWITCH = %d a = %g", GENERAL_ID, J, LIKE_MIN, M, DT, DELTA_STO, *n_threads, p_pmcmc_calc_data->m_switch, p_pmcmc_calc_data->a);
+    sprintf(str, "Starting Simforence-pmcmc with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, DT = %g, N_THREADS = %d SWITCH = %d a = %g", GENERAL_ID, J, LIKE_MIN, M, p_pmcmc->calc[0]->dt, *n_threads, p_pmcmc_calc_data->m_switch, p_pmcmc_calc_data->a);
     print_log(str);
 
     return p_pmcmc;
 }
 
 
-void clean_pmcmc(struct s_pmcmc *p_pmcmc, enum plom_implementations implementation)
+void clean_pmcmc(struct s_pmcmc *p_pmcmc)
 {
     clean_best(p_pmcmc->p_best);
 
@@ -153,7 +145,7 @@ void clean_pmcmc(struct s_pmcmc *p_pmcmc, enum plom_implementations implementati
 
     clean_pmcmc_calc_data((struct s_pmcmc_calc_data *) p_pmcmc->calc[0]->method_specific_shared_data);
     clean_data(p_pmcmc->p_data);
-    clean_calc(p_pmcmc->calc, implementation);
+    clean_calc(p_pmcmc->calc);
 
     FREE(p_pmcmc);
 }
