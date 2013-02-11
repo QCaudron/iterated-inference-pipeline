@@ -36,7 +36,7 @@ int integrator(struct s_X *p_X, double *y0, double t0, double t_end, struct s_pa
     int status;
     int error=0;
     double t = t0;
-    double h = DT; //h is the initial integration step size
+    double h = p_calc->dt; //h is the initial integration step size
     int i;
     double *y = p_X->proj;
 
@@ -89,7 +89,7 @@ int integrate(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par
 /**
  * Used for bifurcation analysis ONLY.
  */
-double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, enum plom_implementations implementation, enum plom_noises_off noises_off)
+double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, plom_f_pred_t f_pred)
 {
     int i, ts, k;
     double **traj_obs = init2d_set0(N_TS, (int) (t_end-t0));
@@ -98,8 +98,6 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
     if (OPTION_TRAJ) {
         p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
     }
-
-    plom_f_pred_t f_pred = get_f_pred(implementation, noises_off);
 
     /* initialize with initial conditions and reset incidence */
     for (i=0; i< (N_PAR_SV*N_CAC) ; i++){
@@ -133,7 +131,7 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
 }
 
 
-void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, enum plom_implementations implementation, enum plom_noises_off noises_off)
+void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred)
 {
     int j, k, nn;
     int thread_id;
@@ -147,11 +145,9 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
     struct s_hat *p_hat = build_hat(p_data);
 
     //if ODE, only the first particle was used to skip the transiant
-    if ( (implementation == PLOM_ODE) && (t_transiant > 0.0) ) {
+    if ( (p_data->implementation == PLOM_ODE) && (t_transiant > 0.0) ) {
         replicate_J_p_X_0(J_p_X, p_data);
     }
-
-    plom_f_pred_t f_pred = get_f_pred(implementation, noises_off);
 
     for (k= (int) t0 ; k< (int) t_end ; k++) {
 

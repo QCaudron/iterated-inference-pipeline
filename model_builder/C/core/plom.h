@@ -239,6 +239,9 @@ struct s_data{
     char **ts_name; /**< [N_TS] name of the time series */
     char **cac_name; /**< [N_CAC] name of the populations */
 
+    enum plom_implementations implementation;
+    enum plom_noises_off noises_off;
+
     /*non fitted parameters*/
     double **rep1;           /**< [N_DATA][N_TS] proportion of the population under surveillance */
     double **data;           /**< [N_DATA][N_TS] the data */
@@ -290,10 +293,6 @@ struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get
 {
     int n_threads; /**< the total number of threads */
     int thread_id; /**< the id of the thread where the computation are being run */
-
-
-    enum plom_implementations implementation;
-    enum plom_noises_off noises_off;
     
     double dt;   /**< integration time step */
 
@@ -555,12 +554,12 @@ void load3d_var(double ***tab, int n, unsigned int *colbreaks1, unsigned int **c
 void load3u_var(unsigned int ***tab, int n, unsigned int *colbreaks1, unsigned int **colbreaks2, char *filename);
 void load3u_varp1(unsigned int ***tab, int n, unsigned int *colbreaks1, unsigned int colbreaks2, char *filename);
 
-void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, enum plom_noises_off noises_off, int update_guess, int update_covariance);
+void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int update_guess, int update_covariance);
 void load_covariance(gsl_matrix *covariance, json_t *array2d);
 json_t *load_settings(const char *path);
 
 /* build.c */
-struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, struct s_drift **drift, char *it_type);
+struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, struct s_drift **drift, char *it_type, const enum plom_noises_off noises_off);
 void clean_iterator(struct s_iterator *p_it);
 struct s_router *build_router(const json_t *par, const char *par_key, const json_t *partition, const json_t *order, const char *link_key, const char *u_data, int is_bayesian);
 void clean_router(struct s_router *p_router);
@@ -575,14 +574,14 @@ struct s_obs2ts **build_obs2ts(json_t *json_obs2ts);
 void clean_obs2ts(struct s_obs2ts **obs2ts);
 struct s_drift **build_drift(json_t *json_drift, struct s_router **routers);
 void clean_drift(struct s_drift **drift);
-struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian);
+struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian);
 void clean_data(struct s_data *p_data);
 
-struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementations implementation, enum plom_noises_off noises_off, double dt, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
-struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, enum plom_implementations implementation, enum plom_noises_off noises_off, double dt, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc **build_calc(int *n_threads, int general_id, double dt, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double dt, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
 
-void clean_p_calc(struct s_calc *p_calc);
-void clean_calc(struct s_calc **calc);
+void clean_p_calc(struct s_calc *p_calc, struct s_data *p_data);
+void clean_calc(struct s_calc **calc, struct s_data *p_data);
 
 struct s_X *build_X(int size_proj, int size_obs, struct s_data *p_data);
 struct s_X **build_J_p_X(int size_proj, int size_obs, struct s_data *p_data);
@@ -596,14 +595,14 @@ struct s_hat *build_hat(struct s_data *p_data);
 void clean_hat(struct s_hat *p_hat, struct s_data *p_data);
 struct s_likelihood *build_likelihood(void);
 void clean_likelihood(struct s_likelihood *p_like);
-struct s_best *build_best(struct s_data *p_data, json_t *theta, enum plom_noises_off noises_off, int update_covariance);
+struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covariance);
 void clean_best(struct s_best *p_best);
 
 
 /*webio.c*/
 void ask_update();
 void block();
-void update_walk_rates(struct s_best *p_best, double (*f_transit_par) (double sd_x_par), double (*f_transit_state) (double sd_x_state), struct s_data *p_data, enum plom_noises_off noises_off);
+void update_walk_rates(struct s_best *p_best, double (*f_transit_par) (double sd_x_par), double (*f_transit_state) (double sd_x_state), struct s_data *p_data);
 /*print.c*/
 FILE *sfr_fopen(const char* path, const int general_id, const char* file_name, const char *mode, void (*header)(FILE*, struct s_data *), struct s_data *p_data);
 void sfr_fclose(FILE *p_file);
@@ -633,7 +632,7 @@ double sum_SV(const double *X_proj, int cac);
 double correct_rate(double rate, double dt);
 
 void linearize_and_repeat(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, const struct s_iterator *p_it);
-void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, enum plom_implementations implementation);
+void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data);
 void theta_driftIC2Xdrift(struct s_X *p_X, const theta_t *best_mean, struct s_data *p_data);
 
 plom_f_pred_t get_f_pred(enum plom_implementations implementation, enum plom_noises_off noises_off);
@@ -652,7 +651,7 @@ void f_prediction_psr(struct s_X *p_X, double t0, double t1, struct s_par *p_par
 void f_prediction_psr_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 
 
-void sfr_ran_multinomial (const gsl_rng * r, const size_t K, unsigned int N, const double p[], unsigned int n[]);
+void plom_ran_multinomial (const gsl_rng * r, const size_t K, unsigned int N, const double p[], unsigned int n[]);
 
 
 void *jac;
@@ -830,7 +829,6 @@ double obs_var(double x, struct s_par *p_par, struct s_data *p_data, struct s_ca
 double observation(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
 
 void proj2obs(struct s_X *p_X, struct s_data *p_data);
-
 
 void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 

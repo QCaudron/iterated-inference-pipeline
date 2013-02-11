@@ -35,7 +35,7 @@ struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noi
         exit(EXIT_FAILURE);
     }
 
-    p_mif->p_data = build_data(settings, theta, OPTION_PRIOR); //also build obs2ts
+    p_mif->p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR); //also build obs2ts
     json_decref(settings);
     int size_proj = N_PAR_SV*N_CAC + p_mif->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
@@ -46,7 +46,7 @@ struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noi
         exit(EXIT_FAILURE);
     }
 
-    p_mif->p_best = build_best(p_mif->p_data, theta, noises_off, 0);
+    p_mif->p_best = build_best(p_mif->p_data, theta, 0);
     json_decref(theta);
 
     p_mif->J_p_X = build_J_p_X(size_proj, N_TS, p_mif->p_data);
@@ -54,7 +54,7 @@ struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noi
     p_mif->J_p_par = build_J_p_par(p_mif->p_data);
     p_mif->p_like = build_likelihood();
 
-    p_mif->calc = build_calc(n_threads, GENERAL_ID, implementation, noises_off, dt, J, size_proj, step_ode, p_mif->p_data);
+    p_mif->calc = build_calc(n_threads, GENERAL_ID, dt, J, size_proj, step_ode, p_mif->p_data);
 
     /*MIF specific*/
 
@@ -80,7 +80,7 @@ struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noi
 
 void clean_mif(struct s_mif *p_mif)
 {
-    clean_calc(p_mif->calc);
+    clean_calc(p_mif->calc, p_mif->p_data);
     clean_best(p_mif->p_best);
 
     clean_J_p_par(p_mif->J_p_par);

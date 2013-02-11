@@ -45,9 +45,8 @@ void ensure_cst_pop_size(struct s_data *p_data)
     {% endif %}
 }
 
-int func_lyap (double t, const double X[], double f[], void *params)
+int step_lyap (double t, const double X[], double f[], void *params)
 {
-
     struct s_calc *p_calc = (struct s_calc *) params;
     struct s_par *p_par = p_calc->p_par;  /* syntaxic shortcut */
     struct s_data *p_data = p_calc->p_data;
@@ -60,30 +59,37 @@ int func_lyap (double t, const double X[], double f[], void *params)
 
     struct s_router **routers = p_data->routers;  /* syntaxic shortcut */
 
-    {% if current_p %}
-    for(c=0;c<N_C;c++){
-        for(ac=0;ac<N_AC;ac++){
-            p_par->current_p[c][ac]=get_current_pop_size(X,c,ac);
-        }
-    }
+    /* non linear system (automatically generated code)*/
+    double _r[N_CAC][{{ step_ode_sde.caches|length }}];
+
+    {% if step_ode_sde.sf %}
+    double _sf[N_CAC][{{ step_ode_sde.sf|length }}];{% endif %}
+
+    {% if is_drift  %}
+    double drifted[N_DRIFT][N_CAC];
     {% endif %}
 
-    /* non linear system (automaticaly generated code)*/
-    double _r[N_CAC][{{ print_ode.caches|length }}];
-    {% if print_ode.sf %}
-    double _sf[N_CAC][{{ print_ode.sf|length }}];{% endif %}
     for(cac=0;cac<N_CAC;cac++) {
-        {% for sf in print_ode.sf %}
+	{% if is_drift %}
+	for(i=0; i<N_DRIFT; i++){
+	    int ind_drift = p_data->drift[i]->ind_par_Xdrift_applied;
+	    drifted[i][cac] = par[ind_drift][routers[ind_drift]->map[cac]];
+	}
+	{% endif %}
+
+        {% for sf in step_ode_sde.sf %}
         _sf[cac][{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
 
-        {% for cache in print_ode.caches %}
+        {% for cache in step_ode_sde.caches %}
         _r[cac][{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
     }
 
-    for(c=0;c<N_C;c++){
-        for(ac=0; ac<N_AC; ac++){
+    for (c=0;c<N_C;c++) {
+        for(ac=0; ac<N_AC; ac++) {
             cac = c*N_AC+ac;
-            {{ print_ode.sys|safe }}
+
+	    {% for eq in step_ode_sde.func.ode.proc.system %}
+	    f[{{eq.index}}*N_CAC+cac] = {{ eq.eq|safe }};{% endfor %}
         }
     }
 
@@ -115,7 +121,6 @@ int func_lyap (double t, const double X[], double f[], void *params)
             }
         }
     }
-
 
     return GSL_SUCCESS;
 }

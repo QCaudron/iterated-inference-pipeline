@@ -142,13 +142,11 @@ class PlomModelBuilder(Context, Ccoder):
         return self.cac_id
 
 
-
     ##########################
     ##render model
     ##########################
 
     def prepare(self, path_templates=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'C'), replace=True):
-
         prepare_model(self.path_rendered, path_templates, replace)
 
 
@@ -165,20 +163,19 @@ class PlomModelBuilder(Context, Ccoder):
 
         ##methods whose results are use multiple times
         order = self.print_order()
-        ode = self.print_ode()
-        jac = self.jac(ode['sf'])
+        step_ode_sde = self.step_ode_sde()
+        jac = self.jac(step_ode_sde['sf'])
 
         #core templates
         t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'core_template.c'))
 
         c = DjangoContext({'order':order,
                            'gamma_noise': self.get_gamma_noise_terms(),
-                           'print_prob': self.print_prob(),
-                           'print_multinomial': self.print_multinomial(),
-                           'print_update': self.print_update(),
-                           'print_ode': ode,
+                           'step_psr': self.step_psr(),
+                           'psr_multinomial': self.psr_multinomial(),
+                           'step_ode_sde': step_ode_sde,
                            'list_obs_prev': self.print_obs_prev(),
-                           'eq_obs_inc_markov': self.print_obs_inc_markov(),
+                           'obs_inc_step_psr': self.obs_inc_step_psr(),
                            'is_drift': is_drift,
                            'psr':self.print_build_psr(),
                            'proc_obs':self.print_like()})
@@ -191,7 +188,7 @@ class PlomModelBuilder(Context, Ccoder):
         t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'simulation_template.c'))
         c = DjangoContext({'order':order,
                            'jacobian':jac,
-                           'print_ode': ode,
+                           'step_ode_sde': step_ode_sde,
                            'is_drift': is_drift})
         f = open(os.path.join(self.path_rendered, 'C', 'templates', 'simulation_tpl.c'),'w')
         f.write(t.render(c))
@@ -205,11 +202,12 @@ class PlomModelBuilder(Context, Ccoder):
                            'jac_proc_obs':self.jac_proc_obs(),
                            'calc_Q': self.eval_Q(),
                            'is_drift': is_drift,
-                           'print_ode': ode})
+                           'step_ode_sde': step_ode_sde})
         f = open(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_tpl.c'),'w')
         f.write(t.render(c))
         f.close()
         os.remove(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_template.c'))
+
 
 
     def compile(self, simulation_only=False):

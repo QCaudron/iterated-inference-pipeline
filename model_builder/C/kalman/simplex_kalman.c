@@ -26,7 +26,7 @@ double f_simplex_kalman(const gsl_vector *x, void *params)
 
     back_transform_theta2par(p->p_par, p->p_best->mean, p->p_data->p_it_all, p->p_data);
     linearize_and_repeat(p->p_X, p->p_par, p->p_data, p->p_data->p_it_par_sv);
-    prop2Xpop_size(p->p_X, p->p_data, p->calc[0]->implementation);
+    prop2Xpop_size(p->p_X, p->p_data);
     theta_driftIC2Xdrift(p->p_X, p->p_best->mean, p->p_data);
 
     double log_like = run_kalman(p->p_X, p->p_best, p->p_par, p->p_kalman_update, p->p_data, p->calc, f_prediction_ode,  NULL, 0);

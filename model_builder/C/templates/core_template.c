@@ -99,7 +99,7 @@ void proj2obs(struct s_X *p_X, struct s_data *p_data)
     {% endfor %}
 }
 
-
+//stepping functions for Poisson System with stochastic rates (psr)
 void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     /* t is the time in unit of the data */
@@ -122,45 +122,68 @@ void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, s
 
 
     /*automaticaly generated code:*/
-    /*0-declaration of noise terms*/
+    /*0-declaration of noise terms (if any)*/
     {% for n in gamma_noise %}
     double {{ n.0|safe }};{% endfor %}
 
-    double _r[{{print_prob.caches|length}}];
-    {% if print_prob.sf %}
-    double _sf[{{print_prob.sf|length}}];{% endif %}
+    double _r[{{ step_psr.caches|length }}];
+    {% if step_psr.sf %}
+    double _sf[{{ step_psr.sf|length }}];{% endif %}
+
+    {% if is_drift  %}
+    int i;
+    double drifted[N_DRIFT][N_CAC];
+    int is_drift = ! (p_data->noises_off & PLOM_NO_DRIFT);
+    {% endif %}
+
 
     for(c=0;c<N_C;c++) {
         for(ac=0;ac<N_AC;ac++) {
             cac = c*N_AC+ac;
 
-            /*1-generate noise increments (automaticaly generated code)*/
-	    if(p_calc->noises_off & PLOM_NO_ENV_STO){
+	    {% if is_drift %}
+	    for(i=0; i<N_DRIFT; i++){
+		int ind_drift = p_data->drift[i]->ind_par_Xdrift_applied;
+		if(is_drift){
+		    int g = routers[ind_drift]->map[cac];
+		    drifted[i][cac] = back_transform_x(X[p_data->drift[i]->offset + g], g, routers[ind_drift]);
+		} else {
+		    drifted[i][cac] = par[ind_drift][routers[ind_drift]->map[cac]];
+		}
+	    }
+	    {% endif %}
+
+
+            /*1-generate noise increments (if any) (automaticaly generated code)*/
+	    {% if gamma_noise %}
+	    if(p_data->noises_off & PLOM_NO_ENV_STO){
 		{% for n in gamma_noise %}
 		{{ n.0|safe }} = 1.0;{% endfor %}
 	    } else {
 		{% for n in gamma_noise %}
 		{{ n.0|safe }} = gsl_ran_gamma(p_calc->randgsl, (dt)/ pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2), pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2))/dt;{% endfor %}
 	    }
+	    {% endif %}
 
             /*2-generate process increments (automaticaly generated code)*/
-            {% for sf in print_prob.sf %}
+            {% for sf in step_psr.sf %}
             _sf[{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
 
-            {% for cache in print_prob.caches %}
+            {% for cache in step_psr.caches %}
             _r[{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
 
-            {{ print_prob.code|safe }}
+            {{ step_psr.code|safe }}
 
             /*3-multinomial drawn (automaticaly generated code)*/
-            {{ print_multinomial|safe }}
+	    {% for draw in psr_multinomial %}
+	    plom_ran_multinomial(p_calc->randgsl, {{ draw.nb_exit|safe }}, (unsigned int) X[ORDER_{{ draw.state|safe }}*N_CAC+cac], p_calc->prob[ORDER_{{ draw.state|safe }}], p_calc->inc[ORDER_{{ draw.state|safe }}][cac]);{% endfor %}
 
             /*4-update state variables (automaticaly generated code)*/
             //use inc to cache the Poisson draw as thew might be re-used for the incidence computation
-            {% for draw in print_update.poisson %}
+            {% for draw in step_psr.poisson %}
             {{ draw|safe }};{% endfor %}
 
-            {{ print_update.Cstring|safe }}
+            {{ step_psr.update|safe }}
 
         }/*end for on ac*/
     } /*end for on c*/
@@ -168,7 +191,7 @@ void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, s
     /*compute incidence:integral between t and t+1 (automaticaly generated code)*/
 
     offset = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
-    {% for eq in eq_obs_inc_markov %}
+    {% for eq in obs_inc_step_psr %}
     o = {{ eq.true_ind_obs|safe }};
 
     for(ts=0; ts<obs2ts[o]->n_ts_unique; ts++) {
@@ -183,14 +206,14 @@ void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, s
         X[offset] += sum_inc;
         offset++;
     }
-
     {% endfor %}
 }
 
 
+
 //stepping functions for ODE and SDEs
 
-{% for noises_off, func in print_ode.func.items %}
+{% for noises_off, func in step_ode_sde.func.items %}
 {% if noises_off == 'ode'%}
 int step_ode(double t, const double X[], double f[], void *params)
 {% else %}
@@ -220,19 +243,44 @@ void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct 
     double ***covar = p_data->par_fixed;
 
 
-    double _r[N_CAC][{{print_ode.caches|length}}];
+    double _r[N_CAC][{{ step_ode_sde.caches|length }}];
 
-    {% if print_ode.sf %}
-    double _sf[N_CAC][{{print_ode.sf|length}}];{% endif %}
+    {% if step_ode_sde.sf %}
+    double _sf[N_CAC][{{ step_ode_sde.sf|length }}];{% endif %}
 
     {% for noise in func.proc.noises %}
     double {{ noise|safe }}[N_CAC];{% endfor %}
 
-    for(cac=0;cac<N_CAC;cac++) {
-        {% for sf in print_ode.sf %}
+    {% if is_drift  %}
+    double drifted[N_DRIFT][N_CAC];
+    {% if noises_off != 'ode'%}
+    int is_drift = ! (p_data->noises_off & PLOM_NO_DRIFT);
+    {% endif %}
+    {% endif %}
+
+
+    for(cac=0;cac<N_CAC;cac++){
+	{% if is_drift %}
+	for(i=0; i<N_DRIFT; i++){
+	    int ind_drift = p_data->drift[i]->ind_par_Xdrift_applied;
+	    {% if noises_off != 'ode'%}
+	    if(is_drift){
+		int g = routers[ind_drift]->map[cac];
+		drifted[i][cac] = back_transform_x(X[p_data->drift[i]->offset + g], g, routers[ind_drift]);
+	    } else {
+		drifted[i][cac] = par[ind_drift][routers[ind_drift]->map[cac]];
+	    }
+	    {% else %}
+	    drifted[i][cac] = par[ind_drift][routers[ind_drift]->map[cac]];
+	    {% endif %}
+	}
+	{% endif %}
+
+
+        {% for sf in step_ode_sde.sf %}
         _sf[cac][{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
 
-        {% for cache in print_ode.caches %}
+        {% for cache in step_ode_sde.caches %}
         _r[cac][{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
 
         {% for noise in func.proc.noises %}
@@ -250,13 +298,11 @@ void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct 
         }
     }
 
-    {% if noises_off == 'ode'%}
-    //drift
-    for(i=N_PAR_SV*N_CAC; i<(N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot); i++){
-        f[i] = 0.0;
-    }
-    {% endif %}
 
+    //TODO: drift of the diffusion
+    //for(i=N_PAR_SV*N_CAC; i<(N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot); i++){
+    //    f[i] = 0.0;
+    //}
 
     /*automaticaly generated code:*/
     /*compute incidence:integral between t and t+1*/

@@ -18,7 +18,7 @@
 
 #include "plom.h"
 
-struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, struct s_drift **drift, char *it_type)
+struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, struct s_drift **drift, char *it_type, const enum plom_noises_off noises_off)
 {
     int i, k;
 
@@ -31,11 +31,13 @@ struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, s
         exit(EXIT_FAILURE);
     }
 
+    int is_drift = ! (noises_off & PLOM_NO_DRIFT);
 
     //length and ind
     if (strcmp(it_type, "all") == 0) {
 
         p_it->length = N_PAR_SV + N_PAR_PROC + N_PAR_OBS;
+
         if (p_it->length) {
             p_it->ind = init1u_set0(p_it->length);
 
@@ -45,8 +47,9 @@ struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, s
         }
 
     } else if (strcmp(it_type, "only_drift") == 0) {
+	
+	p_it->length = (is_drift)? N_DRIFT: 0;
 
-        p_it->length = N_DRIFT;
         if (p_it->length) {
             p_it->ind = init1u_set0(p_it->length);
 
@@ -58,6 +61,7 @@ struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, s
     } else if (strcmp(it_type, "par_sv") == 0) {
 
         p_it->length = N_PAR_SV;
+
         if (p_it->length) {
             p_it->ind = init1u_set0(p_it->length);
 
@@ -69,46 +73,71 @@ struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, s
 
     } else if (strcmp(it_type, "all_no_drift") == 0) {
 
-        p_it->length = N_PAR_SV + N_PAR_PROC + N_PAR_OBS - N_DRIFT;
+        p_it->length = N_PAR_SV + N_PAR_PROC + N_PAR_OBS;
+	if(is_drift){
+	    p_it->length -= N_DRIFT;
+	}
+	
         if (p_it->length) {
             p_it->ind = init1u_set0(p_it->length);
+
             k = 0;
-            for (i=0; i<N_PAR_SV + N_PAR_PROC + N_PAR_OBS; i++) {
-                if(! in_drift(i, drift)){
+            for (i=0; i < N_PAR_SV + N_PAR_PROC + N_PAR_OBS; i++) {
+                if(! is_drift) {
                     p_it->ind[k] = i;
-                    k++;
-                }
+		    k++;
+		} else {
+		    if(! in_drift(i, drift)) {
+			p_it->ind[k] = i;
+			k++;
+		    }
+		}
             }
 
         }
 
     } else if (strcmp(it_type, "par_proc_par_obs_no_drift") == 0) {
 
-        p_it->length = N_PAR_PROC + N_PAR_OBS - N_DRIFT;
+        p_it->length = N_PAR_PROC + N_PAR_OBS;
+	if(is_drift){
+	    p_it->length -= N_DRIFT;
+	}
+
         if (p_it->length) {
             p_it->ind = init1u_set0(p_it->length);
             k = 0;
             for (i=N_PAR_SV; i< N_PAR_SV + N_PAR_PROC + N_PAR_OBS; i++) {
-                if(! in_drift(i, drift)){
+                if(! is_drift) {
                     p_it->ind[k] = i;
-                    k++;
-                }
+		    k++;
+		} else {
+		    if(! in_drift(i, drift)) {
+			p_it->ind[k] = i;
+			k++;
+		    }
+		}
             }
-
         }
 
     } else if (strcmp(it_type, "par_sv_and_drift") == 0) {
 
-        p_it->length = N_PAR_SV + N_DRIFT;
+        p_it->length = N_PAR_SV;
+	if(is_drift){
+	    p_it->length += N_DRIFT;
+	}
+
         if (p_it->length) {
             p_it->ind = init1u_set0(p_it->length);
 
             for (i=0; i< N_PAR_SV; i++) {
                 p_it->ind[i] = i;
             }
-            for (i=0; i< N_DRIFT; i++) {
-                p_it->ind[N_PAR_SV+i] = drift[i]->ind_par_Xdrift_applied;
-            }
+
+	    if(is_drift){
+		for (i=0; i< N_DRIFT; i++) {
+		    p_it->ind[N_PAR_SV+i] = drift[i]->ind_par_Xdrift_applied;
+		}
+	    }
         }
 
     } else if (strcmp(it_type, "noise") == 0) {
@@ -179,7 +208,6 @@ struct s_router *build_router(const json_t *par, const char *par_key, const json
     p_router->max = init1d_set0(p_router->n_gp);
     p_router->min_z = init1d_set0(p_router->n_gp);
     p_router->max_z = init1d_set0(p_router->n_gp);
-
 
     //alloc for group_name
     p_router->group_name = malloc(p_router->n_gp * sizeof(char *));
@@ -490,7 +518,7 @@ void clean_drift(struct s_drift **drift)
     FREE(drift);
 }
 
-struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian)
+struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian)
 {
     int n, ts, cac, k;
     int tmp_n_data_nonan, count_n_nan;
@@ -505,6 +533,9 @@ struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian)
         print_err(str);
         exit(EXIT_FAILURE);
     }
+
+    p_data->implementation = implementation;
+    p_data->noises_off = noises_off;
 
     //always present
     p_data->obs2ts = build_obs2ts(fast_get_json_array(json_data, "obs2ts"));
@@ -546,13 +577,13 @@ struct s_data *build_data(json_t *settings, json_t *theta, int is_bayesian)
     p_data->drift = build_drift(fast_get_json_object(settings, "drift"), p_data->routers);
 
     /* iterators */
-    p_data->p_it_all = build_iterator(settings, p_data->routers, p_data->drift, "all");
-    p_data->p_it_par_sv = build_iterator(settings, p_data->routers, p_data->drift, "par_sv");
-    p_data->p_it_all_no_drift = build_iterator(settings, p_data->routers, p_data->drift, "all_no_drift");
-    p_data->p_it_par_proc_par_obs_no_drift = build_iterator(settings, p_data->routers, p_data->drift, "par_proc_par_obs_no_drift");
-    p_data->p_it_par_sv_and_drift = build_iterator(settings, p_data->routers, p_data->drift, "par_sv_and_drift");
-    p_data->p_it_only_drift = build_iterator(settings, p_data->routers, p_data->drift, "only_drift");
-    p_data->p_it_noise = build_iterator(settings, p_data->routers, p_data->drift, "noise");
+    p_data->p_it_all = build_iterator(settings, p_data->routers, p_data->drift, "all", p_data->noises_off);
+    p_data->p_it_par_sv = build_iterator(settings, p_data->routers, p_data->drift, "par_sv", p_data->noises_off);
+    p_data->p_it_all_no_drift = build_iterator(settings, p_data->routers, p_data->drift, "all_no_drift", p_data->noises_off);
+    p_data->p_it_par_proc_par_obs_no_drift = build_iterator(settings, p_data->routers, p_data->drift, "par_proc_par_obs_no_drift", p_data->noises_off);
+    p_data->p_it_par_sv_and_drift = build_iterator(settings, p_data->routers, p_data->drift, "par_sv_and_drift", p_data->noises_off);
+    p_data->p_it_only_drift = build_iterator(settings, p_data->routers, p_data->drift, "only_drift", p_data->noises_off);
+    p_data->p_it_noise = build_iterator(settings, p_data->routers, p_data->drift, "noise", p_data->noises_off);
 
     p_data->rep1 = fast_load_fill_json_2d(fast_get_json_array(json_data, "rep1"), "rep1");
     p_data->pop_size_t0 = fast_load_fill_json_1d(fast_get_json_array(json_data, "pop_size_t0"), "pop_size_t0");
@@ -764,7 +795,7 @@ void clean_data(struct s_data *p_data)
 
 
 
-struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementations implementation, enum plom_noises_off noises_off, double dt, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data)
+struct s_calc **build_calc(int *n_threads, int general_id, double dt, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data)
 {
     char str[STR_BUFFSIZE];
     int nt;
@@ -804,7 +835,7 @@ struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementat
     /* we create as many rng as parallel threads *but* note that for the operations not prarallelized, we always use cacl[0].randgsl */
 
     for (nt=0; nt< *n_threads; nt++) {
-        calc[nt] = build_p_calc(*n_threads, nt, seed, implementation, noises_off, dt, dim_ode, func_step_ode, p_data);
+        calc[nt] = build_p_calc(*n_threads, nt, seed, dt, dim_ode, func_step_ode, p_data);
     }
 
     return calc;
@@ -815,7 +846,7 @@ struct s_calc **build_calc(int *n_threads, int general_id, enum plom_implementat
  * dt: integration time step. If <=0.0, default to 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT
  */
 
-struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, enum plom_implementations implementation, enum plom_noises_off noises_off, double dt, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data)
+struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double dt, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data)
 {
     struct s_calc *p_calc = malloc(sizeof(struct s_calc));
     if (p_calc==NULL) {
@@ -825,8 +856,6 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, enum plom_im
         exit(EXIT_FAILURE);
     }
 
-    p_calc->implementation = implementation;
-    p_calc->noises_off = noises_off;
 
 
     //integration time step
@@ -875,7 +904,7 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, enum plom_im
     p_calc->randgsl=gsl_rng_alloc(Type);
     gsl_rng_set(p_calc->randgsl, seed + thread_id);
 
-    if (implementation == PLOM_ODE){
+    if (p_data->implementation == PLOM_ODE){
 
         p_calc->T = gsl_odeiv2_step_rkf45;
         p_calc->control = gsl_odeiv2_control_y_new(ABS_TOL, REL_TOL); /*abs and rel error (eps_abs et eps_rel) */
@@ -887,9 +916,9 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, enum plom_im
         (p_calc->sys).params= p_calc;
 
         p_calc->yerr = init1d_set0(dim_ode);
-    } else if (implementation == PLOM_SDE){
+    } else if (p_data->implementation == PLOM_SDE){
 	p_calc->y_pred = init1d_set0(dim_ode);
-    } else if (implementation == PLOM_PSR){
+    } else if (p_data->implementation == PLOM_PSR){
         build_psr(p_calc);
     }
 
@@ -900,12 +929,11 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, enum plom_im
     return p_calc;
 }
 
-
-void clean_p_calc(struct s_calc *p_calc)
+void clean_p_calc(struct s_calc *p_calc, struct s_data *p_data)
 {
     gsl_rng_free(p_calc->randgsl);
 
-    if (p_calc->implementation == PLOM_ODE){
+    if (p_data->implementation == PLOM_ODE){
 
         gsl_odeiv2_step_free(p_calc->step);
         gsl_odeiv2_evolve_free(p_calc->evolve);
@@ -913,10 +941,10 @@ void clean_p_calc(struct s_calc *p_calc)
 
         FREE(p_calc->yerr);
 
-    } else if (p_calc->implementation == PLOM_SDE){
+    } else if (p_data->implementation == PLOM_SDE){
 	FREE(p_calc->y_pred);
 
-    } else if (p_calc->implementation == PLOM_PSR){
+    } else if (p_data->implementation == PLOM_PSR){
 
         clean2d(p_calc->prob, N_PAR_SV+2); //+2 for U and DU of the universes
         clean3u(p_calc->inc, N_PAR_SV+2, N_CAC); //+2 for U and DU of the universes
@@ -929,14 +957,14 @@ void clean_p_calc(struct s_calc *p_calc)
 }
 
 
-void clean_calc(struct s_calc **calc)
+void clean_calc(struct s_calc **calc, struct s_data *p_data)
 {
     int nt;
     int n_threads = calc[0]->n_threads;
 
     /*clean calc*/
     for(nt=0; nt<n_threads; nt++) {
-        clean_p_calc(calc[nt]);
+        clean_p_calc(calc[nt], p_data);
     }
 
     FREE(calc);
@@ -1150,7 +1178,7 @@ void clean_likelihood(struct s_likelihood *p_like)
     FREE(p_like);
 }
 
-struct s_best *build_best(struct s_data *p_data, json_t *theta, enum plom_noises_off noises_off, int update_covariance)
+struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covariance)
 {
     int i,j,k;
     struct s_router **routers = p_data->routers;
@@ -1236,7 +1264,7 @@ struct s_best *build_best(struct s_data *p_data, json_t *theta, enum plom_noises
         }
     }
 
-    load_best(p_best, p_data, theta, noises_off, 1, update_covariance);
+    load_best(p_best, p_data, theta, 1, update_covariance);
 
     gsl_vector_memcpy(p_best->proposed, p_best->mean);
 

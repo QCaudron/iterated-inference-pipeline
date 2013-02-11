@@ -98,7 +98,7 @@ void linearize_and_repeat(struct s_X *p_X, struct s_par *p_par, struct s_data *p
  *   @c POP_SIZE_EQ_SUM_SV the last state is replaced by
  *   pop_size - sum_every_state_except_the_last.
  */
-void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, enum plom_implementations implementation)
+void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data)
 {
 
     double *Xpop_size = p_X->proj;
@@ -108,7 +108,7 @@ void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, enum plom_implementa
     for (i=0; i< N_PAR_SV ; i++) {
         for (cac=0; cac<N_CAC; cac++) {
             Xpop_size[i*N_CAC+cac] = Xpop_size[i*N_CAC+cac] * pop_size_t0[cac];
-            if(implementation == PLOM_PSR){ //rounding for exact methods
+            if(p_data->implementation == PLOM_PSR){ //rounding for exact methods
                 Xpop_size[i*N_CAC+cac] = round(Xpop_size[i*N_CAC+cac]);
             }
         }
@@ -340,7 +340,7 @@ void f_prediction_psr_no_drift(struct s_X *p_X, double t0, double t1, struct s_p
  * always be 1.0 with simforence (no rounding error by construction)
  * @see step_euler_multinomial.
  */
-void sfr_ran_multinomial (const gsl_rng * r, const size_t K, unsigned int N, const double p[], unsigned int n[])
+void plom_ran_multinomial (const gsl_rng * r, const size_t K, unsigned int N, const double p[], unsigned int n[])
 {
     size_t k;
     double sum_p = 0.0;

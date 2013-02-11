@@ -32,7 +32,7 @@ class Ccoder(Cmodel):
         self.all_par = self.par_sv + self.drift_par_proc + self.par_proc +  self.par_obs + ['x'] + ['N']
 
 
-    def toC(self, term, is_ode=False):
+    def toC(self, term, no_correct_rate, no_noise):
 
         if term in self.par_sv:
             return 'X[ORDER_{0}*N_CAC+cac]'.format(term)
@@ -51,29 +51,27 @@ class Ccoder(Cmodel):
 
         elif term in self.par_proc :
             if term in self.drift_par_proc:
-                return 'back_transform_x(X[p_data->drift[ORDER_drift__par_proc__{0}]->offset + routers[ORDER_{0}]->map[cac]], routers[ORDER_{0}]->map[cac], routers[ORDER_{0}])'.format(term)
+                return 'drifted[ORDER_drift__par_proc__{0}][cac]'.format(term)
             else:
                 return 'par[ORDER_{0}][routers[ORDER_{0}]->map[cac]]'.format(term)
 
         elif term in self.par_obs:
-            if term in self.drift_par_obs:
-                return 'back_transform_x(X[p_data->drift[ORDER_drift__par_obs__{0}]->offset + routers[ORDER_{0}]->map[ts]], routers[ORDER_{0}]->map[ts], routers[ORDER_{0}])'.format(term)
-            else:
-                return 'par[ORDER_{0}][routers[ORDER_{0}]->map[ts]]'.format(term)
+            ##TODO support for drift for parameters of the observation process
+            return 'par[ORDER_{0}][routers[ORDER_{0}]->map[ts]]'.format(term)
 
-        elif term == 'correct_rate' and is_ode:
+        elif term == 'correct_rate' and no_correct_rate:
             return ''
 
         else: ##r is an operator or x
             return term
 
 
-    def generator_C(self, term, is_ode=False):
+    def generator_C(self, term, no_correct_rate, no_noise):
 
         terms = self.change_user_input(term)
 
         ##if is_ode, remove operator after or before noise__ (noise__ term are not present in ODE models) (e.g *noise__ -> '' and noise__trans()* -> ''...
-        if is_ode:
+        if no_noise:
             noise = set([x for x in terms if 'noise__' in x])
             for n in noise:
                 pos_starts = [i for i,x in enumerate(terms) if x == n]
@@ -102,14 +100,14 @@ class Ccoder(Cmodel):
             if terms[ind].split('__')[0] in self.special_functions:
                 myf = terms[ind].split('__')
                 if myf[0] == 'noise':
-                    if not is_ode:
-                        yield self.toC(terms[ind], is_ode)
+                    if not no_noise:
+                        yield self.toC(terms[ind], no_correct_rate, no_noise)
                     ##skip argument
                     while terms[ind] != ')':
                         ind +=1
                 else :
                     while terms[ind] != ')':
-                        yield self.toC(terms[ind], is_ode)
+                        yield self.toC(terms[ind], no_correct_rate, no_noise)
                         ind +=1
 
                 ##add extra terms (no whitespace)
@@ -121,19 +119,19 @@ class Ccoder(Cmodel):
                     yield ',t'
                 elif myf[0] == 'step_lin':
                     yield ',t'
-                elif myf[0] == 'correct_rate' and not is_ode:
+                elif myf[0] == 'correct_rate' and not no_correct_rate:
                     yield ',dt'
 
                 ##close bracket
                 if myf[0] != 'noise':
-                    yield self.toC(terms[ind], is_ode)
+                    yield self.toC(terms[ind], no_correct_rate, no_noise)
                 ind +=1
 
             else:
-                yield self.toC(terms[ind], is_ode)
+                yield self.toC(terms[ind], no_correct_rate, no_noise)
                 ind += 1
 
-    def make_C_term(self, term, is_ode=False, derivate=None):
+    def make_C_term(self, term, no_correct_rate, no_noise, derivate=None):
 
         """transform a term into its plom C expression OR the
         plom C expression of its derivate, differentiating
@@ -164,7 +162,7 @@ class Ccoder(Cmodel):
         term = cterm.replace('plom___', '')
 
         #make the plom C expression
-        return ''.join(self.generator_C(term, is_ode=is_ode))
+        return ''.join(self.generator_C(term, no_correct_rate, no_noise))
 
 
     def print_obs_prev(self):
@@ -183,7 +181,7 @@ class Ccoder(Cmodel):
         return Clist
 
 
-    def print_obs_inc_markov(self):
+    def obs_inc_step_psr(self):
         """generate C code to compute the dynamic of the observed
         **incidence** in case of stochastic models (euler multinomial)
         and put in into
@@ -256,11 +254,16 @@ class Ccoder(Cmodel):
             probstring+= ' + ' + r
 
 
-    def print_prob(self):
-        """general structure:
+
+    def step_psr(self):
+
+        """
+        prob and update for Poisson with stochastic rate step function
+
+        prob general structure:
 
         sum=...;
-        if(sum>LIKE_MIN){
+        if(sum>0.0){
             prob[0]=(1-exp(-sum))*(rate/sum);
             ...
             prob[last]=1-sum(prob);
@@ -272,16 +275,20 @@ class Ccoder(Cmodel):
         }
         we need the if statement to avoid division by 0
         """
+        
+        ###########
+        ## prob  ##
+        ###########
 
         proc_model = copy.deepcopy(self.proc_model) ##we are going to modify it...
 
         rates = list(set(r['rate'] for r in proc_model if r['from'] not in self.universes))
-        caches = map(lambda x: self.make_C_term(x), rates)
+        caches = map(lambda x: self.make_C_term(x, False, False), rates)
+        sf = self.cache_special_function_C(caches)
+
         for r in proc_model:
             if r['from'] not in self.universes:
                 r['ind_cache'] = rates.index(r['rate'])
-
-        sf = self.cache_special_function_C(caches)
 
         Ccode=''
 
@@ -314,20 +321,10 @@ class Ccoder(Cmodel):
 
                 Ccode += Celse
 
-        return {'code': Ccode, 'caches': caches, 'sf': sf}
+        ############
+        ## update ##
+        ############
 
-
-    def print_multinomial(self):
-        Cstring=''
-        for s in self.par_sv:
-            nbexit = len([r for r in self.proc_model if r['from']==s])
-            if nbexit>0:
-                Cstring += 'sfr_ran_multinomial(p_calc->randgsl, {1}, (unsigned int) X[ORDER_{0}*N_CAC+cac], p_calc->prob[ORDER_{0}], p_calc->inc[ORDER_{0}][cac]);\n'.format(s,nbexit+1) ##+1 to stay in the compartment
-
-        return Cstring
-
-
-    def print_update(self):
         incDict = dict([(x,'') for x in self.par_sv])
 
         for s in self.par_sv: ##stay in the same compartment
@@ -349,15 +346,26 @@ class Ccoder(Cmodel):
         for s in self.universes:
             reac_from_univ = [r for r in self.proc_model if r['from'] == s]
             for nbreac in range(len(reac_from_univ)):
-                poisson.append('p_calc->inc[ORDER_{0}][cac][{1}] = gsl_ran_poisson(p_calc->randgsl, ({2})*dt)'.format(s, nbreac, self.make_C_term(reac_from_univ[nbreac]['rate'])))
+                poisson.append('p_calc->inc[ORDER_{0}][cac][{1}] = gsl_ran_poisson(p_calc->randgsl, ({2})*dt)'.format(s, nbreac, self.make_C_term(reac_from_univ[nbreac]['rate'], False, False)))
                 incDict[reac_from_univ[nbreac]['to']] += ' + p_calc->inc[ORDER_{0}][cac][{1}]'.format(s, nbreac)
-
 
         Cstring=''
         for s in self.par_sv:
             Cstring += 'X[ORDER_{0}*N_CAC+cac] = {1};\n'.format(s, incDict[s])
 
-        return {'poisson':poisson, 'Cstring': Cstring}
+
+        return {'code': Ccode, 'caches': caches, 'sf': sf, 'poisson': poisson, 'update': Cstring}
+
+
+    def psr_multinomial(self):
+        draw = []
+        for s in self.par_sv:
+            nbexit = len([r for r in self.proc_model if r['from']==s])
+            if nbexit>0:
+                draw.append({'state': s, 'nb_exit': nbexit+1}) ##+1 to stay in the compartment
+
+        return draw
+
 
 
     def cache_special_function_C(self, caches_C, sf=None, prefix='_sf'):
@@ -399,24 +407,30 @@ class Ccoder(Cmodel):
         return sf
 
 
-    def print_ode(self):
+    def step_ode_sde(self):
+        """
+        Generates ODE and SDEs
+        note: sf are used in self.jac() for Lyapunov exp computations
+        """
 
         proc_model = copy.deepcopy(self.proc_model) ##we are going to modify it...
 
         odeDict = dict([(x, []) for x in self.par_sv])
 
         rates = list(set(r['rate'] for r in proc_model))
-        caches = map(lambda x: self.make_C_term(x, True), rates)
+
+        caches = map(lambda x: self.make_C_term(x, True, True), rates)
+        sf = self.cache_special_function_C(caches, prefix='_sf[cac]')
+
         for i, r in enumerate(proc_model):
             r['ind_cache'] = rates.index(r['rate'])
             r['ind_dem_sto'] = i
 
-        sf = self.cache_special_function_C(caches, prefix='_sf[cac]')
 
         def get_rhs_term(sign, cached, reaction):
             if 'noise__' in reaction['rate']:
                 noise_sd, noise_name = self.get_sd(reaction['rate'])
-                noise_sd = self.toC(noise_sd)
+                noise_sd = self.toC(noise_sd, False, False)
             else: 
                 noise_name = None
                 noise_sd= None
@@ -516,7 +530,7 @@ class Ccoder(Cmodel):
             if env:
                 env = '+ ' + env
 
-            #TODO get rid of the 'dt' for Euler Maruyama (should be handled on the C side as sqrt(dt))'
+            #TODO get rid of the 'dt' for Euler Maruyama (should be handled on the C side as it is the case for sqrt(dt) for the stochastic part)'
             func['ode']['proc']['system'].append({'index': i, 'eq': eq})
             func['no_dem_sto_no_env_sto']['proc']['system'].append({'index': i, 'eq': '({0})*dt'.format(eq)})
             func['no_dem_sto']['proc']['system'].append({'index': i, 'eq': '({0})*dt {1}'.format(eq, env)})
@@ -530,7 +544,7 @@ class Ccoder(Cmodel):
             if env:
                 env = ' + ' + env
 
-            #TODO get rid of the 'dt' for Euler Maruyama (should be handled on the C side as sqrt(dt))'
+            #TODO get rid of the 'dt' for Euler Maruyama (should be handled on the C side as it is the case for sqrt(dt) for the stochastic part)'
             func['ode']['obs'].append({'index': myobs['index'], 'eq': eq})
             func['no_dem_sto_no_env_sto']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt'.format(eq)})
             func['no_dem_sto']['obs'].append({'index': myobs['index'], 'eq': '({0})*dt {1}'.format(eq, env)})
@@ -557,8 +571,8 @@ class Ccoder(Cmodel):
         ##WARNING right now only the discretized normal is supported.
         ##TODO: generalization for different distribution
 
-        return {'mean':self.make_C_term(self.obs_model['mean']),
-                'var':self.make_C_term(self.obs_model['var'])}
+        return {'mean':self.make_C_term(self.obs_model['mean'], False, False),
+                'var':self.make_C_term(self.obs_model['var'], False, False)}
 
 
 
@@ -568,7 +582,7 @@ class Ccoder(Cmodel):
 
 
         sf_jac_only: list of cached special function generated by
-        self.print_prob() used to get the index of caches_C for the
+        self.print_ode() used to get the index of caches_C for the
         jacobian matrix of simulation methods
 
         """
@@ -636,7 +650,7 @@ class Ccoder(Cmodel):
                 jac_drift.append([])
 
             for sy in self.par_sv:
-                Cterm = self.make_C_term(odeDict[self.par_sv[s]], is_ode=True, derivate=sy)
+                Cterm = self.make_C_term(odeDict[self.par_sv[s]], True, True, derivate=sy)
                 jac[s].append(Cterm)
                 jac_only[s].append(Cterm)
                 caches.append(Cterm)
@@ -644,9 +658,9 @@ class Ccoder(Cmodel):
 
             #see doc of kalman.c drift_derivative()
             for sy in self.drift_par_proc:
-                Cterm = self.make_C_term(odeDict[self.par_sv[s]], is_ode=True, derivate=sy)
+                Cterm = self.make_C_term(odeDict[self.par_sv[s]], True, True, derivate=sy)
                 jac_drift[s].append({'value': Cterm,
-                                     'der': self.make_C_term(sy, is_ode=True),
+                                     'der': self.make_C_term(sy, True, True),
                                      'name': sy})
                 caches.append(Cterm)
 
@@ -660,15 +674,15 @@ class Ccoder(Cmodel):
                 jac_obs_drift.append([])
 
             for sy in self.par_sv:
-                Cterm = self.make_C_term(obsList[o], is_ode=True, derivate=sy)
+                Cterm = self.make_C_term(obsList[o], True, True, derivate=sy)
                 jac_obs[o].append(Cterm)
                 caches.append(Cterm)
 
             #see doc of kalman.c drift_derivative()
             for sy in self.drift_par_proc:
-                Cterm = self.make_C_term(obsList[o], is_ode=True, derivate=sy)
+                Cterm = self.make_C_term(obsList[o], True, True, derivate=sy)
                 jac_obs_drift[o].append({'value': Cterm,
-                                         'der': self.make_C_term(sy, is_ode=True),
+                                         'der': self.make_C_term(sy, True, True),
                                          'name': sy})
                 caches.append(Cterm)
 
@@ -713,7 +727,7 @@ class Ccoder(Cmodel):
     def jac_proc_obs(self):
         """compute jacobian matrix of the mean of the obs process (assumed to be Gaussian) using Sympy"""
 
-        return self.make_C_term(self.obs_model['mean'], is_ode=True, derivate='x')
+        return self.make_C_term(self.obs_model['mean'], True, True, derivate='x')
 
 
 
@@ -808,7 +822,7 @@ class Ccoder(Cmodel):
                 if is_noise:
                     Ls_proc[i][B_sto_ind] += 1
 
-            diag_Qc_dem_tpl.append({'i': B_dem_ind, 'j': B_dem_ind, 'rate':self.make_C_term(Qc_term + '/' + self.myN, True)}) ##TODO: check if / self.myN is needed
+            diag_Qc_dem_tpl.append({'i': B_dem_ind, 'j': B_dem_ind, 'rate':self.make_C_term(Qc_term + '/' + self.myN, True, True)}) ##TODO: check if / self.myN is needed
 
         # observed variables 
         for i in range(len(self.obs_var_def)): #(for every obs variable)
@@ -858,8 +872,8 @@ class Ccoder(Cmodel):
                 else:
                     Qn_term = r['rate']
 
-                Lc[r['order_env_sto']][r['order_env_sto_unique']] = self.make_C_term(Qn_term, True) #True ensures that noise__ terms are removed from the rate (ODE)
-                Qn[r['order_env_sto_unique']][r['order_env_sto_unique']] = 'pow({0}, 2)'.format(self.toC(r['sd']))
+                Lc[r['order_env_sto']][r['order_env_sto_unique']] = self.make_C_term(Qn_term, True, True) #True ensures that noise__ terms are removed from the rate (ODE)
+                Qn[r['order_env_sto_unique']][r['order_env_sto_unique']] = 'pow({0}, 2)'.format(self.toC(r['sd'], False, False))
 
         
         #Qc_env = Lc Qn tLc:
@@ -892,7 +906,7 @@ class Ccoder(Cmodel):
                 if Qc_env[i][j]:
                   Qc_env_tpl.append({'i': N_REAC + i, 'j': N_REAC + j, 'rate': term})  
 
-
+                  
         ################################################################################################
         ##we create 4 versions of Ls and Qc_diag (no_dem_sto, no_env_sto, no_dem_sto_no_env_sto and full
         ################################################################################################
@@ -927,7 +941,6 @@ class Ccoder(Cmodel):
                 calc_Q[key]['sf'] = []
 
         return calc_Q
-
 
 
 

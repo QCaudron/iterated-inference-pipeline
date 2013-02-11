@@ -134,9 +134,11 @@ int main(int argc, char *argv[])
 
     if(argc == 0) {
 	implementation = PLOM_ODE;
+	noises_off = noises_off | PLOM_NO_DEM_STO| PLOM_NO_ENV_STO | PLOM_NO_DRIFT;
     } else {
         if (!strcmp(argv[0], "ode")) {
             implementation = PLOM_ODE;
+	    noises_off = noises_off | PLOM_NO_DEM_STO| PLOM_NO_ENV_STO | PLOM_NO_DRIFT;
 	} else {
             print_log(sfr_help_string);
             return 1;

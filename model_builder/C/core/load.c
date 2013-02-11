@@ -492,7 +492,7 @@ json_t *load_settings(const char *path)
 /**
  * integrate best data from the webApp
  */
-void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, enum plom_noises_off noises_off,  int update_guess, int update_covariance)
+void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int update_guess, int update_covariance)
 {
     int i, g, offset;
     struct s_router **routers = p_data->routers;
@@ -548,7 +548,7 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, enum
     }
 
     //turn off sd_transf of env noises parameters
-    if(noises_off & PLOM_NO_ENV_STO){
+    if(p_data->noises_off & PLOM_NO_ENV_STO){
         struct s_iterator *p_it_noise = p_data->p_it_noise;
         for(i=0; i<p_it_noise->length; i++){
             for(g=0; g< routers[ p_it_noise->ind[i] ]->n_gp; g++){
@@ -558,9 +558,8 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, enum
     }
 
     //we turn off sd_transf of the volatilities
-    if(noises_off & PLOM_NO_DRIFT){
-        struct s_iterator *p_it_drift = p_data->p_it_only_drift;
-        for(i=0; i<p_it_drift->length; i++) {
+    if(p_data->noises_off & PLOM_NO_DRIFT){
+        for(i=0; i< N_DRIFT; i++) { //N_DRIFT as iterator could have been edited if PLOM_NO_DRIFT
             int ind_volatility = p_data->drift[i]->ind_volatility_Xdrift;
             for(g=0; g< routers[ind_volatility]->n_gp; g++) {
                 gsl_matrix_set(p_best->var, p_it_all->offset[ind_volatility]+g, p_it_all->offset[ind_volatility]+g, 0.0);

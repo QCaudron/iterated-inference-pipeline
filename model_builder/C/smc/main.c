@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
 
     json_t *theta = load_json();
-    struct s_data *p_data = build_data(settings, theta, 0);
+    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 0);
     json_decref(settings);
 
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
@@ -198,11 +198,11 @@ int main(int argc, char *argv[])
     struct s_hat **D_p_hat = build_D_p_hat(p_data);
     struct s_X ***D_J_p_X = build_D_J_p_X(size_proj, N_TS, p_data);
     struct s_X ***D_J_p_X_tmp = build_D_J_p_X(size_proj, N_TS, p_data);
-    struct s_best *p_best = build_best(p_data, theta, noises_off, 0);
+    struct s_best *p_best = build_best(p_data, theta, 0);
     json_decref(theta);
     struct s_likelihood *p_like = build_likelihood();
 
-    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, implementation, noises_off, dt, J, size_proj, step_ode, p_data);
+    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, dt, J, size_proj, step_ode, p_data);
 
     FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
     FILE *p_file_pred_res = (output_pred_res==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals, p_data): NULL;
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
 
     back_transform_theta2par(p_par, p_best->mean, p_data->p_it_all, p_data);
     linearize_and_repeat(D_J_p_X[0][0], p_par, p_data, p_data->p_it_par_sv);
-    prop2Xpop_size(D_J_p_X[0][0], p_data, implementation);
+    prop2Xpop_size(D_J_p_X[0][0], p_data);
     theta_driftIC2Xdrift(D_J_p_X[0][0], p_best->mean, p_data);
 
     replicate_J_p_X_0(D_J_p_X[0], p_data);
@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
     print_log("clean up...");
 #endif
 
-    clean_calc(calc);
+    clean_calc(calc, p_data);
     clean_D_J_p_X(D_J_p_X);
     clean_D_J_p_X(D_J_p_X_tmp);
     clean_D_p_hat(D_p_hat, p_data);

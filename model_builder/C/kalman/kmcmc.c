@@ -61,7 +61,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
 
     back_transform_theta2par(p_par, p_best->proposed, p_data->p_it_all, p_data);
     linearize_and_repeat(p_X, p_par, p_data, p_data->p_it_par_sv);
-    prop2Xpop_size(p_X, p_data, calc[0]->implementation);
+    prop2Xpop_size(p_X, p_data);
     theta_driftIC2Xdrift(p_X, p_best->proposed, p_data);
 
     //run Kalman

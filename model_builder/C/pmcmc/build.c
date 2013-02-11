@@ -98,8 +98,8 @@ struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_
     }
 
     json_t *theta = load_json();
-    p_pmcmc->p_data = build_data(settings, theta, 1); //also build obs2ts
-    p_pmcmc->p_best = build_best(p_pmcmc->p_data, theta, noises_off, update_covariance);
+    p_pmcmc->p_data = build_data(settings, theta, implementation, noises_off, 1); //also build obs2ts
+    p_pmcmc->p_best = build_best(p_pmcmc->p_data, theta, update_covariance);
     json_decref(theta);
 
     int size_proj = N_PAR_SV*N_CAC + p_pmcmc->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
@@ -113,7 +113,7 @@ struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_
 
     p_pmcmc->p_like = build_likelihood();
 
-    p_pmcmc->calc = build_calc(n_threads, GENERAL_ID, implementation, noises_off, dt, J, size_proj, step_ode, p_pmcmc->p_data);
+    p_pmcmc->calc = build_calc(n_threads, GENERAL_ID, dt, J, size_proj, step_ode, p_pmcmc->p_data);
 
     struct s_pmcmc_calc_data *p_pmcmc_calc_data = build_pmcmc_calc_data(p_pmcmc->p_best, a, m_switch, m_eps);
     //store the ref for each element of calc
@@ -144,8 +144,8 @@ void clean_pmcmc(struct s_pmcmc *p_pmcmc)
     clean_likelihood(p_pmcmc->p_like);
 
     clean_pmcmc_calc_data((struct s_pmcmc_calc_data *) p_pmcmc->calc[0]->method_specific_shared_data);
+    clean_calc(p_pmcmc->calc, p_pmcmc->p_data);
     clean_data(p_pmcmc->p_data);
-    clean_calc(p_pmcmc->calc);
 
     FREE(p_pmcmc);
 }

@@ -24,8 +24,6 @@ struct s_thread_params
     int thread_id;
     int n_threads;
     struct s_data *p_data;
-    enum plom_implementations implementation;
-    enum plom_noises_off noises_off;
     double dt;
     char *IPv4;
     void *context;
@@ -57,11 +55,11 @@ void *worker_routine (void *params) {
     struct s_par *p_par = build_par(p_data);
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
     struct s_X *p_X = build_X(size_proj, N_TS, p_data);
-    struct s_calc *p_calc = build_p_calc(p->n_threads, p->thread_id, GENERAL_ID, p->implementation, p->noises_off, p->dt, size_proj, step_ode, p_data);
+    struct s_calc *p_calc = build_p_calc(p->n_threads, p->thread_id, GENERAL_ID, p->dt, size_proj, step_ode, p_data);
 
     double like = 0.0;
 
-    plom_f_pred_t f_pred = get_f_pred(p->implementation, p->noises_off);
+    plom_f_pred_t f_pred = get_f_pred(p_data->implementation, p_data->noises_off);
 
     zmq_pollitem_t items [] = {
         { server_receiver, 0, ZMQ_POLLIN, 0 },
@@ -122,7 +120,7 @@ void *worker_routine (void *params) {
 
     clean_par(p_par);
     clean_X(p_X);
-    clean_p_calc(p_calc);
+    clean_p_calc(p_calc, p_data);
 
     printf("thread %d done\n", p->thread_id);
 
@@ -167,10 +165,8 @@ int main(int argc, char *argv[])
     LOG_LIKE_MIN = log(1e-17);
     OPTION_TRAJ = 0;
 
-
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
-
 
     while (1) {
         static struct option long_options[] =
@@ -285,7 +281,7 @@ int main(int argc, char *argv[])
     print_log(str);
 #endif
 
-    struct s_data *p_data = build_data(settings, theta, 1);
+    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 1);
     json_decref(settings);
     json_decref(theta);
 
@@ -304,8 +300,6 @@ int main(int argc, char *argv[])
     for (nt = 0; nt < n_threads; nt++) {
         p_thread_params[nt].thread_id = nt;
         p_thread_params[nt].n_threads = n_threads;
-        p_thread_params[nt].implementation = implementation;
-        p_thread_params[nt].noises_off = noises_off;
         p_thread_params[nt].dt = dt;
         p_thread_params[nt].IPv4 = IPv4;
         p_thread_params[nt].p_data = p_data;

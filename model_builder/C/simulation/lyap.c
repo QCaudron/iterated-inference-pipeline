@@ -25,12 +25,12 @@ void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0,
     p_calc->p_par = p_par; //pass the ref to p_par so that it is available wihtin the function to integrate
 
     const gsl_odeiv2_step_type * T = gsl_odeiv2_step_rkf45;
-    gsl_odeiv2_control * control_lyap = gsl_odeiv2_control_y_new (abs_tol, rel_tol); /*abs and rel error (eps_abs et eps_rel) */
-    gsl_odeiv2_step * step_lyap = gsl_odeiv2_step_alloc (T, N_PAR_SV*N_CAC*(N_PAR_SV*N_CAC+1));
-    gsl_odeiv2_evolve * evolve_lyap = gsl_odeiv2_evolve_alloc (N_PAR_SV*N_CAC*(N_PAR_SV*N_CAC+1));
-    double h = DT;
+    gsl_odeiv2_control * control = gsl_odeiv2_control_y_new (abs_tol, rel_tol); /*abs and rel error (eps_abs et eps_rel) */
+    gsl_odeiv2_step * step = gsl_odeiv2_step_alloc (T, N_PAR_SV*N_CAC*(N_PAR_SV*N_CAC+1));
+    gsl_odeiv2_evolve * evolve = gsl_odeiv2_evolve_alloc (N_PAR_SV*N_CAC*(N_PAR_SV*N_CAC+1));
+    double h = p_calc->dt;
 
-    gsl_odeiv2_system sys_lyap = {func_lyap, jac_lyap, N_PAR_SV*N_CAC*(N_PAR_SV*N_CAC+1), p_calc};
+    gsl_odeiv2_system sys = {step_lyap, jac_lyap, N_PAR_SV*N_CAC*(N_PAR_SV*N_CAC+1), p_calc};
 
     int i, k;
 
@@ -55,7 +55,7 @@ void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0,
 
 
     while (t < t1){
-        gsl_odeiv2_evolve_apply (evolve_lyap, control_lyap, step_lyap, &sys_lyap, &t, t1, &h, y);
+        gsl_odeiv2_evolve_apply (evolve, control, step, &sys, &t, t1, &h, y);
         gram_schmidt_normalize(y, lyap);
     }
 
@@ -64,7 +64,7 @@ void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0,
         t1 *= 2;
 
         while (t < t1){
-            gsl_odeiv2_evolve_apply (evolve_lyap, control_lyap, step_lyap, &sys_lyap, &t, t1, &h, y);
+            gsl_odeiv2_evolve_apply (evolve, control, step, &sys, &t, t1, &h, y);
             gram_schmidt_normalize(y, lyap);
         }
     }
@@ -80,9 +80,9 @@ void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0,
     sfr_fclose(p_lyap);
 
     //clean
-    gsl_odeiv2_control_free(control_lyap);
-    gsl_odeiv2_evolve_free(evolve_lyap);
-    gsl_odeiv2_step_free(step_lyap);
+    gsl_odeiv2_control_free(control);
+    gsl_odeiv2_evolve_free(evolve);
+    gsl_odeiv2_step_free(step);
 }
 
 void gram_schmidt_normalize(double *y, double *lyap)

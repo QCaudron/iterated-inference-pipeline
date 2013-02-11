@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 
     back_transform_theta2par(p_kalman->p_par, p_kalman->p_best->mean, p_kalman->p_data->p_it_all, p_kalman->p_data);
     linearize_and_repeat(p_kalman->p_X, p_kalman->p_par, p_kalman->p_data, p_kalman->p_data->p_it_par_sv);
-    prop2Xpop_size(p_kalman->p_X, p_kalman->p_data, p_kalman->calc[0]->implementation);
+    prop2Xpop_size(p_kalman->p_X, p_kalman->p_data);
     theta_driftIC2Xdrift(p_kalman->p_X, p_kalman->p_best->mean, p_kalman->p_data);
 
     FILE *p_file_X = NULL;

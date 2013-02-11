@@ -61,7 +61,7 @@ struct s_kalman_specific_data *build_kalman_specific_data(struct s_calc *p_calc,
     p->Q = gsl_matrix_calloc(N_KAL, N_KAL);
     p->Ft = gsl_matrix_calloc(N_KAL, N_KAL);
 
-    enum plom_noises_off noises_off = p_calc->noises_off;
+    enum plom_noises_off noises_off = p_data->noises_off;
     int n_noises;
     void (*eval_L) (gsl_matrix *L, struct s_calc *p_calc, struct s_data *p_data);
 
@@ -142,14 +142,33 @@ int step_ode_ekf(double t, const double X[], double f[], void *params)
     }
     {% endif %}
 
-    double _r[N_CAC][{{print_ode.caches|length}}];
-    {% if print_ode.sf %}
-    double _sf[N_CAC][{{print_ode.sf|length}}];{% endif %}
+    double _r[N_CAC][{{step_ode_sde.caches|length}}];
+
+    {% if step_ode_sde.sf %}
+    double _sf[N_CAC][{{step_ode_sde.sf|length}}];{% endif %}
+
+    {% if is_drift  %}
+    double drifted[N_DRIFT][N_CAC];
+    int is_drift = ! (p_data->noises_off & PLOM_NO_DRIFT);
+    {% endif %}
+
     for(cac=0;cac<N_CAC;cac++) {
-        {% for sf in print_ode.sf %}
+	{% if is_drift %}
+	for(i=0; i<N_DRIFT; i++){
+	    int ind_drift = p_data->drift[i]->ind_par_Xdrift_applied;
+	    if(is_drift){
+		int g = routers[ind_drift]->map[cac];
+		drifted[i][cac] = back_transform_x(X[p_data->drift[i]->offset + g], g, routers[ind_drift]);
+	    } else {
+		drifted[i][cac] = par[ind_drift][routers[ind_drift]->map[cac]];
+	    }
+	}
+	{% endif %}
+
+        {% for sf in step_ode_sde.sf %}
         _sf[cac][{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
 
-        {% for cache in print_ode.caches %}
+        {% for cache in step_ode_sde.caches %}
         _r[cac][{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
     }
 
@@ -157,22 +176,23 @@ int step_ode_ekf(double t, const double X[], double f[], void *params)
         for(ac=0; ac<N_AC; ac++) {
             cac = c*N_AC+ac;
 
-	    {% for eq in print_ode.func.ode.proc.system %}
+	    {% for eq in step_ode_sde.func.ode.proc.system %}
 	    f[{{eq.index}}*N_CAC+cac] = {{ eq.eq|safe }};{% endfor %}
         }
     }
 
-    //drift
-    offset = N_PAR_SV*N_CAC;
-    for(i=0; i<p_data->p_it_only_drift->nbtot; i++){
-        f[offset+i] = 0.0;
+    {% if is_drift  %}
+    //TODO: drift of the diffusion
+    for(i=N_PAR_SV*N_CAC; i<(N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot); i++){
+        f[i] = 0.0;
     }
+    {% endif %}
 
     /*automaticaly generated code:*/
     /*compute incidence:integral between t and t+1*/
 
     offset = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
-    {% for eq in print_ode.func.ode.obs %}
+    {% for eq in step_ode_sde.func.ode.obs %}
     o = {{ eq.index|safe }};
 
     for (ts=0; ts<obs2ts[o]->n_ts_unique; ts++) {
@@ -245,8 +265,10 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
     struct s_router **routers = p_data->routers;  /* syntaxic shortcut */
 
     {% if is_drift %}
-    int d, g;
+    int i, d, g;
     struct s_drift **drift =  p_data->drift;
+    double drifted[N_DRIFT][N_CAC];
+    int is_drift = ! (p_data->noises_off & PLOM_NO_DRIFT);
     {% endif %}
 
     //the automaticaly generated code may need these variables
@@ -260,15 +282,32 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
 
 
     double _rj[N_CAC][{{ jacobian.caches|length }}];
+
     {% if jacobian.sf %}
     double _sf[N_CAC][{{ jacobian.sf|length }}];{% endif %}
+
+
     for(cac=0; cac<N_CAC; cac++){
+	{% if is_drift %}
+	for(i=0; i<N_DRIFT; i++){
+	    int ind_drift = drift[i]->ind_par_Xdrift_applied;
+	    if(is_drift){
+		g = routers[ind_drift]->map[cac];
+		drifted[i][cac] = back_transform_x(X[drift[i]->offset + g], g, routers[ind_drift]);
+	    } else {
+		drifted[i][cac] = par[ind_drift][routers[ind_drift]->map[cac]];
+	    }
+	}
+	{% endif %}
+
+
         {% for sf in jacobian.sf %}
         _sf[cac][{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
 
         {% for cache in jacobian.caches %}
         _rj[cac][{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
     }
+
 
     //first non null part of the jacobian matrix: derivative of the ODE (excluding the observed variable) against the state variable only ( automaticaly generated code )
     for(c=0; c<N_C; c++) {
@@ -304,52 +343,59 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
     }
     {% endfor %}
 
-    //third non null part of the jacobian matrix: derivative of the ODE (excluding the observed variable) against the drift variable (automaticaly generated code)
-    //non null only for 'cac' present in group of Xdrift: compo_groups_drift_par_proc gives these 'cac'
-    {% for jac_i in jacobian.jac_drift %}
-    d = 0;
-    {% for jac_ii in jac_i %}
-    for(g=0; g< routers[ drift[{{ forloop.counter0 }}]->ind_par_Xdrift_applied ]->n_gp; g++) {
-        for(n_cac=0; n_cac< compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->size; n_cac++) {
-            cac = compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->elements[n_cac];
-            get_c_ac(cac, &c, &ac);
-            gsl_matrix_set(Ft,
-                           {{ forloop.parentloop.counter0 }}*N_CAC+cac,
-                           N_PAR_SV*N_CAC + N_TS + d,
-                           drift_derivative(_rj[cac][{{ jac_ii.value|safe }}], {{ jac_ii.der|safe }}, routers[ORDER_{{ jac_ii.name|safe }}], cac));
-        }
-        d++;
-    }
-    {% endfor %}
-    {% endfor %}
+
+    {% if is_drift %}
+    if(is_drift){
+
+	//third non null part of the jacobian matrix: derivative of the ODE (excluding the observed variable) against the drift variable (automaticaly generated code)
+	//non null only for 'cac' present in group of Xdrift: compo_groups_drift_par_proc gives these 'cac'
+	{% for jac_i in jacobian.jac_drift %}
+	d = 0;
+	{% for jac_ii in jac_i %}
+	for(g=0; g< routers[ drift[{{ forloop.counter0 }}]->ind_par_Xdrift_applied ]->n_gp; g++) {
+	    for(n_cac=0; n_cac< compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->size; n_cac++) {
+		cac = compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->elements[n_cac];
+		get_c_ac(cac, &c, &ac);
+		gsl_matrix_set(Ft,
+			       {{ forloop.parentloop.counter0 }}*N_CAC+cac,
+			       N_PAR_SV*N_CAC + N_TS + d,
+			       drift_derivative(_rj[cac][{{ jac_ii.value|safe }}], {{ jac_ii.der|safe }}, routers[ORDER_{{ jac_ii.name|safe }}], cac));
+	    }
+	    d++;
+	}
+	{% endfor %}
+	{% endfor %}
 
 
-    //fourth non null part of the jacobian matrix: derivative of N_TS agains drift (automaticaly generated code)
-    //this is not optimal at all and will be slow as hell: we should cache the intersection of cac contained in an observation and cac contained in a group of X_drift.
-    //anyone tempted ?
-    ts = 0;
-    {% for jac_i in jacobian.jac_obs_drift %}
-    for(ts_unique=0; ts_unique < obs2ts[{{ forloop.counter0 }}]->n_ts_unique; ts_unique++) {
-        for(stream=0; stream < obs2ts[{{ forloop.counter0 }}]->n_stream[ts_unique]; stream++) {
-            d = 0;
-            {% for jac_ii in jac_i %}
-            for(g=0; g< routers[ drift[{{ forloop.counter0 }}]->ind_par_Xdrift_applied ]->n_gp; g++) {
-                double sum_tmp = 0.0;
-                for(n_cac=0; n_cac< compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->size; n_cac++) {
-                    cac = compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->elements[n_cac];
-                    if(cac_drift_in_cac_ts(cac, {{ forloop.parentloop.counter0 }}, ts_unique, obs2ts)) {
-                        get_c_ac(cac, &c, &ac);
-                        sum_tmp += drift_derivative(_rj[cac][{{ jac_ii.value|safe }}], {{ jac_ii.der|safe }}, routers[ORDER_{{ jac_ii.name|safe }}], cac);
-                    }
-                }
-                gsl_matrix_set(Ft, N_PAR_SV*N_CAC + ts, N_PAR_SV*N_CAC + N_TS + d, sum_tmp);
-                d++;
-            }
-            {% endfor %}
-            ts++;
-        }
+	//fourth non null part of the jacobian matrix: derivative of N_TS agains drift (automaticaly generated code)
+	//this is not optimal at all and will be slow as hell: we should cache the intersection of cac contained in an observation and cac contained in a group of X_drift.
+	//anyone tempted ?
+	ts = 0;
+	{% for jac_i in jacobian.jac_obs_drift %}
+	for(ts_unique=0; ts_unique < obs2ts[{{ forloop.counter0 }}]->n_ts_unique; ts_unique++) {
+	    for(stream=0; stream < obs2ts[{{ forloop.counter0 }}]->n_stream[ts_unique]; stream++) {
+		d = 0;
+		{% for jac_ii in jac_i %}
+		for(g=0; g< routers[ drift[{{ forloop.counter0 }}]->ind_par_Xdrift_applied ]->n_gp; g++) {
+		    double sum_tmp = 0.0;
+		    for(n_cac=0; n_cac< compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->size; n_cac++) {
+			cac = compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->elements[n_cac];
+			if(cac_drift_in_cac_ts(cac, {{ forloop.parentloop.counter0 }}, ts_unique, obs2ts)) {
+			    get_c_ac(cac, &c, &ac);
+			    sum_tmp += drift_derivative(_rj[cac][{{ jac_ii.value|safe }}], {{ jac_ii.der|safe }}, routers[ORDER_{{ jac_ii.name|safe }}], cac);
+			}
+		    }
+		    gsl_matrix_set(Ft, N_PAR_SV*N_CAC + ts, N_PAR_SV*N_CAC + N_TS + d, sum_tmp);
+		    d++;
+		}
+		{% endfor %}
+		ts++;
+	    }
+	}
+	{% endfor %}
+
     }
-    {% endfor %}
+    {% endif %}
 
 }
 
@@ -429,16 +475,20 @@ void eval_L_{{ noises_off }}(gsl_matrix *L, struct s_calc *p_calc, struct s_data
 
     {% endif %}
 
+
+    {% if is_drift  %}
     ////////////////
     // drift part //
     ////////////////
-    if(!(p_calc->noises_off & PLOM_NO_DRIFT)){
+    if(!(p_data->noises_off & PLOM_NO_DRIFT)){
 	struct s_iterator *p_it = p_data->p_it_only_drift;
 	int i;
 	for(i=0; i<p_it->nbtot; i++) {
 	    gsl_matrix_set(L, N_PAR_SV*N_CAC+N_TS + i, {{ Q.s }}*N_CAC + i, 1.0);
 	}
     }
+    {% endif %}
+
 }
 {% endfor %}
 
@@ -459,11 +509,32 @@ void eval_Qc_{{ noises_off }}(gsl_matrix *Qc, const double *X, struct s_par *p_p
     double **par = p_par->natural;
     double ***covar = p_data->par_fixed;
 
+    {% if is_drift  %}
+    int is_drift = ! (p_data->noises_off & PLOM_NO_DRIFT);
+    {% endif %}
 
     {% if Q.Qc_tpl %}
-    int cac;
 
+    {% if is_drift  %}
+    int i;
+    double drifted[N_DRIFT][N_CAC];
+    {% endif %}
+
+    int cac;
     for(cac=0; cac<N_CAC; cac++) {
+
+	{% if is_drift %}
+	for(i=0; i<N_DRIFT; i++){
+	    int ind_drift = p_data->drift[i]->ind_par_Xdrift_applied;
+	    if(is_drift){
+		int g = routers[ind_drift]->map[cac];
+		drifted[i][cac] = back_transform_x(X[p_data->drift[i]->offset + g], g, routers[ind_drift]);
+	    } else {
+		drifted[i][cac] = par[ind_drift][routers[ind_drift]->map[cac]];
+	    }
+	}
+	{% endif %}
+
 	{% if Q.sf %}
 	double _sf[{{ Q.sf|length }}];
 	{% endif %}
@@ -477,10 +548,12 @@ void eval_Qc_{{ noises_off }}(gsl_matrix *Qc, const double *X, struct s_par *p_p
 
     {% endif %}
 
+
+    {% if is_drift  %}
     //////////////////////////////
     // drift term (volatility^2)//
     //////////////////////////////
-    if(!(p_calc->noises_off & PLOM_NO_DRIFT)){
+    if(is_drift){
 	struct s_iterator *p_it = p_data->p_it_only_drift;
 	int i, k;
 	int offset = {{ Q.s }}*N_CAC;
@@ -491,6 +564,8 @@ void eval_Qc_{{ noises_off }}(gsl_matrix *Qc, const double *X, struct s_par *p_p
 	    }
 	}
     }
+    {% endif %}
+
 }
 {% endfor %}
 

@@ -67,8 +67,7 @@ int main(int argc, char *argv[])
     double t0 = 0.0, t_end = 0.0, t_transiant = 0.0;
     int nn0 = 0; //for PAR_FIXED: t can be > N_DATA_PAR_FIXED: For transiant and lyap, we use p_calc->current_nn = t0 if t0 < N_DATA_PAR_FIXED. For traj_obs, we let p_calc->current_nn vary starting from nn0 and up to N_DATA_PAR_FIXED. After N_DATA_PAR_FIXED, the last value is recycled
 
-    int has_dt_be_specified = 0;
-    double dt_option;
+    double dt = 0.0;
 
     OPTION_TRAJ = 0;
     int OPTION_LYAP = 0;
@@ -163,8 +162,7 @@ int main(int argc, char *argv[])
             t_end = ceil(atof(optarg));
             break;
         case 's':
-            dt_option = atof(optarg);
-            has_dt_be_specified = 1;
+            dt = atof(optarg);
             break;
         case 'r':
             PRECISION = atof(optarg);
@@ -209,6 +207,7 @@ int main(int argc, char *argv[])
 
     if(argc == 0) {
 	implementation = PLOM_ODE;
+	noises_off = noises_off | PLOM_NO_DEM_STO| PLOM_NO_ENV_STO | PLOM_NO_DRIFT;
     } else {
         if (!strcmp(argv[0], "ode")) {
             implementation = PLOM_ODE;
@@ -221,6 +220,11 @@ int main(int argc, char *argv[])
             print_log(sfr_help_string);
             return 1;
         }
+	
+	if(OPTION_LYAP && (implementation != PLOM_ODE)){
+	    print_err("Lyapunov exponents can only be computed with ODE implementation");
+	    exit(EXIT_FAILURE);
+	}	
     }
 
     if (t0>t_end) {
@@ -228,7 +232,6 @@ int main(int argc, char *argv[])
         print_err(str);
         exit(EXIT_FAILURE);
     }
-
 
     json_t *settings = load_settings(PATH_SETTINGS);
     json_t *theta = load_json();
@@ -238,26 +241,18 @@ int main(int argc, char *argv[])
         print_log("for bifurcation analysis and Lyapunov exp. comupations, J must be 1 !!");
     }
 
-    if (has_dt_be_specified) {
-        DT = dt_option;
-    }
-    //IMPORTANT: update DELTA_STO so that DT = 1.0/DELTA_STO
-    DELTA_STO = round(1.0/DT);
-    DT = 1.0/ ((double) DELTA_STO);
 
-
-
-    struct s_data *p_data = build_data(settings, theta, 0);
+    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 0);
     json_decref(settings);
 
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
     struct s_par *p_par = build_par(p_data);
     struct s_X **J_p_X = build_J_p_X(size_proj, N_TS, p_data);
-    struct s_best *p_best = build_best(p_data, theta, noises_off, 0);
+    struct s_best *p_best = build_best(p_data, theta, 0);
     json_decref(theta);
 
-    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, implementation, J, size_proj, func, p_data);
+    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, dt, J, size_proj, step_ode, p_data);
 
     double *y0 = init1d_set0(N_PAR_SV*N_CAC + N_TS_INC_UNIQUE);
 
@@ -276,7 +271,7 @@ int main(int argc, char *argv[])
 
 
 #if FLAG_VERBOSE
-    snprintf(str, STR_BUFFSIZE, "Starting Plom with the following options: i = %d, t0 = %g, t_end = %g, DT = %g, DELTA_STO = %g, t_transiant = %g, N_BLOC = %d, PRECISION = %g, N_THREADS = %d, J = %d", GENERAL_ID, t0, t_end, DT, DELTA_STO, t_transiant, N_BLOC, PRECISION, n_threads, J);
+    snprintf(str, STR_BUFFSIZE, "Starting Plom with the following options: i = %d, t0 = %g, t_end = %g, DT = %g, t_transiant = %g, N_BLOC = %d, PRECISION = %g, N_THREADS = %d, J = %d", GENERAL_ID, t0, t_end, calc[0]->dt, t_transiant, N_BLOC, PRECISION, n_threads, J);
     print_log(str);
 #endif
 
@@ -295,7 +290,7 @@ int main(int argc, char *argv[])
     transform_theta(p_best, NULL, NULL, p_data, 1, 1);
     back_transform_theta2par(p_par, p_best->mean, p_data->p_it_all, p_data);
     linearize_and_repeat(J_p_X[0], p_par, p_data, p_data->p_it_par_sv);
-    prop2Xpop_size(J_p_X[0], p_data, implementation);
+    prop2Xpop_size(J_p_X[0], p_data);
     theta_driftIC2Xdrift(J_p_X[0], p_best->mean, p_data);
 
     replicate_J_p_X_0(J_p_X, p_data);
@@ -303,6 +298,8 @@ int main(int argc, char *argv[])
     for (i=0; i<(N_PAR_SV*N_CAC); i++){
         y0[i] = J_p_X[0]->proj[i];
     }
+
+    plom_f_pred_t f_pred = get_f_pred(p_data->implementation, p_data->noises_off);
 
     /****************************************/
     /*************SKIP TRANSIANT*************/
@@ -315,13 +312,12 @@ int main(int argc, char *argv[])
 #endif
 
         if (implementation == PLOM_ODE) {
+	    //only the first particle is used to skip transiant
             if ( integrate(J_p_X[0], y0, t0, t_transiant, p_par, &abs_tol, &rel_tol, calc[0], p_data) ) {
                 print_err("integration error, the program will now quit");
                 exit(EXIT_FAILURE);
             }
         } else {
-	    //NOTE: We do **not** consider drift when skipping transiants.
-	    plom_f_pred_t f_pred = get_f_pred(implementation, noises_off | PLOM_NO_DRIFT);
             int thread_id, ip1;
             for(i=t0 ; i<t_transiant ; i++) {
                 ip1 = i+1;
@@ -341,11 +337,11 @@ int main(int argc, char *argv[])
         //we need to integrate for at least 1 time step so that
         //incidence is reset to 0 after transiant (transiant did not
         //reset incidences every week in case of PLOM_ODE)
-        traj(J_p_X, t0, t0+1, t_transiant, p_par, p_data, calc, implementation, noises_off);
+        traj(J_p_X, t0, t0+1, t_transiant, p_par, p_data, calc, f_pred);
 
     } else if(!(OPTION_BIF || OPTION_LYAP) && OPTION_TRAJ && (t_end>t0)) { //ONLY TRAJ
 
-        traj(J_p_X, t0, t_end, t_transiant, p_par, p_data, calc, implementation, noises_off);
+        traj(J_p_X, t0, t_end, t_transiant, p_par, p_data, calc, f_pred);
 
     } else if (OPTION_BIF || OPTION_LYAP) { //ABS_TOL & REL_TOL
 
@@ -354,20 +350,6 @@ int main(int argc, char *argv[])
             y0[i] = J_p_X[0]->proj[i];
         }
         reset_inc(J_p_X[0], p_data);
-
-#if FLAG_VERBOSE
-        snprintf(str, STR_BUFFSIZE, "determining abs tol and rel tol (starting from abs_tol: %g,  rel_tol: %g)", ABS_TOL, REL_TOL);
-        print_log(str);
-#endif
-        abs_tol=ABS_TOL; rel_tol=REL_TOL;
-        if ( integrate(J_p_X[0], y0, t0, t_end, p_par,  &abs_tol, &rel_tol, calc[0], p_data) ) {
-            print_err("integration error, the program will now quit");
-            exit(EXIT_FAILURE);
-        }
-#if FLAG_VERBOSE
-        snprintf(str, STR_BUFFSIZE, "abs tol: %g rel tol: %g", abs_tol, rel_tol );
-        print_log(str);
-#endif
 
 	/****************************************/
 	/*************BIF************************/
@@ -380,8 +362,7 @@ int main(int argc, char *argv[])
 	    print_log("bifurcation analysis");
 #endif
 
-	    //Diffusion are not taken into account (makes no sense for bifurcations analysis which focus on the attractor...
-	    double **traj_obs = get_traj_obs(J_p_X[0], y0, t0, t_end, t_transiant, p_par, p_data, calc[0], implementation, noises_off | PLOM_NO_DRIFT); //[N_TS][(t_end-t0)]
+	    double **traj_obs = get_traj_obs(J_p_X[0], y0, t0, t_end, t_transiant, p_par, p_data, calc[0], f_pred); //[N_TS][(t_end-t0)]
 
 	    for (ts=0; ts< N_TS; ts++) {
 
@@ -417,15 +398,26 @@ int main(int argc, char *argv[])
 	/****************************************/
 
 	if (OPTION_LYAP) {
-	    if (implementation == PLOM_ODE) {
-		store_state_current_n_nn(calc, 0, nn0);
-#if FLAG_VERBOSE
-		print_log("Lyapunov exponents computation...");
-#endif
-		lyapunov(calc[0], p_par, y0, t0, t_end, abs_tol, rel_tol);
-	    }
-	}
 
+	    //lyap exp are expensive to compute, ABS_TOL and REL_TOL
+	    //used to skip the transiant might be too low as compared
+	    //to the one necessary for the attractor, we recompute
+	    //them...
+	    abs_tol=ABS_TOL; rel_tol=REL_TOL;
+	    if ( integrate(J_p_X[0], y0, t0, t_end, p_par,  &abs_tol, &rel_tol, calc[0], p_data) ) {
+		print_err("integration error, the program will now quit");
+		exit(EXIT_FAILURE);
+	    }
+#if FLAG_VERBOSE
+	    snprintf(str, STR_BUFFSIZE, "abs tol: %g rel tol: %g", abs_tol, rel_tol );
+	    print_log(str);
+	    print_log("Lyapunov exponents computation...");
+#endif
+
+	    store_state_current_n_nn(calc, 0, nn0);
+	    lyapunov(calc[0], p_par, y0, t0, t_end, abs_tol, rel_tol);
+	}
+	
     } //end OPTION_BIF or OPTION_LYAP
 
 
@@ -438,7 +430,7 @@ int main(int argc, char *argv[])
     clean_J_p_X(J_p_X);
     clean_best(p_best);
     clean_par(p_par);
-    clean_calc(calc, implementation);
+    clean_calc(calc, p_data);
     clean_data(p_data);
 
     return 0;

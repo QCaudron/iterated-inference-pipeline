@@ -153,7 +153,7 @@ void compute_hat(struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_da
     /* drift */
     struct s_drift **drift = p_data->drift;
     int offset = 0;
-    for (i=0; i< N_DRIFT ; i++) {
+    for (i=0; i< p_data->p_it_only_drift->length ; i++) {
         int ind_par_Xdrift_applied = drift[i]->ind_par_Xdrift_applied;
 
 #pragma omp parallel for private(thread_id, j, nn) //we parallelize k and not i as in most cases there are only one single diffusion
@@ -237,7 +237,7 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_da
     /* drift */
     struct s_drift **drift = p_data->drift;
     int offset = 0;
-    for (i=0; i< N_DRIFT ; i++) {
+    for (i=0; i< p_data->p_it_only_drift->length ; i++) {
         int ind_par_Xdrift_applied = drift[i]->ind_par_Xdrift_applied;
 
 #pragma omp parallel for private(thread_id, j) //we parallelize k and not i as in most cases there are only one single diffusion

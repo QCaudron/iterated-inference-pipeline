@@ -58,7 +58,7 @@ void header_X(FILE *p_file, struct s_data *p_data)
         fprintf(p_file, "obs_mean:%s,", p_data->ts_name[ts]);
     }
 
-    for(i=0; i< (N_DRIFT) ; i++) {
+    for(i=0; i< (p_data->p_it_only_drift->length) ; i++) {
         int ind_par_Xdrift_applied = drift[i]->ind_par_Xdrift_applied;
         const char *name = routers[ind_par_Xdrift_applied]->name;
         for(g=0; g< routers[ ind_par_Xdrift_applied ]->n_gp; g++) {
@@ -113,7 +113,7 @@ void header_hat(FILE *p_file, struct s_data *p_data)
     }
 
     /* drift */
-    for(i=0; i< N_DRIFT ; i++) {
+    for(i=0; i< p_data->p_it_only_drift->length ; i++) {
         int ind_par_Xdrift_applied = drift[i]->ind_par_Xdrift_applied;
         const char *name = routers[ind_par_Xdrift_applied]->name;
         for(g=0; g< routers[ ind_par_Xdrift_applied ]->n_gp; g++) {
@@ -245,7 +245,7 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
 #endif
     }
 
-    for(i=0; i< N_DRIFT ; i++) {
+    for(i=0; i< p_data->p_it_only_drift->length ; i++) {
         ind_par_Xdrift_applied = drift[i]->ind_par_Xdrift_applied;
         for(k=0; k< routers[ ind_par_Xdrift_applied ]->n_gp; k++) {
             x = (*(routers[ ind_par_Xdrift_applied ]->f_inv))( p_X->proj[drift[i]->offset + k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
