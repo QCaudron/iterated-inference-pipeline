@@ -111,7 +111,9 @@ class Ccoder(Cmodel):
                         ind +=1
 
                 ##add extra terms (no whitespace)
-                if myf[0] == 'sinusoidal_forcing':
+                if myf[0] == 'sin_t':
+                    yield ',t'
+                elif myf[0] == 'cos_t':
                     yield ',t'
                 elif myf[0] == 'terms_forcing':
                     yield ',t,p_data,cac'

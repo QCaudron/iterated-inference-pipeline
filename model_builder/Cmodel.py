@@ -70,9 +70,9 @@ class Cmodel:
 
         self.op = set(['+', '-', '*', '/', ',', '(', ')']) ##!!!CAN'T contain square bracket '[' ']'
         self.reserved = set(['p_0', 'sum_SV', 'N', 'prop', 'x'])
-        self.special_functions = set(['terms_forcing', 'sinusoidal_forcing', 'step', 'step_lin', 'noise', 'drift', 'correct_rate'])
+        self.special_functions = set(['terms_forcing', 'step', 'step_lin', 'sin_t', 'cos_t', 'noise', 'drift', 'correct_rate'])
         ##special functions that need to be cached for performance issues
-        self.cached = ['terms_forcing', 'sinusoidal_forcing', 'step', 'step_lin', 'correct_rate']
+        self.cached = ['terms_forcing', 'step', 'step_lin', 'correct_rate', 'sin_t', 'cos_t']
         self.universes = ['U', 'DU']
 
 
@@ -457,7 +457,7 @@ if __name__=="__main__":
     m['parameter'] = [{'id':'r0'}, {'id':'v'}, {'id':'l'}, {'id':'e'}, {'id':'d'}, {'id':'sto'}, {'id':'alpha'}, {'id':'mu_b'}, {'id':'mu_d'}, {'id':'vol'}, {'id':'g'}]
 
     m['model'] = [ {'from': 'U', 'to': 'S',  'rate': 'mu_b*N'},
-                   {'from': 'S', 'to': 'E',  'rate': 'noise__trans(sto)*drift(r0, vol_r0)/N*v*sinusoidal_forcing(e,d)*I', "tag":[{"id": "transmission", "by":["I"]}]},
+                   {'from': 'S', 'to': 'E',  'rate': 'noise__trans(sto)*drift(r0, vol_r0)/N*v*(1.0+e*sin_t(d))*I', "tag":[{"id": "transmission", "by":["I"]}]},
 
                    {'from': 'E', 'to': 'I', 'rate': '(1-alpha)*correct_rate(l)'},
                    {'from': 'E', 'to': 'U',  'rate': 'alpha*correct_rate(l) + mu_d'},

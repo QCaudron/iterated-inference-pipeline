@@ -662,6 +662,8 @@ double foi(double *X_c, double *waifw_ac);
 /* special_functions.c */
 double terms_forcing(double amplitude, double time, struct s_data *p_data, int cac);
 double sinusoidal_forcing(double amplitude, double dephasing, double time);
+double sin_t(double dephasing, double time);
+double cos_t(double dephasing, double time);
 double step(double mul, double t_intervention, double time);
 double step_lin(double mul, double t_intervention, double time);
 
