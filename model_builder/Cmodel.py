@@ -80,7 +80,6 @@ class Cmodel:
         self.context = copy.deepcopy(context)
         self.pop_size_eq_sum_sv = process['pop_size_eq_sum_sv']
 
-
         ##list [{'id':'X'}, ...] => ['X', ...]
         self.par_sv = self.expand_par_sv([x['id'] for x in process['state']], process['model'])
 
@@ -93,9 +92,25 @@ class Cmodel:
         self.par_obs = [x['id'] for x in link['parameter'] if x['id'] not in self.par_fixed]
 
 
-
-        self.unexpanded_proc_model = copy.deepcopy(process['model'])
         self.obs_model = copy.deepcopy(link['model'][link['model'].keys()[0]])
+
+        unexpanded_proc_model = copy.deepcopy(process['model'])
+
+        ##add white_noise property to unexpanded_proc_model reactions
+        if 'white_noise' in process:
+            for i, r in enumerate(unexpanded_proc_model):
+                for j, x in enumerate(process['white_noise']):
+                    for nr in x['reaction']:                    
+                        if r['from'] == x['from'] and r['to'] == x['to'] and ( ('rate' in nr and nr['rate'] == r['rate']) or ('rate' not in nr)):
+                            unexpanded_proc_mode[i]['white_noise'] = {'name': 'white_noise__' + str(j),
+                                                                      'sd': x['sd']}
+
+            white_noise_sd = set()
+            for x in list_white_noise:
+                self.white_noise_sd.add(x['sd'])
+
+        self.white_noise_sd = list(white_noise_sd)
+
 
         #drift
         self.drift_par_proc = []
@@ -129,27 +144,26 @@ class Cmodel:
         else:
             self.myN = 'N' if 'N' in self.par_fixed else 'p_0'
 
-        for i, m in enumerate(self.unexpanded_proc_model):
-            self.unexpanded_proc_model[i]['rate'] = m['rate'].replace('N', self.myN)
+        for i, m in enumerate(unexpanded_proc_model):
+            unexpanded_proc_model[i]['rate'] = m['rate'].replace('N', self.myN)
 
         for k, v in self.obs_model.iteritems():
             if k != 'dist':
                 self.obs_model[k] = v.replace('N', self.myN)
 
 
-        self.proc_model = self.expand_proc_model(self.unexpanded_proc_model)
-
+        self.proc_model = self.expand_proc_model(unexpanded_proc_model)
 
         ####IMPORTANT: we sort obs_var so that incidences are first
         sorted_obs_var= copy.deepcopy(link['observed'])
         sorted_obs_var.sort(key=lambda x: 0 if isinstance(x['definition'][0], dict) else 1)
 
         self.obs_var = []
-        self.unexpanded_obs_var_def = []
+        unexpanded_obs_var_def = []
 
         ##do a hash to quickly add rate for obs_var_def
         pm = {}
-        for v in self.unexpanded_proc_model:
+        for v in unexpanded_proc_model:
             pm[(v['from'], v['to'])] = v['rate']
 
         for x in sorted_obs_var:
@@ -160,10 +174,10 @@ class Cmodel:
                 if isinstance(d, dict) and 'rate' not in d:
                     d['rate'] = pm[(d['from'], d['to'])]
 
-            self.unexpanded_obs_var_def.append(mydef)
+            unexpanded_obs_var_def.append(mydef)
 
 
-        self.obs_var_def = self.expand_obs_var_def(self.unexpanded_obs_var_def, self.unexpanded_proc_model)
+        self.obs_var_def = self.expand_obs_var_def(unexpanded_obs_var_def, unexpanded_proc_model)
 
 
         ##contextualize
@@ -393,6 +407,8 @@ class Cmodel:
         return myobs
 
 
+    
+
 if __name__=="__main__":
 
     """
@@ -407,7 +423,7 @@ if __name__=="__main__":
     m['parameter'] = [{'id':'r0'}, {'id':'v'}, {'id':'l'}, {'id':'e'}, {'id':'d'}, {'id':'sto'}, {'id':'alpha'}, {'id':'mu_b'}, {'id':'mu_d'}, {'id':'vol'}, {'id':'g'}]
 
     m['model'] = [ {'from': 'U', 'to': 'S',  'rate': 'mu_b*N'},
-                   {'from': 'S', 'to': 'E',  'rate': 'noise__trans(sto)/N*v*(1.0+e*sin_t(d))*I', "tag":[{"id": "transmission", "by":["I"]}]},
+                   {'from': 'S', 'to': 'E',  'rate': 'r0/N*v*(1.0+e*sin_t(d))*I', "tag":[{"id": "transmission", "by":["I"]}]},
 
                    {'from': 'E', 'to': 'I', 'rate': '(1-alpha)*correct_rate(l)'},
                    {'from': 'E', 'to': 'U',  'rate': 'alpha*correct_rate(l) + mu_d'},
@@ -422,6 +438,9 @@ if __name__=="__main__":
     m['diffusion'] = [{'parameter':'r0',
                        'volatility': 'vol',
                        'drift': 0.0}]
+
+    m['white_noise'] = [{'reaction': [{'from':'S', 'to': 'E'}],
+                         'sd': 'sto'}]
 
     m['pop_size_eq_sum_sv'] = False
 
