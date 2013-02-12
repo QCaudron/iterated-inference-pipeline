@@ -71,47 +71,51 @@ class Ccoder(Cmodel):
         terms = self.change_user_input(term)
 
         ind = 0
+        Cterm = ''
         while (ind < len(terms)):
+
             if terms[ind] in self.special_functions:
                 myf = terms[ind]
 
-                yield self.toC(myf, no_correct_rate)
-                yield '('
-                ind = terms.index(myf)+2 #skip first parenthesis
+                Cterm += self.toC(myf, no_correct_rate) + '('
+                ind += 2 #skip first parenthesis
 
                 pos = 1 #counter for open parenthesis
-                while terms[ind] != ')' or pos > 0:
+                while pos > 0:
                     if terms[ind] == '(':
                         pos += 1
                     if terms[ind] == ')':
                         pos -= 1
 
-                    ##we don't yield the last parenthesis to add extra arg to the functions'
                     if pos >0:
-                        yield self.toC(terms[ind], no_correct_rate)
-                        ind +=1
+                        Cterm += self.toC(terms[ind], no_correct_rate)
+                        ind += 1
+
 
                 ##add extra terms (no whitespace)
                 if myf == 'sin_t':
-                    yield ',t'
+                    Cterm += ',t'
                 elif myf == 'cos_t':
-                    yield ',t'
+                    Cterm += ',t'
                 elif myf == 'terms_forcing':
-                    yield ',t,p_data,cac'
+                    Cterm += ',t,p_data,cac'
                 elif myf == 'step':
-                    yield ',t'
+                    Cterm += ',t'
                 elif myf == 'step_lin':
-                    yield ',t'
+                    Cterm += ',t'
                 elif myf == 'correct_rate' and not no_correct_rate:
-                    yield ',dt'
+                    Cterm += ',dt'
 
                 ##close bracket
-                yield self.toC(')', no_correct_rate)
-                ind +=1
+                Cterm += terms[ind]
+                ind += 1
 
             else:
-                yield self.toC(terms[ind], no_correct_rate)
+                Cterm += self.toC(terms[ind], no_correct_rate)
                 ind += 1
+
+        return Cterm
+
 
     def make_C_term(self, term, no_correct_rate, derivate=None):
 
@@ -144,7 +148,7 @@ class Ccoder(Cmodel):
         term = cterm.replace('plom___', '')
 
         #make the plom C expression
-        return ''.join(self.generator_C(term, no_correct_rate))
+        return self.generator_C(term, no_correct_rate)
 
 
 
@@ -919,11 +923,11 @@ if __name__=="__main__":
 
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
 
-    print ''.join(model.generator_C("sin_t((a*x+(b)), ((e)) ) + r0", False))
-    print ''.join(model.generator_C("sin_t(b) + r0", False))
+##    print ''.join(model.generator_C("(1.0+e*sin_t((a*x+(b)), ((e)) )) + r0", False))
+    print model.generator_C("-mu_d - r0_1*v*(e*sin_t(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin_t(d) + 1.0)*(RI + SI + iota_2)/N", False)
 
-    print model.cache_special_function_C(['sin_t((a*x+(b)), ((e)) ) + r0'])
-
+    ##print model.cache_special_function_C(['sin_t((a*x+(b)), ((e)) ) + r0'])
+    ##print model.cache_special_function_C("-mu_d - r0_1*v*(e*sin_t(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin_t(d) + 1.0)*(RI + SI + iota_2)/N")
 
 ##    model.prepare()
 ##    model.write_settings()
