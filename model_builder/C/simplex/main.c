@@ -28,12 +28,18 @@ int main(int argc, char *argv[])
     char sfr_help_string[] =
         "Plom Simplex\n"
         "usage:\n"
-        "simplex [implementation] [-p, --path <path>] [-i, --id <integer>]\n"
+        "simplex [implementation] [-p, --path <path>] [-i, --id <integer>] [-q, --least_square]\n"
+        "                         [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                         [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>] [--prior]\n"
         "                         [--help]\n"
         "where implementation is 'ode' (default)\n"
         "options:\n"
-        "-s, --least_square   optimize the sum of square instead of the likelihood\n"
+	"\n"
+        "-s, --DT             Initial integration time step\n"
+	"--eps_abs            Absolute error for adaptive step-size contro\n"
+	"--eps_rel            Relative error for adaptive step-size contro\n"
+	"\n" 
+       "-q, --least_square    optimize the sum of square instead of the likelihood\n"
         "-p, --path           path where the outputs will be stored\n"
         "-i, --id             general id (unique integer identifier that will be appended to the output files)\n"
         "-l, --LIKE_MIN       likelihood smaller that LIKE_MIN are considered 0.0\n"
@@ -50,6 +56,8 @@ int main(int argc, char *argv[])
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = (PLOM_NO_DEM_STO | PLOM_NO_ENV_STO | PLOM_NO_DRIFT);
 
+    double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
+
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
     J=1;
@@ -63,8 +71,13 @@ int main(int argc, char *argv[])
         static struct option long_options[] =
             {
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
+
+		{"DT",         required_argument, 0, 's'},
+		{"eps_abs",    required_argument, 0, 'v'},
+		{"eps_rel",    required_argument, 0, 'w'},
+
                 {"help", no_argument,  0, 'e'},
-                {"least_square", no_argument,  0, 's'},
+                {"least_square", no_argument,  0, 'q'},
                 {"no_trace", no_argument,  0, 'b'},
                 {"prior", no_argument, &OPTION_PRIOR, 1},
                 {"path",    required_argument, 0, 'p'},
@@ -78,7 +91,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "si:l:M:S:p:b", long_options, &option_index);
+        ch = getopt_long (argc, argv, "s:v:w:qi:l:M:S:p:b", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -92,6 +105,17 @@ int main(int argc, char *argv[])
             }
             break;
 
+        case 's':
+            dt = atof(optarg);
+            break;
+        case 'v':
+            eps_abs = atof(optarg);
+            break;
+        case 'w':
+            eps_rel = atof(optarg);
+            break;
+
+
         case 'e':
             print_log(sfr_help_string);
             return 1;
@@ -99,7 +123,7 @@ int main(int argc, char *argv[])
         case 'b':
             option_no_trace = 1;
             break;
-        case 's':
+        case 'q':
             OPTION_LEAST_SQUARE = 1;
             break;
 
@@ -148,7 +172,7 @@ int main(int argc, char *argv[])
     sprintf(str, "Starting Plom-simplex with the following options: i = %d, LIKE_MIN = %g, M = %d, CONVERGENCE_STOP_SIMPLEX = %g", GENERAL_ID, LIKE_MIN, M, CONVERGENCE_STOP_SIMPLEX);
     print_log(str);
 
-    struct s_simplex *p_simplex = build_simplex(implementation, noises_off, GENERAL_ID, OPTION_PRIOR);
+    struct s_simplex *p_simplex = build_simplex(implementation, noises_off, GENERAL_ID, OPTION_PRIOR, dt, eps_abs, eps_rel);
 
     transform_theta(p_simplex->p_best, NULL, NULL, p_simplex->p_data, 1, 1);
 
@@ -177,5 +201,4 @@ int main(int argc, char *argv[])
     clean_simplex(p_simplex);
 
     return 0;
-
 }

@@ -24,30 +24,34 @@ int main(int argc, char *argv[])
     char str[255];
     int i, j;
 
-    double abs_tol = ABS_TOL, rel_tol = REL_TOL;
 
     /* set default values for the options */
-
     char sfr_help_string[] =
         "PloM Simulation\n"
         "usage:\n"
         "simul [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "                       [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                       [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
-        "                       [-s, --DT <float>] [-b, --bif] [--continue] [-l, --lyap]\n"
+        "                       [-b, --bif] [--continue] [-l, --lyap]\n"
         "                       [-o, --t0 <integer>] [-D, --tend <integer>] [-T --transiant <integer>]\n"
         "                       [-B, --block <integer>] [-x, --precision <float>] [-J <integer>]\n"
         "                       [--help]\n"
         "where implementation is 'ode' (default), 'sde' or 'psr'\n"
         "options:\n"
+	"\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_env_sto       turn off environmental stochasticity (if any)\n"
-        "--no_drift         turn off drift (if any). Note that drift will be discarded during transiant computations and bifurcation analysis\n"
+        "--no_drift         turn off drift (if any)\n"
+	"\n"
+        "-s, --DT           Initial integration time step\n"
+	"--eps_abs          Absolute error for adaptive step-size contro\n"
+	"--eps_rel          Relative error for adaptive step-size contro\n"
+	"\n"
         "--traj             print the trajectories\n"
         "--continue         print the final states in a bifurcation analysis to allow continuation\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-P, --N_THREAD     number of threads to be used (default to the number of cores)\n"
-        "-s, --DT           integration time step\n"
         "-b, --bif          run a bifurcation analysis\n"
         "-l, --lyap         compute lyapunov exponents\n"
         "-d, --period_dyn   compute period (dynamical system def)\n"
@@ -67,7 +71,7 @@ int main(int argc, char *argv[])
     double t0 = 0.0, t_end = 0.0, t_transiant = 0.0;
     int nn0 = 0; //for PAR_FIXED: t can be > N_DATA_PAR_FIXED: For transiant and lyap, we use p_calc->current_nn = t0 if t0 < N_DATA_PAR_FIXED. For traj_obs, we let p_calc->current_nn vary starting from nn0 and up to N_DATA_PAR_FIXED. After N_DATA_PAR_FIXED, the last value is recycled
 
-    double dt = 0.0;
+    double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
 
     OPTION_TRAJ = 0;
     int OPTION_LYAP = 0;
@@ -95,13 +99,14 @@ int main(int argc, char *argv[])
                 {"no_env_sto", no_argument,       0, 'y'},
                 {"no_drift",   no_argument,       0, 'z'},
 
+		{"DT",         required_argument, 0, 's'},
+		{"eps_abs",    required_argument, 0, 'v'},
+		{"eps_rel",    required_argument, 0, 'w'},
 
                 {"help", no_argument,  0, 'e'},
                 {"path",    required_argument, 0, 'p'},
                 {"id",    required_argument, 0, 'i'},
                 {"N_THREAD",   required_argument, 0, 'P'},
-
-                {"DT",         required_argument, 0, 's'},
 
                 {"bif",    no_argument, 0, 'b'},
                 {"lyap",    no_argument, 0, 'l'},
@@ -119,7 +124,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "B:r:i:J:s:D:T:bldfp:o:P:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:B:r:i:J:s:D:T:bldfp:o:P:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -144,6 +149,15 @@ int main(int argc, char *argv[])
             noises_off = noises_off | PLOM_NO_DRIFT;
             break;
 
+        case 's':
+            dt = atof(optarg);
+            break;
+        case 'v':
+            eps_abs = atof(optarg);
+            break;
+        case 'w':
+            eps_rel = atof(optarg);
+            break;
 
         case 'e':
             print_log(sfr_help_string);
@@ -160,9 +174,6 @@ int main(int argc, char *argv[])
             break;
         case 'D':
             t_end = ceil(atof(optarg));
-            break;
-        case 's':
-            dt = atof(optarg);
             break;
         case 'r':
             PRECISION = atof(optarg);
@@ -194,7 +205,7 @@ int main(int argc, char *argv[])
 
         case '?':
             /* getopt_long already printed an error message. */
-            break;
+            return 1;
 
         default:
             snprintf(str, STR_BUFFSIZE, "Unknown option '-%c'\n", optopt);
@@ -252,9 +263,11 @@ int main(int argc, char *argv[])
     struct s_best *p_best = build_best(p_data, theta, 0);
     json_decref(theta);
 
-    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, dt, J, size_proj, step_ode, p_data);
+    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, dt, eps_abs, eps_rel, J, size_proj, step_ode, p_data);
 
     double *y0 = init1d_set0(N_PAR_SV*N_CAC + N_TS_INC_UNIQUE);
+    double abs_tol = eps_abs, rel_tol = eps_rel;
+
 
     //if t_transiant > N_DATA: we ensure constant pop size by settings mu_d = mu_b in case of variable birth and death reates
     if (t_transiant > N_DATA) {
@@ -343,7 +356,7 @@ int main(int argc, char *argv[])
 
         traj(J_p_X, t0, t_end, t_transiant, p_par, p_data, calc, f_pred);
 
-    } else if (OPTION_BIF || OPTION_LYAP) { //ABS_TOL & REL_TOL
+    } else if (OPTION_BIF || OPTION_LYAP) {
 
         /*store (potentialy new, if t_transiant > 0.0) initial conditions*/
         for (i=0; i<(N_PAR_SV*N_CAC); i++){
@@ -399,11 +412,11 @@ int main(int argc, char *argv[])
 
 	if (OPTION_LYAP) {
 
-	    //lyap exp are expensive to compute, ABS_TOL and REL_TOL
+	    //lyap exp are expensive to compute, abs_tol and rel_tol
 	    //used to skip the transiant might be too low as compared
 	    //to the one necessary for the attractor, we recompute
 	    //them...
-	    abs_tol=ABS_TOL; rel_tol=REL_TOL;
+	    abs_tol = eps_abs; rel_tol = eps_rel;
 	    if ( integrate(J_p_X[0], y0, t0, t_end, p_par,  &abs_tol, &rel_tol, calc[0], p_data) ) {
 		print_err("integration error, the program will now quit");
 		exit(EXIT_FAILURE);

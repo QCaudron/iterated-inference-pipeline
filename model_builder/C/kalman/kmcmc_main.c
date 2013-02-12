@@ -28,15 +28,22 @@ int main(int argc, char *argv[])
         "PloM kmcmc\n"
         "usage:\n"
         "kmcmc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "                        [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                       [--full] [--traj] [-p, --path <path>] [-i, --id <integer>]\n"
         "                       [-l, --LIKE_MIN <float>] [-M, --iter <integer>]\n"
         "                       [-c --cov] [-a --cooling <float>] [-S --switch <int>]\n"
         "                       [--help]\n"
         "where implementation is 'sde' (default)\n"
         "options:\n"
+	"\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_env_sto       turn off environmental stochasticity (if any)\n"
         "--no_drift         turn off drift (if any)\n"
+	"\n"
+        "-s, --DT           Initial integration time step\n"
+	"--eps_abs          Absolute error for adaptive step-size contro\n"
+	"--eps_rel          Relative error for adaptive step-size contro\n"
+	"\n"
         "--full             full update MVN mode\n"
         "--traj             print the trajectories\n"
         "-c, --cov          load an initial covariance from the settings\n"
@@ -62,6 +69,8 @@ int main(int argc, char *argv[])
     OPTION_TRANSF = 0;
     OPTION_TRAJ = 0;
 
+    double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
+
     J = 1; //not an option, needed for print_X
 
     enum plom_implementations implementation;
@@ -82,6 +91,10 @@ int main(int argc, char *argv[])
 		{"no_env_sto", no_argument,       0, 'y'},
 		{"no_drift",   no_argument,       0, 'z'},
 
+		{"DT",         required_argument, 0, 's'},
+		{"eps_abs",    required_argument, 0, 'v'},
+		{"eps_rel",    required_argument, 0, 'w'},
+
                 {"cov",         no_argument, 0, 'c'},
 
                 {"help",        no_argument,        0, 'e'},
@@ -97,7 +110,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "ci:l:M:p:S:a:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:ci:l:M:p:S:a:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -120,6 +133,17 @@ int main(int argc, char *argv[])
         case 'z':
             noises_off = noises_off | PLOM_NO_DRIFT;
             break;
+
+        case 's':
+            dt = atof(optarg);
+            break;
+        case 'v':
+            eps_abs = atof(optarg);
+            break;
+        case 'w':
+            eps_rel = atof(optarg);
+            break;
+
 
         case 'e':
             print_log(sfr_help_string);
@@ -150,7 +174,7 @@ int main(int argc, char *argv[])
 
         case '?':
             /* getopt_long already printed an error message. */
-            break;
+            return 1;
 
         default:
             snprintf(str, STR_BUFFSIZE, "Unknown option '-%c'\n", optopt);
@@ -176,7 +200,7 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
 
     int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?
-    struct s_kalman *p_kalman = build_kalman(settings, implementation,  noises_off, 1, update_covariance);
+    struct s_kalman *p_kalman = build_kalman(settings, implementation,  noises_off, 1, update_covariance, dt, eps_abs, eps_rel);
     json_decref(settings);
 
     sanitize_best_to_prior(p_kalman->p_best, p_kalman->p_data);

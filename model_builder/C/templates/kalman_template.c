@@ -124,7 +124,7 @@ int step_ode_ekf(double t, const double X[], double f[], void *params)
     gsl_matrix *FtCt = p_kalman_specific_data->FtCt;
 
     gsl_matrix_const_view Ct   = gsl_matrix_const_view_array(&X[N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE], N_KAL, N_KAL);
-    gsl_matrix_view res2 = gsl_matrix_view_array(&f[N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE], N_KAL, N_KAL);
+    gsl_matrix_view ff = gsl_matrix_view_array(&f[N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE], N_KAL, N_KAL);
 
     int i, c, ac, cac, n_cac, ts, o;
     double sum_inc = 0.0;
@@ -218,13 +218,18 @@ int step_ode_ekf(double t, const double X[], double f[], void *params)
     eval_Q(Q, X, p_par, p_data, p_calc, p_kalman_specific_data, t);
     eval_jac(Ft, X, p_par, p_data, p_calc, compo_groups_drift_par_proc, t);
 
-    // compute Ft*Ct+Ct*Ft'+Q
-    gsl_matrix_set_zero(&res2.matrix);
+    // compute Ft*Ct+Ct*Ft'+Q 
+    //here Ct is symmetrical and transpose(FtCt) == transpose(Ct)transpose(Ft) == Ct transpose(Ft)
     gsl_blas_dgemm (CblasNoTrans, CblasNoTrans, 1.0, Ft, &Ct.matrix, 0.0, FtCt);
-    gsl_matrix_add(&res2.matrix,FtCt);
-    gsl_matrix_transpose (FtCt);
-    gsl_matrix_add(&res2.matrix,FtCt);
-    gsl_matrix_add(&res2.matrix,Q);
+    for(i=0; i< ff.matrix.size1; i++){
+	for(c=0; c< ff.matrix.size2; c++){
+	    gsl_matrix_set(&ff.matrix, 
+			   i,
+			   c, 
+			   gsl_matrix_get(FtCt, i, c) + gsl_matrix_get(FtCt, c, i) + gsl_matrix_get(Q, i, c));
+
+	}
+    }
 
     return GSL_SUCCESS;
 }

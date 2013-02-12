@@ -31,30 +31,38 @@ int main(int argc, char *argv[])
         "smc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
         "                     [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
         "                     [-t, --no_filter] [-b, --no_best] [-h, --no_hat]\n"
-        "                     [-s, --DT <float>] [-l, --LIKE_MIN <float>] [-J <integer>]\n"
+        "                     [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
+        "                     [-l, --LIKE_MIN <float>] [-J <integer>]\n"
         "                     [--help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
+	"\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_env_sto       turn off environmental stochasticity (if any)\n"
         "--no_drift         turn off drift (if any)\n"
-        "--traj             print the trajectories\n"
-        "-p, --path         path where the outputs will be stored\n"
+	"\n"
+        "-s, --DT           integration time step\n"
+	"--eps_abs          Absolute error for adaptive step-size contro\n"
+	"--eps_rel          Relative error for adaptive step-size contro\n"
+	"\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
+        "-p, --path         path where the outputs will be stored\n"
         "-P, --N_THREAD     number of threads to be used (default to the number of cores)\n"
+	"\n"
+        "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
+        "-J                 number of particles\n"
+	"\n"
+        "--traj             print the trajectories\n"
         "-t, --no_filter    do not filter\n"
         "-b, --no_best      do not write best_<general_id>.output file\n"
         "-h, --no_hat       do not write hat_<general_id>.output file\n"
         "-r, --no_pred_res  do not write pred_res_<general_id>.output file (prediction residuals)\n"
-        "-s, --DT           integration time step\n"
-        "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
-        "-J                 number of particles\n"
+	"\n"
         "--help             print the usage on stdout\n";
-
 
     int filter = 1;
     int output_best = 1, output_hat = 1, output_pred_res =1;
-    double dt = 0.0;
+    double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
@@ -80,6 +88,10 @@ int main(int argc, char *argv[])
                 {"no_env_sto", no_argument,       0, 'y'},
                 {"no_drift",   no_argument,       0, 'z'},
 
+                {"DT",         required_argument, 0, 's'},
+                {"eps_abs",    required_argument, 0, 'v'},
+                {"eps_rel",    required_argument, 0, 'w'},
+
                 {"help",       no_argument,       0, 'e'},
                 {"path",       required_argument, 0, 'p'},
                 {"id",         required_argument, 0, 'i'},
@@ -89,7 +101,6 @@ int main(int argc, char *argv[])
                 {"no_hat",     no_argument,       0, 'h'},
                 {"no_pred_res",no_argument,       0, 'r'},
 
-                {"DT",         required_argument, 0, 's'},
                 {"LIKE_MIN",   required_argument, 0, 'l'},
 
                 {0, 0, 0, 0}
@@ -97,7 +108,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "p:i:J:l:tbhrs:P:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:p:i:J:l:tbhrP:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -120,6 +131,17 @@ int main(int argc, char *argv[])
         case 'z':
             noises_off = noises_off | PLOM_NO_DRIFT;
             break;
+
+        case 's':
+            dt = atof(optarg);
+            break;
+        case 'v':
+            eps_abs = atof(optarg);
+            break;
+        case 'w':
+            eps_rel = atof(optarg);
+            break;
+
 
         case 'e':
             print_log(sfr_help_string);
@@ -153,13 +175,10 @@ int main(int argc, char *argv[])
         case 'r':
             output_pred_res = 0;
             break;
-        case 's':
-            dt = atof(optarg);
-            break;
 
         case '?':
             /* getopt_long already printed an error message. */
-            break;
+            return 1;
 
         default:
             snprintf(str, STR_BUFFSIZE, "Unknown option '-%c'\n", optopt);
@@ -202,7 +221,7 @@ int main(int argc, char *argv[])
     json_decref(theta);
     struct s_likelihood *p_like = build_likelihood();
 
-    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, dt, J, size_proj, step_ode, p_data);
+    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, dt, eps_abs, eps_rel, J, size_proj, step_ode, p_data);
 
     FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
     FILE *p_file_pred_res = (output_pred_res==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals, p_data): NULL;

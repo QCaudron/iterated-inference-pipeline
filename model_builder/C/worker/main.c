@@ -25,6 +25,8 @@ struct s_thread_params
     int n_threads;
     struct s_data *p_data;
     double dt;
+    double eps_abs;
+    double eps_rel;
     char *IPv4;
     void *context;
 };
@@ -55,7 +57,7 @@ void *worker_routine (void *params) {
     struct s_par *p_par = build_par(p_data);
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
     struct s_X *p_X = build_X(size_proj, N_TS, p_data);
-    struct s_calc *p_calc = build_p_calc(p->n_threads, p->thread_id, GENERAL_ID, p->dt, size_proj, step_ode, p_data);
+    struct s_calc *p_calc = build_p_calc(p->n_threads, p->thread_id, GENERAL_ID, p->dt, p->eps_abs, p->eps_rel, size_proj, step_ode, p_data);
 
     double like = 0.0;
 
@@ -140,24 +142,30 @@ int main(int argc, char *argv[])
         "PloM Worker\n"
         "usage:\n"
         "worker [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "                        [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                        [-i, --id <integer>] [-I, --IPv4 <ip address or DNS>] [-P, --N_THREAD <integer>]\n"
-        "                        [-s, --DT <float>] [-l, --LIKE_MIN <float>] [-J <integer>]\n"
+        "                        [-l, --LIKE_MIN <float>] [-J <integer>]\n"
         "                        [--help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
+	"\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_env_sto       turn off environmental stochasticity (if any)\n"
         "--no_drift         turn off drift (if any)\n"
+	"\n"
+        "-s, --DT           Initial integration time step\n"
+	"--eps_abs          Absolute error for adaptive step-size contro\n"
+	"--eps_rel          Relative error for adaptive step-size contro\n"
+	"\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-I, --IPv4         ip address or DNS of the particle server\n"
         "-P, --N_THREAD     number of threads to be used (defaults to the number of cores)\n"
-        "-s, --DT           integration time step\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-J  -Jchunk        size of the chunk of particles\n"
         "--help             print the usage on stdout\n";
 
 
-    double dt = 0.0;
+    double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
     GENERAL_ID =0;
     J = 1; //here J is actualy Jchunk!
     int n_threads = omp_get_max_threads();
@@ -172,14 +180,20 @@ int main(int argc, char *argv[])
         static struct option long_options[] =
             {
                 {"help",       no_argument,       0, 'e'},
+
                 {"no_dem_sto", no_argument,       0, 'x'},
                 {"no_env_sto", no_argument,       0, 'y'},
                 {"no_drift",   no_argument,       0, 'z'},
+
+		{"DT",         required_argument, 0, 's'},
+		{"eps_abs",    required_argument, 0, 'v'},
+		{"eps_rel",    required_argument, 0, 'w'},
+
                 {"id",         required_argument, 0, 'i'},
                 {"N_THREAD",   required_argument, 0, 'P'},
                 {"IPv4",       required_argument, 0, 'I'},
                 {"Jchunk",     required_argument, 0, 'J'},
-                {"DT",         required_argument, 0, 's'},
+
                 {"LIKE_MIN",   required_argument, 0, 'l'},
 
                 {0, 0, 0, 0}
@@ -187,7 +201,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "i:P:J:s:I:l:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:i:P:J:I:l:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -212,6 +226,16 @@ int main(int argc, char *argv[])
             break;
 
 
+        case 's':
+            dt = atof(optarg);
+            break;
+        case 'v':
+            eps_abs = atof(optarg);
+            break;
+        case 'w':
+            eps_rel = atof(optarg);
+            break;
+
         case 'e':
             print_log(sfr_help_string);
             return 1;
@@ -235,10 +259,6 @@ int main(int argc, char *argv[])
         case 'l':
             LIKE_MIN = atof(optarg);
             LOG_LIKE_MIN = log(LIKE_MIN);
-            break;
-	    
-        case 's':
-            dt = atof(optarg);
             break;
 
         case '?':
@@ -301,6 +321,8 @@ int main(int argc, char *argv[])
         p_thread_params[nt].thread_id = nt;
         p_thread_params[nt].n_threads = n_threads;
         p_thread_params[nt].dt = dt;
+        p_thread_params[nt].eps_abs = eps_abs;
+        p_thread_params[nt].eps_rel = eps_rel;
         p_thread_params[nt].IPv4 = IPv4;
         p_thread_params[nt].p_data = p_data;
         p_thread_params[nt].context = context;

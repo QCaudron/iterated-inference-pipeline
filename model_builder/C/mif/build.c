@@ -18,7 +18,7 @@
 
 #include "mif.h"
 
-struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double prop_L_option, int J, int *n_threads)
+struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double eps_abs, double eps_rel, double prop_L_option, int J, int *n_threads)
 {
     char str[STR_BUFFSIZE];
 
@@ -54,7 +54,7 @@ struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noi
     p_mif->J_p_par = build_J_p_par(p_mif->p_data);
     p_mif->p_like = build_likelihood();
 
-    p_mif->calc = build_calc(n_threads, GENERAL_ID, dt, J, size_proj, step_ode, p_mif->p_data);
+    p_mif->calc = build_calc(n_threads, GENERAL_ID, dt, eps_abs, eps_rel, J, size_proj, step_ode, p_mif->p_data);
 
     /*MIF specific*/
 

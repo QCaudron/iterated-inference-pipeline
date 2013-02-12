@@ -18,7 +18,7 @@
 
 #include "simplex.h"
 
-struct s_simplex *build_simplex(enum plom_implementations implementation,  enum plom_noises_off noises_off, int general_id, int is_bayesian)
+struct s_simplex *build_simplex(enum plom_implementations implementation,  enum plom_noises_off noises_off, int general_id, int is_bayesian, double dt, double eps_abs, double eps_rel)
 {
   struct s_simplex *p_simplex;
   p_simplex = malloc(sizeof(struct s_simplex));
@@ -42,7 +42,7 @@ struct s_simplex *build_simplex(enum plom_implementations implementation,  enum 
   json_decref(theta);
 
   int n_threads = omp_get_max_threads();
-  p_simplex->calc = build_calc(&n_threads, general_id, 0, 1, size_proj, step_ode, p_simplex->p_data);
+  p_simplex->calc = build_calc(&n_threads, general_id, dt, eps_abs, eps_rel, 1, size_proj, step_ode, p_simplex->p_data);
   p_simplex->smallest_log_like = get_smallest_log_likelihood(p_simplex->p_data->data_ind);
 
   return p_simplex;

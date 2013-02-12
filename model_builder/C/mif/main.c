@@ -29,22 +29,28 @@ int main(int argc, char *argv[])
         "PLoM MIF\n"
         "usage:\n"
         "mif [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "                     [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
 	"                     [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
-        "                     [-s, --DT  <float>] [-l, --LIKE_MIN <float>] [-J <integer>] [-M, --iter <integer>]\n"
+        "                     [-l, --LIKE_MIN <float>] [-J <integer>] [-M, --iter <integer>]\n"
         "                     [-a, --cooling <float>] [-b, --heat <float>] [-L, --lag <float>] [-S, --switch <integer>]\n"
         "                     [-f --ic_only]\n"
         "                     [--help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
+	"\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_env_sto       turn off environmental stochasticity (if any)\n"
         "--no_drift         turn off drift (if any)\n"
+	"\n"
+        "-s, --DT           Initial integration time step\n"
+	"--eps_abs          Absolute error for adaptive step-size contro\n"
+	"--eps_rel          Relative error for adaptive step-size contro\n"
+	"\n"
         "--prior            to maximize posterior density in natural space\n"
         "--traj             print the trajectories\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-P, --N_THREAD     number of threads to be used (default to the number of cores)\n"
-        "-s, --DT           integration time step\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-J                 number of particles\n"
         "-M, --iter         number of MIF iterations\n"
@@ -59,7 +65,7 @@ int main(int argc, char *argv[])
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
 
-    double dt = 0.0;
+    double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
     double prop_L_option = 0.75;
 
     GENERAL_ID =0;
@@ -91,12 +97,15 @@ int main(int argc, char *argv[])
                 {"no_env_sto", no_argument,       0, 'y'},
                 {"no_drift",   no_argument,       0, 'z'},
 
+		{"DT",         required_argument, 0, 's'},
+		{"eps_abs",    required_argument, 0, 'v'},
+		{"eps_rel",    required_argument, 0, 'w'},
+
                 {"help", no_argument,  0, 'e'},
                 {"path",    required_argument, 0, 'p'},
                 {"id",    required_argument, 0, 'i'},
                 {"N_THREAD",  required_argument,       0, 'P'},
 
-                {"DT",  required_argument, 0, 's'},
                 {"LIKE_MIN",     required_argument,   0, 'l'},
                 {"iter",     required_argument,   0, 'M'},
                 {"cooling",     required_argument,   0, 'a'},
@@ -110,7 +119,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "i:J:l:M:a:b:L:S:fs:p:P:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:i:J:l:M:a:b:L:S:fp:P:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -132,6 +141,16 @@ int main(int argc, char *argv[])
             break;
         case 'z':
             noises_off = noises_off | PLOM_NO_DRIFT;
+            break;
+
+        case 's':
+            dt = atof(optarg);
+            break;
+        case 'v':
+            eps_abs = atof(optarg);
+            break;
+        case 'w':
+            eps_rel = atof(optarg);
             break;
 
         case 'e':
@@ -176,13 +195,9 @@ int main(int argc, char *argv[])
             print_log("Fitting only the initial condition with fixed lag smoothing: **have** to be used with sfr -I !...\n");
             break;
 
-        case 's':
-            dt = atof(optarg);
-            break;
-
         case '?':
             /* getopt_long already printed an error message. */
-            break;
+            return 1;
 
         default:
             snprintf(str, STR_BUFFSIZE, "Unknown option '-%c'\n", optopt);
@@ -215,7 +230,7 @@ int main(int argc, char *argv[])
     print_log("memory allocation and inputs loading...\n");
 #endif
 
-    struct s_mif *p_mif = build_mif(implementation, noises_off, dt, prop_L_option, J, &n_threads);
+    struct s_mif *p_mif = build_mif(implementation, noises_off, dt, eps_abs, eps_rel, prop_L_option, J, &n_threads);
 
 #if FLAG_VERBOSE
     snprintf(str, STR_BUFFSIZE, "Starting Simforence-MIF with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, a = %g, b = %g, L = %g, SWITCH = %d, DT = %g, N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, M, MIF_a, MIF_b, prop_L_option, SWITCH, p_mif->calc[0]->dt, n_threads);

@@ -795,7 +795,7 @@ void clean_data(struct s_data *p_data)
 
 
 
-struct s_calc **build_calc(int *n_threads, int general_id, double dt, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data)
+struct s_calc **build_calc(int *n_threads, int general_id, double dt, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data)
 {
     char str[STR_BUFFSIZE];
     int nt;
@@ -833,9 +833,8 @@ struct s_calc **build_calc(int *n_threads, int general_id, double dt, int J, int
     print_log(str);
 
     /* we create as many rng as parallel threads *but* note that for the operations not prarallelized, we always use cacl[0].randgsl */
-
     for (nt=0; nt< *n_threads; nt++) {
-        calc[nt] = build_p_calc(*n_threads, nt, seed, dt, dim_ode, func_step_ode, p_data);
+        calc[nt] = build_p_calc(*n_threads, nt, seed, dt, eps_abs, eps_rel, dim_ode, func_step_ode, p_data);
     }
 
     return calc;
@@ -844,9 +843,10 @@ struct s_calc **build_calc(int *n_threads, int general_id, double dt, int J, int
 
 /**
  * dt: integration time step. If <=0.0, default to 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT
+ * eps_abs, eps_rel: absolute and relative error 
  */
 
-struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double dt, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data)
+struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double dt, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data)
 {
     struct s_calc *p_calc = malloc(sizeof(struct s_calc));
     if (p_calc==NULL) {
@@ -907,7 +907,7 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double dt, i
     if (p_data->implementation == PLOM_ODE){
 
         p_calc->T = gsl_odeiv2_step_rkf45;
-        p_calc->control = gsl_odeiv2_control_y_new(ABS_TOL, REL_TOL); /*abs and rel error (eps_abs et eps_rel) */
+        p_calc->control = gsl_odeiv2_control_y_new(eps_abs, eps_rel);
         p_calc->step = gsl_odeiv2_step_alloc(p_calc->T, dim_ode);
         p_calc->evolve = gsl_odeiv2_evolve_alloc(dim_ode);
         (p_calc->sys).function = func_step_ode;

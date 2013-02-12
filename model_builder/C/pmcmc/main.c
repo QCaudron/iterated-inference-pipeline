@@ -28,15 +28,22 @@ int main(int argc, char *argv[])
         "PLoM pMCMC\n"
         "usage:\n"
         "pmcmc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "                [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
 	"                [--full] [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
-        "                [-s, --DT <float>] [-l, --LIKE_MIN <float>] [-J <integer>] [-M, --iter <integer>]\n"
+        "                [-l, --LIKE_MIN <float>] [-J <integer>] [-M, --iter <integer>]\n"
         "                [-c --cov] [-a --cooling <float>] [-S --switch <int>] [-Z, --zmq] [-C, --chunk <integer>]\n"
         "                [--help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
+	"\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_env_sto       turn off environmental stochasticity (if any)\n"
         "--no_drift         turn off drift (if any)\n"
+	"\n"
+        "-s, --DT           Initial integration time step\n"
+	"--eps_abs          Absolute error for adaptive step-size contro\n"
+	"--eps_rel          Relative error for adaptive step-size contro\n"
+	"\n"
         "--full             full update MVN mode\n"
         "--traj             print the trajectories\n"
         "-c, --cov          load an initial covariance from the settings\n"
@@ -54,7 +61,7 @@ int main(int argc, char *argv[])
         "-E, --epsilon      select number of burnin iterations before tuning epsilon\n"
         "--help             print the usage on stdout\n";
 
-    double dt = 0.0;
+    double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
     int load_cov = 0;
     int m_switch = -1;
     int m_eps = 50;
@@ -87,6 +94,10 @@ int main(int argc, char *argv[])
                 {"no_env_sto", no_argument,       0, 'y'},
                 {"no_drift",   no_argument,       0, 'z'},
 
+		{"DT",         required_argument, 0, 's'},
+		{"eps_abs",    required_argument, 0, 'v'},
+		{"eps_rel",    required_argument, 0, 'w'},
+
                 {"cov", no_argument, 0, 'c'},
 
                 {"help", no_argument,  0, 'e'},
@@ -94,7 +105,6 @@ int main(int argc, char *argv[])
                 {"id",    required_argument, 0, 'i'},
                 {"N_THREAD",  required_argument,       0, 'P'},
 
-                {"DT",  required_argument, 0, 's'},
                 {"LIKE_MIN",     required_argument,   0, 'l'},
                 {"iter",     required_argument,   0, 'M'},
                 {"zmq",     no_argument,   0, 'Z'},
@@ -108,7 +118,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "ci:J:l:M:p:C:s:P:ZS:E:a:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:ci:J:l:M:p:C:P:ZS:E:a:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -130,6 +140,16 @@ int main(int argc, char *argv[])
             break;
         case 'z':
             noises_off = noises_off | PLOM_NO_DRIFT;
+            break;
+
+        case 's':
+            dt = atof(optarg);
+            break;
+        case 'v':
+            eps_abs = atof(optarg);
+            break;
+        case 'w':
+            eps_rel = atof(optarg);
             break;
 
         case 'e':
@@ -164,9 +184,6 @@ int main(int argc, char *argv[])
         case 'M':
             M = atoi(optarg);
             break;
-        case 's':
-            dt = atof(optarg);
-            break;
         case 'a':
             a = atof(optarg);
             break;
@@ -179,7 +196,7 @@ int main(int argc, char *argv[])
 
         case '?':
             /* getopt_long already printed an error message. */
-            break;
+            return 1;
 
         default:
             snprintf(str, STR_BUFFSIZE, "Unknown option '-%c'\n", optopt);
@@ -209,7 +226,7 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
 
     int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?
-    struct s_pmcmc *p_pmcmc = build_pmcmc(implementation, noises_off, settings, dt, a, m_switch, m_eps, update_covariance, J, &n_threads);
+    struct s_pmcmc *p_pmcmc = build_pmcmc(implementation, noises_off, settings, dt, eps_abs, eps_rel, a, m_switch, m_eps, update_covariance, J, &n_threads);
     json_decref(settings);
 
     sanitize_best_to_prior(p_pmcmc->p_best, p_pmcmc->p_data);

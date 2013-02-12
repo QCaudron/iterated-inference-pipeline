@@ -45,15 +45,22 @@ int main(int argc, char *argv[])
         "PloM ksimplex\n"
         "usage:\n"
         "ksimplex [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "                          [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                          [-p, --path <path>] [-i, --id <integer>]\n"
         "                          [--prior] [--transf]\n"
         "                          [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>]\n"
         "                          [--help]\n"
         "where implementation is 'sde' (default)\n"
         "options:\n"
+	"\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_env_sto       turn off environmental stochasticity (if any)\n"
         "--no_drift         turn off drift (if any)\n"
+	"\n"
+        "-s, --DT           Initial integration time step\n"
+	"--eps_abs          Absolute error for adaptive step-size contro\n"
+	"--eps_rel          Relative error for adaptive step-size contro\n"
+	"\n"
         "--prior            to maximize posterior density in natural space\n"
         "--transf           to maximize posterior density in transformed space (if combined with --prior)\n"
         "-p, --path         path where the outputs will be stored\n"
@@ -80,6 +87,8 @@ int main(int argc, char *argv[])
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
 
+    double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
+
     int option_no_trace = 0;
 
     enum plom_implementations implementation;
@@ -93,6 +102,12 @@ int main(int argc, char *argv[])
 	{"no_dem_sto", no_argument,       0, 'x'},
 	{"no_env_sto", no_argument,       0, 'y'},
 	{"no_drift",   no_argument,       0, 'z'},
+
+
+	{"DT",         required_argument, 0, 's'},
+	{"eps_abs",    required_argument, 0, 'v'},
+	{"eps_rel",    required_argument, 0, 'w'},
+
 
         {"path",       required_argument, 0, 'p'},
         {"id",         required_argument, 0, 'i'},
@@ -108,7 +123,7 @@ int main(int argc, char *argv[])
     };
 
     int option_index = 0;
-    while ((ch = getopt_long (argc, argv, "i:l:p:S:M:b", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:S:M:b", long_options, &option_index)) != -1) {
         switch (ch) {
         case 0:
             break;
@@ -122,6 +137,18 @@ int main(int argc, char *argv[])
         case 'z':
             noises_off = noises_off | PLOM_NO_DRIFT;
             break;
+
+
+        case 's':
+            dt = atof(optarg);
+            break;
+        case 'v':
+            eps_abs = atof(optarg);
+            break;
+        case 'w':
+            eps_rel = atof(optarg);
+            break;
+
 
         case 'e':
             print_log(sfr_help_string);
@@ -150,7 +177,7 @@ int main(int argc, char *argv[])
             break;
         case '?':
             /* getopt_long already printed an error message. */
-            break;
+            return 1;
 
         default:
             snprintf(str, STR_BUFFSIZE, "Unknown option '-%c'\n", optopt);
@@ -178,7 +205,7 @@ int main(int argc, char *argv[])
     print_log(str);
 #endif
 
-    struct s_kalman *p_kalman = build_kalman(settings, implementation, noises_off, OPTION_PRIOR, 0);
+    struct s_kalman *p_kalman = build_kalman(settings, implementation, noises_off, OPTION_PRIOR, 0, dt, eps_abs, eps_rel);
     json_decref(settings);
 
     if (OPTION_PRIOR) {

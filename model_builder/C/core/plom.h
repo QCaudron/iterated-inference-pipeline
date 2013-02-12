@@ -75,8 +75,8 @@ enum plom_noises_off {PLOM_NO_DEM_STO = 1 << 0, PLOM_NO_ENV_STO = 1 << 1, PLOM_N
 #define FLAG_WARNING 0
 #define FLAG_JSON 0 /**< webApp */
 
-#define ABS_TOL 1e-6 /**< absolute error control for ODE*/
-#define REL_TOL 1e-6 /**< relative error control for ODE*/
+#define PLOM_EPS_ABS 1e-6 /**< absolute error control for ODEs*/
+#define PLOM_EPS_REL 1e-3 /**< relative error control for ODEs*/
 
 #define ZERO_LOG 1e-17 /**< smallest value that can be log transformed without being replaced by @c ZERO_LOG */
 #define ONE_LOGIT 0.999999999 /**< largest value that can be logit transformed without being replaced by @c ONE_LOGIT */
@@ -577,8 +577,8 @@ void clean_drift(struct s_drift **drift);
 struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian);
 void clean_data(struct s_data *p_data);
 
-struct s_calc **build_calc(int *n_threads, int general_id, double dt, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
-struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double dt, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc **build_calc(int *n_threads, int general_id, double dt, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double dt, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
 
 void clean_p_calc(struct s_calc *p_calc, struct s_data *p_data);
 void clean_calc(struct s_calc **calc, struct s_data *p_data);

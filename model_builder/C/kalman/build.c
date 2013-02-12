@@ -69,7 +69,7 @@ void clean_kalman_update(struct s_kalman_update *p)
 }
 
 
-struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int update_covariance)
+struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int update_covariance, double dt, double eps_abs, double eps_rel)
 {
     char str[STR_BUFFSIZE];
 
@@ -92,7 +92,7 @@ struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implem
     json_decref(theta);
 
     int n_threads =1;
-    p_kalman->calc = build_calc(&n_threads, GENERAL_ID, 0, 1, size_proj, step_ode_ekf, p_kalman->p_data);
+    p_kalman->calc = build_calc(&n_threads, GENERAL_ID, dt, eps_abs, eps_rel, 1, size_proj, step_ode_ekf, p_kalman->p_data);
     p_kalman->p_par = build_par(p_kalman->p_data);
 
     p_kalman->smallest_log_like = get_smallest_log_likelihood(p_kalman->p_data->data_ind);

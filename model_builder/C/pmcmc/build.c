@@ -73,7 +73,7 @@ void clean_pmcmc_calc_data(struct s_pmcmc_calc_data *p_pmcmc_calc_data)
 }
 
 
-struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_noises_off noises_off, json_t *settings, double dt, double a, int m_switch, int m_eps, int update_covariance, int J, int *n_threads)
+struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_noises_off noises_off, json_t *settings, double dt, double eps_abs, double eps_rel, double a, int m_switch, int m_eps, int update_covariance, int J, int *n_threads)
 {
     char str[STR_BUFFSIZE];
 
@@ -113,7 +113,7 @@ struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_
 
     p_pmcmc->p_like = build_likelihood();
 
-    p_pmcmc->calc = build_calc(n_threads, GENERAL_ID, dt, J, size_proj, step_ode, p_pmcmc->p_data);
+    p_pmcmc->calc = build_calc(n_threads, GENERAL_ID, dt, eps_abs, eps_rel, J, size_proj, step_ode, p_pmcmc->p_data);
 
     struct s_pmcmc_calc_data *p_pmcmc_calc_data = build_pmcmc_calc_data(p_pmcmc->p_best, a, m_switch, m_eps);
     //store the ref for each element of calc

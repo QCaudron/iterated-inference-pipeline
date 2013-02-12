@@ -824,7 +824,7 @@ class Ccoder(Cmodel):
                 if is_noise:
                     Ls_proc[i][B_sto_ind] += 1
 
-            diag_Qc_dem_tpl.append({'i': B_dem_ind, 'j': B_dem_ind, 'rate':self.make_C_term(Qc_term + '/' + self.myN, True, True)}) ##TODO: check if / self.myN is needed
+            diag_Qc_dem_tpl.append({'i': B_dem_ind, 'j': B_dem_ind, 'rate':self.make_C_term(Qc_term, True, True)})
 
         # observed variables 
         for i in range(len(self.obs_var_def)): #(for every obs variable)
