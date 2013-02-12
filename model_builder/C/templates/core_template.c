@@ -123,8 +123,8 @@ void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, s
 
     /*automaticaly generated code:*/
     /*0-declaration of noise terms (if any)*/
-    {% for n in gamma_noise %}
-    double {{ n.0|safe }};{% endfor %}
+    {% for n in white_noise %}
+    double {{ n.name|safe }};{% endfor %}
 
     double _r[{{ step_psr.caches|length }}];
     {% if step_psr.sf %}
@@ -141,29 +141,28 @@ void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, s
         for(ac=0;ac<N_AC;ac++) {
             cac = c*N_AC+ac;
 
-	    {% if is_drift %}
-	    for(i=0; i<N_DRIFT; i++){
-		int ind_drift = p_data->drift[i]->ind_par_Xdrift_applied;
-		if(is_drift){
-		    int g = routers[ind_drift]->map[cac];
-		    drifted[i][cac] = back_transform_x(X[p_data->drift[i]->offset + g], g, routers[ind_drift]);
-		} else {
-		    drifted[i][cac] = par[ind_drift][routers[ind_drift]->map[cac]];
-		}
-	    }
-	    {% endif %}
-
+            {% if is_drift %}
+            for(i=0; i<N_DRIFT; i++){
+                int ind_drift = p_data->drift[i]->ind_par_Xdrift_applied;
+                if(is_drift){
+                    int g = routers[ind_drift]->map[cac];
+                    drifted[i][cac] = back_transform_x(X[p_data->drift[i]->offset + g], g, routers[ind_drift]);
+                } else {
+                    drifted[i][cac] = par[ind_drift][routers[ind_drift]->map[cac]];
+                }
+            }
+            {% endif %}
 
             /*1-generate noise increments (if any) (automaticaly generated code)*/
-	    {% if gamma_noise %}
-	    if(p_data->noises_off & PLOM_NO_ENV_STO){
-		{% for n in gamma_noise %}
-		{{ n.0|safe }} = 1.0;{% endfor %}
-	    } else {
-		{% for n in gamma_noise %}
-		{{ n.0|safe }} = gsl_ran_gamma(p_calc->randgsl, (dt)/ pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2), pow(par[ORDER_{{ n.1|safe }}][routers[ORDER_{{ n.1|safe }}]->map[cac]], 2))/dt;{% endfor %}
-	    }
-	    {% endif %}
+            {% if white_noise %}
+            if(p_data->noises_off & PLOM_NO_ENV_STO){
+                {% for n in white_noise %}
+                {{ n.name|safe }} = 1.0;{% endfor %}
+            } else {
+                {% for n in white_noise %}
+                {{ n.name|safe }} = gsl_ran_gamma(p_calc->randgsl, (dt)/ pow(par[ORDER_{{ n.sd|safe }}][routers[ORDER_{{ n.sd|safe }}]->map[cac]], 2), pow(par[ORDER_{{ n.sd|safe }}][routers[ORDER_{{ n.sd|safe }}]->map[cac]], 2))/dt;{% endfor %}
+            }
+            {% endif %}
 
             /*2-generate process increments (automaticaly generated code)*/
             {% for sf in step_psr.sf %}
@@ -175,8 +174,8 @@ void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, s
             {{ step_psr.code|safe }}
 
             /*3-multinomial drawn (automaticaly generated code)*/
-	    {% for draw in psr_multinomial %}
-	    plom_ran_multinomial(p_calc->randgsl, {{ draw.nb_exit|safe }}, (unsigned int) X[ORDER_{{ draw.state|safe }}*N_CAC+cac], p_calc->prob[ORDER_{{ draw.state|safe }}], p_calc->inc[ORDER_{{ draw.state|safe }}][cac]);{% endfor %}
+            {% for draw in psr_multinomial %}
+            plom_ran_multinomial(p_calc->randgsl, {{ draw.nb_exit|safe }}, (unsigned int) X[ORDER_{{ draw.state|safe }}*N_CAC+cac], p_calc->prob[ORDER_{{ draw.state|safe }}], p_calc->inc[ORDER_{{ draw.state|safe }}][cac]);{% endfor %}
 
             /*4-update state variables (automaticaly generated code)*/
             //use inc to cache the Poisson draw as thew might be re-used for the incidence computation
@@ -260,21 +259,21 @@ void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct 
 
 
     for(cac=0;cac<N_CAC;cac++){
-	{% if is_drift %}
-	for(i=0; i<N_DRIFT; i++){
-	    int ind_drift = p_data->drift[i]->ind_par_Xdrift_applied;
-	    {% if noises_off != 'ode'%}
-	    if(is_drift){
-		int g = routers[ind_drift]->map[cac];
-		drifted[i][cac] = back_transform_x(X[p_data->drift[i]->offset + g], g, routers[ind_drift]);
-	    } else {
-		drifted[i][cac] = par[ind_drift][routers[ind_drift]->map[cac]];
-	    }
-	    {% else %}
-	    drifted[i][cac] = par[ind_drift][routers[ind_drift]->map[cac]];
-	    {% endif %}
-	}
-	{% endif %}
+        {% if is_drift %}
+        for(i=0; i<N_DRIFT; i++){
+            int ind_drift = p_data->drift[i]->ind_par_Xdrift_applied;
+            {% if noises_off != 'ode'%}
+            if(is_drift){
+                int g = routers[ind_drift]->map[cac];
+                drifted[i][cac] = back_transform_x(X[p_data->drift[i]->offset + g], g, routers[ind_drift]);
+            } else {
+                drifted[i][cac] = par[ind_drift][routers[ind_drift]->map[cac]];
+            }
+            {% else %}
+            drifted[i][cac] = par[ind_drift][routers[ind_drift]->map[cac]];
+            {% endif %}
+        }
+        {% endif %}
 
 
         {% for sf in step_ode_sde.sf %}
@@ -284,7 +283,7 @@ void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct 
         _r[cac][{{ forloop.counter0 }}] = {{ cache|safe }};{% endfor %}
 
         {% for noise in func.proc.noises %}
-	{{ noise|safe }}[cac] = sqrt(dt)*gsl_ran_ugaussian(p_calc->randgsl);{% endfor %}
+        {{ noise|safe }}[cac] = sqrt(dt)*gsl_ran_ugaussian(p_calc->randgsl);{% endfor %}
     }
 
     for(c=0;c<N_C;c++) {
@@ -293,8 +292,8 @@ void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct 
 
             /*automaticaly generated code:*/
             /*ODE system*/
-	    {% for eq in func.proc.system %}
-	    f[{{eq.index}}*N_CAC+cac] {% if noises_off == 'ode'%}={% else %}= X[{{eq.index}}*N_CAC+cac] + {% endif %} {{ eq.eq|safe }};{% endfor %}
+            {% for eq in func.proc.system %}
+            f[{{eq.index}}*N_CAC+cac] {% if noises_off == 'ode'%}={% else %}= X[{{eq.index}}*N_CAC+cac] + {% endif %} {{ eq.eq|safe }};{% endfor %}
         }
     }
 
@@ -321,7 +320,7 @@ void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct 
             sum_inc += {{ eq.eq|safe }};
         }
 
-	f[offset] {% if noises_off == 'ode'%}={% else %}= X[offset] + {% endif %} sum_inc;
+        f[offset] {% if noises_off == 'ode'%}={% else %}= X[offset] + {% endif %} sum_inc;
         offset++;
     }
     {% endfor %}
@@ -331,11 +330,11 @@ void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct 
     {% else %}
     //y_pred (f) -> X (and we ensure that X is > 0.0)
     for(i=0; i<N_PAR_SV*N_CAC; i++){
-	X[i] =  (f[i] < 0.0) ? 0.0 : f[i]; 
+        X[i] =  (f[i] < 0.0) ? 0.0 : f[i];
     }
 
     for(i=N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot; i<N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot +N_TS_INC_UNIQUE; i++){
-	X[i] = (f[i] < 0.0) ? 0.0 : f[i]; 
+        X[i] = (f[i] < 0.0) ? 0.0 : f[i];
     }
     {% endif %}
 
@@ -374,7 +373,6 @@ double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s
 
     return sanitize_likelihood(like);
 }
-
 
 double obs_mean(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
 {

@@ -24,7 +24,7 @@ def contextualize(par_proc, proc_model, obs_var_def=[]):
 
     ##find unique number of infectors types
     ##create a list of tuples of infector types
-    infectors = [tuple(m['tag'][0]['by']) for m in proc_model if 'tag' in m and m['tag'][0]['id'] == 'transmission' ]
+    infectors = [ tuple(m['tag']['transmission']['by']) for m in proc_model if 'tag' in m and 'transmission' in  m['tag'] ]
 
     ##create the iota parameters (external introduction) and add
     ##iotas to par_proc set(infector) give the unique set of
@@ -37,9 +37,9 @@ def contextualize(par_proc, proc_model, obs_var_def=[]):
 
     ##add iotas to the force of infection **and** update obs_var_def
     for i, m in enumerate(proc_model):
-        if 'tag' in m and m['tag'][0]['id'] == 'transmission':
+        if 'tag' in m and 'transmission' in m['tag']:
             ##to do safer iota insertion... if beta*S*(I**2+sigma*I) the current version will fail
-            new_rate =  m['rate'].replace(m['tag'][0]['by'][0], '({0}+{1})'.format(iotas[tuple(m['tag'][0]['by'])], m['tag'][0]['by'][0]))
+            new_rate =  m['rate'].replace(m['tag']['transmission']['by'][0], '({0}+{1})'.format(iotas[tuple(m['tag']['transmission']['by'])], m['tag']['transmission']['by'][0]))
 
             ##update obs_var_def:
             for ii, o in enumerate(obs_var_def):
@@ -51,6 +51,7 @@ def contextualize(par_proc, proc_model, obs_var_def=[]):
             proc_model[i]['rate'] = new_rate
 
 
+
 class Cmodel:
 
     """
@@ -58,12 +59,7 @@ class Cmodel:
 
     -remove par_fixed from par_obs and par_proc
     -replace N by either sum_SV, p_0 or N depending the context
-    -expand the model to take into account non exponential waiting
-    time
-
-    NOTE: an JSON model description is always unexpanded. This is
-    valid for par_sv, proc_model and obs_model
-
+    -contextualize the model (take into account age and spate structure)
     """
 
     def __init__(self, context, process, link,  **kwargs):
@@ -81,7 +77,7 @@ class Cmodel:
         self.pop_size_eq_sum_sv = process['pop_size_eq_sum_sv']
 
         ##list [{'id':'X'}, ...] => ['X', ...]
-        self.par_sv = self.expand_par_sv([x['id'] for x in process['state']], process['model'])
+        self.par_sv = [x['id'] for x in process['state']]
 
         self.par_fixed = []
         if 'data' in context:
@@ -91,26 +87,30 @@ class Cmodel:
         self.par_proc = [x['id'] for x in process['parameter'] if x['id'] not in self.par_fixed]
         self.par_obs = [x['id'] for x in link['parameter'] if x['id'] not in self.par_fixed]
 
+        ##############################
+        ## proc_model
+        ##############################
+        self.proc_model = copy.deepcopy(process['model'])
 
-        self.obs_model = copy.deepcopy(link['model'][link['model'].keys()[0]])
-
-        unexpanded_proc_model = copy.deepcopy(process['model'])
-
-        ##add white_noise property to unexpanded_proc_model reactions
+        ##add white_noise properties to proc_model reactions.
+        self.white_noise = []
         if 'white_noise' in process:
-            for i, r in enumerate(unexpanded_proc_model):
-                for j, x in enumerate(process['white_noise']):
-                    for nr in x['reaction']:                    
-                        if r['from'] == x['from'] and r['to'] == x['to'] and ( ('rate' in nr and nr['rate'] == r['rate']) or ('rate' not in nr)):
-                            unexpanded_proc_mode[i]['white_noise'] = {'name': 'white_noise__' + str(j),
-                                                                      'sd': x['sd']}
+            for j, x in enumerate(process['white_noise']):
+                mynoise =  {'name': 'white_noise__' + str(j),
+                            'sd': x['sd']}
 
-            white_noise_sd = set()
-            for x in list_white_noise:
-                self.white_noise_sd.add(x['sd'])
+                self.white_noise.append(mynoise)
 
-        self.white_noise_sd = list(white_noise_sd)
+                for i, r in enumerate(self.proc_model):
+                    for nr in x['reaction']:
+                        if r['from'] == nr['from'] and r['to'] == nr['to'] and ( ('rate' in nr and r['rate'] == nr['rate']) or ('rate' not in nr)):
+                            self.proc_model[i]['white_noise'] = mynoise
 
+
+        ##############################
+        ## obs_model and drift
+        ##############################
+        self.obs_model = copy.deepcopy(link['model'][link['model'].keys()[0]])
 
         #drift
         self.drift_par_proc = []
@@ -138,32 +138,21 @@ class Cmodel:
         self.drift_var = ['drift__par_proc__' + x for x in self.drift_par_proc]
         self.drift_var += ['drift__par_obs__' + x for x in self.drift_par_obs]
 
-        ##resolve the population size: (replace 'N' by either 'sum_SV', 'p_0' or 'N')
-        if self.pop_size_eq_sum_sv:
-            self.myN = 'N' if 'N' in self.par_fixed else 'sum_SV'
-        else:
-            self.myN = 'N' if 'N' in self.par_fixed else 'p_0'
 
-        for i, m in enumerate(unexpanded_proc_model):
-            unexpanded_proc_model[i]['rate'] = m['rate'].replace('N', self.myN)
-
-        for k, v in self.obs_model.iteritems():
-            if k != 'dist':
-                self.obs_model[k] = v.replace('N', self.myN)
-
-
-        self.proc_model = self.expand_proc_model(unexpanded_proc_model)
+        ##############################
+        ## observed variables
+        ##############################
 
         ####IMPORTANT: we sort obs_var so that incidences are first
         sorted_obs_var= copy.deepcopy(link['observed'])
         sorted_obs_var.sort(key=lambda x: 0 if isinstance(x['definition'][0], dict) else 1)
 
         self.obs_var = []
-        unexpanded_obs_var_def = []
+        self.obs_var_def = []
 
         ##do a hash to quickly add rate for obs_var_def
         pm = {}
-        for v in unexpanded_proc_model:
+        for v in self.proc_model:
             pm[(v['from'], v['to'])] = v['rate']
 
         for x in sorted_obs_var:
@@ -174,15 +163,48 @@ class Cmodel:
                 if isinstance(d, dict) and 'rate' not in d:
                     d['rate'] = pm[(d['from'], d['to'])]
 
-            unexpanded_obs_var_def.append(mydef)
+            self.obs_var_def.append(mydef)
 
 
-        self.obs_var_def = self.expand_obs_var_def(unexpanded_obs_var_def, unexpanded_proc_model)
+        ##add white_noise properties to incidences reactions of obs_var_def.
+        if 'white_noise' in process:
+            for i, inc_prev_list in enumerate(self.obs_var_def):
+                for k, r in enumerate(inc_prev_list):
+                    if isinstance(r, dict): #only for incidence
+                        for j, x in enumerate(process['white_noise']):
+                            for nr in x['reaction']:
+                                if r['from'] == nr['from'] and r['to'] == nr['to'] and (('rate' in nr and r['rate'] == nr['rate']) or ('rate' not in nr)):
+                                    self.obs_var_def[i][k]['white_noise'] = {'name': 'white_noise__' + str(j),
+                                                                             'sd': x['sd']}
 
 
+        ##############################
         ##contextualize
+        ##############################
+
+        ##resolve the population size: (replace 'N' by either 'sum_SV', 'p_0' or 'N')
+        if self.pop_size_eq_sum_sv:
+            myN = 'N' if 'N' in self.par_fixed else 'sum_SV'
+        else:
+            myN = 'N' if 'N' in self.par_fixed else 'p_0'
+
+        for k, v in self.obs_model.iteritems():
+            if k != 'distribution':
+                self.obs_model[k] = v.replace('N', myN)
+
+        for i, m in enumerate(self.proc_model):
+            self.proc_model[i]['rate'] = m['rate'].replace('N', myN)
+
+        for x in self.obs_var_def:
+            for d in x:
+                if isinstance(d, dict):
+                    d['rate'] = d['rate'].replace('N', myN)
+
+        ##other models (spate or age structure)
         if 'model' in context and 'space' in context['model'] and 'type' in context['model']['space'] and 'external' in context['model']['space']['type']:
             contextualize(self.par_proc, self.proc_model, self.obs_var_def)
+
+
 
 
 
@@ -211,226 +233,29 @@ class Cmodel:
 
 
 
-    def change_rate_erlang(self, rate, state_shape_erlang):
-        """fix the rates e.g. I -> (I0+I1+I2)"""
-
-        myrate = self.change_user_input(rate)
-        for s in state_shape_erlang:
-            if s[0] in myrate:
-                myrate = map(lambda x: '({0})'.format('+'.join([s[0]+str(x) for x in range(s[1])])) if x==s[0] else x, myrate)
-        return ''.join(myrate)
 
 
-    def expand_par_sv(self, par_sv, proc_model):
-        """expand the list of state variable par_sv"""
-
-        indg = [i for i, reac in enumerate(proc_model) if reac['from']==reac['to']] #index of reaction with erlang transitions
-        par_sv_expanded = copy.deepcopy(par_sv)
-
-        for i in indg:
-            s = proc_model[i]['from']
-            if s in par_sv: #need this condition so that the method can be used to expand transmission tags
-                offset = par_sv_expanded.index(s)
-                par_sv_expanded.remove(s)
-
-                for j in range(proc_model[i]['tag'][0]['shape']):
-                    par_sv_expanded.insert(offset+j, s+str(j))
-
-        return par_sv_expanded
-
-
-
-    def expand_proc_model(self, proc_model):
-        """expand process model
-        TODO: generalize to a list of tags
-        """
-
-        model_expanded = copy.deepcopy(proc_model)
-
-        indg = []
-        state_shape_erlang = []
-        state_erlang = []
-
-        for i, r in enumerate(proc_model):
-            if r['from'] == r['to']:
-                indg.append(i)
-                state_shape_erlang.append([r['from'], r['tag'][0]['shape']])
-                state_erlang.append(r['from'])
-            elif 'tag' in r and r['tag'][0]['id'] == 'transmission':
-                ##expand by of transmission tags
-                model_expanded[i]['tag'][0]['by'] = self.expand_par_sv(r['tag'][0]['by'], proc_model)
-
-
-        ###v -> v*k
-        for i in range(len(model_expanded)):
-            rate_to_replace = set([ proc_model[j]['rate'] for j in indg if proc_model[j]['rate'] in model_expanded[i]['rate']])
-            for rate in rate_to_replace:
-                if model_expanded[i]['from'] in state_erlang:
-                    model_expanded[i]['rate'] = model_expanded[i]['rate'].replace(rate, '({0})*{1}.0'.format(rate, proc_model[j]['tag'][0]['shape'] ))
-
-
-        model_erlang = []
-
-        for i in indg:
-            reac = model_expanded[i]
-            myexit = [ind for ind, exitreac in enumerate(model_expanded) if exitreac['from'] == reac['from'] and exitreac != reac]
-            for e in myexit:
-                if (reac['rate'] in model_expanded[e]['rate']) and (model_expanded[e]['to'] != 'U' ):
-                    #I0->I1, I1->I2 ...
-                    for j in range(reac['tag'][0]['shape'] - 1):
-                        model_erlang.append({'from': reac['from'] + str(j), 'to': reac['from'] + str(j+1), 'rate': model_expanded[e]['rate']})
-                else:
-                    #I0->U, I1->U, ...
-                    if (model_expanded[e]['to'] in ['U', 'DU']) or (model_expanded[e]['to'] not in state_erlang):
-                        for j in range(reac['tag'][0]['shape'] - 1):
-                            model_erlang.append({'from': reac['from'] + str(j), 'to': model_expanded[e]['to'], 'rate': model_expanded[e]['rate']})
-
-                    #elif model_expanded[e]['to'] in state_erlang: We don't know what to do...
-                    ##TODO handle this case
-                    ##vicious case : IR and IS are erlang (with different shapes) and flow IR->IS...
-                    if (model_expanded[e]['to'] in state_erlang):
-                        sys.stderr.write('\033[93mWARNING\033[0m: {rfrom}->{rto} are both Erlang distributed, {rfrom}->{rto} has been expanded to {rfrom}{rshape}->{rto}0 only\n'.format(rfrom=reac['from'], rto=model_expanded[e]['to'], rshape= reac['tag'][0]['shape']))
-
-
-            #overwrite exit (from) state variable I->R becomes I{shape-1}->R
-            for e in myexit:
-                model_expanded[e]['from'] = reac['from']+str(reac['tag'][0]['shape'] - 1)
-
-
-        ####overwrite arrival (to) state variable e.g S->I becomes S->I0
-        for i in range(len(model_expanded)):
-            if ((model_expanded[i]['from'] != model_expanded[i]['to']) and (model_expanded[i]['to'] in state_erlang)):
-                model_expanded[i]['to'] = model_expanded[i]['to']+str(0)
-
-
-        ##delete the erlang reaction and add the expanded one to model...
-        model_expanded = [m for m in model_expanded if model_expanded.index(m) not in indg]
-
-        model_expanded.extend(model_erlang)
-
-        #fix the rates e.g. I -> (I0+I1+I2)
-        for i in range(len(model_expanded)):
-            model_expanded[i]['rate'] = self.change_rate_erlang(model_expanded[i]['rate'], state_shape_erlang)
-
-
-        return model_expanded
-
-
-    def expand_obs_var_def(self, obs_var_def, proc_model):
-        """expand the observed variables definitions"""
-
-        indg = []
-        state_shape_erlang = []
-        state_erlang = []
-
-        for i, r in enumerate(proc_model):
-            if r['from'] == r['to']:
-                indg.append(i)
-                state_shape_erlang.append([r['from'], r['tag'][0]['shape']])
-                state_erlang.append(r['from'])
-
-
-        myobs = copy.deepcopy(obs_var_def)
-
-        ##fix the reaction
-        for i in range(len(obs_var_def)):
-
-            if not isinstance(obs_var_def[i][0], dict): ##prevalence:
-                prev_expanded = []
-                for j in range(len(obs_var_def[i])):
-                    if myobs[i][j] in state_erlang:
-                        prev_expanded.extend( [myobs[i][j] + str(k) for k in range(state_shape_erlang[state_erlang.index(myobs[i][j])][1]) ] )
-                    else:
-                        prev_expanded.append( myobs[i][j])
-
-                myobs[i] = copy.deepcopy(prev_expanded)
-
-            ##that's it we are done with the prevalence!
-            else: ##incidence
-
-                for j in range(len(obs_var_def[i])):
-                    myobs[i][j]['rate'] = self.change_rate_erlang(myobs[i][j]['rate'], state_shape_erlang)
-
-                    ###v -> v*k
-                    rate_to_replace = set([proc_model[k]['rate'] for k in indg if proc_model[k]['rate'] in myobs[i][j]['rate']])
-                    for rate in rate_to_replace:
-                        if myobs[i][j]['from'] in state_erlang:
-                            myobs[i][j]['rate'] = myobs[i][j]['rate'].replace(rate, '({0})*{1}.0'.format(rate, proc_model[k]['tag'][0]['shape'] ))
-
-
-        ##################################################
-        ##We only work on the incidence
-        ##################################################
-
-        ##fix from and to:
-        ##PART 1: from or to a disease state: simply reroute e.g S->I => S->I0 or I->DU => I{k}->DU
-        for i in range(len(obs_var_def)):
-
-            if isinstance(obs_var_def[i][0], dict): ##incidence
-
-                for j in range(len(obs_var_def[i])):
-
-                    if ( (myobs[i][j]['from'] in state_erlang) and (myobs[i][j]['to'] != 'U' ) ) :
-                        myobs[i][j]['from'] += str(state_shape_erlang[state_erlang.index(myobs[i][j]['from'])][1]-1)
-
-                    if ( (myobs[i][j]['to'] in state_erlang) and (myobs[i][j]['from'] != 'U' ) ):
-                        myobs[i][j]['to'] += str(0)
-
-
-        ##PART 2: from or to a demographics state: we expand e.g I->U => I0->U + I1->U +...
-        ## WARNING:size of myobs change as we pop it....
-        myobs_static = copy.deepcopy(myobs)
-        for i in range(len(obs_var_def)):
-
-            if isinstance(obs_var_def[i][0], dict): ##incidence
-
-                for j in range(len(obs_var_def[i])):
-
-                    if ( (obs_var_def[i][j]['from'] in state_erlang) and (obs_var_def[i][j]['to'] == 'U' ) ) :
-                        myj = myobs[i].index(myobs_static[i][j])
-
-                        myfrom = myobs[i][myj]['from']
-                        myrate = myobs[i][myj]['rate']
-                        myobs[i].pop(myj)
-                        for k in range(state_shape_erlang[state_erlang.index(myfrom)][1]):
-                            myobs[i].append({'from': myfrom+str(k), 'to': 'U', 'rate': myrate})
-
-                    if ( (obs_var_def[i][j]['to'] in state_erlang) and (obs_var_def[i][j]['from'] == 'U' ) ) :
-                        myj = myobs[i].index(myobs_static[i][j])
-
-                        myto = myobs[i][myj]['to']
-                        myrate = myobs[i][myj]['rate']
-                        myobs[i].pop(myj)
-                        for k in range(state_shape_erlang[state_erlang.index(myto)][1]):
-                            myobs[i].append({'from': 'U', 'to': myto+str(k), 'rate': myrate})
-
-        return myobs
-
-
-    
 
 if __name__=="__main__":
 
     """
-    test model Erlang expansion and substitution of N in either p_0
-    sum_SV or N
-
+    test substitution of N in either p_0 sum_SV or N
     """
 
-    #full model
     m = {}
     m['state'] = [{'id':'S'}, {'id':'I'}]
     m['parameter'] = [{'id':'r0'}, {'id':'v'}, {'id':'l'}, {'id':'e'}, {'id':'d'}, {'id':'sto'}, {'id':'alpha'}, {'id':'mu_b'}, {'id':'mu_d'}, {'id':'vol'}, {'id':'g'}]
 
+
     m['model'] = [ {'from': 'U', 'to': 'S',  'rate': 'mu_b*N'},
-                   {'from': 'S', 'to': 'E',  'rate': 'r0/N*v*(1.0+e*sin_t(d))*I', "tag":[{"id": "transmission", "by":["I"]}]},
+                   {'from': 'S', 'to': 'E',  'rate': 'r0/N*v*(1.0+e*sin_t(d))*I', "tag": {"transmission":{"by":["I"]}} },
 
                    {'from': 'E', 'to': 'I', 'rate': '(1-alpha)*correct_rate(l)'},
-                   {'from': 'E', 'to': 'U',  'rate': 'alpha*correct_rate(l) + mu_d'},
+                    ##Here we split the reaction from E->U as we only observe a subpart
+                   {'from': 'E', 'to': 'U',  'rate': 'alpha*correct_rate(l)'},
+                   {'from': 'E', 'to': 'U',  'rate': 'mu_d'},
 
                    {'from': 'S', 'to': 'U',  'rate': 'mu_d'},
-                   {'from': 'I', 'to': 'I',  'rate': 'correct_rate(v)', "tag": [{"id": "erlang", "shape":3}], 'comment':'NOTE that the rate is correct_rate(v) and **not** (1-alpha)*correct_rate(v)'},
-                   {'from': 'E', 'to': 'E',  'rate': 'correct_rate(l)', "tag": [{"id": "erlang", "shape":3}]},
                    {'from': 'DU', 'to': 'S',  'rate': 'g*(N-S-I)'},
                    {'from': 'I', 'to': 'DU', 'rate': '(1-alpha)*correct_rate(v)'},
                    {'from': 'I', 'to': 'U',  'rate': 'alpha*correct_rate(v) + mu_d'} ]
@@ -456,7 +281,8 @@ if __name__=="__main__":
     l = {}
     l['observed'] =  [{"id": "Prev",     "definition": ["I"], "model_id": "common"},
                       {"id": "SI",       "definition": ["S", "I"], "model_id": "common"},
-                      {"id": "Inc_out",  "definition": [{"from":"I", "to":"DU"}, {"from":"I", "to":"U"}], "model_id": "common"},
+                      ##we have to specify a rate to the incidence E->U as we only observed a subpart of this reaction
+                      {"id": "Inc_out",  "definition": [{"from":"I", "to":"DU"}, {"from":"E", "to":"U", 'rate': "mu_d"}], "model_id": "common"},
                       {"id": "Inc_in",   "definition": [{"from":"S", "to":"E"}], "model_id": "common"}]
 
     l['parameter'] = [{"id": "rep"}, {"id": "phi"}]
@@ -467,11 +293,10 @@ if __name__=="__main__":
 
     test_model = Cmodel(c, m, l)
 
-
     print "par_proc"
     print test_model.par_proc
 
-    print "expanded state variables"
+    print "state variables"
     print test_model.par_sv
 
     print "drift var"
@@ -481,32 +306,16 @@ if __name__=="__main__":
     print test_model.vol_par_obs
     print test_model.drift_var
 
-    print "\nexpanded process model"
+    print "\nprocess model"
     tmp_print = test_model.proc_model
     for line in tmp_print:
-        print line['from'], line['to'], line['rate']
+        wn = line['white_noise'] if 'white_noise' in line else ''
+        print line['from'], line['to'], line['rate'], wn
 
-    print "\nexpanded observed variable definition"
+    print "\nobserved variable definition"
     tmp_print = test_model.obs_var_def
     for line in tmp_print:
         print line
 
     print "\ntest_model.obs_model"
     print test_model.obs_model
-
-
-##    print "SIRS multi strain"
-##    import json
-##    test_model = Cmodel(json.load(open('/Users/seb/hfmd/hfmd_sirs_hbrs_2/context.json')), json.load(open('/Users/seb/hfmd/hfmd_sirs_hbrs_2/process.json')), json.load(open('/Users/seb/hfmd/hfmd_sirs_hbrs_2/link.json')))
-##
-##    print "\nexpanded process model"
-##    tmp_print = test_model.proc_model
-##    for line in tmp_print:
-##        #if line['rate'] == 'g':
-##        print line['from'], line['to'], line['rate']
-##
-##
-##    print "\nexpanded observed variable definition"
-##    tmp_print = test_model.obs_var_def
-##    for line in tmp_print:
-##        print line

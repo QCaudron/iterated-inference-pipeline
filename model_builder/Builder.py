@@ -170,7 +170,7 @@ class PlomModelBuilder(Context, Ccoder):
         t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'core_template.c'))
 
         c = DjangoContext({'order':order,
-                           'gamma_noise': self.get_gamma_noise_terms(),
+                           'white_noise': self.white_noise,
                            'step_psr': self.step_psr(),
                            'psr_multinomial': self.psr_multinomial(),
                            'step_ode_sde': step_ode_sde,
