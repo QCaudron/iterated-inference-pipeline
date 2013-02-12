@@ -93,10 +93,21 @@ class Cmodel:
         self.par_obs = [x['id'] for x in link['parameter'] if x['id'] not in self.par_fixed]
 
 
-        ##undrift models and get drift_var
-        self.unexpanded_proc_model, self.drift_par_proc, self.vol_par_proc = self.undrift_proc_model(process['model'])
-        self.obs_model, self.drift_par_obs, self.vol_par_obs = self.undrift_obs_model(link['model'][link['model'].keys()[0]]) ##TODO: different observation process models...
 
+        self.unexpanded_proc_model = copy.deepcopy(process['model'])
+        self.obs_model = copy.deepcopy(link['model'][link['model'].keys()[0]])
+
+        #drift
+        self.drift_par_proc = []
+        self.vol_par_proc = []
+        if 'diffusion' in process:
+            for x in process['diffusion']:
+                self.drift_par_proc.append(x['parameter'])
+                self.vol_par_proc.append(x['volatility'])
+
+        #to do support for drift in observation model
+        self.drift_par_obs = []
+        self.vol_par_obs = []
 
         #get par_fixed involved in the obs_model (par_fixed_obs):
         self.par_fixed_obs = []
@@ -127,7 +138,6 @@ class Cmodel:
 
 
         self.proc_model = self.expand_proc_model(self.unexpanded_proc_model)
-
 
 
         ####IMPORTANT: we sort obs_var so that incidences are first
@@ -161,66 +171,6 @@ class Cmodel:
             contextualize(self.par_proc, self.proc_model, self.obs_var_def)
 
 
-
-    def undrift_proc_model(self, proc_model):
-        """
-        replace drift(arg1, arg2) by arg1 in a copy of proc_model (pm)
-
-        and collects all the arg1 and arg2
-        """
-
-        pm = copy.deepcopy(proc_model)
-        drift_par_proc = []
-
-        for i, r in enumerate(proc_model):
-            if 'drift(' in r['rate']:
-                rl = self.change_user_input(r['rate'])
-                ind_drift = rl.index('drift')
-                ind_arg1 = ind_drift + 2 #skip (
-                ind_arg2 = ind_drift + 4 #skip ,
-
-                drift_par_proc.append((rl[ind_arg1], rl[ind_arg2]))
-                pm[i]['rate'] = r['rate'].replace(' ', '') #remove spaces
-                pm[i]['rate'] = pm[i]['rate'].replace('drift({0},{1})'.format(rl[ind_arg1], rl[ind_arg2]), rl[ind_arg1])
-
-        #get rid of repetitions
-        if drift_par_proc:
-            drift_vol = zip(*list(set(drift_par_proc)))
-            return (pm, list(drift_vol[0]), list(drift_vol[1]))
-        else:
-            return (pm, [], [])
-
-
-    def undrift_obs_model(self, obs_model):
-        """
-        replace drift(arg1, arg2) by arg1 in a copy of obs_model (om)
-
-        and collects all the arg1 and arg2
-        """
-
-        om = copy.deepcopy(obs_model)
-        drift_par_obs = []
-
-        for k, v in obs_model.iteritems():
-            if k != 'distribution' and k != 'comment':
-                if 'drift(' in v:
-                    rl = self.change_user_input(v)
-                    ind_drift = rl.index('drift')
-                    ind_arg1 = ind_drift + 2 #skip (
-                    ind_arg2 = ind_drift + 4 #skip ,
-
-
-                    drift_par_obs.append((rl[ind_arg1], rl[ind_arg2]))
-
-                    om[k] = v.replace(' ', '') #remove spaces
-                    om[k] = om[k].replace('drift({0},{1})'.format(rl[ind_arg1], rl[ind_arg2]), rl[ind_arg1])
-
-        #get rid of repetitions
-        if drift_par_obs:
-            drift_vol = zip(*list(set(drift_par_obs)))
-            return (om, list(drift_vol[0]), list(drift_vol[1]))
-        else :
-            return (om, [], [])
 
     def change_user_input(self, reaction):
         """transform the reaction in smtg that we can parse in a programming language:
@@ -457,7 +407,7 @@ if __name__=="__main__":
     m['parameter'] = [{'id':'r0'}, {'id':'v'}, {'id':'l'}, {'id':'e'}, {'id':'d'}, {'id':'sto'}, {'id':'alpha'}, {'id':'mu_b'}, {'id':'mu_d'}, {'id':'vol'}, {'id':'g'}]
 
     m['model'] = [ {'from': 'U', 'to': 'S',  'rate': 'mu_b*N'},
-                   {'from': 'S', 'to': 'E',  'rate': 'noise__trans(sto)*drift(r0, vol_r0)/N*v*(1.0+e*sin_t(d))*I', "tag":[{"id": "transmission", "by":["I"]}]},
+                   {'from': 'S', 'to': 'E',  'rate': 'noise__trans(sto)/N*v*(1.0+e*sin_t(d))*I', "tag":[{"id": "transmission", "by":["I"]}]},
 
                    {'from': 'E', 'to': 'I', 'rate': '(1-alpha)*correct_rate(l)'},
                    {'from': 'E', 'to': 'U',  'rate': 'alpha*correct_rate(l) + mu_d'},
@@ -468,6 +418,10 @@ if __name__=="__main__":
                    {'from': 'DU', 'to': 'S',  'rate': 'g*(N-S-I)'},
                    {'from': 'I', 'to': 'DU', 'rate': '(1-alpha)*correct_rate(v)'},
                    {'from': 'I', 'to': 'U',  'rate': 'alpha*correct_rate(v) + mu_d'} ]
+
+    m['diffusion'] = [{'parameter':'r0',
+                       'volatility': 'vol',
+                       'drift': 0.0}]
 
     m['pop_size_eq_sum_sv'] = False
 
@@ -501,11 +455,6 @@ if __name__=="__main__":
     print "expanded state variables"
     print test_model.par_sv
 
-    print "test_model.unexpanded_proc_model (undrifted)"
-    tmp_print = test_model.unexpanded_proc_model
-    for line in tmp_print:
-        print line
-
     print "drift var"
     print test_model.drift_par_proc
     print test_model.vol_par_proc
@@ -517,12 +466,6 @@ if __name__=="__main__":
     tmp_print = test_model.proc_model
     for line in tmp_print:
         print line['from'], line['to'], line['rate']
-
-
-    print "\ntest_model.unexpanded_obs_var_def"
-    tmp_print = test_model.unexpanded_obs_var_def
-    for line in tmp_print:
-        print line
 
     print "\nexpanded observed variable definition"
     tmp_print = test_model.obs_var_def

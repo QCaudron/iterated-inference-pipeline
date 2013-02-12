@@ -279,14 +279,13 @@ class PlomModelBuilder(Context, Ccoder):
 if __name__=="__main__":
     ##tutorial example...
 
-    c = json.load(open(os.path.join('example', 'noise', 'context.json')))
-    p = json.load(open(os.path.join('example', 'noise', 'process.json')))
-    l = json.load(open(os.path.join('example', 'noise', 'link.json')))
-
+    c = json.load(open(os.path.join('example', 'drift', 'context.json')))
+    p = json.load(open(os.path.join('example', 'drift', 'process.json')))
+    l = json.load(open(os.path.join('example', 'drift', 'link.json')))
 
     ##fix path (this is normally done by plom(1))
     for x in c['data']:
-        x['source'] = os.path.join('example', 'noise', x['source'])
+        x['source'] = os.path.join('example', 'drift', x['source'])
 
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
 
