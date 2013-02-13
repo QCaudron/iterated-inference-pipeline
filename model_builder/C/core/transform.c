@@ -334,6 +334,14 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
             p_router->f_inv_derivative = &f_der_inv_logit;
             p_router->f_scale = &f_scale_id;
 
+        } else if (strcmp(mytransf, "logit_ab")==0) {
+
+            p_router->f =  &f_logit_ab;
+            p_router->f_inv = &f_inv_logit_ab;
+            p_router->f_derivative = &f_der_logit_ab;
+            p_router->f_inv_derivative = &f_der_inv_logit_ab;
+            p_router->f_scale = &f_scale_id;
+
         } else if (strcmp(mytransf, "identity")==0) {
 
             p_router->f = &f_id;
@@ -360,7 +368,7 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
 
         } else {
 
-            print_err("error transf != log, logit, scale_pow10");
+            print_err("error transf != log, logit, logit_ab, scale_pow10");
             exit(EXIT_FAILURE);
 
         }
