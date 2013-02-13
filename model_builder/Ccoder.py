@@ -29,7 +29,7 @@ class Ccoder(Cmodel):
         Cmodel.__init__(self, context, process, link,  **kwargs)
 
         self.set_par_fixed = set(self.par_fixed).union(set(['p_0', 'sum_SV', 'prop']))
-        self.all_par = self.par_sv + self.drift_par_proc + self.par_proc +  self.par_obs + ['x'] + ['N']
+        self.all_par = self.par_sv + self.drift_par_proc + self.par_proc +  self.par_obs + ['x'] + ['N'] + ['t']
 
 
     def toC(self, term, no_correct_rate):
@@ -62,6 +62,7 @@ class Ccoder(Cmodel):
         elif term == 'correct_rate' and no_correct_rate:
             return ''
 
+
         else: ##r is an operator or x
             return term
 
@@ -92,11 +93,7 @@ class Ccoder(Cmodel):
                         ind += 1
 
                 ##add extra terms (no whitespace)
-                if myf == 'sin_t':
-                    Cterm += ',t'
-                elif myf == 'cos_t':
-                    Cterm += ',t'
-                elif myf == 'terms_forcing':
+                if myf == 'terms_forcing':
                     Cterm += ',t,p_data,cac'
                 elif myf == 'step':
                     Cterm += ',t'
@@ -921,12 +918,15 @@ if __name__=="__main__":
 
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
 
-    print ''.join(model.generator_C("(1.0+e*sin_t((a*x+(b)), ((e)) )) + r0", False))
-    print model.generator_C("-mu_d - r0_1*v*(e*sin_t(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin_t(d) + 1.0)*(RI + SI + iota_2)/N", False)
+    print ''.join(model.generator_C("(1.0+e*sin((a*x+(b)), ((e)) )) + r0", False))
+    print model.generator_C("-mu_d - r0_1*v*(e*sin(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin(d) + 1.0)*(RI + SI + iota_2)/N", False)
 
     print 'cache'
-    print model.cache_special_function_C(['sin_t((a*x+(b)), ((e)) ) + r0'])
-    print model.cache_special_function_C(["-mu_d - r0_1*v*(e*sin_t(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin_t(d) + 1.0)*(RI + SI + iota_2)/N"])
+    print model.cache_special_function_C(['sin((a*x+(b)), ((e)) ) + r0'])
+    print model.cache_special_function_C(["-mu_d - r0_1*v*(e*sin(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin(d) + 1.0)*(RI + SI + iota_2)/N"])
+
+
+    print 'sd', model.make_C_term('sin(2*M_PI*(t/ONE_YEAR_IN_DATA_UNIT +r0))', False, derivate='r0')
 
 ##    model.prepare()
 ##    model.write_settings()

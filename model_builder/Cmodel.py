@@ -66,7 +66,7 @@ class Cmodel:
 
         self.op = set(['+', '-', '*', '/', ',', '(', ')']) ##!!!CAN'T contain square bracket '[' ']'
         self.reserved = set(['p_0', 'sum_SV', 'N', 'prop', 'x'])
-        self.special_functions = set(['terms_forcing', 'step', 'step_lin', 'sin_t', 'cos_t', 'correct_rate'])
+        self.special_functions = set(['terms_forcing', 'step', 'step_lin', 'sin', 'cos', 'correct_rate'])
         self.universes = ['U', 'DU']
 
 
