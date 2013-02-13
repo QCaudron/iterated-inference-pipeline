@@ -45,24 +45,6 @@ double terms_forcing(double amplitude, double time, struct s_data *p_data, int c
   return s_t;
 }
 
-double sinusoidal_forcing(double amplitude, double dephasing, double time)
-{
-  /*time is in the same unit as data!*/
-  return (1.0+ amplitude*sin(2.0*M_PI*( time/ (ONE_YEAR_IN_DATA_UNIT) )+dephasing*2.0*M_PI ));
-}
-
-double sin_t(double dephasing, double time)
-{
-    /*time is in the same unit as data!*/
-    return sin(2.0*M_PI*( time/ (ONE_YEAR_IN_DATA_UNIT) )+dephasing*2.0*M_PI );
-}
-
-double cos_t(double dephasing, double time)
-{
-    /*time is in the same unit as data!*/
-    return cos(2.0*M_PI*( time/ (ONE_YEAR_IN_DATA_UNIT) )+dephasing*2.0*M_PI );
-}
-
 
 double step(double mul, double t_intervention, double time)
 {
