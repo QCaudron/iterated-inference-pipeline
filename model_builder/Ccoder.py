@@ -784,7 +784,7 @@ class Ccoder(Cmodel):
         for i in range(len(self.obs_var_def)): #(for every obs variable)
 
             for B_dem_ind, r in enumerate(proc_model):
-                is_noise = 'noise__' in r['rate']
+                is_noise = 'white_noise' in r
                 if is_noise:
                     B_sto_ind = N_REAC + r['order_env_sto']
 
@@ -828,7 +828,7 @@ class Ccoder(Cmodel):
                 else:
                     Qn_term = r['rate']
 
-                Lc[r['order_env_sto']][r['order_env_sto_unique']] = self.make_C_term(Qn_term, True) #True ensures that noise__ terms are removed from the rate (ODE)
+                Lc[r['order_env_sto']][r['order_env_sto_unique']] = self.make_C_term(Qn_term, True)
                 Qn[r['order_env_sto_unique']][r['order_env_sto_unique']] = 'pow({0}, 2)'.format(self.toC(r['white_noise']['sd'], False))
 
 
