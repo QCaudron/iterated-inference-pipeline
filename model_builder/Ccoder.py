@@ -91,7 +91,6 @@ class Ccoder(Cmodel):
                         Cterm += self.toC(terms[ind], no_correct_rate)
                         ind += 1
 
-
                 ##add extra terms (no whitespace)
                 if myf == 'sin_t':
                     Cterm += ',t'
@@ -344,32 +343,31 @@ class Ccoder(Cmodel):
         if not sf:
             sf = []
             for term in caches_C:
-                if any([x in term for x in self.cached]):
+                if any([x in term for x in self.special_functions]):
                     terms = self.change_user_input(term)
-                    for x in terms:
-                        if x in self.cached:
-                            f = x + '('
-                            ind = terms.index(x)+2 #skip first parenthesis
+                    ind = 0
+                    while (ind < len(terms)):
+                        if terms[ind] in self.special_functions:
+                            f = terms[ind] + '('
+                            ind += 2 #skip first parenthesis
                             pos = 1 #counter for open parenthesis
-                            while terms[ind] != ')' or pos > 0:
+                            while pos > 0:
                                 if terms[ind] == '(':
                                     pos += 1
                                 if terms[ind] == ')':
                                     pos -= 1
 
-                                if pos >0:
-                                    f += terms[ind]
-                                    ind +=1
-
-                            #last bracket
-                            f += terms[ind]
-
+                                f += terms[ind]
+                                ind +=1
+                        
                             sf.append(f)
+                        else:
+                            ind += 1
 
             sf = list(set(sf))
 
         for i, term in enumerate(caches_C):
-            if any([x in term for x in self.cached]):
+            if any([x in term for x in self.special_functions]):
                 for s in sf:
                     caches_C[i] = caches_C[i].replace(s, prefix + '[{0}]'.format(sf.index(s)))
 
@@ -923,11 +921,12 @@ if __name__=="__main__":
 
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
 
-##    print ''.join(model.generator_C("(1.0+e*sin_t((a*x+(b)), ((e)) )) + r0", False))
+    print ''.join(model.generator_C("(1.0+e*sin_t((a*x+(b)), ((e)) )) + r0", False))
     print model.generator_C("-mu_d - r0_1*v*(e*sin_t(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin_t(d) + 1.0)*(RI + SI + iota_2)/N", False)
 
-    ##print model.cache_special_function_C(['sin_t((a*x+(b)), ((e)) ) + r0'])
-    ##print model.cache_special_function_C("-mu_d - r0_1*v*(e*sin_t(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin_t(d) + 1.0)*(RI + SI + iota_2)/N")
+    print 'cache'
+    print model.cache_special_function_C(['sin_t((a*x+(b)), ((e)) ) + r0'])
+    print model.cache_special_function_C(["-mu_d - r0_1*v*(e*sin_t(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin_t(d) + 1.0)*(RI + SI + iota_2)/N"])
 
 ##    model.prepare()
 ##    model.write_settings()
