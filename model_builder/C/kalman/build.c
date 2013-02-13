@@ -18,6 +18,65 @@
 
 #include "kalman.h"
 
+struct s_kalman_specific_data *build_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data)
+{
+    int i;
+
+    struct s_kalman_specific_data *p;
+    p = malloc(sizeof(struct s_kalman_specific_data));
+    if(p==NULL){
+        char str[STR_BUFFSIZE];
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        print_err(str);
+        exit(EXIT_FAILURE);
+    }
+
+    //compo_groups_drift_par_proc
+    p->compo_groups_drift_par_proc = malloc(N_DRIFT* sizeof (struct s_group **));
+    if(p->compo_groups_drift_par_proc==NULL) {
+        char str[STR_BUFFSIZE];
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        print_err(str);
+        exit(EXIT_FAILURE);
+    }
+    for(i=0; i<N_DRIFT; i++) {
+        p->compo_groups_drift_par_proc[i] = get_groups_compo(p_data->routers[ p_data->drift[i]->ind_par_Xdrift_applied ]);
+    }
+
+    p->FtCt = gsl_matrix_alloc(N_KAL, N_KAL);
+    p->Q = gsl_matrix_calloc(N_KAL, N_KAL);
+    p->Ft = gsl_matrix_calloc(N_KAL, N_KAL);
+
+    enum plom_noises_off noises_off = p_data->noises_off;
+    int can_run;
+
+    if ( (noises_off & (PLOM_NO_DEM_STO)) && (noises_off & (PLOM_NO_ENV_STO)) )  {
+	p->eval_Q = &eval_Q_no_dem_sto_no_env_sto;
+	can_run = 0;
+    } else if ((noises_off & PLOM_NO_DEM_STO) && !(noises_off & PLOM_NO_ENV_STO)) {
+	p->eval_Q = &eval_Q_no_dem_sto;
+	can_run = p_data->p_it_noise->nbtot;
+    } else if (!(noises_off & PLOM_NO_DEM_STO) && (noises_off & PLOM_NO_ENV_STO)) {
+	p->eval_Q = &eval_Q_no_env_sto;
+	can_run = 1;
+    } else {
+	p->eval_Q = &eval_Q_full;
+	can_run = 1;
+    }
+
+    if(!(noises_off & PLOM_NO_DRIFT)){
+	can_run += p_data->p_it_only_drift->nbtot;
+    }
+
+    if(!can_run){
+        print_err("kalman methods must be used with at least one brownian motion.");
+        exit(EXIT_FAILURE);
+    }
+
+    return p;
+}
+
+
 void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data)
 {
     int i;

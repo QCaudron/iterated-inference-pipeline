@@ -835,6 +835,9 @@ class Ccoder(Cmodel):
         #Qc_env = Lc Qn tLc:
 
         def matrix_product(A, B):
+            if not A or not B:
+                return []
+
             res = [[0]*len(B[0]) for x in range(len(A))]
 
             for i in range(len(A)):
@@ -926,9 +929,9 @@ class Ccoder(Cmodel):
                         if calc_Q[k]['Q'][i][j]:
                             print '----------'
                             #print Q[i][j]
-                            print 'Q[{0}][{1}]: '.format(i, j),  self.make_C_term(calc_Q[k]['Q'][i][j], False, human=True)
+                            print 'Q[{0}][{1}]: '.format(i, j),  self.make_C_term(calc_Q[k]['Q'][i][j], True, human=True)
                             if i != j:
-                                print 'Q[{0}][{1}] == Q[{1}][{0}]: '.format(i, j), self.make_C_term(calc_Q[k]['Q'][i][j], False, human=True) == self.make_C_term(calc_Q[k]['Q'][j][i], True, human=True)
+                                print 'Q[{0}][{1}] == Q[{1}][{0}]: '.format(i, j), self.make_C_term(calc_Q[k]['Q'][i][j], True, human=True) == self.make_C_term(calc_Q[k]['Q'][j][i], True, human=True)
         
 
         #convert in a version easy to template in C
@@ -939,11 +942,11 @@ class Ccoder(Cmodel):
                     for j in range(i+1):
                         if tpl['Q'][i][j]:
                             if i< N_PAR_SV and j < N_PAR_SV:                        
-                                tpl['Q_proc'].append({'i': i, 'j': j, 'rate': self.make_C_term(tpl['Q'][i][j], False)})
+                                tpl['Q_proc'].append({'i': i, 'j': j, 'rate': self.make_C_term(tpl['Q'][i][j], True)})
                             else:
                                 tpl['Q_obs'].append({'i': {'is_obs': False, 'ind': i} if i < N_PAR_SV else {'is_obs': True, 'ind': i - N_PAR_SV},
                                                      'j': {'is_obs': False, 'ind': j} if j < N_PAR_SV else {'is_obs': True, 'ind': j - N_PAR_SV},
-                                                     'rate': self.make_C_term(tpl['Q'][i][j], False)})
+                                                     'rate': self.make_C_term(tpl['Q'][i][j], True)})
 
         ##cache special functions
         for key in calc_Q:            
@@ -953,7 +956,7 @@ class Ccoder(Cmodel):
                 optim_rates_obs = [x['rate'] for x in calc_Q[key]['Q_obs']]
                 optim_rates = optim_rates_proc + optim_rates_obs
 
-                calc_Q[key]['sf'] = self.cache_special_function_C(optim_rates, prefix='_sf')
+                calc_Q[key]['sf'] = self.cache_special_function_C(optim_rates, prefix='_sf[cac]')
                 
                 for i in range(len(optim_rates_proc)):
                     calc_Q[key]['Q_proc'][i]['rate'] = optim_rates[i]
@@ -978,13 +981,13 @@ if __name__=="__main__":
     import os
     from Builder import PlomModelBuilder
 
-    c = json.load(open(os.path.join('example', 'noise', 'context.json')))
-    p = json.load(open(os.path.join('example', 'noise', 'process.json')))
-    l = json.load(open(os.path.join('example', 'noise', 'link.json')))
+    c = json.load(open(os.path.join('example', 'drift', 'context.json')))
+    p = json.load(open(os.path.join('example', 'drift', 'process.json')))
+    l = json.load(open(os.path.join('example', 'drift', 'link.json')))
 
     ##fix path (this is normally done by plom(1))
     for x in c['data']:
-        x['source'] = os.path.join('example', 'noise', x['source'])
+        x['source'] = os.path.join('example', 'drift', x['source'])
 
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
 
