@@ -12,11 +12,17 @@
                {"id": "mu_d", "comment": "death rate"}],
 
  "model": [{"from": "U", "to": "S",  "rate": "mu_b*N", "comment":"birth"},
-           {"from": "S", "to": "I",  "rate": "noise__trans(sto)*r0/N*v*I", "tag":[{"id": "transmission", "by":["I"]}], "comment":"infection with noise on r0"},
-           {"from": "I", "to": "DU", "rate": "v", "comment":"recovery"},
-           {"from": "I", "to": "I",  "rate": "v", "tag":[{"id": "erlang", "shape":2}], "comment":"erlang waiting time"},
+           {"from": "S", "to": "I",  "rate": "r0/N*v*I", "tag": {"transmission": {"by":["I"]}}, "comment":"infection"},
+           {"from": "I", "to": "DU", "rate": "correct_rate(v)", "comment":"recovery"},
            {"from": "S", "to": "U",  "rate": "mu_d", "comment":"death"},
            {"from": "I", "to": "U",  "rate": "mu_d", "comment":"death"}],
+
+ "white_noise": [
+   {
+     "reaction": [{"from":"S", "to": "I"}],
+     "sd": "sto"
+   }
+ ],
 
  "pop_size_eq_sum_sv": false
 }

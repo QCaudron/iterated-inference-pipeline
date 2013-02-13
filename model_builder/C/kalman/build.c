@@ -18,8 +18,6 @@
 
 #include "kalman.h"
 
-//struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data)  is templated
-
 void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data)
 {
     int i;
@@ -27,60 +25,53 @@ void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data)
     struct s_kalman_specific_data *p =  (struct s_kalman_specific_data *) p_calc->method_specific_thread_safe_data;
 
     //compo_groups_drift_par_proc
-    for(i=0; i<N_DRIFT_PAR_PROC; i++) {
-        clean_groups_compo(p->compo_groups_drift_par_proc[i], p_data->routers[ p_data->p_drift->ind_par_Xdrift_applied[i] ]->n_gp );
+    for(i=0; i<N_DRIFT; i++) {
+        clean_groups_compo(p->compo_groups_drift_par_proc[i], p_data->routers[ p_data->drift[i]->ind_par_Xdrift_applied ]->n_gp );
     }
     FREE(p->compo_groups_drift_par_proc);
 
     gsl_matrix_free(p->FtCt);
-    gsl_matrix_free(p->Q);
     gsl_matrix_free(p->Ft);
-
-    FREE(p->diag_Qc);
-    gsl_matrix_free(p->L);
-    gsl_matrix_free(p->LQc);
+    gsl_matrix_free(p->Q);
 
     FREE(p);
 }
 
-
-
-struct s_kal *build_kal(void)
+struct s_kalman_update *build_kalman_update(int n_kal)
 {
-    struct s_kal *p_kal;
-    p_kal = malloc(sizeof(struct s_kal));
-    if(p_kal==NULL) {
+    struct s_kalman_update *p;
+    p = malloc(sizeof(struct s_kalman_update));
+    if(p==NULL) {
         char str[STR_BUFFSIZE];
         sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
 
-    p_kal->xk = gsl_vector_calloc(N_KAL);
-    p_kal->kt = gsl_vector_calloc(N_KAL);
-    p_kal->ht = gsl_vector_calloc(N_KAL);
+    p->xk = gsl_vector_calloc(n_kal);
+    p->kt = gsl_vector_calloc(n_kal);
+    p->ht = gsl_vector_calloc(n_kal);
 
-    p_kal->sc_st = 0.0;
-    p_kal->sc_pred_error = 0.0;
-    p_kal->sc_rt = 0.0;
+    p->sc_st = 0.0;
+    p->sc_pred_error = 0.0;
+    p->sc_rt = 0.0;
 
-    return p_kal;
+    return p;
 }
 
-void clean_kal(struct s_kal *p_kal)
+void clean_kalman_update(struct s_kalman_update *p)
 {
-    gsl_vector_free(p_kal->xk);
-    gsl_vector_free(p_kal->kt);
-    gsl_vector_free(p_kal->ht);
+    gsl_vector_free(p->xk);
+    gsl_vector_free(p->kt);
+    gsl_vector_free(p->ht);
 
-    FREE(p_kal);
+    FREE(p);
 }
 
 
-struct s_kalman *build_kalman(json_t *settings, int is_bayesian, int update_covariance)
+struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int update_covariance, double dt, double eps_abs, double eps_rel)
 {
     char str[STR_BUFFSIZE];
-    int nt;
 
     struct s_kalman *p_kalman;
     p_kalman = malloc(sizeof(struct s_kalman));
@@ -91,24 +82,23 @@ struct s_kalman *build_kalman(json_t *settings, int is_bayesian, int update_cova
     }
     json_t *theta = load_json();
 
+    p_kalman->p_data = build_data(settings, theta, implementation, noises_off, is_bayesian);
 
-
-    p_kalman->p_data = build_data(settings, theta, is_bayesian);
     N_KAL = N_PAR_SV*N_CAC + N_TS + p_kalman->p_data->p_it_only_drift->nbtot;
+    int size_proj = N_PAR_SV*N_CAC + p_kalman->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE + (N_KAL*N_KAL);
 
-    p_kalman->p_X = build_X(PLOM_SIZE_PROJ + (N_KAL*N_KAL), PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_kalman->p_data); //proj contains Ct.
+    p_kalman->p_X = build_X(size_proj, N_TS, p_kalman->p_data); //proj contains Ct.
     p_kalman->p_best = build_best(p_kalman->p_data, theta, update_covariance);
     json_decref(theta);
 
-    p_kalman->calc = build_calc(GENERAL_ID, p_kalman->p_X, func_kal, p_kalman->p_data);
+    int n_threads =1;
+    p_kalman->calc = build_calc(&n_threads, GENERAL_ID, dt, eps_abs, eps_rel, 1, size_proj, step_ode_ekf, p_kalman->p_data);
     p_kalman->p_par = build_par(p_kalman->p_data);
 
     p_kalman->smallest_log_like = get_smallest_log_likelihood(p_kalman->p_data->data_ind);
-    p_kalman->p_kal = build_kal();
+    p_kalman->p_kalman_update = build_kalman_update(N_KAL);
 
-    for(nt=0; nt< N_THREADS; nt++) {
-        p_kalman->calc[nt]->method_specific_thread_safe_data = build_kalman_specific_data(p_kalman->p_data);
-    }
+    p_kalman->calc[0]->method_specific_thread_safe_data = build_kalman_specific_data(p_kalman->calc[0], p_kalman->p_data);
 
     return p_kalman;
 }
@@ -116,18 +106,14 @@ struct s_kalman *build_kalman(json_t *settings, int is_bayesian, int update_cova
 
 void clean_kalman(struct s_kalman *p_kalman)
 {
-    int nt;
-
     clean_X(p_kalman->p_X);
     clean_best(p_kalman->p_best);
     clean_par(p_kalman->p_par);
-    clean_kal(p_kalman->p_kal);
+    clean_kalman_update(p_kalman->p_kalman_update);
 
-    for(nt=0; nt< N_THREADS; nt++) {
-        clean_kalman_specific_data(p_kalman->calc[nt], p_kalman->p_data);
-    }
+    clean_kalman_specific_data(p_kalman->calc[0], p_kalman->p_data);
 
-    clean_calc(p_kalman->calc);
+    clean_calc(p_kalman->calc, p_kalman->p_data);
     clean_data(p_kalman->p_data);
 
     FREE(p_kalman);

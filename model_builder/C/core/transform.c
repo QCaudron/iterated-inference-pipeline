@@ -68,6 +68,7 @@ double f_logit_ab(double x, double a, double b)
     }
 }
 
+
 double f_inv_logit_ab(double x, double a, double b)
 {
     if (a == b) {

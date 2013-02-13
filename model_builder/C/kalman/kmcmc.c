@@ -21,7 +21,7 @@
 /**
  * run KMCMC see pmcmc/pmcmc.c for doc
  */
-void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcmc_calc_data *p_pmcmc_calc_data)
+void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcmc_calc_data *p_pmcmc_calc_data, plom_f_pred_t f_pred)
 {
     //////////////////
     // declarations //
@@ -61,11 +61,11 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
 
     back_transform_theta2par(p_par, p_best->proposed, p_data->p_it_all, p_data);
     linearize_and_repeat(p_X, p_par, p_data, p_data->p_it_par_sv);
-    prop2Xpop_size(p_X, p_data, COMMAND_STO);
+    prop2Xpop_size(p_X, p_data);
     theta_driftIC2Xdrift(p_X, p_best->proposed, p_data);
 
     //run Kalman
-    p_like->Llike_best = run_kalman(p_X, p_best, p_par, p_kalman->p_kal, p_data, calc, p_file_X, m);
+    p_like->Llike_best = run_kalman(p_X, p_best, p_par, p_kalman->p_kalman_update, p_data, calc, f_pred, p_file_X, m);
     p_like->Llike_new = p_like->Llike_best;
 
     //the initial iteration is "accepted"
@@ -75,7 +75,6 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
 
     print_best(p_file_best, 0, p_best, p_data, p_like->Llike_best);
 
-    // print iteration info
 #if FLAG_VERBOSE
     time_pmcmc_end = s_clock();
     struct s_duration t_exec = time_exec(time_pmcmc_begin, time_pmcmc_end);
@@ -107,7 +106,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
         back_transform_theta2par(p_par, p_best->proposed, p_data->p_it_par_proc_par_obs_no_drift, p_data);
 
         //run Kalman
-        p_like->Llike_best = run_kalman(p_X, p_best, p_par, p_kalman->p_kal, p_data, calc, p_file_X, m);
+        p_like->Llike_best = run_kalman(p_X, p_best, p_par, p_kalman->p_kalman_update, p_data, calc, f_pred, p_file_X, m);
 
         p_like->Llike_new = p_like->Llike_best;
 

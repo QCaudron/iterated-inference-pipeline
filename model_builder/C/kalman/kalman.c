@@ -64,25 +64,21 @@ double drift_derivative(double jac_tpl, double jac_der, struct s_router *r, int 
  */
 void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data)
 {
-    struct s_router **routers = p_data->routers;
     struct s_iterator *p_it = p_data->p_it_only_drift;
+    int i;
 
-    // X->proj
-    int i, k, offset;
+    //proj (without drift)
     for(i=0; i<N_PAR_SV*N_CAC; i++)
         gsl_vector_set(xk, i, p_X->proj[i]);
 
-    // X->obs
-    for(i=0; i<N_TS; i++)
+    //obs
+    for(i=0; i<N_TS; i++) {
         gsl_vector_set(xk, N_PAR_SV*N_CAC + i, p_X->obs[i]);
+    }
 
-    // X->drift
-    offset = 0;
-    for(i=0; i<p_it->length; i++) {
-        for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-            gsl_vector_set(xk, N_PAR_SV*N_CAC + N_TS + offset, p_X->drift[i][k]);
-            offset++;
-        }
+    //drift
+    for(i=0; i<p_it->nbtot; i++) {
+	gsl_vector_set(xk, N_PAR_SV*N_CAC + N_TS + i, p_X->proj[N_PAR_SV*N_CAC+i]);
     }
 }
 
@@ -94,22 +90,17 @@ void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data)
  */
 void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data)
 {
-    struct s_router **routers = p_data->routers;
     struct s_iterator *p_it = p_data->p_it_only_drift;
+    int i;
 
-    int i, k, offset;
-
-    // X->proj
-    for(i=0; i<N_PAR_SV*N_CAC; i++)
+    //proj (without drift)
+    for(i=0; i<N_PAR_SV*N_CAC; i++) {
         p_X->proj[i] = (gsl_vector_get(xk, i) > 0.0) ? gsl_vector_get(xk, i) : 0.0 ;
+    }
 
-    // X->drift
-    offset = 0;
-    for(i=0; i<p_it->length; i++) {
-        for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-            p_X->drift[i][k] = gsl_vector_get(xk, N_PAR_SV*N_CAC + N_TS + offset) ;
-            offset++;
-        }
+    //drift
+    for(i=0; i<p_it->nbtot; i++) {
+	p_X->proj[N_PAR_SV*N_CAC + i] = gsl_vector_get(xk, N_PAR_SV*N_CAC + N_TS + i) ;
     }
 }
 
@@ -169,7 +160,7 @@ double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **ro
 /**
  *   run an extended Kalman filter and returns the log likelihood
  */
-double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kal *p_kal, struct s_data *p_data, struct s_calc **calc, FILE *p_file_X, int m)
+double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kalman_update *p_kalman_update, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, FILE *p_file_X, int m)
 {
     // loops indices
     int n, nn;		// data and nonan data indices
@@ -183,10 +174,10 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 
     t0=0;
     log_lik = 0.0;
-    p_kal->sc_st = 0.0;
-    p_kal->sc_pred_error = 0.0;
+    p_kalman_update->sc_st = 0.0;
+    p_kalman_update->sc_pred_error = 0.0;
 
-    gsl_matrix_view Ct = gsl_matrix_view_array(&(p_X->proj[PLOM_SIZE_PROJ]), N_KAL, N_KAL);
+    gsl_matrix_view Ct = gsl_matrix_view_array(&(p_X->proj[N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE]), N_KAL, N_KAL);
     gsl_matrix_set_zero(&Ct.matrix);
 
     //////////////////
@@ -204,9 +195,6 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 
         t1=p_data->times[n];
 
-        //drifted parameters are stored in p_calc->natural_drifted_safe. We initialize the values from p_X->drift[i][k]
-        drift_par(calc[0], p_data, p_X, 0, p_data->p_it_only_drift->length);
-
         /////////////////////////
         // for every time unit //
         /////////////////////////
@@ -217,12 +205,12 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
         for(nn=t0; nn<t1; nn++) {
             store_state_current_n_nn(calc, n, nn);
 
-            reset_inc(p_X);	// reset incidence to 0
+            reset_inc(p_X, p_data);	// reset incidence to 0
             reset_inc_cov(&Ct.matrix);	// reset incidence covariance to 0
 
             // propagate X->proj (containing the covariance Ct) if populations not exploding
             if (get_total_pop(p_X->proj)<WORLD_POP) {
-                f_prediction_ode_rk(p_X->proj, nn, nn+1, p_par, calc[0]);
+                f_pred(p_X, nn, nn+1, p_par, p_data, calc[0]);
             } else {
                 print_err("total_pop(X->proj)>=WORLD_POP");
             }
@@ -235,7 +223,7 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
         } // end of for loop on nn
 
         // transform p_X to x_k
-        X2xk(p_kal->xk, p_X, p_data);
+        X2xk(p_kalman_update->xk, p_X, p_data);
 
         // from here we work only with xk
 
@@ -243,22 +231,22 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
         for(ts=0; ts< data_ind[n]->n_nonan; ts++) {
 
             ts_nonan = data_ind[n]->ind_nonan[ts];
-            p_kal->sc_rt = obs_var(gsl_vector_get(p_kal->xk, N_PAR_SV*N_CAC + ts_nonan), p_par, p_data, calc[0], ts_nonan);
+            p_kalman_update->sc_rt = obs_var(gsl_vector_get(p_kalman_update->xk, N_PAR_SV*N_CAC + ts_nonan), p_par, p_data, calc[0], ts_nonan);
 
-            eval_ht(p_kal->ht, p_kal->xk, p_par, p_data, calc[0], ts_nonan);
+            eval_ht(p_kalman_update->ht, p_kalman_update->xk, p_par, p_data, calc[0], ts_nonan);
 
             // compute gain
-            ekf_gain_computation(obs_mean(gsl_vector_get(p_kal->xk, N_PAR_SV*N_CAC +ts_nonan), p_par, p_data, calc[0], ts_nonan),
+            ekf_gain_computation(obs_mean(gsl_vector_get(p_kalman_update->xk, N_PAR_SV*N_CAC +ts_nonan), p_par, p_data, calc[0], ts_nonan),
                                  p_data->data[calc[0]->current_nn][ts_nonan],
-                                 &Ct.matrix, p_kal->ht, p_kal->kt, p_kal->sc_rt,
-                                 &(p_kal->sc_st), &(p_kal->sc_pred_error)); //scalar sc_st and sc_pred_error will be modified so we pass their address
+                                 &Ct.matrix, p_kalman_update->ht, p_kalman_update->kt, p_kalman_update->sc_rt,
+                                 &(p_kalman_update->sc_st), &(p_kalman_update->sc_pred_error)); //scalar sc_st and sc_pred_error will be modified so we pass their address
 
-            like = ekf_update(p_kal->xk, &Ct.matrix, p_kal->ht, p_kal->kt, p_kal->sc_st, p_kal->sc_pred_error);
+            like = ekf_update(p_kalman_update->xk, &Ct.matrix, p_kalman_update->ht, p_kalman_update->kt, p_kalman_update->sc_st, p_kalman_update->sc_pred_error);
             log_lik_temp += log(like);
         }
 
-        //echo back the change on xk to p_X->proj and p_X->drift
-        xk2X(p_X, p_kal->xk, p_data);
+        //echo back the change on xk to p_X->proj
+        xk2X(p_X, p_kalman_update->xk, p_data);
 
         log_lik += log_lik_temp;
         t0=t1;

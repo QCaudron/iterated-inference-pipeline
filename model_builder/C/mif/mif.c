@@ -16,12 +16,10 @@
  *    <http://www.gnu.org/licenses/>.
  *************************************************************************/
 
-
 #include "mif.h"
 
-void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_par **J_p_par, struct s_likelihood *p_like, gsl_matrix *var_theta, gsl_vector **J_theta, gsl_vector **J_theta_tmp, double ***J_IC_grouped, double ***J_IC_grouped_tmp, double **D_theta_bart, double **D_theta_Vt)
+void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_par **J_p_par, struct s_likelihood *p_like, gsl_matrix *var_theta, gsl_vector **J_theta, gsl_vector **J_theta_tmp, double ***J_IC_grouped, double ***J_IC_grouped_tmp, double **D_theta_bart, double **D_theta_Vt, plom_f_pred_t f_pred)
 {
-
     int j;
     int m, n, nn, nnp1; /*m:filtering iteration index, n: indeces N_DATA and nn N_DATA_NONAN */
 #if FLAG_VERBOSE
@@ -57,7 +55,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
         fill_theta_bart_and_Vt_mif(D_theta_bart, D_theta_Vt, p_best, p_data, m);
 
         for(j=0; j<J; j++) {
-            propose_safe_theta_and_load_X0(p_best->proposed, p_best, MIF_b*FREEZE, J_p_par[j], (*J_p_X)[j], p_data, calc[0], ran_proposal, COMMAND_STO);
+            propose_safe_theta_and_load_X0(p_best->proposed, p_best, MIF_b*FREEZE, J_p_par[j], (*J_p_X)[j], p_data, calc[0], ran_proposal);
             split_theta_mif(p_best->proposed, J_theta[j], (*J_IC_grouped)[j], p_data); // JD J_theta and J_IC, with corresponding intialisations!
         }
 
@@ -85,20 +83,12 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 #pragma omp parallel for private(thread_id)
                 for(j=0;j<J;j++) {
                     thread_id = omp_get_thread_num();
-                    reset_inc((*J_p_X)[j]);
-                    if (COMMAND_DETER) {
-                        f_prediction_with_drift_deter((*J_p_X)[j], nn, nnp1, J_p_par[j], p_data, calc[thread_id]);
-                    } else {
-                        f_prediction_with_drift_sto((*J_p_X)[j], nn, nnp1, J_p_par[j], p_data, calc[thread_id]);
-                    }
+                    reset_inc((*J_p_X)[j], p_data);
+
+		    f_pred((*J_p_X)[j], nn, nnp1, J_p_par[j], p_data, calc[thread_id]);
 
                     if(nnp1 == t1) {
-                        if(N_DRIFT_PAR_OBS) {
-                            compute_drift((*J_p_X)[j], J_p_par[j], p_data, calc[thread_id], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC+N_DRIFT_PAR_OBS, t1-t0);
-                            drift_par(calc[thread_id], p_data, (*J_p_X)[j], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
-                        }
                         proj2obs((*J_p_X)[j], p_data);
-
                         p_like->weights[j] = exp(get_log_likelihood((*J_p_X)[j], J_p_par[j], p_data, calc[thread_id]));
                     }
                 }

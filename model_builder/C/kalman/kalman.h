@@ -41,21 +41,30 @@ int OPTION_TRANSF;  // add log_transf_correc to log_lik
 // method_specific_data (accessible via p_calc->method_specific_thread_safe_data) (after casting)
 struct s_kalman_specific_data
 {
-    gsl_matrix *Q;  /**< result of L Qc L' : Dispersion matrix of the SDE approximated with by the EKF: dX_t = f(X_t,\theta)dt + L b_t  (b_t is a Browninan motion with diffusion matrix Qc)*/
     gsl_matrix *Ft; /**< Jacobian matrix of the drift f(X_t,\theta) of the SDE approximated with the EKF: dX_t = f(X_t,\theta)dt + L b_t */
 
     struct s_group ***compo_groups_drift_par_proc;
 
+    gsl_matrix *Q;  /**< result of L Qc L' : Dispersion matrix of the
+		       SDE approximated with by the EKF: dX_t =
+		       f(X_t,\theta)dt + L b_t (b_t is a Browninan
+		       motion with diffusion matrix Qc). L is the
+		       dispersion matrix as found in Sarkka phD thesis
+		       (2006) : as many rows as state variables
+		       (including observed variables), as many columns
+		       as independent noises (Brownian motion) */
+
     gsl_matrix *FtCt;	/**< for Ft*Ct (product of the jacobian matrix and the covariance matrix) */
 
-    // for demographic stochasticity
-    double *diag_Qc;        /**< Diagonal of the diffusion matrix of the Brownian motion (as many terms as independent noises (Brownian motion)) */
-    gsl_matrix *L;    /**< Dispersion matrix as found in Sarkka phD thesis (2006) : as many rows as state variables (including observed variables),  as many columns as independent noises (Brownian motion) */
-    gsl_matrix *LQc;   /**< intermetiate step in the computation of Q = L Qc L' */
+    gsl_matrix *Qc; /**< Diffusion matrix of the Brownian motion (as many terms as noises (Brownian motion)) */
+    gsl_matrix *L;   /**< Dispersion matrix as found in Sarkka phD thesis (2006) : as many rows as state variables (including observed variables),  as many columns as independent noises (Brownian motion) */
+    gsl_matrix *LQc; /**< intermetiate step in the computation of Q = L Qc L' */
+
+    void (*eval_Qc) (gsl_matrix *Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
 };
 
 
-struct s_kal
+struct s_kalman_update
 {
     gsl_vector *xk;  /**< [N_KAL] concatenation of non-overlapping components of X->proj, X->obs and X->drift */
     gsl_vector *kt;  /**< [N_KAL] Kalman Gain vector */
@@ -79,20 +88,22 @@ struct s_kalman
   double smallest_log_like; /* used in simplex kalman (see simplex.h) */
 
   /* kalman specific */
-  struct s_kal *p_kal;
+    struct s_kalman_update *p_kalman_update;
 };
 
+
 /* build.c */
-struct s_kalman_specific_data *build_kalman_specific_data(struct s_data *p_data);
+struct s_kalman_specific_data *build_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data);
 void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data);
-struct s_kal *build_kal(void);
-void clean_kal(struct s_kal *p_kal);
-struct s_kalman *build_kalman(json_t *settings, int is_bayesian, int update_covariance);
+struct s_kalman_update *build_kalman_update(int n_kalman_update);
+void clean_kalman_update(struct s_kalman_update *p_kalman_update);
+
+struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int update_covariance, double dt, double eps_abs, double eps_rel);
 void clean_kalman(struct s_kalman *p_kalman);
 
 /* kalman.c */
 double drift_derivative(double jac_tpl, double jac_der, struct s_router *r, int cac);
-double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kal *p_kal, struct s_data *p_data, struct s_calc **calc, FILE *p_file_X, int m);
+double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kalman_update *p_kalman_update, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, FILE *p_file_X, int m);
 double f_simplex_kalman(const gsl_vector *x, void *params);
 void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data);
 void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data);
@@ -107,19 +118,26 @@ void ekf_gain_computation(double xk_t_ts, double data_t_ts, gsl_matrix *Ct, gsl_
 double ekf_update(gsl_vector *xk, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt, double sc_st, double sc_pred_error);
 
 /* kalman_template.c */
-
-
-int func_kal(double t, const double X[], double f[], void *params);
+int step_ode_ekf(double t, const double X[], double f[], void *params);
 
 int cac_drift_in_cac_ts(int cac_drift, int o, int ts_unique, struct s_obs2ts **obs2ts);
 void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_group ***compo_groups_drift_par_proc, double t);
 void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
 
-void eval_diag_Qc(double *diag_Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
-void eval_L(gsl_matrix *L, struct s_data *p_data);
-void eval_Q(gsl_matrix *Q, const double *proj, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_kalman_specific_data *p_kalman_specific_data, double t);
 
+void eval_L_full(gsl_matrix *L, struct s_calc *p_calc, struct s_data *p_data);
+void eval_L_no_dem_sto(gsl_matrix *L, struct s_calc *p_calc, struct s_data *p_data);
+void eval_L_no_env_sto(gsl_matrix *L, struct s_calc *p_calc, struct s_data *p_data);
+void eval_L_no_dem_sto_no_env_sto(gsl_matrix *L, struct s_calc *p_calc, struct s_data *p_data);
+
+
+void eval_Qc_full(gsl_matrix *Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
+void eval_Qc_no_dem_sto(gsl_matrix *Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
+void eval_Qc_no_env_sto(gsl_matrix *Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
+void eval_Qc_no_dem_sto_no_env_sto(gsl_matrix *Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t);
+
+void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_kalman_specific_data *p_kalman_specific_data, double t);
 
 
 /* kmcmc.c */
-void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcmc_calc_data *p_pmcmc_calc_data);
+void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcmc_calc_data *p_pmcmc_calc_data, plom_f_pred_t f_pred);

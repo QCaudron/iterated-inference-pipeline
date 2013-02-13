@@ -33,11 +33,11 @@ void ensure_cst_pop_size(struct s_data *p_data);
 
 /* integrator.c */
 int has_failed(double *y);
-int integrator(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par *p_par, double abs_tol, double rel_tol, struct s_calc *p_calc);
-int integrate(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par *p_par,  double *abs_tol, double *rel_tol, struct s_calc *p_calc);
+int integrator(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par *p_par, double abs_tol, double rel_tol, struct s_calc *p_calc, struct s_data *p_data);
+int integrate(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par *p_par, double *abs_tol, double *rel_tol, struct s_calc *p_calc, struct s_data *p_data);
 
-double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
-void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc);
+double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, plom_f_pred_t f_pred);
+void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred);
 
 /* bif.c */
 double nextpow2(double x);
@@ -51,7 +51,7 @@ double get_min(double *tab, int length_tab);
 double get_max(double *tab, int length_tab);
 
 /* lyap.c */
-int func_lyap (double t, const double y[], double f[], void *params);
+int step_lyap (double t, const double y[], double f[], void *params);
 void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0, double t_end, double abs_tol, double rel_tol);
 void gram_schmidt_normalize(double *y, double *lyap);
 

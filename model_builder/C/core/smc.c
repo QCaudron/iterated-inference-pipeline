@@ -141,28 +141,19 @@ void multinomial_sampling(struct s_likelihood *p_like, struct s_calc *p_calc, in
 
 void resample_X(unsigned int *select, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_data *p_data)
 {
-    int i, k, j;
-    struct s_drift *p_drift = p_data->p_drift;
-    struct s_router **routers = p_data->routers;
-
+    int k, j;
+    int size_resample_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
 
     //#pragma omp parallel for private(k) //parallelisation is not efficient here
     for(j=0;j<J;j++) {
 
-        for(k=0;k<N_PAR_SV*N_CAC;k++) { //we resample proj only up to N_PAR_SV, we don't need N_TS_INC_UNIQUE as they are present in obs
+        for(k=0;k<size_resample_proj;k++) { //we don't need N_TS_INC_UNIQUE as they are present in obs
             (*J_p_X_tmp)[j]->proj[k] = (*J_p_X)[select[j]]->proj[k];
         }
 
         for(k=0;k<N_TS;k++) {
             (*J_p_X_tmp)[j]->obs[k] = (*J_p_X)[select[j]]->obs[k];
         }
-
-        for(i=0; i< (N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS) ; i++) {
-            for(k=0; k< routers[ p_drift->ind_par_Xdrift_applied[i] ]->n_gp; k++) {
-                (*J_p_X_tmp)[j]->drift[i][k] = (*J_p_X)[select[j]]->drift[i][k];
-            }
-        }
-
     }
 
     swap_X(J_p_X, J_p_X_tmp);
@@ -174,13 +165,11 @@ void resample_X(unsigned int *select, struct s_X ***J_p_X, struct s_X ***J_p_X_t
  */
 void replicate_J_p_X_0(struct s_X **J_p_X, struct s_data *p_data)
 {
-    int i, j;
+    int j;
+    int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
     for(j=1; j<J; j++) {
-        memcpy(J_p_X[j]->proj, J_p_X[0]->proj, J_p_X[j]->size_proj * sizeof(double));
-        for (i=0; i<p_data->p_it_only_drift->length; i++) {
-            memcpy(J_p_X[j]->drift[i], J_p_X[0]->drift[i], p_data->routers[ p_data->p_it_only_drift->ind[i] ]->n_gp *sizeof(double) );
-        }
+        memcpy(J_p_X[j]->proj, J_p_X[0]->proj, size_proj * sizeof(double));
     }
 }
 
@@ -213,15 +202,15 @@ void replicate_J_p_X_0(struct s_X **J_p_X, struct s_data *p_data)
 void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
              struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like,
              struct s_data *p_data, struct s_calc **calc,
-             void (*f_pred) (struct s_X *, double, double, struct s_par *, struct s_data *, struct s_calc *),
+             plom_f_pred_t f_pred,
              int option_filter, FILE *p_file_X, FILE *p_file_pred_res
              )
 {
-    int i;
     int j, n, nn, nnp1;
     int t0,t1;
     int thread_id;
     double invJ = 1.0 / J;
+    int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
     t0=0;
 
@@ -246,27 +235,19 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
 
             //we are going to overwrite the content of the [nnp1] pointer: initialise it with values from [nn]
             for(j=0;j<J;j++) {
-                memcpy(D_J_p_X[nnp1][j]->proj, D_J_p_X[nn][j]->proj, (N_PAR_SV*N_CAC + N_TS_INC_UNIQUE) * sizeof(double));
-                for (i=0; i<p_data->p_it_only_drift->length; i++) {
-                    memcpy(D_J_p_X[nnp1][j]->drift[i], D_J_p_X[nn][j]->drift[i], p_data->routers[ p_data->p_it_only_drift->ind[i] ]->n_gp *sizeof(double) );
-                }
+                memcpy(D_J_p_X[nnp1][j]->proj, D_J_p_X[nn][j]->proj, size_proj * sizeof(double));
             }
 
 #pragma omp parallel for private(thread_id)
             for(j=0;j<J;j++) {
                 thread_id = omp_get_thread_num();
-                reset_inc(D_J_p_X[nnp1][j]);
+                reset_inc(D_J_p_X[nnp1][j], p_data);
                 (*f_pred)(D_J_p_X[nnp1][j], nn, nnp1, p_par, p_data, calc[thread_id]);
                 //round_inc(D_J_p_X[nnp1][j]);
-
-                if(N_DRIFT_PAR_OBS) {
-                    compute_drift(D_J_p_X[nnp1][j], p_par, p_data, calc[thread_id], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS, 1.0); //1.0 is delta_t (nnp1-nn)
-                }
 
                 proj2obs(D_J_p_X[nnp1][j], p_data);
 
                 if(nnp1 == t1) {
-                    drift_par(calc[thread_id], p_data, D_J_p_X[nnp1][j], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
                     p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[nnp1][j], p_par, p_data, calc[thread_id]));
                 }
             }
@@ -304,11 +285,10 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
 }
 
 /**
-   same as run_SMC but deleguates work to simforence workers. Each
-   worker receive Jchunk particles
-*/
-
-void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, void (*f_pred) (struct s_X *, double, double, struct s_par *, struct s_data *, struct s_calc *), int Jchunk, void *sender, void *receiver, void *controller)
+ *   same as run_SMC but deleguates work to simforence workers. Each
+ *  worker receive Jchunk particles
+ */
+void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int Jchunk, void *sender, void *receiver, void *controller)
 {
     int j, n, nn, nnp1;
     int t0,t1;

@@ -42,7 +42,7 @@ void header_X(FILE *p_file, struct s_data *p_data)
 {
     int i, g, ts, cac;
 
-    struct s_drift *p_drift = p_data->p_drift;
+    struct s_drift **drift = p_data->drift;
     struct s_router **routers = p_data->routers;
 
     fprintf(p_file, "index,time,");
@@ -58,8 +58,8 @@ void header_X(FILE *p_file, struct s_data *p_data)
         fprintf(p_file, "obs_mean:%s,", p_data->ts_name[ts]);
     }
 
-    for(i=0; i< (N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS) ; i++) {
-        int ind_par_Xdrift_applied = p_drift->ind_par_Xdrift_applied[i];
+    for(i=0; i< (p_data->p_it_only_drift->length) ; i++) {
+        int ind_par_Xdrift_applied = drift[i]->ind_par_Xdrift_applied;
         const char *name = routers[ind_par_Xdrift_applied]->name;
         for(g=0; g< routers[ ind_par_Xdrift_applied ]->n_gp; g++) {
             const char *group = routers[ind_par_Xdrift_applied]->group_name[g];
@@ -93,7 +93,7 @@ void header_prediction_residuals(FILE *p_file, struct s_data *p_data)
 void header_hat(FILE *p_file, struct s_data *p_data)
 {
     int i, g, ts, cac;
-    struct s_drift *p_drift = p_data->p_drift;
+    struct s_drift **drift = p_data->drift;
     struct s_router **routers = p_data->routers;
 
     fprintf(p_file, "time,");
@@ -113,8 +113,8 @@ void header_hat(FILE *p_file, struct s_data *p_data)
     }
 
     /* drift */
-    for(i=0; i< (N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS) ; i++) {
-        int ind_par_Xdrift_applied = p_drift->ind_par_Xdrift_applied[i];
+    for(i=0; i< p_data->p_it_only_drift->length ; i++) {
+        int ind_par_Xdrift_applied = drift[i]->ind_par_Xdrift_applied;
         const char *name = routers[ind_par_Xdrift_applied]->name;
         for(g=0; g< routers[ ind_par_Xdrift_applied ]->n_gp; g++) {
             const char *group = routers[ind_par_Xdrift_applied]->group_name[g];
@@ -214,12 +214,9 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
     int i, k, ts;
     double x;
 
-    struct s_drift *p_drift = p_data->p_drift;
+    struct s_drift **drift = p_data->drift;
     struct s_router **routers = p_data->routers;
     int ind_par_Xdrift_applied;
-
-    /* makes sure that p_calc contains the natural values of the drifted obs process parameters */
-    drift_par(p_calc, p_data, p_X, N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
 
 
 #if FLAG_JSON
@@ -248,10 +245,10 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
 #endif
     }
 
-    for(i=0; i< (N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS) ; i++) {
-        ind_par_Xdrift_applied = p_drift->ind_par_Xdrift_applied[i];
+    for(i=0; i< p_data->p_it_only_drift->length ; i++) {
+        ind_par_Xdrift_applied = drift[i]->ind_par_Xdrift_applied;
         for(k=0; k< routers[ ind_par_Xdrift_applied ]->n_gp; k++) {
-            x = (*(routers[ ind_par_Xdrift_applied ]->f_inv))( p_X->drift[i][k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
+            x = (*(routers[ ind_par_Xdrift_applied ]->f_inv))( p_X->proj[drift[i]->offset + k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
 #if FLAG_JSON
             json_array_append_new(json_print_j, json_real(x));
 #else
@@ -564,10 +561,6 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
         M2=0.0;
 
         for(j=0;j<J;j++) {
-
-            /* makes sure that p_calc contains the natural values of the drifted obs process parameters */
-            drift_par(p_calc, p_data, J_p_X[j], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
-
             kn += 1.0;
             x = obs_mean(J_p_X[j]->obs[ts], J_p_par[*fake_j], p_data, p_calc, ts);
 

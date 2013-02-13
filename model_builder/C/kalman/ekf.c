@@ -156,7 +156,6 @@ void check_and_correct_Ct(gsl_matrix *Ct)
         print_err("Error in check_and_correct_Ct");
     }
 
-
 }
 
 /**

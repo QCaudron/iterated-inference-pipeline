@@ -65,11 +65,9 @@ struct s_pmcmc
 
 
 /* pmcmc.c */
-void run_propag(
-                struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_new,
-                struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc,
+void run_propag(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_new,
+                struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred,
                 void *sender, void *receiver, void *controller);
-
 void propose_new_theta_and_load_X0(double *sd_fac,
                                    struct s_best *p_best, struct s_X *p_X,
                                    struct s_par *p_par,
@@ -78,7 +76,7 @@ void propose_new_theta_and_load_X0(double *sd_fac,
 
 void increment_iteration_counters(struct s_pmcmc_calc_data *p_pmcmc_calc_data, struct s_best *p_best, const int OPTION_FULL_UPDATE);
 
-void pMCMC(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_prev, struct s_hat ***D_p_hat_new, struct s_hat **D_p_hat_best, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc);
+void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_prev, struct s_hat ***D_p_hat_new, struct s_hat **D_p_hat_best, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred);
 
 /* methods.c */
 void ran_proposal_sequential(gsl_vector *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc);
@@ -93,5 +91,5 @@ void print_covariance(FILE *p_file_cov, gsl_matrix *covariance);
 struct s_pmcmc_calc_data *build_pmcmc_calc_data(struct s_best *p_best, double a, int m_switch, int m_eps);
 void clean_pmcmc_calc_data(struct s_pmcmc_calc_data *p_pmcmc_calc_data);
 
-struct s_pmcmc *build_pmcmc(json_t *root, int has_dt_be_specified, double dt_option, double a, int m_switch, int m_eps, int update_covariance);
+struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_noises_off noises_off, json_t *settings, double dt, double eps_abs, double eps_rel, double a, int m_switch, int m_eps, int update_covariance, int J, int *n_threads);
 void clean_pmcmc(struct s_pmcmc *p_pmcmc);

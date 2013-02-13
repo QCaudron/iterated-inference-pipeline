@@ -110,46 +110,26 @@ void recv_par(struct s_par *p_par, struct s_data *p_data, void *socket)
 int send_X(void *socket, const struct s_X *p_X, struct s_data *p_data, int zmq_options)
 {
     int rc;
-    int i;
-
-    //send drift
-    if(p_X->size_drift) {
-        for(i=0; i< p_X->size_drift; i++) {
-            rc = send_array_d(socket,
-                              p_X->drift[i],
-                              p_data->routers[ p_data->p_drift->ind_par_Xdrift_applied[i] ]->n_gp,
-                              ZMQ_SNDMORE);
-        }
-    }
+    int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
     //send obs
-    rc = send_array_d(socket, p_X->obs, p_X->size_obs, ZMQ_SNDMORE);
+    rc = send_array_d(socket, p_X->obs, N_TS, ZMQ_SNDMORE);
 
     //send proj
-    rc = send_array_d(socket, p_X->proj, p_X->size_proj, zmq_options);
+    rc = send_array_d(socket, p_X->proj, size_proj, zmq_options);
 
     return (rc);
 }
 
 void recv_X(struct s_X *p_X, struct s_data *p_data, void *socket)
 {
-    int i;
-
-    //drift
-    if(p_X->size_drift) {
-        for(i=0; i< p_X->size_drift; i++) {
-            recv_array_d(p_X->drift[i],
-                         p_data->routers[ p_data->p_drift->ind_par_Xdrift_applied[i] ]->n_gp,
-                         socket);
-        }
-    }
+    int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
     //obs
-    recv_array_d(p_X->obs, p_X->size_obs, socket);
+    recv_array_d(p_X->obs, N_TS, socket);
 
     //proj
-    recv_array_d(p_X->proj, p_X->size_proj, socket);
-
+    recv_array_d(p_X->proj, size_proj, socket);
 }
 
 

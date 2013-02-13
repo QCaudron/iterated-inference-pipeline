@@ -479,33 +479,30 @@ json_t *load_settings(const char *path)
     N_OBS_INC = fast_get_json_integer(cst, "N_OBS_INC");
     N_OBS_PREV = fast_get_json_integer(cst, "N_OBS_PREV");
 
-    N_DRIFT_PAR_PROC = fast_get_json_integer(cst, "N_DRIFT_PAR_PROC");
-    N_DRIFT_PAR_OBS = fast_get_json_integer(cst, "N_DRIFT_PAR_OBS");
+    N_DRIFT = fast_get_json_integer(cst, "N_DRIFT");
 
     IS_SCHOOL_TERMS = fast_get_json_integer(cst, "IS_SCHOOL_TERMS");
 
-    /*numerical integration parameters*/
-    DELTA_STO = fast_get_json_real(cst, "DELTA_STO");
-    DT = 1.0 / DELTA_STO;
+    /* unit */
     ONE_YEAR_IN_DATA_UNIT = fast_get_json_real(cst, "ONE_YEAR_IN_DATA_UNIT");
 
     return settings;
 }
 
-
-void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int update_guess, int update_covariance)
+/**
+ * integrate best data from the webApp
+ */
+void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int update_guess, int update_covariance)
 {
-    /* integrate best data from the webApp */
-
     int i, g, offset;
     struct s_router **routers = p_data->routers;
     json_t *parameters = fast_get_json_object(theta, "value");
     json_t *partitions = fast_get_json_object(theta, "partition");
-    struct s_iterator *p_it = p_data->p_it_all;
+    struct s_iterator *p_it_all = p_data->p_it_all;
 
     offset = 0;
 
-    for(i=0; i<p_it->length; i++) {
+    for(i=0; i<p_it_all->length; i++) {
         const char *par_key = routers[i]->name;
 
         json_t *par = fast_get_json_object(parameters, par_key);
@@ -547,6 +544,26 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int 
             p_best->par_prior[offset][1] = fast_get_json_real_from_object(par_max, my_group_id);
 
             offset++;
+        }
+    }
+
+    //turn off sd_transf of env noises parameters
+    if(p_data->noises_off & PLOM_NO_ENV_STO){
+        struct s_iterator *p_it_noise = p_data->p_it_noise;
+        for(i=0; i<p_it_noise->length; i++){
+            for(g=0; g< routers[ p_it_noise->ind[i] ]->n_gp; g++){
+                gsl_matrix_set(p_best->var, p_it_noise->offset[i]+g, p_it_noise->offset[i]+g, 0.0);
+            }
+        }
+    }
+
+    //we turn off sd_transf of the volatilities
+    if(p_data->noises_off & PLOM_NO_DRIFT){
+        for(i=0; i< N_DRIFT; i++) { //N_DRIFT as iterator could have been edited if PLOM_NO_DRIFT
+            int ind_volatility = p_data->drift[i]->ind_volatility_Xdrift;
+            for(g=0; g< routers[ind_volatility]->n_gp; g++) {
+                gsl_matrix_set(p_best->var, p_it_all->offset[ind_volatility]+g, p_it_all->offset[ind_volatility]+g, 0.0);
+            }
         }
     }
 

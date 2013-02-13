@@ -68,7 +68,6 @@ void fill_theta_bart_and_Vt_mif(double **D_theta_bart, double **D_theta_Vt, stru
             }
         }
     }
-
 }
 
 

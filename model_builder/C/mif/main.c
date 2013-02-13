@@ -26,22 +26,31 @@ int main(int argc, char *argv[])
     /* set default values for the options */
 
     char sfr_help_string[] =
-        "Plom MIF\n"
+        "PLoM MIF\n"
         "usage:\n"
-        "smc <command> [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
-        "              [-s, --DT  <float>] [-l, --LIKE_MIN <float>] [-J <integer>] [-M, --iter <integer>]\n"
-        "              [-a, --cooling <float>] [-b, --heat <float>] [-L, --lag <float>] [-S, --switch <integer>]\n"
-        "              [-f --ic_only]\n"
-        "              [--help]\n"
-        "where command is 'deter' or 'sto'\n"
+        "mif [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "                     [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
+	"                     [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
+        "                     [-l, --LIKE_MIN <float>] [-J <integer>] [-M, --iter <integer>]\n"
+        "                     [-a, --cooling <float>] [-b, --heat <float>] [-L, --lag <float>] [-S, --switch <integer>]\n"
+        "                     [-f --ic_only]\n"
+        "                     [--help]\n"
+        "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
-
+	"\n"
+        "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
+        "--no_env_sto       turn off environmental stochasticity (if any)\n"
+        "--no_drift         turn off drift (if any)\n"
+	"\n"
+        "-s, --DT           Initial integration time step\n"
+	"--eps_abs          Absolute error for adaptive step-size contro\n"
+	"--eps_rel          Relative error for adaptive step-size contro\n"
+	"\n"
         "--prior            to maximize posterior density in natural space\n"
         "--traj             print the trajectories\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-P, --N_THREAD     number of threads to be used (default to the number of cores)\n"
-        "-s, --DT           integration time step\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-J                 number of particles\n"
         "-M, --iter         number of MIF iterations\n"
@@ -52,8 +61,11 @@ int main(int argc, char *argv[])
         "-f, --ic_only      only fit the initial condition using fixed lag smoothing\n"
         "--help             print the usage on stdout\n";
 
-    int has_dt_be_specified = 0;
-    double dt_option = 0.0;
+
+    enum plom_implementations implementation;
+    enum plom_noises_off noises_off = 0;
+
+    double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
     double prop_L_option = 0.75;
 
     GENERAL_ID =0;
@@ -69,7 +81,7 @@ int main(int argc, char *argv[])
     prop_L_option = 0.75;
     SWITCH = 5;
     OPTION_IC_ONLY = 0;
-    N_THREADS = omp_get_max_threads();
+    int n_threads = omp_get_max_threads();
     OPTION_TRAJ = 0;
     OPTION_PRIOR = 0;
 
@@ -80,12 +92,20 @@ int main(int argc, char *argv[])
                 {"prior", no_argument,       &OPTION_PRIOR, 1},
                 {"traj", no_argument,       &OPTION_TRAJ, 1},
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
+
+                {"no_dem_sto", no_argument,       0, 'x'},
+                {"no_env_sto", no_argument,       0, 'y'},
+                {"no_drift",   no_argument,       0, 'z'},
+
+		{"DT",         required_argument, 0, 's'},
+		{"eps_abs",    required_argument, 0, 'v'},
+		{"eps_rel",    required_argument, 0, 'w'},
+
                 {"help", no_argument,  0, 'e'},
                 {"path",    required_argument, 0, 'p'},
                 {"id",    required_argument, 0, 'i'},
                 {"N_THREAD",  required_argument,       0, 'P'},
 
-                {"DT",  required_argument, 0, 's'},
                 {"LIKE_MIN",     required_argument,   0, 'l'},
                 {"iter",     required_argument,   0, 'M'},
                 {"cooling",     required_argument,   0, 'a'},
@@ -99,7 +119,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "i:J:l:M:a:b:L:S:fs:p:P:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:i:J:l:M:a:b:L:S:fp:P:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -113,6 +133,26 @@ int main(int argc, char *argv[])
             }
             break;
 
+        case 'x':
+            noises_off = noises_off | PLOM_NO_DEM_STO;
+            break;
+        case 'y':
+            noises_off = noises_off | PLOM_NO_ENV_STO;
+            break;
+        case 'z':
+            noises_off = noises_off | PLOM_NO_DRIFT;
+            break;
+
+        case 's':
+            dt = atof(optarg);
+            break;
+        case 'v':
+            eps_abs = atof(optarg);
+            break;
+        case 'w':
+            eps_rel = atof(optarg);
+            break;
+
         case 'e':
             print_log(sfr_help_string);
             return 1;
@@ -121,7 +161,7 @@ int main(int argc, char *argv[])
             snprintf(SFR_PATH, STR_BUFFSIZE, "%s", optarg);
             break;
         case 'P':
-            N_THREADS = atoi(optarg);
+            n_threads = atoi(optarg);
             break;
         case 'i':
             GENERAL_ID = atoi(optarg);
@@ -155,14 +195,9 @@ int main(int argc, char *argv[])
             print_log("Fitting only the initial condition with fixed lag smoothing: **have** to be used with sfr -I !...\n");
             break;
 
-        case 's':
-            dt_option = atof(optarg);
-            has_dt_be_specified =1;
-            break;
-
         case '?':
             /* getopt_long already printed an error message. */
-            break;
+            return 1;
 
         default:
             snprintf(str, STR_BUFFSIZE, "Unknown option '-%c'\n", optopt);
@@ -173,30 +208,33 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if(argc != 1) {
-        print_log(sfr_help_string);
-        return 1;
-    }
-    else {
-        if (!strcmp(argv[0], "deter")) {
-            print_log("deter");
-            COMMAND_DETER = 1;
-        } else if (!strcmp(argv[0], "sto")) {
-            COMMAND_STO = 1;
+
+    if(argc == 0) {
+	implementation = PLOM_PSR;
+    } else {
+        if (!strcmp(argv[0], "ode")) {
+            implementation = PLOM_ODE;
+            noises_off = noises_off | PLOM_NO_DEM_STO| PLOM_NO_ENV_STO | PLOM_NO_DRIFT;
+        } else if (!strcmp(argv[0], "sde")) {
+            implementation = PLOM_SDE;
+        } else if (!strcmp(argv[0], "psr")) {
+            implementation = PLOM_PSR;
         } else {
             print_log(sfr_help_string);
             return 1;
         }
     }
 
+
 #if FLAG_VERBOSE
     print_log("memory allocation and inputs loading...\n");
 #endif
 
-    struct s_mif *p_mif = build_mif(has_dt_be_specified, dt_option, prop_L_option);
+    struct s_mif *p_mif = build_mif(implementation, noises_off, dt, eps_abs, eps_rel, prop_L_option, J, &n_threads);
 
 #if FLAG_VERBOSE
-    print_log("starting computations...\n");
+    snprintf(str, STR_BUFFSIZE, "Starting Simforence-MIF with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, a = %g, b = %g, L = %g, SWITCH = %d, DT = %g, N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, M, MIF_a, MIF_b, prop_L_option, SWITCH, p_mif->calc[0]->dt, n_threads);
+    print_log(str);
 #endif
 
     if (OPTION_PRIOR) {
@@ -207,7 +245,7 @@ int main(int argc, char *argv[])
     transform_theta(p_mif->p_best, transit_mif, NULL, p_mif->p_data, 1, 1);
     get_submatrix_var_theta_mif(p_mif->var_theta, p_mif->p_best, p_mif->p_data);
 
-    mif(p_mif->calc, p_mif->p_data, p_mif->p_best, &(p_mif->J_p_X), &(p_mif->J_p_X_tmp), p_mif->J_p_par, p_mif->p_like, p_mif->var_theta, p_mif->J_theta, p_mif->J_theta_tmp, &(p_mif->J_IC_grouped), &(p_mif->J_IC_grouped_tmp), p_mif->D_theta_bart, p_mif->D_theta_Vt);
+    mif(p_mif->calc, p_mif->p_data, p_mif->p_best, &(p_mif->J_p_X), &(p_mif->J_p_X_tmp), p_mif->J_p_par, p_mif->p_like, p_mif->var_theta, p_mif->J_theta, p_mif->J_theta_tmp, &(p_mif->J_IC_grouped), &(p_mif->J_IC_grouped_tmp), p_mif->D_theta_bart, p_mif->D_theta_Vt, get_f_pred(implementation, noises_off));
 
 #if FLAG_VERBOSE
     print_log("clean up...\n");

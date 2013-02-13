@@ -11,7 +11,7 @@ all: $(EXEC)
 obj: $(OBJ)
 
 $(EXEC): $(OBJ)
-	$(CC) -L../lib -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -L../lib -o $@ $^ $(LDFLAGS)
 
 %.o: %.c simplex.h
 	$(CC) $(CFLAGS) -o $@ -c $<

@@ -22,24 +22,26 @@
 /**
  * reset incidences to 0
  */
-void reset_inc(struct s_X *p_X)
+void reset_inc(struct s_X *p_X, struct s_data *p_data)
 {
     double *X = p_X->proj;
+    int offset = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
     int oi;
     for (oi=0; oi<N_TS_INC_UNIQUE; oi++) {
-        X[N_PAR_SV*N_CAC+oi]=0.0; /*incidence*/
+        X[offset + oi]=0.0; /*incidence*/
     }
 }
 
 /**
  * round incidences
  */
-void round_inc(struct s_X *p_X)
+void round_inc(struct s_X *p_X, struct s_data *p_data)
 {
     double *X = p_X->proj;
+    int offset = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
     int oi;
     for (oi=0; oi<N_TS_INC_UNIQUE; oi++) {
-        X[N_PAR_SV*N_CAC+oi]=round(X[N_PAR_SV*N_CAC+oi]); /*incidence*/
+        X[offset + oi]=round(X[offset + oi]); /*incidence*/
     }
 }
 
@@ -68,9 +70,9 @@ double sum_SV(const double *X_proj, int cac)
    exponential. So we ensure that the rate has the correct magnitude
    by correcting it
 */
-double correct_rate(double rate)
+double correct_rate(double rate, double dt)
 {
-    return -log(1.0-rate/DELTA_STO)*DELTA_STO;
+    return -log(1.0-rate*dt)/dt;
 }
 
 
@@ -92,13 +94,11 @@ void linearize_and_repeat(struct s_X *p_X, struct s_par *p_par, struct s_data *p
 }
 
 /**
-*   From proportion of initial conditons to population size.  If
-*   @c POP_SIZE_EQ_SUM_SV the last state is replaced by
-*   pop_size - sum_every_state_except_the_last.
-*
-*   need_rounding should be set to 1 for stochastic model
-*/
-void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, int need_rounding)
+ *   From proportion of initial conditons to population size.  If
+ *   @c POP_SIZE_EQ_SUM_SV the last state is replaced by
+ *   pop_size - sum_every_state_except_the_last.
+ */
+void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data)
 {
 
     double *Xpop_size = p_X->proj;
@@ -108,7 +108,7 @@ void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, int need_rounding)
     for (i=0; i< N_PAR_SV ; i++) {
         for (cac=0; cac<N_CAC; cac++) {
             Xpop_size[i*N_CAC+cac] = Xpop_size[i*N_CAC+cac] * pop_size_t0[cac];
-            if(need_rounding){
+            if(p_data->implementation == PLOM_PSR){ //rounding for exact methods
                 Xpop_size[i*N_CAC+cac] = round(Xpop_size[i*N_CAC+cac]);
             }
         }
@@ -125,104 +125,213 @@ void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, int need_rounding)
 /* load p_X->drift from drift IC (contained in p_best) */
 void theta_driftIC2Xdrift(struct s_X *p_X, const theta_t *best_mean, struct s_data *p_data)
 {
-    double **Xdrift = p_X->drift;
     int i, k;
-    struct s_iterator *p_it_only_drift = p_data->p_it_only_drift;
+    struct s_iterator *p_it = p_data->p_it_only_drift;
     struct s_router **routers = p_data->routers;
+    struct s_drift **drift = p_data->drift;
 
-    for(i=0; i< p_it_only_drift->length; i++) {
-        for(k=0; k< routers[ p_it_only_drift->ind[i] ]->n_gp; k++) {
-            Xdrift[i][k] = gsl_vector_get(best_mean, p_it_only_drift->offset[i] +k );
+    for(i=0; i< p_it->length; i++) {
+        for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
+            p_X->proj[drift[i]->offset + k] = gsl_vector_get(best_mean, p_it->offset[i] +k );
         }
     }
 }
 
 
-void f_prediction_euler_multinomial(double *X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
-{
-    int k;
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//prediction functions of prototype void f_prediction_ode(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    for(k= (int) (t0*DELTA_STO) ; k< (int) (t1*DELTA_STO) ;k++) {
-        step_euler_multinomial(X, (double) k/DELTA_STO, p_par, p_data, p_calc);
+plom_f_pred_t get_f_pred(enum plom_implementations implementation, enum plom_noises_off noises_off)
+{ 
+    if (implementation == PLOM_ODE) {
+	return &f_prediction_ode;
+
+    } else if (implementation == PLOM_SDE){
+
+	if (noises_off == (PLOM_NO_DEM_STO | PLOM_NO_ENV_STO | PLOM_NO_DRIFT) ) {
+	    return &f_prediction_ode;
+	} else if (noises_off == (PLOM_NO_DEM_STO | PLOM_NO_ENV_STO) ) {
+	    return &f_prediction_sde_no_dem_sto_no_env_sto;
+	} else if (noises_off == (PLOM_NO_DEM_STO | PLOM_NO_DRIFT) ) {
+	    return &f_prediction_sde_no_dem_sto_no_drift;
+	} else if (noises_off == (PLOM_NO_ENV_STO | PLOM_NO_DRIFT) ) {
+	    return &f_prediction_sde_no_env_sto_no_drift;
+	} else if (noises_off == PLOM_NO_DEM_STO ) {
+	    return &f_prediction_sde_no_dem_sto;
+	} else if (noises_off == PLOM_NO_ENV_STO ) {
+	    return &f_prediction_sde_no_env_sto;	   
+	} else if (noises_off == PLOM_NO_DRIFT ) {
+	    return &f_prediction_sde_no_drift;
+	} else {
+	    return &f_prediction_sde_full;
+	}
+
+    } else if (implementation == PLOM_PSR){
+	//no_sto_env is handled within the step funciton
+	if(noises_off & PLOM_NO_DRIFT){
+	    return &f_prediction_psr_no_drift;
+	} else {
+	    return &f_prediction_psr;
+	}
     }
+
+    return NULL;
 }
 
 
-void f_prediction_ode_rk(double *y, double t0, double t1, struct s_par *p_par,  struct s_calc *p_calc)
+void f_prediction_ode(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     double t=t0;
-    double h = DT; //h is the initial integration step size
-    //    double h_min = DT/10.0;
-    int status;
+    double h = p_calc->dt; //h is the initial integration step size
     p_calc->p_par = p_par; //pass the ref to p_par so that it is available wihtin the function to integrate
 
+    double *y = p_X->proj;
+
     while (t < t1) {
-        status = gsl_odeiv2_evolve_apply (p_calc->evolve, p_calc->control, p_calc->step, &(p_calc->sys), &t, t1, &h, y);
+        int status = gsl_odeiv2_evolve_apply (p_calc->evolve, p_calc->control, p_calc->step, &(p_calc->sys), &t, t1, &h, y);
         if (status != GSL_SUCCESS) {
             char str[STR_BUFFSIZE];
             sprintf(str, "error (%d) integration time step is too large to match desired precision", status);
             print_err(str);
             exit(EXIT_FAILURE);
         }
-
-//        if (h< h_min) { //to avoid wasting a long time when integration is hard we finish with a fixed time step...
-//            char str[STR_BUFFSIZE];
-//#if FLAG_WARNING
-//            sprintf(str, "h = %g is lower than h_min (%g) trying to finish the integration from t=%g to t=%g with a fixed time step", h, h_min, t, t1);
-//            print_warning(str);
-//#endif
-//            status = gsl_odeiv2_step_apply (p_calc->step, t, (t1-t), y, p_calc->yerr, NULL, NULL, &(p_calc->sys));
-//            if (status != GSL_SUCCESS) {
-//                sprintf(str, "error (%d) unable to compute the requested step", status);
-//                print_err(str);
-//                exit(EXIT_FAILURE);
-//            } else {
-//                break;
-//            }
-//        }
-
     }
 }
 
 
-void f_prediction_with_drift_deter(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+
+void f_prediction_sde_no_dem_sto_no_env_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
-    int k;
-    double t;
+    double t = t0;
+    double *y = p_X->proj;
 
-    p_calc->p_par = p_par; //pass the ref to p_par so that it is available wihtin the function to integrate
-
-    for(k= (int) (t0*DELTA_STO) ; k< (int) (t1*DELTA_STO) ;k++) {
-        t = (double) k/DELTA_STO;
-
-        if(N_DRIFT_PAR_PROC) {
-            compute_drift(p_X, p_par, p_data, p_calc, 0, N_DRIFT_PAR_PROC, DT);
-            drift_par(p_calc, p_data, p_X, 0, N_DRIFT_PAR_PROC);
+    while (t < t1) {
+	step_sde_no_dem_sto_no_env_sto(y, t, p_par, p_data, p_calc);
+        if (N_DRIFT) {
+            compute_drift(y, p_par, p_data, p_calc);
         }
 
-        f_prediction_ode_rk(p_X->proj, t, t+DT, p_par,  p_calc);
+	t += p_calc->dt;
     }
+}
 
+void f_prediction_sde_no_dem_sto_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+{
+    double t = t0;
+    double *y = p_X->proj;
+
+    while (t < t1) {
+	step_sde_no_dem_sto(y, t, p_par, p_data, p_calc);
+
+	t += p_calc->dt;
+    }
 }
 
 
-void f_prediction_with_drift_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+void f_prediction_sde_no_env_sto_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
-    int k;
-    double t;
+    double t = t0;
+    double *y = p_X->proj;
 
-    for (k= (int) (t0*DELTA_STO) ; k< (int) (t1*DELTA_STO) ;k++) {
-        t = (double) k/DELTA_STO;
+    while (t < t1) {
+	step_sde_no_env_sto(y, t, p_par, p_data, p_calc);
 
-        if (N_DRIFT_PAR_PROC) {
-            compute_drift(p_X, p_par, p_data, p_calc, 0, N_DRIFT_PAR_PROC, DT);
-            drift_par(p_calc, p_data, p_X, 0, N_DRIFT_PAR_PROC);
+	t += p_calc->dt;
+    }
+}
+
+
+void f_prediction_sde_no_dem_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+{
+    double t = t0;
+    double *y = p_X->proj;
+
+    while (t < t1) {
+	step_sde_no_dem_sto(y, t, p_par, p_data, p_calc);
+        if (N_DRIFT) {
+            compute_drift(y, p_par, p_data, p_calc);
         }
 
-        step_euler_multinomial(p_X->proj, t, p_par, p_data, p_calc);
+	t += p_calc->dt;
+    }
+}
+
+
+void f_prediction_sde_no_env_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+{
+    double t = t0;
+    double *y = p_X->proj;
+
+    while (t < t1) {
+	step_sde_no_env_sto(y, t, p_par, p_data, p_calc);
+        if (N_DRIFT) {
+            compute_drift(y, p_par, p_data, p_calc);
+        }
+
+	t += p_calc->dt;
+    }
+}
+
+void f_prediction_sde_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+{
+    double t = t0;
+    double *y = p_X->proj;
+
+    while (t < t1) {
+	step_sde_full(y, t, p_par, p_data, p_calc);
+
+	t += p_calc->dt;
+    }
+}
+
+void f_prediction_sde_full(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+{
+    double t = t0;
+    double *y = p_X->proj;
+
+    while (t < t1) {
+	step_sde_full(y, t, p_par, p_data, p_calc);
+        if (N_DRIFT) {
+            compute_drift(y, p_par, p_data, p_calc);
+        }
+
+	t += p_calc->dt;
+    }
+}
+
+
+
+void f_prediction_psr(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+{
+    double t = t0;
+    double *y = p_X->proj;
+
+    while (t < t1) {
+        step_psr(y, t, p_par, p_data, p_calc);
+        if (N_DRIFT) {
+            compute_drift(y, p_par, p_data, p_calc);
+        }
+	t += p_calc->dt;
     }
 
 }
+
+
+
+void f_prediction_psr_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+{
+    double t = t0;
+    double *y = p_X->proj;
+
+    while (t < t1) {
+        step_psr(y, t, p_par, p_data, p_calc);
+	t += p_calc->dt;
+    }
+}
+
+
+
 
 
 /**
@@ -231,7 +340,7 @@ void f_prediction_with_drift_sto(struct s_X *p_X, double t0, double t1, struct s
  * always be 1.0 with simforence (no rounding error by construction)
  * @see step_euler_multinomial.
  */
-void sfr_ran_multinomial (const gsl_rng * r, const size_t K, unsigned int N, const double p[], unsigned int n[])
+void plom_ran_multinomial (const gsl_rng * r, const size_t K, unsigned int N, const double p[], unsigned int n[])
 {
     size_t k;
     double sum_p = 0.0;
@@ -250,8 +359,6 @@ void sfr_ran_multinomial (const gsl_rng * r, const size_t K, unsigned int N, con
         sum_n += n[k];
     }
 }
-
-
 
 
 

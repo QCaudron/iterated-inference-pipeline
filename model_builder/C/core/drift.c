@@ -21,42 +21,22 @@
 /**
  *   Euler Maruyama
  *   ind_drift_start and ind_drift_end are used to separate (if needed) in between drift on par_proc and drift on par_obs
+ *   X is s_X.proj
  */
 
-void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ind_drift_start, int ind_drift_end, double delta_t)
+void compute_drift(double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
-
     int i, k;
+    double dt = p_calc->dt;
 
-    struct s_drift *p_drift = p_data->p_drift;
     struct s_router **routers = p_data->routers;
 
-    for(i=ind_drift_start; i<ind_drift_end; i++) {
-        int ind_par_Xdrift_applied = p_drift->ind_par_Xdrift_applied[i];
-        int ind_volatility_Xdrift = p_drift->ind_volatility_Xdrift[i];
+    for(i=0; i<p_data->p_it_only_drift->length; i++) {
+        struct s_drift *p_drift = p_data->drift[i];
+        int ind_par_Xdrift_applied = p_drift->ind_par_Xdrift_applied;
+        int ind_volatility_Xdrift = p_drift->ind_volatility_Xdrift;
         for(k=0; k< routers[ind_par_Xdrift_applied]->n_gp; k++) {
-            p_X->drift[i][k] += p_par->natural[ ind_volatility_Xdrift ][k]*sqrt(delta_t)*gsl_ran_ugaussian(p_calc->randgsl);
-        }
-    }
-}
-
-
-
-/**
- *   apply drift on par (stored in natural_drifted_safe)
- */
-
-void drift_par(struct s_calc *p_calc, struct s_data *p_data, struct s_X *p_X, int ind_drift_start, int ind_drift_end)
-{
-
-    int i, k;
-    struct s_drift *p_drift = p_data->p_drift;
-    struct s_router **routers = p_data->routers;
-
-    for(i=ind_drift_start; i<ind_drift_end; i++) {
-        struct s_router *r = routers[p_drift->ind_par_Xdrift_applied[i]];
-        for(k=0; k< r->n_gp; k++) {
-            p_calc->natural_drifted_safe[i][k] = back_transform_x(p_X->drift[i][k], k, r);
+            X[p_drift->offset +k] += p_par->natural[ ind_volatility_Xdrift ][k]*sqrt(dt)*gsl_ran_ugaussian(p_calc->randgsl);
         }
     }
 }

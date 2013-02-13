@@ -85,7 +85,6 @@ void compute_hat(struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_da
     int j, nn, i, k, ts;
     int thread_id;
 
-    struct s_drift *p_drift = p_data->p_drift;
     struct s_router **routers = p_data->routers;
 
     /* par_sv */
@@ -131,10 +130,6 @@ void compute_hat(struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_da
         /* weighted average */
         D_p_hat[t1-1]->obs[ts] = 0.0;
         for(j=0;j<J;j++) {
-
-            /* makes sure that p_calc contains the natural values of the drifted obs process parameters */
-            drift_par(calc[thread_id], p_data, D_J_p_X[t1][j], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
-
             calc[thread_id]->to_be_sorted[j] = obs_mean(D_J_p_X[t1][j]->obs[ts], p_par, p_data, calc[thread_id], ts);
             D_p_hat[t1-1]->obs[ts] += calc[thread_id]->to_be_sorted[j]*weights[j];
         }
@@ -145,10 +140,6 @@ void compute_hat(struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_da
         for(nn=(t0+1); nn<t1; nn++) { //only if no data
             D_p_hat[nn-1]->obs[ts] = 0.0;
             for(j=0;j<J;j++) {
-
-                /* makes sure that p_calc contains the natural values of the drifted obs process parameters */
-                drift_par(calc[thread_id], p_data, D_J_p_X[nn][j], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
-
                 calc[thread_id]->to_be_sorted[j] = obs_mean(D_J_p_X[nn][j]->obs[ts], p_par, p_data, calc[thread_id], ts);
                 D_p_hat[nn-1]->obs[ts] += calc[thread_id]->to_be_sorted[j];
             }
@@ -160,9 +151,10 @@ void compute_hat(struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_da
 
 
     /* drift */
+    struct s_drift **drift = p_data->drift;
     int offset = 0;
-    for (i=0; i< (N_DRIFT_PAR_PROC +N_DRIFT_PAR_OBS) ; i++) {
-        int ind_par_Xdrift_applied = p_drift->ind_par_Xdrift_applied[i];
+    for (i=0; i< p_data->p_it_only_drift->length ; i++) {
+        int ind_par_Xdrift_applied = drift[i]->ind_par_Xdrift_applied;
 
 #pragma omp parallel for private(thread_id, j, nn) //we parallelize k and not i as in most cases there are only one single diffusion
         for (k=0; k< routers[ ind_par_Xdrift_applied ]->n_gp; k++) {
@@ -171,7 +163,7 @@ void compute_hat(struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_da
             D_p_hat[t1-1]->drift[offset+k] = 0.0;
 
             for (j=0; j<J; j++) {
-                calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))( D_J_p_X[t1][j]->drift[i][k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
+                calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))( D_J_p_X[t1][j]->proj[drift[i]->offset + k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
                 D_p_hat[t1-1]->drift[offset+k] += calc[thread_id]->to_be_sorted[j]*weights[j];
             }
             get_CI95(D_p_hat[t1-1]->drift_95[offset+k], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, weights);
@@ -183,7 +175,7 @@ void compute_hat(struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_da
 
                 D_p_hat[nn-1]->drift[offset+k] = 0.0;
                 for(j=0; j<J; j++) {
-                    calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))( D_J_p_X[nn][j]->drift[i][k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
+                    calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))( D_J_p_X[nn][j]->proj[drift[i]->offset + k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
                     D_p_hat[nn-1]->drift[offset+k] += calc[thread_id]->to_be_sorted[j];
                 }
                 D_p_hat[nn-1]->drift[offset+k] /= ((double) J);
@@ -206,7 +198,6 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_da
     int j, i, k, ts;
     int thread_id;
 
-    struct s_drift *p_drift = p_data->p_drift;
     struct s_router **routers = p_data->routers;
 
     /* par_sv */
@@ -234,10 +225,6 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_da
         /* empirical average */
         p_hat->obs[ts] = 0.0;
         for(j=0;j<J;j++) {
-
-            /* makes sure that p_calc contains the natural values of the drifted obs process parameters */
-            drift_par(calc[thread_id], p_data, J_p_X[j], N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
-
             calc[thread_id]->to_be_sorted[j] = obs_mean(J_p_X[j]->obs[ts], p_par, p_data, calc[thread_id], ts);
             p_hat->obs[ts] += calc[thread_id]->to_be_sorted[j];
         }
@@ -248,9 +235,10 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_da
     } /* end for on ts */
 
     /* drift */
+    struct s_drift **drift = p_data->drift;
     int offset = 0;
-    for (i=0; i< (N_DRIFT_PAR_PROC +N_DRIFT_PAR_OBS) ; i++) {
-        int ind_par_Xdrift_applied = p_drift->ind_par_Xdrift_applied[i];
+    for (i=0; i< p_data->p_it_only_drift->length ; i++) {
+        int ind_par_Xdrift_applied = drift[i]->ind_par_Xdrift_applied;
 
 #pragma omp parallel for private(thread_id, j) //we parallelize k and not i as in most cases there are only one single diffusion
         for (k=0; k< routers[ ind_par_Xdrift_applied ]->n_gp; k++) {
@@ -258,7 +246,7 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_da
 
             p_hat->drift[offset+k] = 0.0;
             for(j=0; j<J; j++) {
-                calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))(J_p_X[j]->drift[i][k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
+                calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))(J_p_X[j]->proj[drift[i]->offset + k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
                 p_hat->drift[offset+k] += calc[thread_id]->to_be_sorted[j];
             }
             p_hat->drift[offset+k] /= ((double) J);

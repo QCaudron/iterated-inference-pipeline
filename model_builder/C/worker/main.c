@@ -22,7 +22,11 @@
 struct s_thread_params
 {
     int thread_id;
+    int n_threads;
     struct s_data *p_data;
+    double dt;
+    double eps_abs;
+    double eps_rel;
     char *IPv4;
     void *context;
 };
@@ -51,10 +55,13 @@ void *worker_routine (void *params) {
 
     struct s_data *p_data = p->p_data;
     struct s_par *p_par = build_par(p_data);
-    struct s_X *p_X = build_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_data);
-    struct s_calc *p_calc = build_p_calc(GENERAL_ID, p->thread_id, p_X, func, p_data);
+    int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
+    struct s_X *p_X = build_X(size_proj, N_TS, p_data);
+    struct s_calc *p_calc = build_p_calc(p->n_threads, p->thread_id, GENERAL_ID, p->dt, p->eps_abs, p->eps_rel, size_proj, step_ode, p_data);
 
     double like = 0.0;
+
+    plom_f_pred_t f_pred = get_f_pred(p_data->implementation, p_data->noises_off);
 
     zmq_pollitem_t items [] = {
         { server_receiver, 0, ZMQ_POLLIN, 0 },
@@ -82,24 +89,11 @@ void *worker_routine (void *params) {
                 recv_X(p_X, p_data, server_receiver);
 
                 //do the computations..
-                reset_inc(p_X);
-
-                if (COMMAND_DETER) {
-                    f_prediction_with_drift_deter(p_X, nn, nnp1, p_par, p_data, p_calc);
-                } else {
-                    f_prediction_with_drift_sto(p_X, nn, nnp1, p_par, p_data, p_calc);
-                }
-
-                if(N_DRIFT_PAR_OBS) {
-                    compute_drift(p_X, p_par, p_data, p_calc, N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC+N_DRIFT_PAR_OBS, 1.0);
-                }
-
+                reset_inc(p_X, p_data);
+		f_pred(p_X, nn, nnp1, p_par, p_data, p_calc);
                 proj2obs(p_X, p_data);
 
                 if(nnp1 == t1) {
-                    if(N_DRIFT_PAR_OBS) {
-                        drift_par(p_calc, p_data, p_X, N_DRIFT_PAR_PROC, N_DRIFT_PAR_PROC + N_DRIFT_PAR_OBS);
-                    }
                     like = exp(get_log_likelihood(p_X, p_par, p_data, p_calc));
                 }
 
@@ -108,7 +102,6 @@ void *worker_routine (void *params) {
                 rc = send_X(server_sender, p_X, p_data, ZMQ_SNDMORE);
                 rc = send_double(server_sender, like, 0);
             }
-
         }
 
         //controller commands:
@@ -129,7 +122,7 @@ void *worker_routine (void *params) {
 
     clean_par(p_par);
     clean_X(p_X);
-    clean_p_calc(p_calc);
+    clean_p_calc(p_calc, p_data);
 
     printf("thread %d done\n", p->thread_id);
 
@@ -146,42 +139,61 @@ int main(int argc, char *argv[])
     /* set default values for the options */
 
     char sfr_help_string[] =
-        "Plom Worker\n"
+        "PloM Worker\n"
         "usage:\n"
-        "worker <command> [-i, --id <integer>] [-I, --IPv4 <ip address or DNS>] [-P, --N_THREAD <integer>]\n"
-        "                 [-s, --DT <float>] [-l, --LIKE_MIN <float>] [-J <integer>]\n"
-        "                 [--help]\n"
-        "where command is 'deter' or 'sto'\n"
+        "worker [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "                        [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
+        "                        [-i, --id <integer>] [-I, --IPv4 <ip address or DNS>] [-P, --N_THREAD <integer>]\n"
+        "                        [-l, --LIKE_MIN <float>] [-J <integer>]\n"
+        "                        [--help]\n"
+        "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
+	"\n"
+        "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
+        "--no_env_sto       turn off environmental stochasticity (if any)\n"
+        "--no_drift         turn off drift (if any)\n"
+	"\n"
+        "-s, --DT           Initial integration time step\n"
+	"--eps_abs          Absolute error for adaptive step-size contro\n"
+	"--eps_rel          Relative error for adaptive step-size contro\n"
+	"\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-I, --IPv4         ip address or DNS of the particle server\n"
         "-P, --N_THREAD     number of threads to be used (defaults to the number of cores)\n"
-        "-s, --DT           integration time step\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-J  -Jchunk        size of the chunk of particles\n"
         "--help             print the usage on stdout\n";
 
 
-    int has_dt_be_specified = 0;
-    double dt_option;
+    double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
     GENERAL_ID =0;
-    J=1; //here J is actualy Jchunk!
-    N_THREADS=omp_get_max_threads();
+    J = 1; //here J is actualy Jchunk!
+    int n_threads = omp_get_max_threads();
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
-    COMMAND_DETER = 0;
-    COMMAND_STO = 0;
     OPTION_TRAJ = 0;
+
+    enum plom_implementations implementation;
+    enum plom_noises_off noises_off = 0;
 
     while (1) {
         static struct option long_options[] =
             {
                 {"help",       no_argument,       0, 'e'},
+
+                {"no_dem_sto", no_argument,       0, 'x'},
+                {"no_env_sto", no_argument,       0, 'y'},
+                {"no_drift",   no_argument,       0, 'z'},
+
+		{"DT",         required_argument, 0, 's'},
+		{"eps_abs",    required_argument, 0, 'v'},
+		{"eps_rel",    required_argument, 0, 'w'},
+
                 {"id",         required_argument, 0, 'i'},
                 {"N_THREAD",   required_argument, 0, 'P'},
                 {"IPv4",       required_argument, 0, 'I'},
                 {"Jchunk",     required_argument, 0, 'J'},
-                {"DT",         required_argument, 0, 's'},
+
                 {"LIKE_MIN",   required_argument, 0, 'l'},
 
                 {0, 0, 0, 0}
@@ -189,7 +201,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "i:P:J:s:I:l:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:i:P:J:I:l:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -201,6 +213,27 @@ int main(int argc, char *argv[])
             if (long_options[option_index].flag != 0) {
                 break;
             }
+            break;
+
+        case 'x':
+            noises_off = noises_off | PLOM_NO_DEM_STO;
+            break;
+        case 'y':
+            noises_off = noises_off | PLOM_NO_ENV_STO;
+            break;
+        case 'z':
+            noises_off = noises_off | PLOM_NO_DRIFT;
+            break;
+
+
+        case 's':
+            dt = atof(optarg);
+            break;
+        case 'v':
+            eps_abs = atof(optarg);
+            break;
+        case 'w':
+            eps_rel = atof(optarg);
             break;
 
         case 'e':
@@ -216,7 +249,7 @@ int main(int argc, char *argv[])
             break;
 
         case 'P':
-            N_THREADS = atoi(optarg);
+            n_threads = atoi(optarg);
             break;
 
         case 'I':
@@ -226,11 +259,6 @@ int main(int argc, char *argv[])
         case 'l':
             LIKE_MIN = atof(optarg);
             LOG_LIKE_MIN = log(LIKE_MIN);
-            break;
-
-        case 's':
-            dt_option = atof(optarg);
-            has_dt_be_specified =1;
             break;
 
         case '?':
@@ -246,41 +274,34 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if(argc != 1) {
-        print_log(sfr_help_string);
-        return 1;
-    }
-    else {
-        if (!strcmp(argv[0], "deter")) {
-            print_log("deter");
-            COMMAND_DETER = 1;
-        } else if (!strcmp(argv[0], "sto")) {
-            COMMAND_STO = 1;
+
+    if(argc == 0) {
+	implementation = PLOM_PSR;
+    } else {
+        if (!strcmp(argv[0], "ode")) {
+            implementation = PLOM_ODE;
+            noises_off = noises_off | PLOM_NO_DEM_STO| PLOM_NO_ENV_STO | PLOM_NO_DRIFT;
+        } else if (!strcmp(argv[0], "sde")) {
+            implementation = PLOM_SDE;
+        } else if (!strcmp(argv[0], "psr")) {
+            implementation = PLOM_PSR;
         } else {
             print_log(sfr_help_string);
             return 1;
         }
     }
 
-
     json_t *settings = load_settings(PATH_SETTINGS);
     json_t *theta = load_json();
 
-    if (has_dt_be_specified) {
-        DT = dt_option;
-    }
-    DELTA_STO = round(1.0/DT);
-    DT = 1.0/ ((double) DELTA_STO);
-
-
-    snprintf(str, STR_BUFFSIZE, "Starting Plom-worker with the following options: i = %d, LIKE_MIN = %g, DT = %g, DELTA_STO = %g N_THREADS = %d", GENERAL_ID, LIKE_MIN, DT, DELTA_STO, N_THREADS);
-    print_log(str);
+    n_threads = sanitize_n_threads(n_threads, J);
 
 #if FLAG_VERBOSE
-    print_log("shared memory allocation and inputs loading...");
+    snprintf(str, STR_BUFFSIZE, "Starting Plom-worker with the following options: i = %d, LIKE_MIN = %g, N_THREADS = %d", GENERAL_ID, LIKE_MIN, n_threads);
+    print_log(str);
 #endif
 
-    struct s_data *p_data = build_data(settings, theta, 1);
+    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 1);
     json_decref(settings);
     json_decref(theta);
 
@@ -294,20 +315,22 @@ int main(int argc, char *argv[])
     print_log("starting the threads...");
 #endif
 
-    struct s_thread_params *p_thread_params = malloc(N_THREADS*sizeof(struct s_thread_params));
-    pthread_t *worker = malloc(N_THREADS*sizeof(pthread_t));
-    for (nt = 0; nt < N_THREADS; nt++) {
-
+    struct s_thread_params *p_thread_params = malloc(n_threads*sizeof(struct s_thread_params));
+    pthread_t *worker = malloc(n_threads*sizeof(pthread_t));
+    for (nt = 0; nt < n_threads; nt++) {
         p_thread_params[nt].thread_id = nt;
+        p_thread_params[nt].n_threads = n_threads;
+        p_thread_params[nt].dt = dt;
+        p_thread_params[nt].eps_abs = eps_abs;
+        p_thread_params[nt].eps_rel = eps_rel;
         p_thread_params[nt].IPv4 = IPv4;
         p_thread_params[nt].p_data = p_data;
         p_thread_params[nt].context = context;
         pthread_create (&worker[nt], NULL, worker_routine, (void*) &p_thread_params[nt]);
         printf("thread %d started\n", nt);
-
     }
 
-    for(nt = 0; nt < N_THREADS; nt++){
+    for(nt = 0; nt < n_threads; nt++){
         pthread_join(worker[nt], NULL);
     }
 

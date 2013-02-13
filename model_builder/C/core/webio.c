@@ -44,15 +44,11 @@ void block()
 
 
 /**
-   live update of the walk rates integrating data from the webApp.
-   @see transform_theta
-*/
-void update_walk_rates(struct s_best *p_best,
-                       double (*f_transit_par) (double sd_x_par),
-                       double (*f_transit_state) (double sd_x_state),
-                       struct s_data *p_data)
+ *   live update of the walk rates integrating data from the webApp.
+ *  @see transform_theta
+ */
+void update_walk_rates(struct s_best *p_best, double (*f_transit_par) (double sd_x_par), double (*f_transit_state) (double sd_x_state), struct s_data *p_data)
 {
-
 
     ask_update();
 
@@ -68,5 +64,4 @@ void update_walk_rates(struct s_best *p_best,
     }
 
     json_decref(theta);
-
 }

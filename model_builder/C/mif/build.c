@@ -18,28 +18,14 @@
 
 #include "mif.h"
 
-struct s_mif *build_mif(int has_dt_be_specified, double dt_option, double prop_L_option)
+struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double eps_abs, double eps_rel, double prop_L_option, int J, int *n_threads)
 {
     char str[STR_BUFFSIZE];
 
     json_t *settings = load_settings(PATH_SETTINGS);
     json_t *theta = load_json();
 
-    if (has_dt_be_specified) {
-        DT = dt_option;
-    }
-
     L = (int) floor(prop_L_option*N_DATA);
-
-    //IMPORTANT: update DELTA_STO so that DT = 1.0/DELTA_STO
-    DELTA_STO = round(1.0/DT);
-    DT = 1.0/ ((double) DELTA_STO);
-
-    N_THREADS = sanitize_n_threads(N_THREADS, J);
-    omp_set_num_threads(N_THREADS); //set number of threads
-
-    snprintf(str, STR_BUFFSIZE, "Starting Simforence-MIF with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, a = %g, b = %g, L = %g, SWITCH = %d, DT = %g, DELTA_STO = %g  N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, M, MIF_a, MIF_b, prop_L_option, SWITCH, DT, DELTA_STO, N_THREADS);
-    print_log(str);
 
     struct s_mif *p_mif;
     p_mif = malloc(sizeof(struct s_mif));
@@ -49,8 +35,9 @@ struct s_mif *build_mif(int has_dt_be_specified, double dt_option, double prop_L
         exit(EXIT_FAILURE);
     }
 
-    p_mif->p_data = build_data(settings, theta, OPTION_PRIOR); //also build obs2ts
+    p_mif->p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR); //also build obs2ts
     json_decref(settings);
+    int size_proj = N_PAR_SV*N_CAC + p_mif->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
     //N_DATA_NONAN is set in build_data
     if (L>N_DATA_NONAN) {
@@ -61,12 +48,13 @@ struct s_mif *build_mif(int has_dt_be_specified, double dt_option, double prop_L
 
     p_mif->p_best = build_best(p_mif->p_data, theta, 0);
     json_decref(theta);
-    p_mif->J_p_X = build_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_mif->p_data);
-    p_mif->J_p_X_tmp = build_J_p_X(PLOM_SIZE_PROJ, PLOM_SIZE_OBS, PLOM_SIZE_DRIFT, p_mif->p_data);
+
+    p_mif->J_p_X = build_J_p_X(size_proj, N_TS, p_mif->p_data);
+    p_mif->J_p_X_tmp = build_J_p_X(size_proj, N_TS, p_mif->p_data);
     p_mif->J_p_par = build_J_p_par(p_mif->p_data);
     p_mif->p_like = build_likelihood();
 
-    p_mif->calc = build_calc(GENERAL_ID, p_mif->J_p_X[0], func, p_mif->p_data);
+    p_mif->calc = build_calc(n_threads, GENERAL_ID, dt, eps_abs, eps_rel, J, size_proj, step_ode, p_mif->p_data);
 
     /*MIF specific*/
 
@@ -87,13 +75,12 @@ struct s_mif *build_mif(int has_dt_be_specified, double dt_option, double prop_L
     p_mif->D_theta_Vt = init2d_set0(N_DATA_NONAN+1, N_THETA_MIF);
 
     return p_mif;
-
 }
 
 
 void clean_mif(struct s_mif *p_mif)
 {
-    clean_calc(p_mif->calc);
+    clean_calc(p_mif->calc, p_mif->p_data);
     clean_best(p_mif->p_best);
 
     clean_J_p_par(p_mif->J_p_par);
