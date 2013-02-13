@@ -180,6 +180,18 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
     gsl_matrix_view Ct = gsl_matrix_view_array(&(p_X->proj[N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE]), N_KAL, N_KAL);
     gsl_matrix_set_zero(&Ct.matrix);
 
+
+    //debug Q:
+//    struct s_kalman_specific_data *p_kalman_specific_data = (struct s_kalman_specific_data *) calc[0]->method_specific_thread_safe_data;
+//    p_kalman_specific_data->eval_Q(p_kalman_specific_data->Q, p_X->proj, p_par, p_data, calc[0], p_kalman_specific_data, 1.0);
+//    for(n=0; n<p_kalman_specific_data->Q->size1; n++){
+//	for(nn=0; nn<=n; nn++){
+//	    printf("Q[%d][%d] %g\t %s\n", n, nn, gsl_matrix_get(p_kalman_specific_data->Q, n, nn),
+//		   (gsl_matrix_get(p_kalman_specific_data->Q, n, nn) == gsl_matrix_get(p_kalman_specific_data->Q, nn, n)) ? "ok" : "NO!");
+//	}
+//    }
+
+
     //////////////////
     // for all data //
     //////////////////

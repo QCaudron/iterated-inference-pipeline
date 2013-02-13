@@ -474,19 +474,13 @@ void eval_Q_{{ noises_off }}(gsl_matrix *Q, const double *X, struct s_par *p_par
             for(n_cac=0; n_cac< p_obs2ts->n_cac[ts_unique]; n_cac++) {
                 cac = p_obs2ts->cac[ts_unique][n_cac][0]*N_AC + p_obs2ts->cac[ts_unique][n_cac][1];
 
-                term = {{ x.sign}} pow({{ x.rate|safe }}, 2);
-
                 i = {% if not x.i.is_obs %}{{ x.i.ind }} * N_CAC + cac{% else %}N_PAR_SV*N_CAC + p_obs2ts->offset + ts{% endif %};
                 j = {% if not x.j.is_obs %}{{ x.j.ind }} * N_CAC + cac{% else %}N_PAR_SV*N_CAC + p_obs2ts->offset + ts{% endif %};
 
 		term = {{ x.rate|safe }};
 
                 gsl_matrix_set(Q, i, j, term);
-
-		{% if x.i.ind != x.j.ind %}
 		gsl_matrix_set(Q, j, i, term);
-		{% endif %}
-
             }
             ts++;
         }
@@ -497,10 +491,10 @@ void eval_Q_{{ noises_off }}(gsl_matrix *Q, const double *X, struct s_par *p_par
     /*
       x contains 2 observed variables: complicated case, we have to
       find the common cac in between x.i.ind and x.j.ind
+
+      Note that we need to sum the terms is these cases...
     */
 
-
-    {% if x.i.ind != x.j.ind %}
 
     ts=0;
     p_obs2ts = obs2ts[{{ x.i.ind }}];
@@ -516,24 +510,30 @@ void eval_Q_{{ noises_off }}(gsl_matrix *Q, const double *X, struct s_par *p_par
                     i = N_PAR_SV*N_CAC + p_obs2ts->offset + ts;
                     j = N_PAR_SV*N_CAC + p_obs2ts_j->offset + ts_j;
 
-                    //we determine the cac in common between the 2 ts (indexed i and j in Q)
+		    term = 0.0;
+
                     for(n_cac=0; n_cac< p_obs2ts->n_cac[ts_unique]; n_cac++) {
                         cac = p_obs2ts->cac[ts_unique][n_cac][0]*N_AC + p_obs2ts->cac[ts_unique][n_cac][1];
 
+			{% if x.i.ind != x.j.ind %}
+			//we have to determine the cac in common between the 2 ts
                         for(n_cac_j=0; n_cac_j< p_obs2ts_j->n_cac[ts_unique_j]; n_cac_j++) {
                             cac_j = p_obs2ts_j->cac[ts_unique_j][n_cac_j][0]*N_AC + p_obs2ts_j->cac[ts_unique_j][n_cac_j][1];
-
                             if(cac == cac_j){
                                 //x.rate is a function of cac
-				term = {{ x.rate|safe }};
-                                gsl_matrix_set(Q, i, j, term);
-
-				{% if x.i.ind != x.j.ind %}
-				gsl_matrix_set(Q, j, i, term);
-				{% endif %}
+				term += {{ x.rate|safe }};
                             }
                         }
-                    }
+			{% else %}
+			term += {{ x.rate|safe }};
+			{% endif %}
+
+		    }
+
+		    gsl_matrix_set(Q, i, j, term);
+		    {% if x.i.ind != x.j.ind %}
+		    gsl_matrix_set(Q, j, i, term);
+		    {% endif %}
 
                     ts_j++;
                 }
@@ -542,32 +542,10 @@ void eval_Q_{{ noises_off }}(gsl_matrix *Q, const double *X, struct s_par *p_par
         }
     }
 
-
-    {% else %}
-
-    ts=0;
-    p_obs2ts = obs2ts[{{ x.i.ind }}];
-
-    for(ts_unique=0; ts_unique < p_obs2ts->n_ts_unique; ts_unique++) {
-        for(stream=0; stream < p_obs2ts->n_stream[ts_unique]; stream++) {
-
-	    i = N_PAR_SV*N_CAC + p_obs2ts->offset + ts;
-
-	    for(n_cac=0; n_cac< p_obs2ts->n_cac[ts_unique]; n_cac++) {
-		cac = p_obs2ts->cac[ts_unique][n_cac][0]*N_AC + p_obs2ts->cac[ts_unique][n_cac][1];
-		gsl_matrix_set(Q, i, i, {{ x.rate|safe }});		
-	    }   
-	    ts++;
-	}
-    }
-
-    {% endif %}
-
     {% endif %}
 
     {% endfor %}
     {% endif %}
-
 
     {% if is_drift  %}
     ///////////////////////////////////////////
