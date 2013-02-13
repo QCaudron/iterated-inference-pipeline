@@ -113,7 +113,7 @@ class Ccoder(Cmodel):
         return Cterm
 
 
-    def make_C_term(self, term, no_correct_rate, derivate=None):
+    def make_C_term(self, term, no_correct_rate, derivate=None, human=False):
 
         """transform a term into its plom C expression OR the
         plom C expression of its derivate, differentiating
@@ -144,9 +144,10 @@ class Ccoder(Cmodel):
         term = cterm.replace('plom___', '')
 
         #make the plom C expression
-        return term
-#        return self.generator_C(term, no_correct_rate)
-
+        if human:
+            return term
+        else:            
+            return self.generator_C(term, no_correct_rate)
 
 
     def print_obs_prev(self):
@@ -693,7 +694,7 @@ class Ccoder(Cmodel):
 
 
 
-    def eval_Q(self):
+    def eval_Q(self, debug = False):
         """create Ls and Qc
 
         Ls: Dispersion matrix of stochastic differential equation as
@@ -747,7 +748,6 @@ class Ccoder(Cmodel):
 
         s = N_REAC + N_ENV_STO ##for demographic stochasticity, one independent noise term per reaction
 
-        #we split Ls into Ls_proc and Ls_obs
         Ls = [[0]*s for x in range(N_PAR_SV + N_OBS)]
         Qc = [[0]*s for x in range(s)]
 
@@ -833,7 +833,6 @@ class Ccoder(Cmodel):
 
 
         #Qc_env = Lc Qn tLc:
-        Qc_env = [[0]*N_ENV_STO for x in range(N_ENV_STO)]
 
         def matrix_product(A, B):
             res = [[0]*len(B[0]) for x in range(len(A))]
@@ -852,90 +851,122 @@ class Ccoder(Cmodel):
             return res
 
 
-
-
         Qc_env = matrix_product(Lc, Qn)
         Qc_env = matrix_product(Qc_env, zip(*Lc))
-
-        print Qn
-        print Lc
 
         for i in range(N_ENV_STO):
             for j in range(N_ENV_STO):
                 Qc[N_REAC+i][N_REAC+j] = Qc_env[i][j]
 
+        #we split Qc into Qc_dem and Qc_env
+        Qc_dem = [[0]*N_REAC for x in range(N_REAC)]
 
-        for i in range(s):
-            for j in range(s):
-                print Qc[i][j] == Qc[i][j]
+        for i in range(N_REAC):
+            for j in range(N_REAC):
+                Qc_dem[i][j] = Qc[i][j]
 
+        Qc_env = [[0]*N_ENV_STO for x in range(N_ENV_STO)]
+
+        for i in range(N_ENV_STO):
+            for j in range(N_ENV_STO):
+                Qc_env[i][j] = Qc[N_REAC+i][N_REAC+j]
+    
+        #we split Ls into Ls_dem and Ls_env
+        Ls_dem = [[0]*N_REAC for x in range(N_PAR_SV + N_OBS)]
+        for i in range(N_PAR_SV + N_OBS):
+            for j in range(N_REAC):
+                Ls_dem[i][j] = Ls[i][j]
+
+        Ls_env = [[0]*N_ENV_STO for x in range(N_PAR_SV + N_OBS)]
+        for i in range(N_PAR_SV + N_OBS):
+            for j in range(N_ENV_STO):
+                Ls_env[i][j] = Ls[i][N_REAC + j]
+
+
+        #####################################################################################
+        ##we create 4 versions of Q (no_dem_sto, no_env_sto, no_dem_sto_no_env_sto and full)
+        #####################################################################################
 
         Q = matrix_product(Ls, Qc)
         Q = matrix_product(Q, zip(*Ls))
 
+        Q_dem = matrix_product(Ls_dem, Qc_dem)
+        Q_dem = matrix_product(Q_dem, zip(*Ls_dem))
 
-##        for i in range(len(Q)):
-##            for j in range(len(Q)):
-##                if Q[i][j]:
-##                    print '----------'
-##                    print Q[i][j]
-##                    print self.make_C_term(Q[i][j], True)
-##                    print self.make_C_term(Q[i][j], True) == self.make_C_term(Q[j][i], True)
+        Q_env = matrix_product(Ls_env, Qc_env)
+        Q_env = matrix_product(Q_env, zip(*Ls_env))
 
+        calc_Q = {'no_dem_sto': {'Q_proc':[],
+                                 'Q_obs':[],
+                                 'Q': Q_env},
+                  'no_env_sto': {'Q_proc':[],
+                                 'Q_obs':[],
+                                 'Q': Q_dem},
+                  'full': {'Q_proc':[],
+                           'Q_obs':[],
+                           'Q': Q},
+                  'no_dem_sto_no_env_sto':{'Q_proc':[],
+                                           'Q_obs':[],
+                                           'Q': []}}
+
+        if debug:
+            for k in calc_Q:
+
+                print '\n\nNon null term of Q_'+ k
+                print "sv:"
+                for i, x in enumerate(self.par_sv):
+                    print i, x
+
+                print "obs:"
+                for i, x in enumerate(self.obs_var_def):
+                    print N_PAR_SV+ i, x
+
+                for i in range(len(calc_Q[k]['Q'])):
+                    for j in range(i+1):
+                        if calc_Q[k]['Q'][i][j]:
+                            print '----------'
+                            #print Q[i][j]
+                            print 'Q[{0}][{1}]: '.format(i, j),  self.make_C_term(calc_Q[k]['Q'][i][j], False, human=True)
+                            if i != j:
+                                print 'Q[{0}][{1}] == Q[{1}][{0}]: '.format(i, j), self.make_C_term(calc_Q[k]['Q'][i][j], False, human=True) == self.make_C_term(calc_Q[k]['Q'][j][i], True, human=True)
         
+
         #convert in a version easy to template in C
         #Note that we only template the lower triangle (Q is symmetrical)
-        Q_proc = []
-        Q_obs = []
-        print len(Q), N_PAR_SV
-        for i  in range(len(Q)):
-            for j in range(i+1):
-                if Q[i][j]:
-                    print i, j, self.make_C_term(Q[i][j], True)
-                    if i< N_PAR_SV and j < N_PAR_SV:                        
-                        Q_proc.append({'i': i, 'j': j, 'rate': Q[i][j]})
-                    else:
-                        Q_obs.append({'i': {'is_obs': False, 'ind': i} if i < N_PAR_SV else {'is_obs': True, 'ind': i - N_PAR_SV},
-                                      'j': {'is_obs': False, 'ind': j} if j < N_PAR_SV else {'is_obs': True, 'ind': j - N_PAR_SV},
-                                      'rate': Q[i][j]})
+        for k, tpl in calc_Q.iteritems():
+            if tpl['Q']:
+                for i  in range(len(tpl['Q'])):
+                    for j in range(i+1):
+                        if tpl['Q'][i][j]:
+                            if i< N_PAR_SV and j < N_PAR_SV:                        
+                                tpl['Q_proc'].append({'i': i, 'j': j, 'rate': self.make_C_term(tpl['Q'][i][j], False)})
+                            else:
+                                tpl['Q_obs'].append({'i': {'is_obs': False, 'ind': i} if i < N_PAR_SV else {'is_obs': True, 'ind': i - N_PAR_SV},
+                                                     'j': {'is_obs': False, 'ind': j} if j < N_PAR_SV else {'is_obs': True, 'ind': j - N_PAR_SV},
+                                                     'rate': self.make_C_term(tpl['Q'][i][j], False)})
 
-        
+        ##cache special functions
+        for key in calc_Q:            
+            if calc_Q[key]['Q']:
+
+                optim_rates_proc = [x['rate'] for x in calc_Q[key]['Q_proc']]
+                optim_rates_obs = [x['rate'] for x in calc_Q[key]['Q_obs']]
+                optim_rates = optim_rates_proc + optim_rates_obs
+
+                calc_Q[key]['sf'] = self.cache_special_function_C(optim_rates, prefix='_sf')
+                
+                for i in range(len(optim_rates_proc)):
+                    calc_Q[key]['Q_proc'][i]['rate'] = optim_rates[i]
+
+                n_proc = len(optim_rates_proc)
+                for i in range(len(optim_rates_obs)):
+                    calc_Q[key]['Q_obs'][i]['rate'] = optim_rates[n_proc + i]
+
+            else:
+                calc_Q[key]['sf'] = []
 
 
-##        ################################################################################################
-##        ##we create 4 versions of Ls and Qc_diag (no_dem_sto, no_env_sto, no_dem_sto_no_env_sto and full
-##        ################################################################################################
-##        calc_Q = {'no_dem_sto': {'Ls_proc':[x[N_REAC:(N_REAC + N_ENV_STO)] for x in Ls_proc],
-##                                 'Ls_obs':[x[N_REAC:(N_REAC + N_ENV_STO)] for x in Ls_obs],
-##                                 'Qc_tpl': Qc_env_tpl},
-##                  'no_env_sto': {'Ls_proc':[x[0:N_REAC] for x in Ls_proc],
-##                                 'Ls_obs':[x[0:N_REAC] for x in Ls_obs],
-##                                 'Qc_tpl': diag_Qc_dem_tpl},
-##                  'full': {'Ls_proc': Ls_proc,
-##                           'Ls_obs': Ls_obs,
-##                           'Qc_tpl': copy.deepcopy(diag_Qc_dem_tpl + Qc_env_tpl)}, #we deepcopy as we are going to modify diag_Qc_dem_tpl and Qc_env_tpl
-##                  'no_dem_sto_no_env_sto': {'Ls_proc': [],
-##                                            'Ls_obs': [],
-##                                            'Qc_tpl': []}}
-##
-##        #fix index for no_dem_sto
-##        for x in calc_Q['no_dem_sto']['Qc_tpl']:
-##            x['i'] -= N_REAC
-##            x['j'] -= N_REAC
-##
-##        ##cache special functions
-##        for key in calc_Q:
-##            s = len(calc_Q[key]['Qc_tpl'])
-##            calc_Q[key]['s'] = s
-##            if s:
-##                optim_rates = [x['rate'] for x in calc_Q[key]['Qc_tpl']]
-##                calc_Q[key]['sf'] = self.cache_special_function_C(optim_rates, prefix='_sf')
-##                for i in range(len(optim_rates)):
-##                    calc_Q[key]['Qc_tpl'][i]['rate'] = optim_rates[i]
-##            else:
-##                calc_Q[key]['sf'] = []
-##
-##        return calc_Q
+        return calc_Q
 
 
 
@@ -957,7 +988,7 @@ if __name__=="__main__":
 
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
 
-    model.eval_Q()
+    model.eval_Q(debug=True)
 
 ##    print ''.join(model.generator_C("(1.0+e*sin((a*x+(b)), ((e)) )) + r0", False))
 ##    print model.generator_C("-mu_d - r0_1*v*(e*sin(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin(d) + 1.0)*(RI + SI + iota_2)/N", False)
