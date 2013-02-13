@@ -32,76 +32,6 @@
 #define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
 
 
-struct s_kalman_specific_data *build_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data)
-{
-    int i;
-
-    struct s_kalman_specific_data *p;
-    p = malloc(sizeof(struct s_kalman_specific_data));
-    if(p==NULL){
-        char str[STR_BUFFSIZE];
-        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
-        print_err(str);
-        exit(EXIT_FAILURE);
-    }
-
-    //compo_groups_drift_par_proc
-    p->compo_groups_drift_par_proc = malloc(N_DRIFT* sizeof (struct s_group **));
-    if(p->compo_groups_drift_par_proc==NULL) {
-        char str[STR_BUFFSIZE];
-        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
-        print_err(str);
-        exit(EXIT_FAILURE);
-    }
-    for(i=0; i<N_DRIFT; i++) {
-        p->compo_groups_drift_par_proc[i] = get_groups_compo(p_data->routers[ p_data->drift[i]->ind_par_Xdrift_applied ]);
-    }
-
-    p->FtCt = gsl_matrix_alloc(N_KAL, N_KAL);
-    p->Q = gsl_matrix_calloc(N_KAL, N_KAL);
-    p->Ft = gsl_matrix_calloc(N_KAL, N_KAL);
-
-    enum plom_noises_off noises_off = p_data->noises_off;
-    int n_noises;
-    void (*eval_L) (gsl_matrix *L, struct s_calc *p_calc, struct s_data *p_data);
-
-    if ( (noises_off & (PLOM_NO_DEM_STO)) && (noises_off & (PLOM_NO_ENV_STO)) )  {
-        n_noises = {{ calc_Q.no_dem_sto_no_env_sto.s }}*N_CAC;
-	eval_L = &eval_L_no_dem_sto_no_env_sto;
-	p->eval_Qc = &eval_Qc_no_dem_sto_no_env_sto;
-    } else if ((noises_off & PLOM_NO_DEM_STO) && !(noises_off & PLOM_NO_ENV_STO)) {
-        n_noises = {{ calc_Q.no_dem_sto.s }}*N_CAC;
-	eval_L = &eval_L_no_dem_sto;
-	p->eval_Qc = &eval_Qc_no_dem_sto;
-    } else if (!(noises_off & PLOM_NO_DEM_STO) && (noises_off & PLOM_NO_ENV_STO)) {
-        n_noises = {{ calc_Q.no_env_sto.s }}*N_CAC;
-	eval_L = &eval_L_no_env_sto;
-	p->eval_Qc = &eval_Qc_no_env_sto;
-    } else {
-        n_noises = {{ calc_Q.full.s }}*N_CAC;
-	eval_L = &eval_L_full;
-	p->eval_Qc = &eval_Qc_full;
-    }
-
-    if(!(noises_off & PLOM_NO_DRIFT)){
-	n_noises += p_data->p_it_only_drift->nbtot;
-    }
-
-    if(n_noises == 0){
-        print_err("kalman methods must be used with at least one brownian motion.");
-        exit(EXIT_FAILURE);
-    } else {
-	p->Qc = gsl_matrix_calloc(n_noises, n_noises);
-	p->L = gsl_matrix_calloc(N_KAL, n_noises);
-	eval_L(p->L, p_calc, p_data);
-	p->LQc = gsl_matrix_calloc(N_KAL, n_noises);
-    }
-
-    return p;
-}
-
-
-
 /**
  * the function used by f_prediction_ode_rk:
  * dX/dt = f(t, X, params)
@@ -215,7 +145,7 @@ int step_ode_ekf(double t, const double X[], double f[], void *params)
     ////////////////
 
     // evaluate Q and jacobian
-    eval_Q(Q, X, p_par, p_data, p_calc, p_kalman_specific_data, t);
+    p_kalman_specific_data->eval_Q(Q, X, p_par, p_data, p_calc, p_kalman_specific_data, t);
     eval_jac(Ft, X, p_par, p_data, p_calc, compo_groups_drift_par_proc, t);
 
     // compute Ft*Ct+Ct*Ft'+Q 
@@ -431,102 +361,46 @@ void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data 
 
 
 
-{% for noises_off, Q in calc_Q.items %}
+{% for noises_off, tpl in calc_Q.items %}
 /**
- * evaluate dispersion matrix L ({{ noises_off }}) (as described in Sarkka phD (2006))
+ * evaluate Q ({{ noises_off }})
  */
-void eval_L_{{ noises_off }}(gsl_matrix *L, struct s_calc *p_calc, struct s_data *p_data)
+void eval_Q_{{ noises_off }}(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_kalman_specific_data *p_kalman_specific_data, double t)
 {
-
-    {% if Q.Qc_tpl %}
-    int c, ac, cac;
-    int ts, ts_unique, stream, n_cac;
-    struct s_obs2ts **obs2ts = p_data->obs2ts;
-
-    //////////////////
-    // process part //
-    //////////////////
-    for(cac=0; cac<N_CAC; cac++) {
-	{% for Ls_i in Q.Ls_proc %}
-	{% for Ls_ii in Ls_i %}
-	gsl_matrix_set(L, {{ forloop.parentloop.counter0 }}*N_CAC+cac, {{ forloop.counter0 }}*N_CAC+cac, {{ Ls_ii|safe }});
-	{% endfor %}{% endfor %}
-    }
-
-
-    //////////////////////
-    // observation part //
-    //////////////////////
-
-    ts = 0;
-    {% for Ls_i in Q.Ls_obs %}
-    for(ts_unique=0; ts_unique < obs2ts[{{ forloop.counter0 }}]->n_ts_unique; ts_unique++) {
-	for(stream=0; stream < obs2ts[{{ forloop.counter0 }}]->n_stream[ts_unique]; stream++) {
-
-	    for(n_cac=0; n_cac< obs2ts[{{ forloop.counter0 }}]->n_cac[ts_unique]; n_cac++) {
-		c = obs2ts[{{ forloop.counter0 }}]->cac[ts_unique][n_cac][0];
-		ac = obs2ts[{{ forloop.counter0 }}]->cac[ts_unique][n_cac][1];
-		cac = c*N_AC+ac;
-
-		{% for Ls_ii in Ls_i %}
-		gsl_matrix_set(L, N_PAR_SV*N_CAC+ts, {{ forloop.counter0 }}*N_CAC+cac, {{ Ls_ii|safe }});
-		{% endfor %}
-	    }
-
-	    ts++;
-	}
-    }
-    {% endfor %}
-
-    {% endif %}
-
-
-    {% if is_drift  %}
-    ////////////////
-    // drift part //
-    ////////////////
-    if(!(p_data->noises_off & PLOM_NO_DRIFT)){
-	struct s_iterator *p_it = p_data->p_it_only_drift;
-	int i;
-	for(i=0; i<p_it->nbtot; i++) {
-	    gsl_matrix_set(L, N_PAR_SV*N_CAC+N_TS + i, {{ Q.s }}*N_CAC + i, 1.0);
-	}
-    }
-    {% endif %}
-
-}
-{% endfor %}
-
-
-
-
-{% for noises_off, Q in calc_Q.items %}
-/**
- * evaluate the diagonal of Qc ({{ noises_off }})
- */
-void eval_Qc_{{ noises_off }}(gsl_matrix *Qc, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, double t)
-{
-    // X is p_X->proj
 
     struct s_router **routers = p_data->routers;
     //the automaticaly generated code may need these variables
     const int nn = p_calc->current_nn;
     double **par = p_par->natural;
     double ***covar = p_data->par_fixed;
+    int i, k, cac, offset;
 
     {% if is_drift  %}
     int is_drift = ! (p_data->noises_off & PLOM_NO_DRIFT);
     {% endif %}
 
-    {% if Q.Qc_tpl %}
+    //////////////////////////////////////////////////////////////
+    // demographic stochasticity and white noise terms (if any) //
+    //////////////////////////////////////////////////////////////
+
+    {% if tpl.Q_proc or tpl.Q_obs %}
+    int j;
+    double term;
 
     {% if is_drift  %}
-    int i;
     double drifted[N_DRIFT][N_CAC];
     {% endif %}
 
-    int cac;
-    for(cac=0; cac<N_CAC; cac++) {
+    {% if tpl.sf %}
+    double _sf[N_CAC][{{ tpl.sf|length }}];
+    {% endif %}
+
+    /*
+      Q_proc contains only term involving state variables. We just
+      replicate those term for every cac
+     */
+
+    for (cac=0; cac<N_CAC; cac++) {
 
 	{% if is_drift %}
 	for(i=0; i<N_DRIFT; i++){
@@ -540,31 +414,149 @@ void eval_Qc_{{ noises_off }}(gsl_matrix *Qc, const double *X, struct s_par *p_p
 	}
 	{% endif %}
 
-	{% if Q.sf %}
-	double _sf[{{ Q.sf|length }}];
+        {% for sf in tpl.sf %}
+        _sf[cac][{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
+
+        {% for x in tpl.Q_proc %}
+        i = {{ x.i }} * N_CAC + cac;
+        j = {{ x.j }} * N_CAC + cac;
+        term = {{ x.rate|safe }};
+
+        gsl_matrix_set(Q, i, j, term);
+
+	{% if x.i != x.j %}
+        gsl_matrix_set(Q, j, i, term);
 	{% endif %}
 
-	{% for sf in Q.sf %}
-	_sf[{{ forloop.counter0 }}] = {{ sf|safe }};{% endfor %}
-
-	{% for term in Q.Qc_tpl %}
-	gsl_matrix_set(Qc, {{ term.i }}*N_CAC+cac, {{ term.j }}*N_CAC+cac, {{ term.rate|safe }});{% endfor %}
+        {% endfor %}
     }
 
     {% endif %}
 
 
+
+    {% if tpl.Q_obs %}
+    /*
+      Q_obs contains only term involving at least one observed
+      variable. The expansion is difficult: Q is expressed in terms of
+      time series and not observed variable we only know the
+      relationship between state variable and observed variable
+      (that's what Q_obs gives us). We need to recreate time series
+      from index of observed variable (x.to.ind and x.from.ind).
+
+      for one given observed variable, s_obs2ts gives us the time
+      series involved (and the cac involved)
+    */
+
+    int ts_unique, ts_unique_j;
+    int stream, stream_j;
+    int ts, ts_j;
+    int cac_j;
+    int n_cac, n_cac_j;
+
+    struct s_obs2ts **obs2ts = p_data->obs2ts;
+    struct s_obs2ts *p_obs2ts, *p_obs2ts_j;
+
+    {% for x in tpl.Q_obs %}
+
+    {% if x.i.is_obs and not x.j.is_obs or x.j.is_obs and not x.i.is_obs   %}
+
+    /*
+      x contains a state variable and an observed variable the
+      observed variable correspond to different ts (given by
+      obs2ts). For each ts, obs2ts also gives us the cac observed.
+    */
+
+    p_obs2ts = obs2ts[{% if x.i.is_obs %}{{ x.i.ind }}{% else %}{{ x.j.ind }}{% endif %}];
+    ts=0;
+    for(ts_unique=0; ts_unique < p_obs2ts->n_ts_unique; ts_unique++) {
+        for(stream=0; stream < p_obs2ts->n_stream[ts_unique]; stream++) {
+            for(n_cac=0; n_cac< p_obs2ts->n_cac[ts_unique]; n_cac++) {
+                cac = p_obs2ts->cac[ts_unique][n_cac][0]*N_AC + p_obs2ts->cac[ts_unique][n_cac][1];
+
+                i = {% if not x.i.is_obs %}{{ x.i.ind }} * N_CAC + cac{% else %}N_PAR_SV*N_CAC + p_obs2ts->offset + ts{% endif %};
+                j = {% if not x.j.is_obs %}{{ x.j.ind }} * N_CAC + cac{% else %}N_PAR_SV*N_CAC + p_obs2ts->offset + ts{% endif %};
+
+		term = {{ x.rate|safe }};
+
+                gsl_matrix_set(Q, i, j, term);
+		gsl_matrix_set(Q, j, i, term);
+            }
+            ts++;
+        }
+    }
+
+    {% else %}
+
+    /*
+      x contains 2 observed variables: complicated case, we have to
+      find the common cac in between x.i.ind and x.j.ind
+
+      Note that we need to sum the terms is these cases...
+    */
+
+
+    ts=0;
+    p_obs2ts = obs2ts[{{ x.i.ind }}];
+    p_obs2ts_j = obs2ts[{{ x.j.ind }}];
+
+    for(ts_unique=0; ts_unique < p_obs2ts->n_ts_unique; ts_unique++) {
+        for(stream=0; stream < p_obs2ts->n_stream[ts_unique]; stream++) {
+
+            ts_j=0;
+            for(ts_unique_j=0; ts_unique_j < p_obs2ts_j->n_ts_unique; ts_unique_j++) {
+                for(stream_j=0; stream_j < p_obs2ts_j->n_stream[ts_unique_j]; stream_j++) {
+
+                    i = N_PAR_SV*N_CAC + p_obs2ts->offset + ts;
+                    j = N_PAR_SV*N_CAC + p_obs2ts_j->offset + ts_j;
+
+		    term = 0.0;
+
+                    for(n_cac=0; n_cac< p_obs2ts->n_cac[ts_unique]; n_cac++) {
+                        cac = p_obs2ts->cac[ts_unique][n_cac][0]*N_AC + p_obs2ts->cac[ts_unique][n_cac][1];
+
+			{% if x.i.ind != x.j.ind %}
+			//we have to determine the cac in common between the 2 ts
+                        for(n_cac_j=0; n_cac_j< p_obs2ts_j->n_cac[ts_unique_j]; n_cac_j++) {
+                            cac_j = p_obs2ts_j->cac[ts_unique_j][n_cac_j][0]*N_AC + p_obs2ts_j->cac[ts_unique_j][n_cac_j][1];
+                            if(cac == cac_j){
+                                //x.rate is a function of cac
+				term += {{ x.rate|safe }};
+                            }
+                        }
+			{% else %}
+			term += {{ x.rate|safe }};
+			{% endif %}
+
+		    }
+
+		    gsl_matrix_set(Q, i, j, term);
+		    {% if x.i.ind != x.j.ind %}
+		    gsl_matrix_set(Q, j, i, term);
+		    {% endif %}
+
+                    ts_j++;
+                }
+            }
+            ts++;
+        }
+    }
+
+    {% endif %}
+
+    {% endfor %}
+    {% endif %}
+
     {% if is_drift  %}
-    //////////////////////////////
-    // drift term (volatility^2)//
-    //////////////////////////////
+    ///////////////////////////////////////////
+    // drift term (volatility^2 on diagonal) //
+    ///////////////////////////////////////////
     if(is_drift){
 	struct s_iterator *p_it = p_data->p_it_only_drift;
-	int i, k;
-	int offset = {{ Q.s }}*N_CAC;
+	offset = N_PAR_SV*N_CAC + N_TS;
 	for(i=0; i<p_it->length; i++) {
 	    for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-		gsl_matrix_set(Qc, offset, offset, pow(par[ p_data->drift[i]->ind_volatility_Xdrift ][k], 2));
+		gsl_matrix_set(Q, offset, offset, pow(par[ p_data->drift[i]->ind_volatility_Xdrift ][k], 2) );
 		offset++;
 	    }
 	}
@@ -572,21 +564,5 @@ void eval_Qc_{{ noises_off }}(gsl_matrix *Qc, const double *X, struct s_par *p_p
     {% endif %}
 
 }
+
 {% endfor %}
-
-
-void eval_Q(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_kalman_specific_data *p_kalman_specific_data, double t)
-{
-    gsl_matrix *Qc = p_kalman_specific_data->Qc;
-    gsl_matrix *L = p_kalman_specific_data->L;
-    gsl_matrix *LQc = p_kalman_specific_data->LQc;
-
-    p_kalman_specific_data->eval_Qc(Qc, X, p_par, p_data, p_calc, t);
-
-    // LQc = L*Qc
-    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, L, Qc, 0.0, LQc);
-
-    // Q = L Qc L'
-    gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, LQc, L, 0.0, Q);
-
-}
