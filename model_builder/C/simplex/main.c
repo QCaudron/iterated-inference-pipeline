@@ -39,14 +39,14 @@ int main(int argc, char *argv[])
 	"--eps_abs            Absolute error for adaptive step-size contro\n"
 	"--eps_rel            Relative error for adaptive step-size contro\n"
 	"\n" 
-       "-q, --least_square    optimize the sum of square instead of the likelihood\n"
+	"-q, --least_square    optimize the sum of square instead of the likelihood\n"
         "-p, --path           path where the outputs will be stored\n"
         "-i, --id             general id (unique integer identifier that will be appended to the output files)\n"
         "-l, --LIKE_MIN       likelihood smaller that LIKE_MIN are considered 0.0\n"
         "-M, --iter           maximum number of iterations\n"
         "-S, --size           simplex size used as a stopping criteria\n"
         "-b, --no_traces      do not write the traces\n"
-        "--prior              add log(prior) to the estimated loglik\n"
+        "--prior              add log(prior) to the estimated log likelihood\n"
         "--help               print the usage on stdout\n";
 
 

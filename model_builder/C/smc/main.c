@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
         "                     [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
         "                     [-t, --no_filter] [-b, --no_best] [-h, --no_hat]\n"
         "                     [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
-        "                     [-l, --LIKE_MIN <float>] [-J <integer>]\n"
+        "                     [-l, --LIKE_MIN <float>] [-J <integer>] [--prior]\n"
         "                     [--help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
@@ -57,6 +57,8 @@ int main(int argc, char *argv[])
         "-b, --no_best      do not write best_<general_id>.output file\n"
         "-h, --no_hat       do not write hat_<general_id>.output file\n"
         "-r, --no_pred_res  do not write pred_res_<general_id>.output file (prediction residuals)\n"
+	"\n"
+        "--prior            add log(prior) to the estimated log likelihood\n"
 	"\n"
         "--help             print the usage on stdout\n";
 
@@ -94,6 +96,7 @@ int main(int argc, char *argv[])
 
                 {"help",       no_argument,       0, 'e'},
                 {"path",       required_argument, 0, 'p'},
+                {"prior",  no_argument, &OPTION_PRIOR, 1},
                 {"id",         required_argument, 0, 'i'},
                 {"N_THREAD",   required_argument, 0, 'P'},
                 {"no_filter",  no_argument,       0, 't'},
@@ -208,7 +211,7 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
 
     json_t *theta = load_json();
-    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 0);
+    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR);
     json_decref(settings);
 
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
@@ -245,6 +248,12 @@ int main(int argc, char *argv[])
     replicate_J_p_X_0(D_J_p_X[0], p_data);
 
     run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, get_f_pred(implementation, noises_off), filter, p_file_X, p_file_pred_res);
+
+
+    if (OPTION_PRIOR) {
+        p_like->Llike_best += log_prob_prior(p_best, p_best->mean, p_data);
+    }
+
 
 #if FLAG_VERBOSE
     time_end = s_clock();
