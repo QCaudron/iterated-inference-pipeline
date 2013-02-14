@@ -309,7 +309,7 @@ class Ccoder(Cmodel):
             for nbreac in range(len(reac_from_univ)):
                 myrate = self.make_C_term(reac_from_univ[nbreac]['rate'], False)
                 if 'white_noise' in reac_from_univ[nbreac]:
-                    myrate = '({0})*{1}'.format(myrate, x['white_noise']['name'])
+                    myrate = '({0})*{1}'.format(myrate, reac_from_univ[nbreac]['white_noise']['name'])
 
                 poisson.append('p_calc->inc[ORDER_{0}][cac][{1}] = gsl_ran_poisson(p_calc->randgsl, ({2})*dt)'.format(s, nbreac, myrate))
                 incDict[reac_from_univ[nbreac]['to']] += ' + p_calc->inc[ORDER_{0}][cac][{1}]'.format(s, nbreac)
