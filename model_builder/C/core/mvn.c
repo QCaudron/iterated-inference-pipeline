@@ -194,50 +194,28 @@ double sfr_dmvnorm(struct s_best *p_best, theta_t *proposed, gsl_vector *mean, d
  */
 void eval_var_emp(struct s_best *p_best, double m)
 {
-    int i, k, j;
+    int i, k;
 
     double *x_bar = p_best->mean_sampling;
     gsl_vector *x = p_best->mean;
     gsl_matrix *cov = p_best->var_sampling;
     double val;
 
-    for (i=0; i < p_best->length; i++) {
-        x_bar[i] += (gsl_vector_get(x, i) - x_bar[i]) / m;
-    }
-
     /* lower triangle and diagonal */
     for (i=0; i < p_best->length; i++) {
         for (k=0; k <= i; k++) {
+	    //Cov_n = C_n/n
+	    //C_n = sum_{i=1,n} (x_i-x_bar_n)(y_i-y_bar_n)
+	    //C_n = C_{n-1} + (n-1)/n(x_n -x_bar_{n-1})(y_n -y_bar_{n-1})
+	    //val = (n-1)/n(x_n -x_bar_{n-1})(y_n -y_bar_{n-1})
             val = ((m - 1.0) / m) * (gsl_vector_get(x, i) - x_bar[i]) * (gsl_vector_get(x, k) - x_bar[k]);
-            val = ((m - 1.0) / m) * gsl_matrix_get(cov, i, k) + val/m;
 
-
-            //BEGIN PATCH
-            // JD : patch to prevent cov from exploding when parameters are unidentifiable. 100 is an arbitrary value, maybe it would be better to use 100*jump_size... To be kept in mind.
-            if (i==k && val > 100.0) {
-                val = 100.0;
-            }
-            //END PATCH
-
-            gsl_matrix_set(cov, i, k, val);
+	    //C_n = C_{n-1} + val
+	    //NOTE: we track the covariance and not C_n. However C_n =  covariance * n  so C_{n-1} = cov_{n-1} * (n-1) hence the fomula below
+            gsl_matrix_set(cov, i, k, (((m-1.0)*gsl_matrix_get(cov, i, k)) + val ) / m);
         }
     }
-
-    //BEGIN PATCH
-    // JD : patch to prevent cov from exploding when parameters are unidentifiable. 100 is an arbitrary value, maybe it would be better to use 100*jump_size... To be kept in min.
-    for (i=0; i < p_best->length; i++) {
-        if ( gsl_matrix_get(cov, i, i) > 99){
-            for (j=0; j< p_best->length; j++) {
-                if (i != j) {
-                    gsl_matrix_set(cov, i, j, 0);
-                    gsl_matrix_set(cov, j, i, 0);
-                }
-            }
-        }
-    }
-    //END PATCH
-
-
+    
     /* fill upper triangle */
     for (i=0; i < p_best->length; i++) {
         for (k=0; k < i; k++) {
@@ -245,39 +223,11 @@ void eval_var_emp(struct s_best *p_best, double m)
             gsl_matrix_set(cov, k, i, val);
         }
     }
-}
 
-
-/**
- * eval Cholesky decomposition of the covariance matrix
- *
- * var and var_cholesky are collapsed matrices (they only contain rows
- * and columns corresponding to positive jump sizes)
- *
- * @param var_cholesky the decomposition
- * @param var the covariance matrix (only lower triangle is taken into account)
- */
-void eval_var_cholesky(gsl_matrix *var_cholesky, gsl_matrix *var)
-{
-    // copy matrix
-    int size = var_cholesky->size1;
-    int row, col;
-    for(row=0; row<size; row++) {
-        // diagonal
-        gsl_matrix_set(var_cholesky, row, row, gsl_matrix_get(var, row, row));
-        // triangles
-        for(col=0; col<row; col++) {
-            double cell = gsl_matrix_get(var, row, col);
-            gsl_matrix_set(var_cholesky, row, col, cell);
-            gsl_matrix_set(var_cholesky, col, row, cell);
-        }
+    //update x_bar
+    for (i=0; i < p_best->length; i++) {
+        x_bar[i] += (gsl_vector_get(x, i) - x_bar[i]) / m;
     }
 
-    // eval decomposition
-    int status = gsl_linalg_cholesky_decomp(var_cholesky);
-    if(status == GSL_EDOM) {
-        // error: matrix not positive
-        fprintf(stderr, "COVARIANCE MATRIX IS NOT POSITIVE DEFINITE\n");
-        gsl_matrix_fprintf(stdout, var, "%f");
-    }
 }
+
