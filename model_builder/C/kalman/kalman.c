@@ -266,7 +266,7 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
     } // end of for loop on n
 
     if (OPTION_PRIOR) {
-        log_lik += log_prob_prior(p_best, p_best->mean, p_data);
+        log_lik += log_prob_prior(p_best, p_best->mean, p_best->var, p_data);
     }
 
     if (OPTION_TRANSF) {

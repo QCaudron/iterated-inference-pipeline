@@ -378,7 +378,7 @@ struct s_best {
     int n_to_be_estimated;         /**< nb of parameters that have to be estimated (parameters with jump_size > 0.0) */
     unsigned int *to_be_estimated; /**< [self.length] index of self.mean component that have to be estimated. Note: [self.length] and not [self.n_to_be_estimated] because in the webApp, user can uleash jump_sizes set to 0.0 > 0.0  */
 
-
+    unsigned int *is_estimated; /**< [self.length] boolean: 1 = is estimated, 0 = is not  */
 
     /* "follow" property of theta.json
        E.g.
@@ -729,19 +729,19 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_p
 void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int Jchunk, void *sender, void *receiver, void *controller);
 
 /* metropolis_hastings_prior.c */
-int metropolis_hastings(struct s_best *p_best, struct s_likelihood *p_like, double *alpha, struct s_data *p_data, struct s_calc *p_calc, double sd_fac, int is_mvn);
-int check_prior(struct s_best *p_best, theta_t *mean, struct s_data *p_data);
-double log_prob_prior(struct s_best *p_best, theta_t *mean, struct s_data *p_data);
+int metropolis_hastings(struct s_best *p_best, struct s_likelihood *p_like, double *alpha, struct s_data *p_data, struct s_calc *p_calc, gsl_matrix *var, double sd_fac, int is_mvn);
+int check_prior(struct s_best *p_best, gsl_vector *mean, gsl_matrix *var, struct s_data *p_data);
+double log_prob_prior(struct s_best *p_best, gsl_vector *mean, gsl_matrix *var, struct s_data *p_data);
 double normal_prior(double x, double min, double max);
 double pseudo_unif_prior(double x, double min, double max);
 
 /* proposal.c */
-void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_par *p_par, struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc,
-                                    void (*ran_proposal) (theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc));
-void ran_proposal(theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc);
+void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_par *p_par, struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc, void (*ran_proposal) (theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc));
+
+void ran_proposal(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc);
 
 int check_IC(struct s_X *p_X, struct s_data *p_data);
-double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean, double sd_fac, struct s_data *p_data, int is_mvn);
+double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean, gsl_matrix *var, double sd_fac, struct s_data *p_data, int is_mvn);
 void apply_following_constraints(theta_t *proposed, struct s_best *p_best, struct s_data *p_data);
 
 /* hat.c */
@@ -804,8 +804,8 @@ void recv_array_d(double *array, int array_size, void *socket);
 /* mvn.c */
 int rmvnorm(const gsl_rng *r, const int n, const gsl_vector *mean, const gsl_matrix *var, gsl_vector *result);
 double dmvnorm(const int n, const gsl_vector *x, const gsl_vector *mean, const gsl_matrix *var);
-void sfr_rmvnorm(theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc);
-double sfr_dmvnorm(struct s_best *p_best, theta_t *proposed, gsl_vector *mean, double sd_fac);
+void plom_rmvnorm(gsl_vector *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc);
+double plom_dmvnorm(struct s_best *p_best, theta_t *proposed, gsl_vector *mean, gsl_matrix *var, double sd_fac);
 void eval_var_emp(struct s_best *p_best, double m);
 
 /* templated */

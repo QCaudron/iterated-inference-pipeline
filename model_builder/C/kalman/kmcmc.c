@@ -30,6 +30,8 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
     double sd_fac;
     int accept = 0; // number of proposed values of the parameters accepted by Metropolis Hastings */
 
+    gsl_matrix *var; 
+
     // syntactical shortcut
     struct s_X *p_X = p_kalman->p_X;
     struct s_par *p_par = p_kalman->p_par;
@@ -100,7 +102,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
 #endif
 
         // generate new theta
-        propose_new_theta_and_load_X0(&sd_fac, p_best, p_X, p_par, p_data, p_pmcmc_calc_data, calc[0], m);
+        var = propose_new_theta_and_load_X0(&sd_fac, p_best, p_X, p_par, p_data, p_pmcmc_calc_data, calc[0], m);
         back_transform_theta2par(p_par, p_best->proposed, p_data->p_it_par_proc_par_obs_no_drift, p_data);
 
         //run Kalman
@@ -109,7 +111,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
         p_like->Llike_new = p_like->Llike_best;
 
         // acceptance
-        is_accepted = metropolis_hastings(p_best, p_like, &alpha, p_data, calc[0], sd_fac, OPTION_FULL_UPDATE);
+        is_accepted = metropolis_hastings(p_best, p_like, &alpha, p_data, calc[0], var, sd_fac, OPTION_FULL_UPDATE);
 
         if (is_accepted) {
             p_like->Llike_prev = p_like->Llike_new;

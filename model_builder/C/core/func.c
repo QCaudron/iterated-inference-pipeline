@@ -178,13 +178,14 @@ void update_to_be_estimated(struct s_best *p_best)
     for(k=0; k<p_best->length; k++) {
         if( (gsl_matrix_get(p_best->var, k, k) > 0.0) && (p_best->is_follower[k] == 0) ) {
             p_best->to_be_estimated[ p_best->n_to_be_estimated ] = k;
+            p_best->is_estimated[k] = 1;
             p_best->n_to_be_estimated++;
         } else {
             //be sure that 0.0 is a true zero!
             gsl_matrix_set(p_best->var, k, k, 0.0);
+            p_best->is_estimated[k] = 0;
         }
     }
-
 }
 
 

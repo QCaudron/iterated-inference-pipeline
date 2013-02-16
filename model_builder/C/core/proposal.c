@@ -33,18 +33,16 @@ void apply_following_constraints(theta_t *proposed, struct s_best *p_best, struc
     }
 }
 
-
 /**
    generate a new value of theta that respects the constraints on
    the initial conditions.
 */
-void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_par *p_par, struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc,
-                                    void (*ran_proposal) (theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc))
+void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_par *p_par, struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc, void (*ran_proposal) (theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc))
 {
 
     do
         {
-            (*ran_proposal)(proposed, p_best, sd_fac, p_calc);
+            (*ran_proposal)(proposed, p_best, var, sd_fac, p_calc);
 
             //take into account following constraints
             apply_following_constraints(proposed, p_best, p_data);
@@ -60,18 +58,18 @@ void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, do
     theta_driftIC2Xdrift(p_X, proposed, p_data);
 }
 
+/**
+ * generate a randam vector proposed. proposed is drawn from a MVN
+ * law with mean "p_best->mean" and var "var" 
+ */
 
-void ran_proposal(theta_t *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc)
+void ran_proposal(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc)
 {
-    /* generate a randam vector proposed. proposed is drawn from a MVN
-       law with mean "p_best->mean" and var "p_best->var" */
-
     //here we assume a diagonal sigma_proposal so we draw iid gaussians. mvn case is a straight extension (see mvn.c)
-
     int k;
 
     for (k=0; k< proposed->size ; k++) {
-        gsl_vector_set(proposed, k, gsl_vector_get(p_best->mean, k) + gsl_ran_gaussian(p_calc->randgsl, sd_fac*sqrt(gsl_matrix_get(p_best->var, k, k))));
+        gsl_vector_set(proposed, k, gsl_vector_get(p_best->mean, k) + gsl_ran_gaussian(p_calc->randgsl, sd_fac*sqrt(gsl_matrix_get(var, k, k))));
     }
 }
 
@@ -102,9 +100,8 @@ int check_IC(struct s_X *p_X, struct s_data *p_data)
  * return the log of the prob of the proposal **or** -1.0 if error
  */
 
-double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean, double sd_fac, struct s_data *p_data, int is_mvn)
+double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean, gsl_matrix *var, double sd_fac, struct s_data *p_data, int is_mvn)
 {
-    gsl_matrix *var = p_best->var;
     struct s_router **routers = p_data->routers;
 
     char str[STR_BUFFSIZE];
@@ -113,15 +110,16 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
     double p_tmp, Lp;
     p_tmp=0.0, Lp=0.0;
 
-    int offset = 0;
-
     if (is_mvn) {
-        p_tmp = sfr_dmvnorm(p_best, proposed, mean, sd_fac);
+        p_tmp = plom_dmvnorm(p_best, proposed, mean, var, sd_fac);
     }
 
-    for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
+    int offset = 0;
+
+    for(i=0; i<p_data->p_it_all->length; i++) {
         for(k=0; k<routers[i]->n_gp; k++) {
-            if(gsl_matrix_get(var, offset, offset) >0.0) {
+
+	    if(p_best->is_estimated[offset]) {
 
                 if (!is_mvn) {
                     p_tmp = gsl_ran_gaussian_pdf((gsl_vector_get(proposed, offset)-gsl_vector_get(mean, offset)), sd_fac*sqrt(gsl_matrix_get(var, offset, offset)));
@@ -160,8 +158,8 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
 		if (!is_mvn) {
 		    Lp += log(p_tmp);
 		}
-
             }
+
             offset++;
         }
     }
@@ -178,7 +176,6 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
 #endif
 	return -1.0;
     }
-
 
     return(Lp);
 }

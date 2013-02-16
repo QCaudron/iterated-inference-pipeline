@@ -18,17 +18,17 @@
 
 #include "plom.h"
 
-int metropolis_hastings(struct s_best *p_best, struct s_likelihood *p_like, double *alpha, struct s_data *p_data, struct s_calc *p_calc, double sd_fac, int is_mvn)
+int metropolis_hastings(struct s_best *p_best, struct s_likelihood *p_like, double *alpha, struct s_data *p_data, struct s_calc *p_calc, gsl_matrix *var, double sd_fac, int is_mvn)
 {
     double ran;
 
     //log_prob_proposal return -1 if numerical error during computation
-    double Lproposal_new = log_prob_proposal(p_best, p_best->proposed, p_best->mean, sd_fac, p_data,  is_mvn); /* q{ theta* | theta(i-1) }*/
-    double Lproposal_prev = log_prob_proposal(p_best, p_best->mean, p_best->proposed, sd_fac, p_data, is_mvn); /* q{ theta(i-1) | theta* }*/
+    double Lproposal_new = log_prob_proposal(p_best, p_best->proposed, p_best->mean, var, sd_fac, p_data,  is_mvn); /* q{ theta* | theta(i-1) }*/
+    double Lproposal_prev = log_prob_proposal(p_best, p_best->mean, p_best->proposed, var, sd_fac, p_data, is_mvn); /* q{ theta(i-1) | theta* }*/
 
-    if(check_prior(p_best, p_best->mean, p_data) && (Lproposal_new >0.0) && (Lproposal_prev >0.0) ) {
-        double Lprior_new = log_prob_prior(p_best, p_best->proposed, p_data); /* p{theta*} */
-        double Lprior_prev = log_prob_prior(p_best, p_best->mean, p_data);  /* p{theta(i-1)} */
+    if(check_prior(p_best, p_best->mean, var, p_data) && (Lproposal_new >0.0) && (Lproposal_prev >0.0) ) {
+        double Lprior_new = log_prob_prior(p_best, p_best->proposed, var, p_data); /* p{theta*} */
+        double Lprior_prev = log_prob_prior(p_best, p_best->mean, var, p_data);  /* p{theta(i-1)} */
 
         // ( p{theta*}(y)  p{theta*} ) / ( p{theta(i-1)}(y) p{theta(i-1)} )  *  q{ theta(i-1) | theta* } / q{ theta* | theta(i-1) }
         *alpha = exp( (p_like->Llike_new - p_like->Llike_prev + Lproposal_prev - Lproposal_new + Lprior_new - Lprior_prev) );
@@ -46,7 +46,7 @@ int metropolis_hastings(struct s_best *p_best, struct s_likelihood *p_like, doub
     return 0;
 }
 
-int check_prior(struct s_best *p_best, gsl_vector *mean, struct s_data *p_data)
+int check_prior(struct s_best *p_best, gsl_vector *mean, gsl_matrix *var, struct s_data *p_data)
 {
   /*check if mean is compatible with the prior (i.e if prob_prior >0)*/
 
@@ -57,9 +57,9 @@ int check_prior(struct s_best *p_best, gsl_vector *mean, struct s_data *p_data)
   struct s_router **routers = p_data->routers;
   int offset = 0;
 
-  for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
+  for(i=0; i<p_data->p_it_all->length; i++) {
       for(k=0; k<routers[i]->n_gp; k++) {
-          if( (gsl_matrix_get(p_best->var, offset, offset) > 0.0) && (p_best->is_follower[offset] == 0) ) {
+          if(p_best->is_estimated[offset]) {
               back_transformed = (*(routers[i]->f_inv))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]);
 
               p = (*(p_best->prior[offset]))(back_transformed, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);
@@ -75,7 +75,7 @@ int check_prior(struct s_best *p_best, gsl_vector *mean, struct s_data *p_data)
 }
 
 
-double log_prob_prior(struct s_best *p_best, gsl_vector *mean, struct s_data *p_data)
+double log_prob_prior(struct s_best *p_best, gsl_vector *mean, gsl_matrix *var, struct s_data *p_data)
 {
     int i, k;
 
@@ -86,9 +86,9 @@ double log_prob_prior(struct s_best *p_best, gsl_vector *mean, struct s_data *p_
     struct s_router **routers = p_data->routers;
     int offset = 0;
 
-    for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
+    for(i=0; i<p_data->p_it_all->length; i++) {
         for(k=0; k<routers[i]->n_gp; k++) {
-            if( (gsl_matrix_get(p_best->var, offset, offset) > 0.0) && (p_best->is_follower[offset] == 0) ) {
+	    if(p_best->is_estimated[offset]) {
                 back_transformed = (*(routers[i]->f_inv))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]);
                 p_tmp = (*(p_best->prior[offset]))(back_transformed, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);
                 Lp += log(sanitize_likelihood(p_tmp));

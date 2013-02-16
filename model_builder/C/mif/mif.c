@@ -55,7 +55,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
         fill_theta_bart_and_Vt_mif(D_theta_bart, D_theta_Vt, p_best, p_data, m);
 
         for(j=0; j<J; j++) {
-            propose_safe_theta_and_load_X0(p_best->proposed, p_best, MIF_b*FREEZE, J_p_par[j], (*J_p_X)[j], p_data, calc[0], ran_proposal);
+            propose_safe_theta_and_load_X0(p_best->proposed, p_best, p_best->var, MIF_b*FREEZE, J_p_par[j], (*J_p_X)[j], p_data, calc[0], ran_proposal);
             split_theta_mif(p_best->proposed, J_theta[j], (*J_IC_grouped)[j], p_data); // JD J_theta and J_IC, with corresponding intialisations!
         }
 

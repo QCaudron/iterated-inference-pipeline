@@ -93,16 +93,17 @@ double dmvnorm(const int n, const gsl_vector *x, const gsl_vector *mean, const g
     return ay;
 }
 
-void sfr_rmvnorm(gsl_vector *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc)
+
+void plom_rmvnorm(gsl_vector *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc)
 {
     int n = p_best->n_to_be_estimated;
     int i,k;
     gsl_matrix *work = gsl_matrix_alloc(n,n);
     double value;
-    //fill work with elements of p_best->var with jump_sizes 0.0 and scale var with sd_fac^2
+    //fill work with elements of var with jump_sizes 0.0 and scale var with sd_fac^2
     for(i=0; i<n; i++) {
         for(k=0; k<n; k++) {
-            value = gsl_matrix_get(p_best->var, p_best->to_be_estimated[i], p_best->to_be_estimated[k]);
+            value = gsl_matrix_get(var, p_best->to_be_estimated[i], p_best->to_be_estimated[k]);
             value *= sd_fac*sd_fac;
             gsl_matrix_set(work, i, k, value);
         }
@@ -139,7 +140,7 @@ void sfr_rmvnorm(gsl_vector *proposed, struct s_best *p_best, double sd_fac, str
 }
 
 
-double sfr_dmvnorm(struct s_best *p_best, theta_t *proposed, gsl_vector *mean, double sd_fac)
+double plom_dmvnorm(struct s_best *p_best, theta_t *proposed, gsl_vector *mean, gsl_matrix *var, double sd_fac)
 {
     int i, k;
     int n = p_best->n_to_be_estimated;
@@ -151,10 +152,10 @@ double sfr_dmvnorm(struct s_best *p_best, theta_t *proposed, gsl_vector *mean, d
         *winv = gsl_matrix_alloc(n,n);
     gsl_permutation *p = gsl_permutation_alloc(n);
 
-    //fill work with elements of p_best->var with jump_sizes 0.0 and scale var with sd_fac^2
+    //fill work with elements of var with jump_sizes 0.0 and scale var with sd_fac^2
     for(i=0; i<n; i++) {
         for(k=0; k<n; k++) {
-            double value = gsl_matrix_get(p_best->var, p_best->to_be_estimated[i], p_best->to_be_estimated[k]);
+            double value = gsl_matrix_get(var, p_best->to_be_estimated[i], p_best->to_be_estimated[k]);
             value *= sd_fac*sd_fac;
             gsl_matrix_set(work, i, k, value);
         }

@@ -85,7 +85,6 @@ int main(int argc, char *argv[])
                 /* These options set a flag. */
                 {"traj", no_argument,       &OPTION_TRAJ, 1},
                 {"full", no_argument, &OPTION_FULL_UPDATE, 1},
-                {"prior",       no_argument, &OPTION_PRIOR,       1},
                 {"transf",      no_argument, &OPTION_TRANSF,      1},
 
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */

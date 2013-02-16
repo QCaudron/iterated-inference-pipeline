@@ -99,7 +99,7 @@ void split_theta_mif(theta_t *proposed, gsl_vector *J_theta_j, double *J_IC_grou
 
 }
 
-void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gsl_vector **J_theta, gsl_matrix *var, struct s_likelihood *p_like, struct s_data *p_data, struct s_best *p_best, int m, double delta_t)
+void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gsl_vector **J_theta, gsl_matrix *var_theta, struct s_likelihood *p_like, struct s_data *p_data, struct s_best *p_best, int m, double delta_t)
 {
     /* Compute filtered mean and predeiction var of particles at time
        n. We take weighted averages with "weights" for the filtered
@@ -117,7 +117,8 @@ void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gs
 
     for(i=0; i<p_it->length; i++) {
         for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-            if( (gsl_matrix_get(var, offset, offset)>0.0) && (p_best->is_follower[p_it->offset[i]+k] == 0) ) {
+
+            if(p_best->is_estimated[p_it->offset[i]+k]) {
 
                 theta_bart_n[offset]=0.0;
 
@@ -146,7 +147,7 @@ void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gs
                 }
                 /*we add theoretical variance corresponding to mutation of theta
                   to reduce Monte Carlo variability*/
-                theta_Vt_n[offset] += delta_t*pow(FREEZE, 2)*gsl_matrix_get(var, offset, offset);
+                theta_Vt_n[offset] += delta_t*pow(FREEZE, 2)*gsl_matrix_get(var_theta, offset, offset);
             }
 
             offset++;
@@ -258,7 +259,7 @@ void update_theta_best_stable_mif(struct s_best *p_best, double **D_theta_bart, 
 
     for(i=0; i<p_it->length; i++) {
         for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-            if( (gsl_matrix_get(p_best->var, p_it->offset[i]+k, p_it->offset[i]+k) >0.0) && (p_best->is_follower[p_it->offset[i]+k] == 0) ) {
+            if(p_best->is_estimated[p_it->offset[i]+k]) {
                 tmp = 0.0;
                 for(n=1; n<=N_DATA_NONAN; n++){
                     tmp += D_theta_bart[n][offset];
@@ -287,7 +288,7 @@ void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, do
 
     for(i=0; i<p_it->length; i++) {
         for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-            if( (gsl_matrix_get(p_best->var, p_it->offset[i]+k, p_it->offset[i]+k) >0.0) && (p_best->is_follower[p_it->offset[i]+k] == 0) ) {
+            if(p_best->is_estimated[p_it->offset[i]+k]) {
                 tmp=0.0;
                 for(n=1; n<=N_DATA_NONAN; n++) {
                     tmp += ( (D_theta_bart[n][offset]-D_theta_bart[n-1][offset]) / D_theta_Vt[n][offset] );
@@ -393,8 +394,6 @@ void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, 
     struct s_iterator *p_it_mif = p_data->p_it_par_proc_par_obs_no_drift; //parameters fitted with MIF (as opposed to fixed lag smoothing)
     struct s_iterator *p_it_fls = p_data->p_it_par_sv_and_drift; //parameters fitted with fixed lag smoothing (fls)
 
-    gsl_matrix *var = p_best->var;
-
     double back_transformed; //prior are on the natural scale , so we transform the parameter into this scale...
     double p_tmp;
 
@@ -408,7 +407,7 @@ void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, 
 
             offset_best = p_it_mif->offset[i]+k;
 
-            if ( (gsl_matrix_get(var, offset_best, offset_best) > 0.0) && (p_best->is_follower[offset_best] == 0) ) { //only for the parameter that we want to estimate
+            if(p_best->is_estimated[offset_best]) {
                 for(j=0; j<J; j++) {
                     back_transformed = (*(p_router->f_inv))(gsl_vector_get( J_theta[j], offset), p_router->min[k], p_router->max[k]);
                     p_tmp = (*(p_best->prior[offset_best]))(back_transformed, p_best->par_prior[offset_best][0], p_best->par_prior[offset_best][1]);
@@ -431,7 +430,7 @@ void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, 
 
                 offset_best = p_it_fls->offset[i]+k;
 
-                if ( (gsl_matrix_get(var, offset_best, offset_best) > 0.0) && (p_best->is_follower[offset_best] == 0) ) { //only for the parameter that we want to estimate
+		if(p_best->is_estimated[offset_best]) {
                     for(j=0; j<J; j++) {
                         back_transformed = (*(p_router->f_inv))((*J_IC_grouped)[j][offset], p_router->min[k], p_router->max[k]);
                         p_tmp = (*(p_best->prior[offset_best]))(back_transformed, p_best->par_prior[offset_best][0], p_best->par_prior[offset_best][1]);

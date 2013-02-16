@@ -1207,6 +1207,7 @@ struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covar
     }
 
     p_best->to_be_estimated = init1u_set0(p_best->length);
+    p_best->is_estimated = init1u_set0(p_best->length);
 
     p_best->is_follower = init1u_set0(p_best->length);
     p_best->n_follow = 0;
@@ -1287,6 +1288,7 @@ void clean_best(struct s_best *p_best)
     gsl_matrix_free(p_best->var_sampling);
 
     FREE(p_best->to_be_estimated);
+    FREE(p_best->is_estimated);
 
     FREE(p_best->is_follower);
     if(p_best->n_follow){

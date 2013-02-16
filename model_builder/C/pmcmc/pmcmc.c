@@ -49,8 +49,8 @@ void run_propag(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *
  * For the calculation, the collapsed Cholesky decomposition of var is used,
  * so the tuning factor is 2.38*epsilon/sqrt(n_to_be_estimated).
  *
- * The sampling expanded covariance matrix is stored
- * in p_best->var
+ * return the empirical covariance matrix or the initial one depending on if(m*global_acceptance_rate >= m_switch)
+ * 
  *
  * IN SEQUENTIAL UPDATE CASE:
  *
@@ -59,12 +59,10 @@ void run_propag(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *
  * the initial covariance matrix (loaded from a covariace.output file
  * or filled with jump sizes. The components sampling order is shuffled
  * each time all components have been sampled (p_pMCMC_specific_data->has_cycled).
+ *
+ * return the initial covariance matrix
  */
-void propose_new_theta_and_load_X0(double *sd_fac,
-                                   struct s_best *p_best, struct s_X *p_X,
-                                   struct s_par *p_par,
-                                   struct s_data *p_data,
-                                   struct s_pmcmc_calc_data *p_pmcmc_calc_data, struct s_calc *p_calc, int m)
+gsl_matrix * propose_new_theta_and_load_X0(double *sd_fac, struct s_best *p_best, struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_pmcmc_calc_data *p_pmcmc_calc_data, struct s_calc *p_calc, int m)
 {
     if (OPTION_FULL_UPDATE) {
         //////////////////////
@@ -90,13 +88,18 @@ void propose_new_theta_and_load_X0(double *sd_fac,
         // evaluate tuning factor sd_fac = epsilon * 2.38/sqrt(n_to_be_estimated)
         *sd_fac = p_pmcmc_calc_data->epsilon * 2.38/sqrt(p_best->n_to_be_estimated);
 
-        // fill p_best->var with p_best->var_sampling
         if(m*global_acceptance_rate >= m_switch) {
-            gsl_matrix_memcpy(p_best->var, p_best->var_sampling);
-        }
+	    // propose p_best->proposed ~ MVN(p_best->mean, p_best->var)
+	    propose_safe_theta_and_load_X0(p_best->proposed, p_best, p_best->var_sampling, *sd_fac, p_par, p_X, p_data, p_calc, plom_rmvnorm);
 
-        // propose p_best->proposed ~ MVN(p_best->mean, p_best->var)
-        propose_safe_theta_and_load_X0(p_best->proposed, p_best, *sd_fac, p_par, p_X, p_data, p_calc, sfr_rmvnorm);
+	    return p_best->var_sampling;
+
+        } else {
+	    propose_safe_theta_and_load_X0(p_best->proposed, p_best, p_best->var, *sd_fac, p_par, p_X, p_data, p_calc, plom_rmvnorm);
+
+	    return p_best->var;
+	}
+
 
     } else {
 
@@ -120,7 +123,9 @@ void propose_new_theta_and_load_X0(double *sd_fac,
                 gsl_ran_shuffle(p_calc->randgsl, p_best->to_be_estimated, p_best->n_to_be_estimated, sizeof (unsigned int));
             }
         }
-        propose_safe_theta_and_load_X0(p_best->proposed, p_best, 1.0, p_par, p_X, p_data, p_calc, ran_proposal_sequential);
+        propose_safe_theta_and_load_X0(p_best->proposed, p_best, p_best->var, 1.0, p_par, p_X, p_data, p_calc, ran_proposal_sequential);
+
+	return p_best->var;
     }
 }
 
@@ -153,6 +158,8 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     double alpha;       // acceptance rate
     double sd_fac;
     int accept = 0; // number of proposed values of the parameters accepted by Metropolis Hastings */
+
+    gsl_matrix *var; 
 
     // syntactical shortcut
     struct s_pmcmc_calc_data *p_pmcmc_calc_data =  (struct s_pmcmc_calc_data *) calc[0]->method_specific_shared_data;
@@ -259,7 +266,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         swap_D_p_hat(D_p_hat_prev, D_p_hat_new);
 
         // generate new theta
-        propose_new_theta_and_load_X0(&sd_fac, p_best, D_J_p_X[0][0], p_par, p_data, p_pmcmc_calc_data, calc[0], m);
+        var = propose_new_theta_and_load_X0(&sd_fac, p_best, D_J_p_X[0][0], p_par, p_data, p_pmcmc_calc_data, calc[0], m);
 
         //load X_0 for the J-1 other particles
         replicate_J_p_X_0(D_J_p_X[0], p_data);
@@ -272,7 +279,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         p_like->Llike_new = p_like->Llike_best;
 
         // acceptance
-        is_accepted = metropolis_hastings(p_best, p_like, &alpha, p_data, calc[0], sd_fac, OPTION_FULL_UPDATE);
+        is_accepted = metropolis_hastings(p_best, p_like, &alpha, p_data, calc[0], var, sd_fac, OPTION_FULL_UPDATE);
         compute_best_traj(D_p_hat_best, *D_p_hat_prev, *D_p_hat_new, p_data, (alpha>1.0) ? 1.0 : alpha, (double) m);
 
         if (is_accepted) {

@@ -18,7 +18,7 @@
 
 #include "pmcmc.h"
 
-void ran_proposal_sequential(gsl_vector *proposed, struct s_best *p_best, double sd_fac, struct s_calc *p_calc)
+void ran_proposal_sequential(gsl_vector *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc)
 {
     int k;
 
@@ -26,7 +26,7 @@ void ran_proposal_sequential(gsl_vector *proposed, struct s_best *p_best, double
 
     if (p_best->n_to_be_estimated > 0) { //due to the webApp all jump size can be 0.0...
         k = p_best->to_be_estimated[ p->cycle_id ];
-        gsl_vector_set(proposed, k, gsl_vector_get(p_best->mean, k) + gsl_ran_gaussian(p_calc->randgsl, sd_fac*sqrt(gsl_matrix_get(p_best->var, k, k))));
+        gsl_vector_set(proposed, k, gsl_vector_get(p_best->mean, k) + gsl_ran_gaussian(p_calc->randgsl, sd_fac*sqrt(gsl_matrix_get(var, k, k))));
     }
 
 }

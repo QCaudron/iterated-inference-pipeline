@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
 
 
     if (OPTION_PRIOR) {
-        p_like->Llike_best += log_prob_prior(p_best, p_best->mean, p_data);
+        p_like->Llike_best += log_prob_prior(p_best, p_best->mean, p_best->var, p_data);
     }
 
 
