@@ -22,20 +22,20 @@ int metropolis_hastings(struct s_best *p_best, struct s_likelihood *p_like, doub
 {
     double ran;
 
-    p_like->Lproposal_new = log_prob_proposal(p_best, p_best->proposed, p_best->mean, sd_fac, p_data,  is_mvn); /* q{ theta* | theta(i-1) }*/
-    p_like->Lproposal_prev = log_prob_proposal(p_best, p_best->mean, p_best->proposed, sd_fac, p_data, is_mvn); /* q{ theta(i-1) | theta* }*/
+    //log_prob_proposal return -1 if numerical error during computation
+    double Lproposal_new = log_prob_proposal(p_best, p_best->proposed, p_best->mean, sd_fac, p_data,  is_mvn); /* q{ theta* | theta(i-1) }*/
+    double Lproposal_prev = log_prob_proposal(p_best, p_best->mean, p_best->proposed, sd_fac, p_data, is_mvn); /* q{ theta(i-1) | theta* }*/
 
-    if(check_prior(p_best, p_best->mean, p_data)) {
-        p_like->Lprior_new = log_prob_prior(p_best, p_best->proposed, p_data); /* p{theta*} */
-        p_like->Lprior_prev = log_prob_prior(p_best, p_best->mean, p_data);  /* p{theta(i-1)} */
+    if(check_prior(p_best, p_best->mean, p_data) && (Lproposal_new >0.0) && (Lproposal_prev >0.0) ) {
+        double Lprior_new = log_prob_prior(p_best, p_best->proposed, p_data); /* p{theta*} */
+        double Lprior_prev = log_prob_prior(p_best, p_best->mean, p_data);  /* p{theta(i-1)} */
 
         // ( p{theta*}(y)  p{theta*} ) / ( p{theta(i-1)}(y) p{theta(i-1)} )  *  q{ theta(i-1) | theta* } / q{ theta* | theta(i-1) }
-        *alpha = exp( (p_like->Llike_new - p_like->Llike_prev + p_like->Lproposal_prev - p_like->Lproposal_new + p_like->Lprior_new - p_like->Lprior_prev) );
+        *alpha = exp( (p_like->Llike_new - p_like->Llike_prev + Lproposal_prev - Lproposal_new + Lprior_new - Lprior_prev) );
 
         ran = gsl_ran_flat(p_calc->randgsl, 0.0, 1.0);
 
         if(ran < *alpha) {
-            p_like->accept++;
             return 1; //accepted
         }
     } else {

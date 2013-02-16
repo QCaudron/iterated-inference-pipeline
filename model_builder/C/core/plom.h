@@ -465,14 +465,6 @@ struct s_likelihood
     int n_all_fail;             /**< number of times when every particles had like < LIKE_MIN within one iteration */
 
     /* for bayesian methods */
-    int accept;                 /**< number of proposed values of the parameters accepted by Metropolis Hastings */
-
-    double Lproposal_prev;      /**< q{theta(i-1) | theta* }*/
-    double Lproposal_new;       /**< q{theta* | theta(i-1) } */
-
-    double Lprior_prev;         /**< p{theta(i-1)} */
-    double Lprior_new;          /**< p{theta*} */
-
     double Llike_prev;
     double Llike_new;
 };

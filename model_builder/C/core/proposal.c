@@ -98,6 +98,9 @@ int check_IC(struct s_X *p_X, struct s_data *p_data)
 }
 
 
+/**
+ * return the log of the prob of the proposal **or** -1.0 if error
+ */
 
 double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean, double sd_fac, struct s_data *p_data, int is_mvn)
 {
@@ -124,7 +127,6 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
                     p_tmp = gsl_ran_gaussian_pdf((gsl_vector_get(proposed, offset)-gsl_vector_get(mean, offset)), sd_fac*sqrt(gsl_matrix_get(var, offset, offset)));
                 }
 
-
                 /*
                   Change of variable formula:
                   Y = r(X) (r is assumed to be increasing) with inverse r_inv
@@ -149,18 +151,34 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
                 //check for numerical issues
                 if((isinf(p_tmp)==1) || (isnan(p_tmp)==1)) {
 #if FLAG_VERBOSE
-                    snprintf(str, STR_BUFFSIZE, "error log_prob_proposal computation (p=%g)", p_tmp);
+                    snprintf(str, STR_BUFFSIZE, "error log_prob_proposal computation (p=%g) => theta will be rejected", p_tmp);
                     print_err(str);
 #endif
-                    p_tmp=LIKE_MIN;
-                } else if(p_tmp <= LIKE_MIN) {
-		    p_tmp = LIKE_MIN ;
+		    return -1.0;
                 }
-                Lp += log(p_tmp);
+
+		if (!is_mvn) {
+		    Lp += log(p_tmp);
+		}
+
             }
             offset++;
         }
     }
+
+    if (is_mvn) {
+	Lp = log(p_tmp);
+    }
+
+    //check for numerical issues log could have created issues
+    if((isinf(Lp)==1) || (isnan(Lp)==1)) {
+#if FLAG_VERBOSE
+	snprintf(str, STR_BUFFSIZE, "error log_prob_proposal computation (p=%g) => theta will be rejected", p_tmp);
+	print_err(str);
+#endif
+	return -1.0;
+    }
+
 
     return(Lp);
 }

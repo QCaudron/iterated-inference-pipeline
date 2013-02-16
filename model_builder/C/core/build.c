@@ -1158,14 +1158,6 @@ struct s_likelihood *build_likelihood(void)
     p_like->n_all_fail = 0;
 
     /* for bayesian methods */
-    p_like->accept = 0;
-
-    p_like->Lproposal_prev = 0.0;
-    p_like->Lproposal_new = 0.0;
-
-    p_like->Lprior_prev = 0.0;
-    p_like->Lprior_new = 0.0;
-
     p_like->Llike_prev = 0.0;
     p_like->Llike_new = 0.0;
 

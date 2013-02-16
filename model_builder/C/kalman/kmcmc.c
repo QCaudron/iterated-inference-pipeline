@@ -23,14 +23,12 @@
  */
 void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcmc_calc_data *p_pmcmc_calc_data, plom_f_pred_t f_pred)
 {
-    //////////////////
-    // declarations //
-    //////////////////
 
     int m;              // iteration index
     int is_accepted;    // boolean
     double alpha;       // acceptance rate
     double sd_fac;
+    int accept = 0; // number of proposed values of the parameters accepted by Metropolis Hastings */
 
     // syntactical shortcut
     struct s_X *p_X = p_kalman->p_X;
@@ -78,7 +76,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
 #if FLAG_VERBOSE
     time_pmcmc_end = s_clock();
     struct s_duration t_exec = time_exec(time_pmcmc_begin, time_pmcmc_end);
-    sprintf(str, "iteration number:%d\t logV: %g\t accepted:%d computed in:= %dd %dh %dm %gs", m, p_like->Llike_best,p_like->accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+    sprintf(str, "iteration number:%d\t logV: %g\t accepted:%d computed in:= %dd %dh %dm %gs", m, p_like->Llike_best, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
     print_log(str);
 #endif
 
@@ -116,6 +114,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
         if (is_accepted) {
             p_like->Llike_prev = p_like->Llike_new;
             gsl_vector_memcpy(p_best->mean, p_best->proposed);
+	    accept++;
         } else if(!OPTION_FULL_UPDATE) {
             //required if sequential update:
             gsl_vector_set(p_best->proposed,
@@ -128,7 +127,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
 #if FLAG_VERBOSE
         time_pmcmc_end = s_clock();
         struct s_duration t_exec = time_exec(time_pmcmc_begin, time_pmcmc_end);
-        sprintf(str, "iteration number: %d (%d / %d)\t logV: %g (previous was %g) accepted: %d computed in:= %dd %dh %dm %gs", p_pmcmc_calc_data->m_full_iteration, p_pmcmc_calc_data->cycle_id, p_best->n_to_be_estimated, p_like->Llike_best, p_like->Llike_prev, p_like->accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+        sprintf(str, "iteration number: %d (%d / %d)\t logV: %g (previous was %g) accepted: %d computed in:= %dd %dh %dm %gs", p_pmcmc_calc_data->m_full_iteration, p_pmcmc_calc_data->cycle_id, p_best->n_to_be_estimated, p_like->Llike_best, p_like->Llike_prev, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
         print_log(str);
 #endif
 
