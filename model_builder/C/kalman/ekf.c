@@ -50,13 +50,13 @@ void check_and_correct_Ct(gsl_matrix *Ct)
 {
     char str[STR_BUFFSIZE];
 
-    gsl_vector *eval = gsl_vector_alloc (N_KAL);		// to store the eigen values
-    gsl_matrix *evec = gsl_matrix_alloc (N_KAL, N_KAL);         // to store the eigen vectors
-    gsl_matrix *temp = gsl_matrix_calloc (N_KAL, N_KAL);        // temporary matrix
-    gsl_matrix *temp2 = gsl_matrix_calloc (N_KAL, N_KAL);       // temporary matrix 2
+    gsl_vector *eval = gsl_vector_alloc (N_KAL);	       // to store the eigen values
+    gsl_matrix *evec = gsl_matrix_alloc (N_KAL, N_KAL);        // to store the eigen vectors
+    gsl_matrix *temp = gsl_matrix_alloc (N_KAL, N_KAL);        // temporary matrix
+    gsl_matrix *temp2 = gsl_matrix_alloc (N_KAL, N_KAL);       // temporary matrix 2
     gsl_eigen_symmv_workspace *w = gsl_eigen_symmv_alloc (N_KAL); // gsl needs this work to compute the eigen values and vectors
 
-    int i;
+    int i,j;
     int status;
     int cumstatus = 0;
 
@@ -66,35 +66,13 @@ void check_and_correct_Ct(gsl_matrix *Ct)
     // Ct = (Ct + Ct')/2
 
     gsl_matrix_memcpy(temp, Ct);	// temp = Ct
-    gsl_matrix_memcpy(temp2, Ct);	// temp2 = Ct
-    gsl_matrix_transpose(temp2);	// temp2 = temp2'
 
-    // temp = 0.5*temp
-    status = gsl_matrix_scale (temp, 0.5);
-    if (status) {
-        sprintf(str, "error: %s\n", gsl_strerror (status));
-        print_err(str);
-        cumstatus = 1;
+    for(i=0; i< Ct->size1; i++){
+	for(j=0; j< Ct->size2; j++){
+	    gsl_matrix_set(Ct, i, j, ((gsl_matrix_get(temp, i, j) + gsl_matrix_get(temp, j, i)) / 2.0) ); 	   
+	}
     }
-
-    // temp2 = 0.5*temp2
-    status = gsl_matrix_scale (temp2, 0.5);
-    if (status) {
-        sprintf(str, "error: %s\n", gsl_strerror (status));
-        print_err(str);
-        cumstatus = 1;
-    }
-
-    // temp2 += temp
-    status = gsl_matrix_add (temp2 , temp);
-    if (status) {
-        sprintf(str, "error: %s\n", gsl_strerror (status));
-        print_err(str);
-        cumstatus = 1;
-    }
-    // Ct = temp2
-    gsl_matrix_memcpy(Ct,temp2);
-
+    
     ////////////////////////
     // STEP 2: POSITIVITY //
     ////////////////////////
@@ -109,20 +87,15 @@ void check_and_correct_Ct(gsl_matrix *Ct)
     }
     gsl_eigen_symmv_free (w); // free the space w
 
-    // temp = 0*temp
-    status = gsl_matrix_scale (temp, 0.0);
-    if (status) {
-        sprintf(str, "error: %s\n", gsl_strerror (status));
-        print_err(str);
-        cumstatus = 1;
-    }
+
+    gsl_matrix_set_zero(temp);
 
     // eval = max(eval,0) and diag(eval)
     for (i=0;i<N_KAL;i++) {
         if (gsl_vector_get(eval,i)<0.0) {
             gsl_vector_set(eval, i, 0.0); // keeps bringing negative eigen values to 0
         }
-        gsl_matrix_set(temp,i,i,gsl_vector_get(eval,i)); // puts the eigen values in the diagonal of temp
+        gsl_matrix_set(temp, i, i, gsl_vector_get(eval, i)); // puts the eigen values in the diagonal of temp
     }
 
     //////////////////
