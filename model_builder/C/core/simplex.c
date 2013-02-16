@@ -18,7 +18,6 @@
 
 #include "plom.h"
 
-
 void transfer_estimated(struct s_best *p_best, const gsl_vector *x, struct s_data *p_data)
 {
     /* transfer estimated parameters from x (required by the simplex algo) to p_best->mean */
