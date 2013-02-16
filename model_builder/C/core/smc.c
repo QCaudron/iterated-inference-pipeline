@@ -147,6 +147,8 @@ void resample_X(unsigned int *select, struct s_X ***J_p_X, struct s_X ***J_p_X_t
     //#pragma omp parallel for private(k) //parallelisation is not efficient here
     for(j=0;j<J;j++) {
 
+	(*J_p_X_tmp)[j]->dt = (*J_p_X)[select[j]]->dt;
+
         for(k=0;k<size_resample_proj;k++) { //we don't need N_TS_INC_UNIQUE as they are present in obs
             (*J_p_X_tmp)[j]->proj[k] = (*J_p_X)[select[j]]->proj[k];
         }
