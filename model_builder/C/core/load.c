@@ -530,10 +530,10 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int
             if (strcmp(prior, "normal") == 0) {
                 p_best->prior[offset] = &normal_prior;
             } else {
-                //p_best->prior[offset] = &gsl_ran_flat_pdf;
-                p_best->prior[offset] = &pseudo_unif_prior;
+                p_best->prior[offset] = &gsl_ran_flat_pdf;
+                //p_best->prior[offset] = &pseudo_unif_prior;
             }
-
+	    
             if (update_guess) {
                 gsl_vector_set(p_best->mean, offset, fast_get_json_real_from_object(par_guess, my_group_id));
             }

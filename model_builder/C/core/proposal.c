@@ -145,6 +145,7 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
 
                 p_tmp /= (*(routers[i]->f_inv_derivative))(gsl_vector_get(proposed, offset), routers[i]->min[k], routers[i]->max[k]);
 
+
                 //check for numerical issues
                 if((isinf(p_tmp)==1) || (isnan(p_tmp)==1)) {
 #if FLAG_VERBOSE
@@ -153,7 +154,7 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
 #endif
                     p_tmp=LIKE_MIN;
                 } else if(p_tmp <= LIKE_MIN) {
-                        p_tmp = LIKE_MIN ;
+		    p_tmp = LIKE_MIN ;
                 }
                 Lp += log(p_tmp);
             }

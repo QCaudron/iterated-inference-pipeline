@@ -229,7 +229,7 @@ void sanitize_best_to_prior(struct s_best *p_best, struct s_data *p_data)
 
     for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
         for(k=0; k<routers[i]->n_gp; k++) {
-            if ( (p_best->prior[k] == &pseudo_unif_prior) || (p_best->prior[k] == &gsl_ran_flat_pdf) ){
+	    if ( (p_best->prior[k] == &pseudo_unif_prior) || (p_best->prior[k] == &gsl_ran_flat_pdf) ){
                 double min = routers[i]->min[k];
                 double max = routers[i]->max[k];
                 if (gsl_vector_get(p_best->mean,offset)<min){

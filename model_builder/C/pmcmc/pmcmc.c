@@ -42,7 +42,7 @@ void run_propag(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *
  * new p_best->proposed is sampled by a MVN generator using the covariance matrix
  * 2.38²*epsilon²/n_to_be_estimated * var where:
  * - epsilon is dynamicaly tuned following the iterative law:
- *   epsilon(m) = epsilon(m-1) * exp(a^m * (acceptance rate - 0.23))
+ *   epsilon(m) = epsilon(m-1) * exp(a^m * (acceptance rate - 0.234))
  * - var is the initial covariance if the number of accepted particles
  *   is lower than SWITCH, and the empirical one otherwise
  *
@@ -73,13 +73,13 @@ void propose_new_theta_and_load_X0(double *sd_fac,
         int m_switch = p_pmcmc_calc_data->m_switch;
         int m_eps = p_pmcmc_calc_data->m_eps;
 
-        // evaluate epsilon(m) = epsilon(m-1) * exp(a^(m-1) * (acceptance_rate(m-1) - 0.23))
+        // evaluate epsilon(m) = epsilon(m-1) * exp(a^(m-1) * (acceptance_rate(m-1) - 0.234))
         double global_acceptance_rate = p_pmcmc_calc_data->global_acceptance_rate;
-        if (m>m_eps && m*global_acceptance_rate < m_switch) {
-            p_pmcmc_calc_data->epsilon = p_pmcmc_calc_data->epsilon * exp(pow(p_pmcmc_calc_data->a, (double)(m-1)) * (global_acceptance_rate - 0.23));
+        if ( (m > m_eps) && (m*global_acceptance_rate < m_switch) ) {
+            p_pmcmc_calc_data->epsilon *=  exp(pow(p_pmcmc_calc_data->a, (double)(m-1)) * (global_acceptance_rate - 0.234));
 #if FLAG_VERBOSE
             char str[STR_BUFFSIZE];
-            snprintf(str, STR_BUFFSIZE, "epsilon = %f", p_pmcmc_calc_data->epsilon);
+            snprintf(str, STR_BUFFSIZE, "epsilon = %g", p_pmcmc_calc_data->epsilon);
             print_log(str);
 #endif
         // after switching epsilon is set back to 1
@@ -304,7 +304,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         time_pmcmc_end = s_clock();
         struct s_duration t_exec = time_exec(time_pmcmc_begin, time_pmcmc_end);
         sprintf(str, "iteration number: %d (%d / %d)\t logV: %g (previous was %g) accepted: %d computed in:= %dd %dh %dm %gs", p_pmcmc_calc_data->m_full_iteration, p_pmcmc_calc_data->cycle_id, p_best->n_to_be_estimated, p_like->Llike_best, p_like->Llike_prev, p_like->accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
-        print_log(str);
+	print_log(str);
 #endif
 
 
@@ -312,10 +312,9 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
             // evaluate empirical covariance
             eval_var_emp(p_best, (double) p_pmcmc_calc_data->m_full_iteration);
 
-            // append output files
             print_best(p_file_best, p_pmcmc_calc_data->m_full_iteration, p_best, p_data, p_like->Llike_prev);
 #if FLAG_VERBOSE
-            print_acceptance_rates(p_pmcmc_calc_data, p_pmcmc_calc_data->m_full_iteration);
+	    print_acceptance_rates(p_pmcmc_calc_data, p_pmcmc_calc_data->m_full_iteration);
 #endif
         }
 

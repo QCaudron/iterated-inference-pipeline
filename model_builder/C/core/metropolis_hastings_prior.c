@@ -108,6 +108,7 @@ double normal_prior(double x, double min, double max)
     return gsl_ran_gaussian_pdf((x-mean), sd);
 }
 
+
 /**
  * this function is not exactly a flat function between min an max,
  * but a twice-differentiable function, to prevent optimization

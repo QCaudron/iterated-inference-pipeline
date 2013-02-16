@@ -41,7 +41,6 @@ struct s_pmcmc_calc_data *build_pmcmc_calc_data(struct s_best *p_best, double a,
     }
     p_pmcmc_calc_data->global_acceptance_rate = 1.0;
 
-
     p_pmcmc_calc_data->has_cycled = 1;
     p_pmcmc_calc_data->m_full_iteration = 0;
     p_pmcmc_calc_data->cycle_id = p_best->n_to_be_estimated -1;
