@@ -243,8 +243,7 @@ double ekf_update(gsl_vector *xk, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt
     int cumstatus = 0;
 
     gsl_vector *workn = gsl_vector_calloc(N_KAL); // allocating space for a temporary work vector of size N_KAL (dimension of the state vector), initialized to zero
-    gsl_matrix *Workn1 = gsl_matrix_calloc(N_KAL, 1); // allocating space for a temporary work matrix of size N_KAL*1, initialized to zero
-    gsl_matrix *Workn2 = gsl_matrix_calloc(N_KAL, 1); // allocating space for a temporary work matrix of size N_KAL*1, initialized to zero
+
     double like;
 
     //////////////////
@@ -271,9 +270,11 @@ double ekf_update(gsl_vector *xk, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt
         print_err(str);
         cumstatus = 1;
     }
-    gsl_matrix_set_col(Workn1, 0, workn);	// copy vect workn into matrix Workn1
-    gsl_matrix_set_col(Workn2, 0, kt);		// copy vect kt into matrix Workn2
-    status = gsl_blas_dgemm(CblasNoTrans, CblasTrans, -1.0, Workn2, Workn1, 1.0, Ct); // Ct = Ct - Workn2*Workn1';
+
+    gsl_matrix_view Workn1 = gsl_matrix_view_vector (kt, kt->size, 1);
+    gsl_matrix_view Workn2 = gsl_matrix_view_vector (workn, workn->size, 1);
+
+    status = gsl_blas_dgemm(CblasNoTrans, CblasTrans, -1.0, &Workn2.matrix, &Workn1.matrix, 1.0, Ct); // Ct = Ct - Workn2*Workn1';
     if (status) {
         sprintf(str, "error: %s\n", gsl_strerror (status));
         print_err(str);
@@ -285,8 +286,6 @@ double ekf_update(gsl_vector *xk, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt
 
     // clear working variables:
     gsl_vector_free(workn);
-    gsl_matrix_free(Workn1);
-    gsl_matrix_free(Workn2);
 
     if (cumstatus) {
         sprintf(str, "Error in ekf_update");
