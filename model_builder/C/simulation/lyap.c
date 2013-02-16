@@ -18,7 +18,7 @@
 
 #include "simulation.h"
 
-void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0, double t_end, double abs_tol, double rel_tol)
+void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0, double t_end, double abs_tol, double rel_tol, double dt)
 {
     double t = t0, t1 = t_end;
 
@@ -28,7 +28,7 @@ void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0,
     gsl_odeiv2_control * control = gsl_odeiv2_control_y_new (abs_tol, rel_tol); /*abs and rel error (eps_abs et eps_rel) */
     gsl_odeiv2_step * step = gsl_odeiv2_step_alloc (T, N_PAR_SV*N_CAC*(N_PAR_SV*N_CAC+1));
     gsl_odeiv2_evolve * evolve = gsl_odeiv2_evolve_alloc (N_PAR_SV*N_CAC*(N_PAR_SV*N_CAC+1));
-    double h = p_calc->dt;
+    double h = dt;
 
     gsl_odeiv2_system sys = {step_lyap, jac_lyap, N_PAR_SV*N_CAC*(N_PAR_SV*N_CAC+1), p_calc};
 

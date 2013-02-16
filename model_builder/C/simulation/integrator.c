@@ -36,7 +36,7 @@ int integrator(struct s_X *p_X, double *y0, double t0, double t_end, struct s_pa
     int status;
     int error=0;
     double t = t0;
-    double h = p_calc->dt; //h is the initial integration step size
+    double h = p_X->dt; //h is the initial integration step size
     int i;
     double *y = p_X->proj;
 

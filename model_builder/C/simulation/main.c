@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
 
 
 #if FLAG_VERBOSE
-    snprintf(str, STR_BUFFSIZE, "Starting Plom with the following options: i = %d, t0 = %g, t_end = %g, DT = %g, t_transiant = %g, N_BLOC = %d, PRECISION = %g, N_THREADS = %d, J = %d", GENERAL_ID, t0, t_end, calc[0]->dt, t_transiant, N_BLOC, PRECISION, n_threads, J);
+    snprintf(str, STR_BUFFSIZE, "Starting Plom with the following options: i = %d, t0 = %g, t_end = %g, t_transiant = %g, N_BLOC = %d, PRECISION = %g, N_THREADS = %d, J = %d", GENERAL_ID, t0, t_end, t_transiant, N_BLOC, PRECISION, n_threads, J);
     print_log(str);
 #endif
 
@@ -412,23 +412,11 @@ int main(int argc, char *argv[])
 
 	if (OPTION_LYAP) {
 
-	    //lyap exp are expensive to compute, abs_tol and rel_tol
-	    //used to skip the transiant might be too low as compared
-	    //to the one necessary for the attractor, we recompute
-	    //them...
-	    abs_tol = eps_abs; rel_tol = eps_rel;
-	    if ( integrate(J_p_X[0], y0, t0, t_end, p_par,  &abs_tol, &rel_tol, calc[0], p_data) ) {
-		print_err("integration error, the program will now quit");
-		exit(EXIT_FAILURE);
-	    }
 #if FLAG_VERBOSE
-	    snprintf(str, STR_BUFFSIZE, "abs tol: %g rel tol: %g", abs_tol, rel_tol );
-	    print_log(str);
 	    print_log("Lyapunov exponents computation...");
 #endif
-
 	    store_state_current_n_nn(calc, 0, nn0);
-	    lyapunov(calc[0], p_par, y0, t0, t_end, abs_tol, rel_tol);
+	    lyapunov(calc[0], p_par, y0, t0, t_end, abs_tol, rel_tol, J_p_X[0]->dt);
 	}
 	
     } //end OPTION_BIF or OPTION_LYAP

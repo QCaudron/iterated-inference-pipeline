@@ -52,7 +52,7 @@ double get_max(double *tab, int length_tab);
 
 /* lyap.c */
 int step_lyap (double t, const double y[], double f[], void *params);
-void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0, double t_end, double abs_tol, double rel_tol);
+void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0, double t_end, double abs_tol, double rel_tol, double dt);
 void gram_schmidt_normalize(double *y, double *lyap);
 
 void *jac_lyap;

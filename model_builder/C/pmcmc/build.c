@@ -120,7 +120,7 @@ struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_
         p_pmcmc->calc[nt]->method_specific_shared_data = p_pmcmc_calc_data;
     }
 
-    sprintf(str, "Starting Simforence-pmcmc with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, DT = %g, N_THREADS = %d SWITCH = %d a = %g", GENERAL_ID, J, LIKE_MIN, M, p_pmcmc->calc[0]->dt, *n_threads, p_pmcmc_calc_data->m_switch, p_pmcmc_calc_data->a);
+    sprintf(str, "Starting Simforence-pmcmc with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, N_THREADS = %d SWITCH = %d a = %g", GENERAL_ID, J, LIKE_MIN, M, *n_threads, p_pmcmc_calc_data->m_switch, p_pmcmc_calc_data->a);
     print_log(str);
 
     return p_pmcmc;

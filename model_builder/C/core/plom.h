@@ -293,9 +293,6 @@ struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get
 {
     int n_threads; /**< the total number of threads */
     int thread_id; /**< the id of the thread where the computation are being run */
-    
-    double dt;   /**< integration time step */
-
 
     int current_n;  /**< current value of the N_DATA_NONAN index*/
     int current_nn; /**< current value of the time index (N_DATA) (usefull for covariates when there are missing data but we know the covariates)*/

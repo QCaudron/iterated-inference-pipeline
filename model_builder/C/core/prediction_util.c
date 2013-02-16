@@ -234,7 +234,7 @@ void f_prediction_sde_no_env_sto_no_drift(struct s_X *p_X, double t0, double t1,
     while (t < t1) {
 	step_sde_no_env_sto(p_X, t, p_par, p_data, p_calc);
 
-	t += p_calc->dt;
+	t += p_X->dt;
     }
 }
 

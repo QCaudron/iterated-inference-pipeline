@@ -231,7 +231,7 @@ int main(int argc, char *argv[])
 
 
 #if FLAG_VERBOSE
-    snprintf(str, STR_BUFFSIZE, "Starting Plom-smc with the following options: i = %d, J = %d, LIKE_MIN = %g, DT = %g, N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, calc[0]->dt, n_threads);
+    snprintf(str, STR_BUFFSIZE, "Starting Plom-smc with the following options: i = %d, J = %d, LIKE_MIN = %g, N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, n_threads);
     print_log(str);
 
     int64_t time_begin, time_end;
