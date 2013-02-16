@@ -100,7 +100,7 @@ void proj2obs(struct s_X *p_X, struct s_data *p_data)
 }
 
 //stepping functions for Poisson System with stochastic rates (psr)
-void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+void step_psr(struct s_X *p_X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     /* t is the time in unit of the data */
 
@@ -118,7 +118,8 @@ void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, s
     double **par = p_par->natural;
     double ***covar = p_data->par_fixed;
 
-    double dt = p_calc->dt;
+    double *X = p_X->proj;
+    double dt = p_X->dt;
 
 
     /*automaticaly generated code:*/
@@ -216,7 +217,7 @@ void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, s
 {% if noises_off == 'ode'%}
 int step_ode(double t, const double X[], double f[], void *params)
 {% else %}
-void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+void step_sde_{{ noises_off }}(struct s_X *p_X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {% endif %}
 {
 
@@ -225,7 +226,8 @@ void step_sde_{{ noises_off }}(double *X, double t, struct s_par *p_par, struct 
     struct s_data *p_data = p_calc->p_data;
     struct s_par *p_par = p_calc->p_par;
     {% else %}
-    double dt = p_calc->dt;
+    double *X = p_X->proj;
+    double dt = p_X->dt;
     double *f = p_calc->y_pred;
     {% endif %}
 

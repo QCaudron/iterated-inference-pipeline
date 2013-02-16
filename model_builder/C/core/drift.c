@@ -24,10 +24,10 @@
  *   X is s_X.proj
  */
 
-void compute_drift(double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     int i, k;
-    double dt = p_calc->dt;
+    double dt = p_X->dt;
 
     struct s_router **routers = p_data->routers;
 
@@ -36,7 +36,7 @@ void compute_drift(double *X, struct s_par *p_par, struct s_data *p_data, struct
         int ind_par_Xdrift_applied = p_drift->ind_par_Xdrift_applied;
         int ind_volatility_Xdrift = p_drift->ind_volatility_Xdrift;
         for(k=0; k< routers[ind_par_Xdrift_applied]->n_gp; k++) {
-            X[p_drift->offset +k] += p_par->natural[ ind_volatility_Xdrift ][k]*sqrt(dt)*gsl_ran_ugaussian(p_calc->randgsl);
+            p_X->proj[p_drift->offset +k] += p_par->natural[ ind_volatility_Xdrift ][k]*sqrt(dt)*gsl_ran_ugaussian(p_calc->randgsl);
         }
     }
 }

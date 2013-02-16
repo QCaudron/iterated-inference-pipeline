@@ -428,6 +428,7 @@ struct s_X /* optionaly [N_DATA+1][J] for MIF and pMCMC "+1" is for initial cond
 {
     double *proj;    /**< [self.size_proj] x integrated (projected) (ODE, MARKOV...) */
     double *obs;     /**< [self.size_obs] x observed  matching the data (N_TS time series) */
+    double dt;        /**< the integration time step (for ODE solved with adaptive time step solvers) */
 };
 
 
@@ -569,15 +570,15 @@ void clean_drift(struct s_drift **drift);
 struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian);
 void clean_data(struct s_data *p_data);
 
-struct s_calc **build_calc(int *n_threads, int general_id, double dt, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
-struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double dt, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
 
 void clean_p_calc(struct s_calc *p_calc, struct s_data *p_data);
 void clean_calc(struct s_calc **calc, struct s_data *p_data);
 
-struct s_X *build_X(int size_proj, int size_obs, struct s_data *p_data);
-struct s_X **build_J_p_X(int size_proj, int size_obs, struct s_data *p_data);
-struct s_X ***build_D_J_p_X(int size_proj, int size_obs, struct s_data *p_data);
+struct s_X *build_X(int size_proj, int size_obs, struct s_data *p_data, double dt);
+struct s_X **build_J_p_X(int size_proj, int size_obs, struct s_data *p_data, double dt);
+struct s_X ***build_D_J_p_X(int size_proj, int size_obs, struct s_data *p_data, double dt);
 void clean_X(struct s_X *p_X);
 void clean_J_p_X(struct s_X **J_p_X);
 void clean_D_J_p_X(struct s_X ***D_J_p_X);
@@ -771,7 +772,7 @@ json_t *load_json(void);
 void print_json_on_stdout(json_t *root);
 
 /* drift.c */
-void compute_drift(double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 
 /* group.c */
 void get_c_ac(int cac, int *c, int *ac);
@@ -821,13 +822,13 @@ double observation(double x, struct s_par *p_par, struct s_data *p_data, struct 
 
 void proj2obs(struct s_X *p_X, struct s_data *p_data);
 
-void step_psr(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void step_psr(struct s_X *p_X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 
 int step_ode(double t, const double X[], double f[], void *params);
 
-void step_sde_full(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
-void step_sde_no_dem_sto(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
-void step_sde_no_env_sto(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
-void step_sde_no_dem_sto_no_env_sto(double *X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void step_sde_full(struct s_X *p_X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void step_sde_no_dem_sto(struct s_X *p_X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void step_sde_no_env_sto(struct s_X *p_X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+void step_sde_no_dem_sto_no_env_sto(struct s_X *p_X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 
 #endif

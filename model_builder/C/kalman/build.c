@@ -146,12 +146,12 @@ struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implem
     N_KAL = N_PAR_SV*N_CAC + N_TS + p_kalman->p_data->p_it_only_drift->nbtot;
     int size_proj = N_PAR_SV*N_CAC + p_kalman->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE + (N_KAL*N_KAL);
 
-    p_kalman->p_X = build_X(size_proj, N_TS, p_kalman->p_data); //proj contains Ct.
+    p_kalman->p_X = build_X(size_proj, N_TS, p_kalman->p_data, dt); //proj contains Ct.
     p_kalman->p_best = build_best(p_kalman->p_data, theta, update_covariance);
     json_decref(theta);
 
     int n_threads =1;
-    p_kalman->calc = build_calc(&n_threads, GENERAL_ID, dt, eps_abs, eps_rel, 1, size_proj, step_ode_ekf, p_kalman->p_data);
+    p_kalman->calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, 1, size_proj, step_ode_ekf, p_kalman->p_data);
     p_kalman->p_par = build_par(p_kalman->p_data);
 
     p_kalman->smallest_log_like = get_smallest_log_likelihood(p_kalman->p_data->data_ind);

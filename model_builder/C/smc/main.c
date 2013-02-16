@@ -218,13 +218,13 @@ int main(int argc, char *argv[])
 
     struct s_par *p_par = build_par(p_data);
     struct s_hat **D_p_hat = build_D_p_hat(p_data);
-    struct s_X ***D_J_p_X = build_D_J_p_X(size_proj, N_TS, p_data);
-    struct s_X ***D_J_p_X_tmp = build_D_J_p_X(size_proj, N_TS, p_data);
+    struct s_X ***D_J_p_X = build_D_J_p_X(size_proj, N_TS, p_data, dt);
+    struct s_X ***D_J_p_X_tmp = build_D_J_p_X(size_proj, N_TS, p_data, dt);
     struct s_best *p_best = build_best(p_data, theta, 0);
     json_decref(theta);
     struct s_likelihood *p_like = build_likelihood();
 
-    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, dt, eps_abs, eps_rel, J, size_proj, step_ode, p_data);
+    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p_data);
 
     FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
     FILE *p_file_pred_res = (output_pred_res==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals, p_data): NULL;

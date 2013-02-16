@@ -112,6 +112,9 @@ int send_X(void *socket, const struct s_X *p_X, struct s_data *p_data, int zmq_o
     int rc;
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
+    //dt
+    rc = send_double(socket, p_X->dt, ZMQ_SNDMORE);
+
     //send obs
     rc = send_array_d(socket, p_X->obs, N_TS, ZMQ_SNDMORE);
 
@@ -124,6 +127,9 @@ int send_X(void *socket, const struct s_X *p_X, struct s_data *p_data, int zmq_o
 void recv_X(struct s_X *p_X, struct s_data *p_data, void *socket)
 {
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
+
+    //dt
+    p_X->dt = recv_double(socket);
 
     //obs
     recv_array_d(p_X->obs, N_TS, socket);

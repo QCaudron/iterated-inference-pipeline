@@ -49,12 +49,12 @@ struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noi
     p_mif->p_best = build_best(p_mif->p_data, theta, 0);
     json_decref(theta);
 
-    p_mif->J_p_X = build_J_p_X(size_proj, N_TS, p_mif->p_data);
-    p_mif->J_p_X_tmp = build_J_p_X(size_proj, N_TS, p_mif->p_data);
+    p_mif->J_p_X = build_J_p_X(size_proj, N_TS, p_mif->p_data, dt);
+    p_mif->J_p_X_tmp = build_J_p_X(size_proj, N_TS, p_mif->p_data, dt);
     p_mif->J_p_par = build_J_p_par(p_mif->p_data);
     p_mif->p_like = build_likelihood();
 
-    p_mif->calc = build_calc(n_threads, GENERAL_ID, dt, eps_abs, eps_rel, J, size_proj, step_ode, p_mif->p_data);
+    p_mif->calc = build_calc(n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p_mif->p_data);
 
     /*MIF specific*/
 

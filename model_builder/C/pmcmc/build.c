@@ -103,8 +103,8 @@ struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_
 
     int size_proj = N_PAR_SV*N_CAC + p_pmcmc->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
-    p_pmcmc->D_J_p_X = build_D_J_p_X(size_proj, N_TS, p_pmcmc->p_data);
-    p_pmcmc->D_J_p_X_tmp = build_D_J_p_X(size_proj, N_TS, p_pmcmc->p_data);
+    p_pmcmc->D_J_p_X = build_D_J_p_X(size_proj, N_TS, p_pmcmc->p_data, dt);
+    p_pmcmc->D_J_p_X_tmp = build_D_J_p_X(size_proj, N_TS, p_pmcmc->p_data, dt);
     p_pmcmc->p_par = build_par(p_pmcmc->p_data);
     p_pmcmc->D_p_hat_new = build_D_p_hat(p_pmcmc->p_data);
     p_pmcmc->D_p_hat_prev = build_D_p_hat(p_pmcmc->p_data);
@@ -112,7 +112,7 @@ struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_
 
     p_pmcmc->p_like = build_likelihood();
 
-    p_pmcmc->calc = build_calc(n_threads, GENERAL_ID, dt, eps_abs, eps_rel, J, size_proj, step_ode, p_pmcmc->p_data);
+    p_pmcmc->calc = build_calc(n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p_pmcmc->p_data);
 
     struct s_pmcmc_calc_data *p_pmcmc_calc_data = build_pmcmc_calc_data(p_pmcmc->p_best, a, m_switch, m_eps);
     //store the ref for each element of calc

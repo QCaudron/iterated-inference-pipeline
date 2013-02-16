@@ -183,7 +183,7 @@ plom_f_pred_t get_f_pred(enum plom_implementations implementation, enum plom_noi
 void f_prediction_ode(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     double t=t0;
-    double h = p_calc->dt; //h is the initial integration step size
+    double h = p_X->dt; //h is the initial integration step size
     p_calc->p_par = p_par; //pass the ref to p_par so that it is available wihtin the function to integrate
 
     double *y = p_X->proj;
@@ -204,27 +204,25 @@ void f_prediction_ode(struct s_X *p_X, double t0, double t1, struct s_par *p_par
 void f_prediction_sde_no_dem_sto_no_env_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     double t = t0;
-    double *y = p_X->proj;
 
     while (t < t1) {
-	step_sde_no_dem_sto_no_env_sto(y, t, p_par, p_data, p_calc);
+	step_sde_no_dem_sto_no_env_sto(p_X, t, p_par, p_data, p_calc);
         if (N_DRIFT) {
-            compute_drift(y, p_par, p_data, p_calc);
+            compute_drift(p_X, p_par, p_data, p_calc);
         }
 
-	t += p_calc->dt;
+	t += p_X->dt;
     }
 }
 
 void f_prediction_sde_no_dem_sto_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     double t = t0;
-    double *y = p_X->proj;
 
     while (t < t1) {
-	step_sde_no_dem_sto(y, t, p_par, p_data, p_calc);
+	step_sde_no_dem_sto(p_X, t, p_par, p_data, p_calc);
 
-	t += p_calc->dt;
+	t += p_X->dt;
     }
 }
 
@@ -232,10 +230,9 @@ void f_prediction_sde_no_dem_sto_no_drift(struct s_X *p_X, double t0, double t1,
 void f_prediction_sde_no_env_sto_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     double t = t0;
-    double *y = p_X->proj;
 
     while (t < t1) {
-	step_sde_no_env_sto(y, t, p_par, p_data, p_calc);
+	step_sde_no_env_sto(p_X, t, p_par, p_data, p_calc);
 
 	t += p_calc->dt;
     }
@@ -245,15 +242,14 @@ void f_prediction_sde_no_env_sto_no_drift(struct s_X *p_X, double t0, double t1,
 void f_prediction_sde_no_dem_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     double t = t0;
-    double *y = p_X->proj;
 
     while (t < t1) {
-	step_sde_no_dem_sto(y, t, p_par, p_data, p_calc);
+	step_sde_no_dem_sto(p_X, t, p_par, p_data, p_calc);
         if (N_DRIFT) {
-            compute_drift(y, p_par, p_data, p_calc);
+            compute_drift(p_X, p_par, p_data, p_calc);
         }
 
-	t += p_calc->dt;
+	t += p_X->dt;
     }
 }
 
@@ -261,42 +257,39 @@ void f_prediction_sde_no_dem_sto(struct s_X *p_X, double t0, double t1, struct s
 void f_prediction_sde_no_env_sto(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     double t = t0;
-    double *y = p_X->proj;
 
     while (t < t1) {
-	step_sde_no_env_sto(y, t, p_par, p_data, p_calc);
+	step_sde_no_env_sto(p_X, t, p_par, p_data, p_calc);
         if (N_DRIFT) {
-            compute_drift(y, p_par, p_data, p_calc);
+            compute_drift(p_X, p_par, p_data, p_calc);
         }
 
-	t += p_calc->dt;
+	t += p_X->dt;
     }
 }
 
 void f_prediction_sde_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     double t = t0;
-    double *y = p_X->proj;
 
     while (t < t1) {
-	step_sde_full(y, t, p_par, p_data, p_calc);
+	step_sde_full(p_X, t, p_par, p_data, p_calc);
 
-	t += p_calc->dt;
+	t += p_X->dt;
     }
 }
 
 void f_prediction_sde_full(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     double t = t0;
-    double *y = p_X->proj;
 
     while (t < t1) {
-	step_sde_full(y, t, p_par, p_data, p_calc);
+	step_sde_full(p_X, t, p_par, p_data, p_calc);
         if (N_DRIFT) {
-            compute_drift(y, p_par, p_data, p_calc);
+            compute_drift(p_X, p_par, p_data, p_calc);
         }
 
-	t += p_calc->dt;
+	t += p_X->dt;
     }
 }
 
@@ -305,14 +298,13 @@ void f_prediction_sde_full(struct s_X *p_X, double t0, double t1, struct s_par *
 void f_prediction_psr(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     double t = t0;
-    double *y = p_X->proj;
 
     while (t < t1) {
-        step_psr(y, t, p_par, p_data, p_calc);
+        step_psr(p_X, t, p_par, p_data, p_calc);
         if (N_DRIFT) {
-            compute_drift(y, p_par, p_data, p_calc);
+            compute_drift(p_X, p_par, p_data, p_calc);
         }
-	t += p_calc->dt;
+	t += p_X->dt;
     }
 
 }
@@ -322,11 +314,10 @@ void f_prediction_psr(struct s_X *p_X, double t0, double t1, struct s_par *p_par
 void f_prediction_psr_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
 {
     double t = t0;
-    double *y = p_X->proj;
 
     while (t < t1) {
-        step_psr(y, t, p_par, p_data, p_calc);
-	t += p_calc->dt;
+        step_psr(p_X, t, p_par, p_data, p_calc);
+	t += p_X->dt;
     }
 }
 

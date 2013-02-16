@@ -795,7 +795,7 @@ void clean_data(struct s_data *p_data)
 
 
 
-struct s_calc **build_calc(int *n_threads, int general_id, double dt, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data)
+struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data)
 
 
 {
@@ -836,7 +836,7 @@ struct s_calc **build_calc(int *n_threads, int general_id, double dt, double eps
 
     /* we create as many rng as parallel threads *but* note that for the operations not prarallelized, we always use cacl[0].randgsl */
     for (nt=0; nt< *n_threads; nt++) {
-        calc[nt] = build_p_calc(*n_threads, nt, seed, dt, eps_abs, eps_rel, dim_ode, func_step_ode, p_data);
+        calc[nt] = build_p_calc(*n_threads, nt, seed, eps_abs, eps_rel, dim_ode, func_step_ode, p_data);
     }
 
     return calc;
@@ -844,11 +844,10 @@ struct s_calc **build_calc(int *n_threads, int general_id, double dt, double eps
 
 
 /**
- * dt: integration time step. If <=0.0, default to 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT
  * eps_abs, eps_rel: absolute and relative error 
  */
 
-struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double dt, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data)
+struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data)
 {
     struct s_calc *p_calc = malloc(sizeof(struct s_calc));
     if (p_calc==NULL) {
@@ -858,14 +857,6 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double dt, d
         exit(EXIT_FAILURE);
     }
 
-
-
-    //integration time step
-    if (dt <= 0.0){ //default to 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT
-	dt = 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT;
-    }
-    //IMPORTANT: we ensure an integer multiple of dt in between 2 data points    
-    p_calc->dt = 1.0/ ((double) round(1.0/dt));
 
     p_calc->n_threads = n_threads;
 
@@ -973,7 +964,12 @@ void clean_calc(struct s_calc **calc, struct s_data *p_data)
 }
 
 
-struct s_X *build_X(int size_proj, int size_obs, struct s_data *p_data)
+
+/**
+ * dt: integration time step. If <=0.0, default to 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT
+ */
+
+struct s_X *build_X(int size_proj, int size_obs, struct s_data *p_data, double dt)
 {
     struct s_X *p_X;
     p_X = malloc(sizeof(struct s_X));
@@ -983,6 +979,13 @@ struct s_X *build_X(int size_proj, int size_obs, struct s_data *p_data)
         print_err(str);
         exit(EXIT_FAILURE);
     }
+
+    //integration time step
+    if (dt <= 0.0){ //default to 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT
+	dt = 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT;
+    }
+    //IMPORTANT: we ensure an integer multiple of dt in between 2 data points    
+    p_X->dt = 1.0/ ((double) round(1.0/dt));
 
     p_X->proj = init1d_set0(size_proj);
     p_X->obs = init1d_set0(size_obs);
@@ -999,7 +1002,7 @@ void clean_X(struct s_X *p_X)
 }
 
 
-struct s_X **build_J_p_X(int size_proj, int size_obs, struct s_data *p_data)
+struct s_X **build_J_p_X(int size_proj, int size_obs, struct s_data *p_data, double dt)
 {
     int j;
 
@@ -1013,7 +1016,7 @@ struct s_X **build_J_p_X(int size_proj, int size_obs, struct s_data *p_data)
     }
 
     for(j=0; j<J; j++){
-        J_p_X[j] = build_X(size_proj, size_obs, p_data);
+        J_p_X[j] = build_X(size_proj, size_obs, p_data, dt);
     }
 
     return J_p_X;
@@ -1030,7 +1033,7 @@ void clean_J_p_X(struct s_X **J_p_X)
 }
 
 
-struct s_X ***build_D_J_p_X(int size_proj, int size_obs, struct s_data *p_data)
+struct s_X ***build_D_J_p_X(int size_proj, int size_obs, struct s_data *p_data, double dt)
 {
     int n;
 
@@ -1044,7 +1047,7 @@ struct s_X ***build_D_J_p_X(int size_proj, int size_obs, struct s_data *p_data)
     }
 
     for(n=0; n<(N_DATA+1); n++) {
-        D_J_p_X[n] = build_J_p_X(size_proj, size_obs, p_data);
+        D_J_p_X[n] = build_J_p_X(size_proj, size_obs, p_data, dt);
     }
 
     return D_J_p_X;

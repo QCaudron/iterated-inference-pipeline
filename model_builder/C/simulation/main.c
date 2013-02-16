@@ -259,11 +259,11 @@ int main(int argc, char *argv[])
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
     struct s_par *p_par = build_par(p_data);
-    struct s_X **J_p_X = build_J_p_X(size_proj, N_TS, p_data);
+    struct s_X **J_p_X = build_J_p_X(size_proj, N_TS, p_data, dt);
     struct s_best *p_best = build_best(p_data, theta, 0);
     json_decref(theta);
 
-    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, dt, eps_abs, eps_rel, J, size_proj, step_ode, p_data);
+    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p_data);
 
     double *y0 = init1d_set0(N_PAR_SV*N_CAC + N_TS_INC_UNIQUE);
     double abs_tol = eps_abs, rel_tol = eps_rel;

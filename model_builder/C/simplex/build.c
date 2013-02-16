@@ -37,12 +37,12 @@ struct s_simplex *build_simplex(enum plom_implementations implementation,  enum 
   int size_proj = N_PAR_SV*N_CAC + p_simplex->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
   p_simplex->p_par = build_par(p_simplex->p_data);
-  p_simplex->p_X = build_X(size_proj, N_TS, p_simplex->p_data);
+  p_simplex->p_X = build_X(size_proj, N_TS, p_simplex->p_data, dt);
   p_simplex->p_best = build_best(p_simplex->p_data, theta, 0);
   json_decref(theta);
 
   int n_threads = omp_get_max_threads();
-  p_simplex->calc = build_calc(&n_threads, general_id, dt, eps_abs, eps_rel, 1, size_proj, step_ode, p_simplex->p_data);
+  p_simplex->calc = build_calc(&n_threads, general_id, eps_abs, eps_rel, 1, size_proj, step_ode, p_simplex->p_data);
   p_simplex->smallest_log_like = get_smallest_log_likelihood(p_simplex->p_data->data_ind);
 
   return p_simplex;

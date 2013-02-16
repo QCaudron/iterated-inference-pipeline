@@ -56,8 +56,8 @@ void *worker_routine (void *params) {
     struct s_data *p_data = p->p_data;
     struct s_par *p_par = build_par(p_data);
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
-    struct s_X *p_X = build_X(size_proj, N_TS, p_data);
-    struct s_calc *p_calc = build_p_calc(p->n_threads, p->thread_id, GENERAL_ID, p->dt, p->eps_abs, p->eps_rel, size_proj, step_ode, p_data);
+    struct s_X *p_X = build_X(size_proj, N_TS, p_data, p->dt);
+    struct s_calc *p_calc = build_p_calc(p->n_threads, p->thread_id, GENERAL_ID, p->eps_abs, p->eps_rel, size_proj, step_ode, p_data);
 
     double like = 0.0;
 
