@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 
     int load_cov = 0;
     int m_switch = -1;
-    int m_eps = 1000;
+    int m_eps = 50;
     double a = 0.999;
 
     GENERAL_ID =0;

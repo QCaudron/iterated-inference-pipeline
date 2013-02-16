@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
     int load_cov = 0;
     int m_switch = -1;
-    int m_eps = 1000;
+    int m_eps = 50;
     double a = 0.999;
 
     JCHUNK=1;
