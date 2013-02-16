@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         "                        [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                       [--full] [--traj] [-p, --path <path>] [-i, --id <integer>]\n"
         "                       [-l, --LIKE_MIN <float>] [-M, --iter <integer>]\n"
-        "                       [-c --cov] [-a --cooling <float>] [-S --switch <int>]\n"
+        "                       [-c --cov] [-a --cooling <float>] [-S --switch <int>] [-E --epsilon <int>]\n"
         "                       [--help]\n"
         "where implementation is 'sde' (default)\n"
         "options:\n"
@@ -53,10 +53,12 @@ int main(int argc, char *argv[])
         "-M, --iter         number of pMCMC iterations\n"
         "-a, --cooling      cooling rate for sampling covariance live tuning\n"
         "-S, --switch       select switching iteration from initial covariance to empirical one\n"
+        "-E, --epsilon      select number of burnin iterations before tuning epsilon\n"
         "--help             print the usage on stdout\n";
 
     int load_cov = 0;
     int m_switch = -1;
+    int m_eps = 1000;
     double a = 0.999;
 
     GENERAL_ID =0;
@@ -103,6 +105,7 @@ int main(int argc, char *argv[])
                 {"LIKE_MIN",    required_argument,   0, 'l'},
                 {"iter",        required_argument,   0, 'M'},
                 {"switch",      required_argument,   0, 'S'},
+                {"epsilon",     required_argument,   0, 'E'},
                 {"cooling",     required_argument,   0, 'a'},
 
                 {0, 0, 0, 0}
@@ -110,7 +113,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:ci:l:M:p:S:a:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:ci:l:M:p:S:E:a:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -171,6 +174,9 @@ int main(int argc, char *argv[])
         case 'S':
             m_switch = atoi(optarg);
             break;
+	case 'E':
+	    m_eps = atoi(optarg);
+	    break;
 
         case '?':
             /* getopt_long already printed an error message. */
@@ -209,7 +215,7 @@ int main(int argc, char *argv[])
     gsl_vector_memcpy(p_kalman->p_best->proposed, p_kalman->p_best->mean);
 
     struct s_likelihood *p_like = build_likelihood();
-    struct s_pmcmc_calc_data *p_mcmc_calc_data = build_pmcmc_calc_data(p_kalman->p_best, a, m_switch,1);
+    struct s_pmcmc_calc_data *p_mcmc_calc_data = build_pmcmc_calc_data(p_kalman->p_best, a, m_switch, m_eps);
 
     p_kalman->calc[0]->method_specific_shared_data = p_mcmc_calc_data; //needed to use ran_proposal_sequential in pmcmc
 

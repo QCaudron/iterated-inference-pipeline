@@ -31,7 +31,8 @@ int main(int argc, char *argv[])
         "                [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
 	"                [--full] [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
         "                [-l, --LIKE_MIN <float>] [-J <integer>] [-M, --iter <integer>]\n"
-        "                [-c --cov] [-a --cooling <float>] [-S --switch <int>] [-Z, --zmq] [-C, --chunk <integer>]\n"
+        "                [-c --cov] [-a --cooling <float>] [-S --switch <int>] [-E --epsilon <int>]"
+        "                [-Z, --zmq] [-C, --chunk <integer>]\n"
         "                [--help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
@@ -64,7 +65,7 @@ int main(int argc, char *argv[])
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
     int load_cov = 0;
     int m_switch = -1;
-    int m_eps = 50;
+    int m_eps = 1000;
     double a = 0.999;
 
     JCHUNK=1;
