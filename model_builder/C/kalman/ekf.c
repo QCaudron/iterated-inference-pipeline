@@ -53,12 +53,11 @@ void check_and_correct_Ct(gsl_matrix *Ct)
     gsl_vector *eval = gsl_vector_alloc (N_KAL);	       // to store the eigen values
     gsl_matrix *evec = gsl_matrix_alloc (N_KAL, N_KAL);        // to store the eigen vectors
     gsl_matrix *temp = gsl_matrix_alloc (N_KAL, N_KAL);        // temporary matrix
-    gsl_matrix *temp2 = gsl_matrix_alloc (N_KAL, N_KAL);       // temporary matrix 2
+    gsl_matrix *temp2 = gsl_matrix_alloc (N_KAL, N_KAL);       // temporary matrix
     gsl_eigen_symmv_workspace *w = gsl_eigen_symmv_alloc (N_KAL); // gsl needs this work to compute the eigen values and vectors
 
     int i,j;
     int status;
-    int cumstatus = 0;
 
     /////////////////////
     // STEP 1: SYMETRY //
@@ -79,11 +78,11 @@ void check_and_correct_Ct(gsl_matrix *Ct)
     // Bringing negative eigen values of Ct back to zero
 
     // compute the eigen values and vectors of Ct
+    //IMPORTANT: The diagonal and lower triangular part of Ct are destroyed during the computation
     status = gsl_eigen_symmv(Ct, eval, evec, w);
     if (status) {
         sprintf(str, "error: %s\n", gsl_strerror (status));
         print_err(str);
-        cumstatus = 1;
     }
     gsl_eigen_symmv_free (w); // free the space w
 
@@ -101,23 +100,23 @@ void check_and_correct_Ct(gsl_matrix *Ct)
     //////////////////
     // basis change //
     //////////////////
+
     // Ct = evec * temp * evec'
 
     // temp2 = 1.0*temp*t(evec) + 0.0*temp2
     status = gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, temp, evec, 0.0, temp2);
     if (status) {
-        sprintf(str, "error: %s\n", gsl_strerror (status));
-        print_err(str);
-        cumstatus = 1;
+	sprintf(str, "error: %s\n", gsl_strerror (status));
+	print_err(str);
     }
 
     // Ct = 1.0*evec*temp2 + 0.0*temp2;
     status = gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, evec, temp2, 0.0, Ct);
     if (status) {
-        sprintf(str, "error: %s\n", gsl_strerror (status));
-        print_err(str);
-        cumstatus = 1;
+	sprintf(str, "error: %s\n", gsl_strerror (status));
+	print_err(str);
     }
+
 
     // free temp matrices
     gsl_vector_free(eval);
@@ -125,33 +124,21 @@ void check_and_correct_Ct(gsl_matrix *Ct)
     gsl_matrix_free(temp);
     gsl_matrix_free(temp2);
 
-    if (cumstatus) {
-        print_err("Error in check_and_correct_Ct");
-    }
-
 }
 
 /**
- * Computation of the EKF gain kt for observation data_t_ts and obs jacobian ht, given estimate xk_t_ts and current covariance Ct
- *	xk_t_ts:	(double) estimate at time t of the observed quantity
- *	data_t_ts:	(double) observed quantity
- *	Ct:		(N_KAL*N_KAL gsl_matrix) pointer to covariance matrix of the system at time t
- *	ht:		(N_KAL gsl_vector) pointer to observation process jacobian
- *	kt:		(N_KAL)  pointer to ekf gain, will be updated in this function erasing the previous value
- *	sc_rt:		(double) variance of the observation process
- *	sc_st:		(double) pointer to the ekf scaler sc_st, will be updated in this function erasing the previous value
- *	pred_error:	(double) pointer to the difference between obs and estimate, will be updated in this function erasing the previous value
+ * Computation of the EKF gain kt for observation data_t_ts and obs
+ * jacobian ht, given estimate xk_t_ts and current covariance Ct
  */
-void ekf_gain_computation(double xk_t_ts, double data_t_ts, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt, double sc_rt, double *sc_st, double *sc_pred_error)
+void ekf_gain_computation(struct s_kalman_update *p, double xk_t_ts, double data_t_ts, gsl_matrix *Ct)
 {
     char str[STR_BUFFSIZE];
 
     int status;
-    int cumstatus = 0;
     gsl_vector *workn = gsl_vector_calloc(N_KAL); // allocating space for a temporary work vector of size N_KAL, initialized to zero
 
     // pred_error = double data_t_ts - xk_t_ts
-    *sc_pred_error = data_t_ts - xk_t_ts;
+    p->sc_pred_error = data_t_ts - xk_t_ts;
 
     // positivity and symetry could have been lost when propagating Ct
     check_and_correct_Ct(Ct);
@@ -164,56 +151,42 @@ void ekf_gain_computation(double xk_t_ts, double data_t_ts, gsl_matrix *Ct, gsl_
      */
 
     // workn = Ct*ht
-    status = gsl_blas_dgemv(CblasNoTrans,1.0,Ct,ht,0.0,workn);
+    status = gsl_blas_dgemv(CblasNoTrans, 1.0, Ct, p->ht, 0.0, workn);
     if (status) {
         sprintf(str, "error: %s\n", gsl_strerror (status));
         print_err(str);
-        cumstatus = 1;
     }
 
     // sc_st = ht' * workn;
-    status = gsl_blas_ddot(ht,workn, sc_st);
+    status = gsl_blas_ddot(p->ht, workn, &(p->sc_st));
     if (status) {
         sprintf(str, "error: %s\n", gsl_strerror (status));
         print_err(str);
-        cumstatus = 1;
     }
     // sc_st = sc_st + sc_rt ;
-    *sc_st += sc_rt;
+    p->sc_st += p->sc_rt;
 
     // kt = Ct * ht' * sc_st^-1
-    double sc_stm1 = 1.0/ (*sc_st);
-    status = gsl_blas_dgemv(CblasNoTrans,sc_stm1,Ct,ht,0.0,kt);
+    double sc_stm1 = 1.0/ (p->sc_st);
+    status = gsl_blas_dgemv(CblasNoTrans, sc_stm1, Ct, p->ht, 0.0, p->kt);
     if (status) {
         sprintf(str, "error: %s\n", gsl_strerror (status));
         print_err(str);
-        cumstatus = 1;
     }
 
     // clear working variables:
     gsl_vector_free(workn);
-
-    if (cumstatus) {
-        print_err("Error in ekf_gain_computation");
-    }
-
 }
 
 
 /**
- * Update of the state vector xt and covariance matrix Ct, for a given gain kt
- *	xk:		(N_KAL gsl_vector) pointer to full state vector at time t
- *	Ct:		(N_KALxN_KAL gsl_matrix) pointer to covariance matrix of the system at time t
- *	kt:		(N_KAL gsl_vector) pointer to the gain vector kt
- *	sc_st:		(double)
- *	pred_error:	(double) difference between obs and estimate
+ * Update of the state vector xt and covariance matrix Ct, for a given
+ * gain s_kalman_update.kt
  */
-double ekf_update(gsl_vector *xk, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt, double sc_st, double sc_pred_error)
+double ekf_update(struct s_kalman_update *p, gsl_matrix *Ct)
 {
     char str[STR_BUFFSIZE];
-
     int status;
-    int cumstatus = 0;
 
     gsl_vector *workn = gsl_vector_calloc(N_KAL); // allocating space for a temporary work vector of size N_KAL (dimension of the state vector), initialized to zero
 
@@ -224,11 +197,10 @@ double ekf_update(gsl_vector *xk, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt
     //////////////////
     // xk += kt * pred_error
 
-    status = gsl_blas_daxpy(sc_pred_error, kt, xk);
+    status = gsl_blas_daxpy(p->sc_pred_error, p->kt, p->xk);
     if (status) {
         sprintf(str, "error: %s\n", gsl_strerror (status));
         print_err(str);
-        cumstatus = 1;
     }
 
     ///////////////////////
@@ -237,21 +209,19 @@ double ekf_update(gsl_vector *xk, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt
     // Ct = Ct - kt * ht * Ct
 
     // workn = Ct' * ht
-    status = gsl_blas_dgemv(CblasTrans,1.0,Ct,ht,0.0,workn);
+    status = gsl_blas_dgemv(CblasTrans, 1.0, Ct, p->ht, 0.0, workn);
     if (status) {
         sprintf(str, "error: %s\n", gsl_strerror (status));
         print_err(str);
-        cumstatus = 1;
     }
 
-    gsl_matrix_view Workn1 = gsl_matrix_view_vector (kt, kt->size, 1);
+    gsl_matrix_view Workn1 = gsl_matrix_view_vector (p->kt, p->kt->size, 1);
     gsl_matrix_view Workn2 = gsl_matrix_view_vector (workn, workn->size, 1);
 
     status = gsl_blas_dgemm(CblasNoTrans, CblasTrans, -1.0, &Workn2.matrix, &Workn1.matrix, 1.0, Ct); // Ct = Ct - Workn2*Workn1';
     if (status) {
         sprintf(str, "error: %s\n", gsl_strerror (status));
         print_err(str);
-        cumstatus = 1;
     }
 
     // positivity and symetry could have been lost when updating Ct
@@ -260,12 +230,7 @@ double ekf_update(gsl_vector *xk, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt
     // clear working variables:
     gsl_vector_free(workn);
 
-    if (cumstatus) {
-        sprintf(str, "Error in ekf_update");
-        print_err(str);
-    }
-
-    like = gsl_ran_gaussian_pdf(sc_pred_error, sqrt(sc_st));
+    like = gsl_ran_gaussian_pdf(p->sc_pred_error, sqrt(p->sc_st));
 
     return sanitize_likelihood(like);
 }

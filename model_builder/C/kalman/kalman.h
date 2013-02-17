@@ -110,15 +110,16 @@ double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **ro
 void reset_inc_cov(gsl_matrix *Ct);
 void check_and_correct_Ct(gsl_matrix *Ct);
 void ekf_propag_cov(double *proj, gsl_matrix *Ft, gsl_matrix *Ct, gsl_matrix *Q, struct s_par *p_par, struct s_group ***compo_groups_drift_par_proc, double t);
-void ekf_gain_computation(double xk_t_ts, double data_t_ts, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt, double sc_rt, double *sc_st, double *sc_pred_error);
-double ekf_update(gsl_vector *xk, gsl_matrix *Ct, gsl_vector *ht, gsl_vector *kt, double sc_st, double sc_pred_error);
+
+void ekf_gain_computation(struct s_kalman_update *p, double xk_t_ts, double data_t_ts, gsl_matrix *Ct);
+double ekf_update(struct s_kalman_update *p, gsl_matrix *Ct);
 
 /* kalman_template.c */
 int step_ode_ekf(double t, const double X[], double f[], void *params);
 
 int cac_drift_in_cac_ts(int cac_drift, int o, int ts_unique, struct s_obs2ts **obs2ts);
 void eval_jac(gsl_matrix *jac, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_group ***compo_groups_drift_par_proc, double t);
-void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
+void eval_ht(struct s_kalman_update * p, double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
 
 
 void eval_Q_full(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_kalman_specific_data *p_kalman_specific_data, double t);

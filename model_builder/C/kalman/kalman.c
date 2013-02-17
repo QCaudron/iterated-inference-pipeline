@@ -165,7 +165,7 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
     // loops indices
     int n, nn;		// data and nonan data indices
     double t0, t1;	// first and last times
-    int ts, ts_nonan;	// time series indices
+    int ts;	// time series indices
 
     // likelihoods
     double like, log_lik, log_lik_temp;
@@ -204,7 +204,6 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
             }
         }
 #endif
-
         t1=p_data->times[n];
 
         /////////////////////////
@@ -240,20 +239,31 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
         // from here we work only with xk
 
         log_lik_temp = 0.0;
+	int current_nn = calc[0]->current_nn; //nn-1
+
+
+        //Observations are assimilated one by one, which does not
+        //change the outcome but makes the code more robust to varying
+        //numbers of observations.
+
         for(ts=0; ts< data_ind[n]->n_nonan; ts++) {
 
-            ts_nonan = data_ind[n]->ind_nonan[ts];
-            p_kalman_update->sc_rt = obs_var(gsl_vector_get(p_kalman_update->xk, N_PAR_SV*N_CAC + ts_nonan), p_par, p_data, calc[0], ts_nonan);
+            int ts_nonan = data_ind[n]->ind_nonan[ts];
+	    double xk_t_ts = gsl_vector_get(p_kalman_update->xk, N_PAR_SV*N_CAC + ts_nonan);
 
-            eval_ht(p_kalman_update->ht, p_kalman_update->xk, p_par, p_data, calc[0], ts_nonan);
+            p_kalman_update->sc_rt = obs_var(xk_t_ts, p_par, p_data, calc[0], ts_nonan);
+	    
+	    //Observations are assimilated one by one so we reset p_kalman_update->ht to 0.0 at each iteration on ts
+	    gsl_vector_set_zero(p_kalman_update->ht); 
+            eval_ht(p_kalman_update, xk_t_ts, p_par, p_data, calc[0], ts_nonan);
 
             // compute gain
-            ekf_gain_computation(obs_mean(gsl_vector_get(p_kalman_update->xk, N_PAR_SV*N_CAC +ts_nonan), p_par, p_data, calc[0], ts_nonan),
-                                 p_data->data[calc[0]->current_nn][ts_nonan],
-                                 &Ct.matrix, p_kalman_update->ht, p_kalman_update->kt, p_kalman_update->sc_rt,
-                                 &(p_kalman_update->sc_st), &(p_kalman_update->sc_pred_error)); //scalar sc_st and sc_pred_error will be modified so we pass their address
+            ekf_gain_computation(p_kalman_update,
+				 obs_mean(xk_t_ts, p_par, p_data, calc[0], ts_nonan),
+                                 p_data->data[current_nn][ts_nonan],
+                                 &Ct.matrix); 
 
-            like = ekf_update(p_kalman_update->xk, &Ct.matrix, p_kalman_update->ht, p_kalman_update->kt, p_kalman_update->sc_st, p_kalman_update->sc_pred_error);
+            like = ekf_update(p_kalman_update, &Ct.matrix);
             log_lik_temp += log(like);
         }
 

@@ -336,9 +336,11 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
 
 /**
  * derivative of the mean of the observation process against state
- * variables and observed variables
+ * variables and observed variables the derivative are templated
+ * (automaticaly generated code) and are a function of "x", the
+ * observed variable (xk_t_ts).
  */
-void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
+void eval_ht(struct s_kalman_update * p, double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
 {
     struct s_router **routers = p_data->routers;  /* syntaxic shortcut */
 
@@ -352,11 +354,8 @@ void eval_ht(gsl_vector *ht, gsl_vector *xk, struct s_par *p_par, struct s_data 
     double **par = p_par->natural;
     double ***covar = p_data->par_fixed;
 
-    gsl_vector_set_zero(ht);
     //derivative against state variable are always nul so we focus on the derivative against the observed variable
-
-    double x = gsl_vector_get(xk, N_PAR_SV*N_CAC +ts); //the derivative are templated (automaticaly generated code) and are a function of "x". we link "x" to the right observed variable.
-    gsl_vector_set(ht, N_PAR_SV*N_CAC +ts, {{ jac_proc_obs|safe }});
+    gsl_vector_set(p->ht, N_PAR_SV*N_CAC +ts, {{ jac_proc_obs|safe }});
 }
 
 
