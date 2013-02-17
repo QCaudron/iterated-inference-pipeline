@@ -28,10 +28,10 @@ int main(int argc, char *argv[])
         "PloM kmcmc\n"
         "usage:\n"
         "kmcmc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
-        "                        [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
+        "                       [-s, --DT <float || 0.25 day>] [--eps_abs <float || 1e-6>] [--eps_rel <float || 1e-3>]\n"
         "                       [--full] [--traj] [-p, --path <path>] [-i, --id <integer>]\n"
-        "                       [-l, --LIKE_MIN <float>] [-M, --iter <integer>]\n"
-        "                       [-c --cov] [-a --cooling <float>] [-S --switch <int>] [-E --epsilon <int>]\n"
+        "                       [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
+        "                       [-C --cov] [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >] [-E --epsilon <int || 50>]"
         "                       [--help]\n"
         "where implementation is 'sde' (default)\n"
         "options:\n"
@@ -43,23 +43,30 @@ int main(int argc, char *argv[])
         "-s, --DT           Initial integration time step\n"
 	"--eps_abs          Absolute error for adaptive step-size contro\n"
 	"--eps_rel          Relative error for adaptive step-size contro\n"
-	"\n"
         "--full             full update MVN mode\n"
+        "-a, --cooling      cooling factor for sampling covariance live tuning\n"
+        "-S, --switch       select switching iteration from initial covariance to empirical one\n"
+        "-E, --epsilon      select number of burnin iterations before tuning epsilon\n"
+        "--epsilon_max      maximum value allowed for epsilon\n"
+        "--smooth           tune epsilon with the value of the acceptance rate obtained with exponential smoothing\n"
+        "--alpha            smoothing factor of exponential smoothing used to compute the smoothed acceptance rate (low values increase degree of smoothing)\n"
+	"\n"
         "--traj             print the trajectories\n"
-        "-c, --cov          load an initial covariance from the settings\n"
+        "-C, --cov          load an initial covariance from the settings\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-M, --iter         number of pMCMC iterations\n"
-        "-a, --cooling      cooling rate for sampling covariance live tuning\n"
-        "-S, --switch       select switching iteration from initial covariance to empirical one\n"
-        "-E, --epsilon      select number of burnin iterations before tuning epsilon\n"
         "--help             print the usage on stdout\n";
 
     int load_cov = 0;
     int m_switch = -1;
     int m_eps = 50;
     double a = 0.999;
+    double epsilon_max = 2.0;
+    double alpha = 0.05;
+
+    static int is_smooth = 0;
 
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
@@ -96,6 +103,14 @@ int main(int argc, char *argv[])
 		{"eps_abs",    required_argument, 0, 'v'},
 		{"eps_rel",    required_argument, 0, 'w'},
 
+                {"switch",     required_argument,   0, 'S'},
+                {"epsilon",     required_argument,   0, 'E'},
+                {"cooling",     required_argument,   0, 'a'},
+		{"smooth",    no_argument, &is_smooth, 1},
+		{"epsilon_max", required_argument, 0, 'f'},
+		{"alpha",    required_argument, 0, 'g'},
+
+
                 {"cov",         no_argument, 0, 'c'},
 
                 {"help",        no_argument,        0, 'e'},
@@ -103,16 +118,13 @@ int main(int argc, char *argv[])
                 {"id",          required_argument,  0, 'i'},
                 {"LIKE_MIN",    required_argument,   0, 'l'},
                 {"iter",        required_argument,   0, 'M'},
-                {"switch",      required_argument,   0, 'S'},
-                {"epsilon",     required_argument,   0, 'E'},
-                {"cooling",     required_argument,   0, 'a'},
 
                 {0, 0, 0, 0}
             };
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:ci:l:M:p:S:E:a:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:Ci:l:M:p:S:E:a:f:g:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -147,11 +159,29 @@ int main(int argc, char *argv[])
             break;
 
 
+
+        case 'a':
+            a = atof(optarg);
+            break;
+        case 'S':
+            m_switch = atoi(optarg);
+            break;
+        case 'E':
+            m_eps = atoi(optarg);
+            break;
+        case 'f':
+            epsilon_max = atof(optarg);
+            break;
+        case 'g':
+            alpha = atof(optarg);
+            break;
+
+
         case 'e':
             print_log(sfr_help_string);
             return 1;
 
-        case 'c':
+        case 'C':
             load_cov = 1;
             break;
         case 'p':
@@ -167,15 +197,6 @@ int main(int argc, char *argv[])
         case 'M':
             M = atoi(optarg);
             break;
-        case 'a':
-            a = atof(optarg);
-            break;
-        case 'S':
-            m_switch = atoi(optarg);
-            break;
-	case 'E':
-	    m_eps = atoi(optarg);
-	    break;
 
         case '?':
             /* getopt_long already printed an error message. */
@@ -214,7 +235,7 @@ int main(int argc, char *argv[])
     gsl_vector_memcpy(p_kalman->p_best->proposed, p_kalman->p_best->mean);
 
     struct s_likelihood *p_like = build_likelihood();
-    struct s_pmcmc_calc_data *p_mcmc_calc_data = build_pmcmc_calc_data(p_kalman->p_best, a, m_switch, m_eps);
+    struct s_mcmc_calc_data *p_mcmc_calc_data = build_mcmc_calc_data(p_kalman->p_best, a, m_switch, m_eps, epsilon_max, is_smooth, alpha);
 
     p_kalman->calc[0]->method_specific_shared_data = p_mcmc_calc_data; //needed to use ran_proposal_sequential in pmcmc
 
@@ -231,7 +252,7 @@ int main(int argc, char *argv[])
     print_log("clean up...\n");
 #endif
 
-    clean_pmcmc_calc_data(p_mcmc_calc_data);
+    clean_mcmc_calc_data(p_mcmc_calc_data);
     clean_likelihood(p_like);
     clean_kalman(p_kalman);
 

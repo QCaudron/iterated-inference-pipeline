@@ -34,123 +34,6 @@ void run_propag(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *
 }
 
 
-/**
- * propose new p_best->proposed from p_best->mean
- *
- * IN FULL UPDATE CASE:
- *
- * new p_best->proposed is sampled by a MVN generator using the covariance matrix
- * 2.38²*epsilon²/n_to_be_estimated * var where:
- * - epsilon is dynamicaly tuned following the iterative law:
- *   epsilon(m) = epsilon(m-1) * exp(a^m * (acceptance rate - 0.234))
- * - var is the initial covariance if the number of accepted particles
- *   is lower than SWITCH, and the empirical one otherwise
- *
- * For the calculation, the collapsed Cholesky decomposition of var is used,
- * so the tuning factor is 2.38*epsilon/sqrt(n_to_be_estimated).
- *
- * return the empirical covariance matrix or the initial one depending on if(m*global_acceptance_rate >= m_switch)
- * 
- *
- * IN SEQUENTIAL UPDATE CASE:
- *
- * One component of p_best->proposed is sampled at each iteration
- * following a gaussian law. The covariances are the diagonal terms of
- * the initial covariance matrix (loaded from a covariace.output file
- * or filled with jump sizes. The components sampling order is shuffled
- * each time all components have been sampled (p_pMCMC_specific_data->has_cycled).
- *
- * return the initial covariance matrix
- */
-gsl_matrix * propose_new_theta_and_load_X0(double *sd_fac, struct s_best *p_best, struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_pmcmc_calc_data *p_pmcmc_calc_data, struct s_calc *p_calc, int m)
-{
-    if (OPTION_FULL_UPDATE) {
-        //////////////////////
-        // FULL UPDATE CASE //
-        //////////////////////
-        int m_switch = p_pmcmc_calc_data->m_switch;
-        int m_eps = p_pmcmc_calc_data->m_eps;
-
-        // evaluate epsilon(m) = epsilon(m-1) * exp(a^(m-1) * (acceptance_rate(m-1) - 0.234))
-        double global_acceptance_rate = p_pmcmc_calc_data->global_acceptance_rate;
-        if ( (m > m_eps) && (m*global_acceptance_rate < m_switch) ) {
-            p_pmcmc_calc_data->epsilon *=  exp(pow(p_pmcmc_calc_data->a, (double)(m-1)) * (global_acceptance_rate - 0.234));
-#if FLAG_VERBOSE
-            char str[STR_BUFFSIZE];
-            snprintf(str, STR_BUFFSIZE, "epsilon = %g", p_pmcmc_calc_data->epsilon);
-            print_log(str);
-#endif
-        // after switching epsilon is set back to 1
-        } else {
-            p_pmcmc_calc_data->epsilon = 1.0;
-        }
-
-        // evaluate tuning factor sd_fac = epsilon * 2.38/sqrt(n_to_be_estimated)
-        *sd_fac = p_pmcmc_calc_data->epsilon * 2.38/sqrt(p_best->n_to_be_estimated);
-
-        if(m*global_acceptance_rate >= m_switch) {
-	    // propose p_best->proposed ~ MVN(p_best->mean, p_best->var)
-	    propose_safe_theta_and_load_X0(p_best->proposed, p_best, p_best->var_sampling, *sd_fac, p_par, p_X, p_data, p_calc, plom_rmvnorm);
-
-	    return p_best->var_sampling;
-
-        } else {
-	    propose_safe_theta_and_load_X0(p_best->proposed, p_best, p_best->var, *sd_fac, p_par, p_X, p_data, p_calc, plom_rmvnorm);
-
-	    return p_best->var;
-	}
-
-
-    } else {
-
-        ////////////////////////////
-        // SEQUENTIAL UPDATE CASE //
-        ////////////////////////////
-
-        /*generate a random value for a component "k" of proposed chosen
-          randomly.  every number of parameters with jump_size > 0.0
-          (n_to_be_estimated) we randomly shuffle the index of the n_to_be
-          estimated parameter index. In between these shuffling event, we
-          cycle throufh the shuffled indexes. Traces are printed every
-          n_to_be_estimated iterations. This should mimate block update of
-          the n_to_be_estimated component of theta while increasing the
-          acceptance ratio
-        */
-        *sd_fac = 1.0;
-
-        if(p_best->n_to_be_estimated > 0) { //due to the webApp all jump size can be 0.0...
-            if(p_pmcmc_calc_data->has_cycled) {
-                gsl_ran_shuffle(p_calc->randgsl, p_best->to_be_estimated, p_best->n_to_be_estimated, sizeof (unsigned int));
-            }
-        }
-        propose_safe_theta_and_load_X0(p_best->proposed, p_best, p_best->var, 1.0, p_par, p_X, p_data, p_calc, ran_proposal_sequential);
-
-	return p_best->var;
-    }
-}
-
-
-void increment_iteration_counters(struct s_pmcmc_calc_data *p_pmcmc_calc_data, struct s_best *p_best, const int OPTION_FULL_UPDATE)
-{
-    if(OPTION_FULL_UPDATE) {
-        p_pmcmc_calc_data->has_cycled = 1;
-        p_pmcmc_calc_data->m_full_iteration ++;
-        p_pmcmc_calc_data->cycle_id = p_best->n_to_be_estimated;
-    } else {
-
-        if (p_pmcmc_calc_data->cycle_id >= (p_best->n_to_be_estimated -1)) { // >= instead of  == because due to the webApp all jump size can be 0.0...
-            p_pmcmc_calc_data->has_cycled = 1;
-            p_pmcmc_calc_data->m_full_iteration += 1;
-            p_pmcmc_calc_data->cycle_id = 0;
-        } else {
-            p_pmcmc_calc_data->has_cycled = 0;
-            p_pmcmc_calc_data->cycle_id += 1;
-        }
-
-    }
-}
-
-
 void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_prev, struct s_hat ***D_p_hat_new, struct s_hat **D_p_hat_best, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred)
 {
     int m;              // iteration index
@@ -162,7 +45,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     gsl_matrix *var; 
 
     // syntactical shortcut
-    struct s_pmcmc_calc_data *p_pmcmc_calc_data =  (struct s_pmcmc_calc_data *) calc[0]->method_specific_shared_data;
+    struct s_mcmc_calc_data *p_mcmc_calc_data =  (struct s_mcmc_calc_data *) calc[0]->method_specific_shared_data;
 
     // initialize time to calculate the computational time of a pMCMC iteration
 #if FLAG_VERBOSE
@@ -254,11 +137,11 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         time_pmcmc_begin = s_clock();
 #endif
 
-        increment_iteration_counters(p_pmcmc_calc_data, p_best, OPTION_FULL_UPDATE);
+        increment_iteration_counters(p_mcmc_calc_data, p_best, OPTION_FULL_UPDATE);
 
         // web interface
 #if FLAG_JSON
-        if (p_pmcmc_calc_data->has_cycled) {
+        if (p_mcmc_calc_data->has_cycled) {
             update_walk_rates(p_best, NULL, NULL, p_data);
             update_to_be_estimated(p_best);
         }
@@ -266,7 +149,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         swap_D_p_hat(D_p_hat_prev, D_p_hat_new);
 
         // generate new theta
-        var = propose_new_theta_and_load_X0(&sd_fac, p_best, D_J_p_X[0][0], p_par, p_data, p_pmcmc_calc_data, calc[0], m);
+        var = propose_new_theta_and_load_X0(&sd_fac, p_best, D_J_p_X[0][0], p_par, p_data, p_mcmc_calc_data, calc[0], m);
 
         //load X_0 for the J-1 other particles
         replicate_J_p_X_0(D_J_p_X[0], p_data);
@@ -294,28 +177,31 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         } else if(!OPTION_FULL_UPDATE) {
             //required if sequential update:
             gsl_vector_set(p_best->proposed,
-                           p_best->to_be_estimated[ p_pmcmc_calc_data->cycle_id ],
-                           gsl_vector_get(p_best->mean, p_best->to_be_estimated[ p_pmcmc_calc_data->cycle_id ]));
+                           p_best->to_be_estimated[ p_mcmc_calc_data->cycle_id ],
+                           gsl_vector_get(p_best->mean, p_best->to_be_estimated[ p_mcmc_calc_data->cycle_id ]));
         }
 
-        compute_acceptance_rates(p_best, p_pmcmc_calc_data, (double) is_accepted, m);
+        compute_acceptance_rates(p_best, p_mcmc_calc_data, (double) is_accepted, m);
 
 
 #if FLAG_VERBOSE
         time_pmcmc_end = s_clock();
         struct s_duration t_exec = time_exec(time_pmcmc_begin, time_pmcmc_end);
-        sprintf(str, "iteration number: %d (%d / %d)\t logV: %g (previous was %g) accepted: %d computed in:= %dd %dh %dm %gs", p_pmcmc_calc_data->m_full_iteration, p_pmcmc_calc_data->cycle_id, p_best->n_to_be_estimated, p_like->Llike_best, p_like->Llike_prev, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+	snprintf(str, STR_BUFFSIZE, "iteration number: %d (%d / %d)\t logV: %g (previous was %g) accepted: %d computed in:= %dd %dh %dm %gs", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->cycle_id, p_best->n_to_be_estimated, p_like->Llike_best, p_like->Llike_prev, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
 	print_log(str);
 #endif
 
 
-        if (p_pmcmc_calc_data->cycle_id >= (p_best->n_to_be_estimated -1)) { // >= instead of  == because due to the webApp all jump size can be 0.0...
+        if (p_mcmc_calc_data->cycle_id >= (p_best->n_to_be_estimated -1)) { // >= instead of  == because due to the webApp all jump size can be 0.0...
             // evaluate empirical covariance
-            eval_var_emp(p_best, (double) p_pmcmc_calc_data->m_full_iteration);
+            eval_var_emp(p_best, (double) p_mcmc_calc_data->m_full_iteration);
 
-            print_best(p_file_best, p_pmcmc_calc_data->m_full_iteration, p_best, p_data, p_like->Llike_prev);
+            print_best(p_file_best, p_mcmc_calc_data->m_full_iteration, p_best, p_data, p_like->Llike_prev);
+	    //	    print_acceptance_rates(p_mcmc_calc_data, p_mcmc_calc_data->m_full_iteration);
+
 #if FLAG_VERBOSE
-	    print_acceptance_rates(p_pmcmc_calc_data, p_pmcmc_calc_data->m_full_iteration);
+	    snprintf(str, STR_BUFFSIZE, "acceptance rate(s) at iteration %d: %g (smoothed: %g)", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->global_acceptance_rate, p_mcmc_calc_data->smoothed_global_acceptance_rate);
+	    print_log(str);
 #endif
         }
 

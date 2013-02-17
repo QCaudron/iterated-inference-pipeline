@@ -21,7 +21,7 @@
 /**
  * run KMCMC see pmcmc/pmcmc.c for doc
  */
-void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcmc_calc_data *p_pmcmc_calc_data, plom_f_pred_t f_pred)
+void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc_calc_data *p_mcmc_calc_data, plom_f_pred_t f_pred)
 {
 
     int m;              // iteration index
@@ -91,18 +91,18 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
         time_pmcmc_begin = s_clock();
 #endif
 
-        increment_iteration_counters(p_pmcmc_calc_data, p_best, OPTION_FULL_UPDATE);
+        increment_iteration_counters(p_mcmc_calc_data, p_best, OPTION_FULL_UPDATE);
 
         // web interface
 #if FLAG_JSON
-        if (p_pmcmc_calc_data->has_cycled) {
+        if (p_mcmc_calc_data->has_cycled) {
             update_walk_rates(p_best, NULL, NULL, p_data);
             update_to_be_estimated(p_best);
         }
 #endif
 
         // generate new theta
-        var = propose_new_theta_and_load_X0(&sd_fac, p_best, p_X, p_par, p_data, p_pmcmc_calc_data, calc[0], m);
+        var = propose_new_theta_and_load_X0(&sd_fac, p_best, p_X, p_par, p_data, p_mcmc_calc_data, calc[0], m);
         back_transform_theta2par(p_par, p_best->proposed, p_data->p_it_par_proc_par_obs_no_drift, p_data);
 
         //run Kalman
@@ -120,29 +120,31 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_pmcm
         } else if(!OPTION_FULL_UPDATE) {
             //required if sequential update:
             gsl_vector_set(p_best->proposed,
-                           p_best->to_be_estimated[ p_pmcmc_calc_data->cycle_id ],
-                           gsl_vector_get(p_best->mean, p_best->to_be_estimated[ p_pmcmc_calc_data->cycle_id ]));
+                           p_best->to_be_estimated[ p_mcmc_calc_data->cycle_id ],
+                           gsl_vector_get(p_best->mean, p_best->to_be_estimated[ p_mcmc_calc_data->cycle_id ]));
         }
 
-        compute_acceptance_rates(p_best, p_pmcmc_calc_data, (double) is_accepted, m);
+        compute_acceptance_rates(p_best, p_mcmc_calc_data, (double) is_accepted, m);
 
 #if FLAG_VERBOSE
         time_pmcmc_end = s_clock();
         struct s_duration t_exec = time_exec(time_pmcmc_begin, time_pmcmc_end);
-        sprintf(str, "iteration number: %d (%d / %d)\t logV: %g (previous was %g) accepted: %d computed in:= %dd %dh %dm %gs", p_pmcmc_calc_data->m_full_iteration, p_pmcmc_calc_data->cycle_id, p_best->n_to_be_estimated, p_like->Llike_best, p_like->Llike_prev, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+        sprintf(str, "iteration number: %d (%d / %d)\t logV: %g (previous was %g) accepted: %d computed in:= %dd %dh %dm %gs", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->cycle_id, p_best->n_to_be_estimated, p_like->Llike_best, p_like->Llike_prev, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
         print_log(str);
 #endif
 
-        // evaluate empirical covariance
-        if (OPTION_FULL_UPDATE) {
-            eval_var_emp(p_best, (double) m);
-        }
-
         // append output files
-        if (p_pmcmc_calc_data->cycle_id >= (p_best->n_to_be_estimated -1)) { // >= instead of  == because due to the webApp all jump size can be 0.0...
-            print_best(p_file_best, p_pmcmc_calc_data->m_full_iteration, p_best, p_data, p_like->Llike_prev);
+        if (p_mcmc_calc_data->cycle_id >= (p_best->n_to_be_estimated -1)) { // >= instead of  == because due to the webApp all jump size can be 0.0...
+
+	    // evaluate empirical covariance
+            eval_var_emp(p_best, (double) p_mcmc_calc_data->m_full_iteration);
+
+            print_best(p_file_best, p_mcmc_calc_data->m_full_iteration, p_best, p_data, p_like->Llike_prev);
+            //print_acceptance_rates(p_mcmc_calc_data, p_mcmc_calc_data->m_full_iteration);
+
 #if FLAG_VERBOSE
-            print_acceptance_rates(p_pmcmc_calc_data, p_pmcmc_calc_data->m_full_iteration);
+	    snprintf(str, STR_BUFFSIZE, "acceptance rate(s) at iteration %d: %g (smoothed: %g)", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->global_acceptance_rate, p_mcmc_calc_data->smoothed_global_acceptance_rate);
+	    print_log(str);
 #endif
         }
 

@@ -28,11 +28,11 @@ int main(int argc, char *argv[])
         "PLoM pMCMC\n"
         "usage:\n"
         "pmcmc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
-        "                [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
-	"                [--full] [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
-        "                [-l, --LIKE_MIN <float>] [-J <integer>] [-M, --iter <integer>]\n"
-        "                [-c --cov] [-a --cooling <float>] [-S --switch <int>] [-E --epsilon <int>]"
-        "                [-Z, --zmq] [-C, --chunk <integer>]\n"
+        "                [-s, --DT <float || 0.25 day>] [--eps_abs <float || 1e-6>] [--eps_rel <float || 1e-3>]\n"
+	"                [--full] [--traj] [-p, --path <path>] [-i, --id <integer || 0>] [-P, --N_THREAD <integer || N_CPUs>]\n"
+        "                [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
+        "                [-C --cov] [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >] [-E --epsilon <int || 50>]"
+        "                [-Z, --zmq] [-c, --chunk <integer>]\n"
         "                [--help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
@@ -46,8 +46,15 @@ int main(int argc, char *argv[])
 	"--eps_rel          Relative error for adaptive step-size contro\n"
 	"\n"
         "--full             full update MVN mode\n"
+        "-a, --cooling      cooling factor for sampling covariance live tuning\n"
+        "-S, --switch       select switching iteration from initial covariance to empirical one\n"
+        "-E, --epsilon      select number of burnin iterations before tuning epsilon\n"
+        "--epsilon_max      maximum value allowed for epsilon\n"
+        "--smooth           tune epsilon with the value of the acceptance rate obtained with exponential smoothing\n"
+        "--alpha            smoothing factor of exponential smoothing used to compute the smoothed acceptance rate (low values increase degree of smoothing)\n"
+	"\n"
         "--traj             print the trajectories\n"
-        "-c, --cov          load an initial covariance from the settings\n"
+        "-C, --cov          load an initial covariance from the settings\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-P, --N_THREAD     number of threads to be used (default to the number of cores)\n"
@@ -56,10 +63,7 @@ int main(int argc, char *argv[])
         "-J                 number of particles\n"
         "-M, --iter         number of pMCMC iterations\n"
         "-Z, --zmq          dispatch particles across machines using a zeromq pipeline\n"
-        "-C, --chunk        number of particles send to each machine\n"
-        "-a, --cooling      cooling rate for sampling covariance live tuning\n"
-        "-S, --switch       select switching iteration from initial covariance to empirical one\n"
-        "-E, --epsilon      select number of burnin iterations before tuning epsilon\n"
+        "-c, --chunk        number of particles send to each machine\n"
         "--help             print the usage on stdout\n";
 
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
@@ -67,11 +71,15 @@ int main(int argc, char *argv[])
     int m_switch = -1;
     int m_eps = 50;
     double a = 0.999;
+    double epsilon_max = 2.0;
+    double alpha = 0.05;
+
+    static int is_smooth = 0;
 
     JCHUNK=1;
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
-    J=100;
+    J=1;
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
     M = 10;
@@ -99,7 +107,14 @@ int main(int argc, char *argv[])
 		{"eps_abs",    required_argument, 0, 'v'},
 		{"eps_rel",    required_argument, 0, 'w'},
 
-                {"cov", no_argument, 0, 'c'},
+                {"switch",     required_argument,   0, 'S'},
+                {"epsilon",     required_argument,   0, 'E'},
+                {"cooling",     required_argument,   0, 'a'},
+		{"smooth",    no_argument, &is_smooth, 1},
+		{"epsilon_max", required_argument, 0, 'f'},
+		{"alpha",    required_argument, 0, 'g'},
+
+                {"cov", no_argument, 0, 'C'},
 
                 {"help", no_argument,  0, 'e'},
                 {"path",    required_argument, 0, 'p'},
@@ -109,17 +124,14 @@ int main(int argc, char *argv[])
                 {"LIKE_MIN",     required_argument,   0, 'l'},
                 {"iter",     required_argument,   0, 'M'},
                 {"zmq",     no_argument,   0, 'Z'},
-                {"chunk",     required_argument,   0, 'C'},
-                {"switch",     required_argument,   0, 'S'},
-                {"epsilon",     required_argument,   0, 'E'},
-                {"cooling",     required_argument,   0, 'a'},
+                {"chunk",     required_argument,   0, 'c'},
 
                 {0, 0, 0, 0}
             };
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:ci:J:l:M:p:C:P:ZS:E:a:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:Ci:J:l:M:p:c:P:ZS:E:a:f:g:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -153,11 +165,28 @@ int main(int argc, char *argv[])
             eps_rel = atof(optarg);
             break;
 
+
+        case 'a':
+            a = atof(optarg);
+            break;
+        case 'S':
+            m_switch = atoi(optarg);
+            break;
+        case 'E':
+            m_eps = atoi(optarg);
+            break;
+        case 'f':
+            epsilon_max = atof(optarg);
+            break;
+        case 'g':
+            alpha = atof(optarg);
+            break;
+
         case 'e':
             print_log(sfr_help_string);
             return 1;
 
-        case 'c':
+        case 'C':
             load_cov = 1;
             break;
         case 'Z':
@@ -175,7 +204,7 @@ int main(int argc, char *argv[])
         case 'J':
             J = atoi(optarg);
             break;
-        case 'C':
+        case 'c':
             JCHUNK = atoi(optarg);
             break;
         case 'l':
@@ -184,15 +213,6 @@ int main(int argc, char *argv[])
             break;
         case 'M':
             M = atoi(optarg);
-            break;
-        case 'a':
-            a = atof(optarg);
-            break;
-        case 'S':
-            m_switch = atoi(optarg);
-            break;
-        case 'E':
-            m_eps = atoi(optarg);
             break;
 
         case '?':
@@ -227,7 +247,10 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
 
     int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?
-    struct s_pmcmc *p_pmcmc = build_pmcmc(implementation, noises_off, settings, dt, eps_abs, eps_rel, a, m_switch, m_eps, update_covariance, J, &n_threads);
+    struct s_pmcmc *p_pmcmc = build_pmcmc(implementation, noises_off, settings, 
+					  dt, eps_abs, eps_rel, 
+					  a, m_switch, m_eps, epsilon_max, is_smooth, alpha,
+					  update_covariance, J, &n_threads);
     json_decref(settings);
 
     sanitize_best_to_prior(p_pmcmc->p_best, p_pmcmc->p_data);
