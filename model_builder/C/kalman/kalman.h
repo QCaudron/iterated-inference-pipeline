@@ -17,7 +17,7 @@
  *************************************************************************/
 
 #include "plom.h"
-#include "pmcmc.h"
+#include "mcmc_util.h"
 
 #define WORLD_POP 7.e9 // approx world population, used to detect divergences
 

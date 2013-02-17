@@ -33,6 +33,9 @@ model_builder/C/core/likelihood.c
 model_builder/C/core/likelihood.o
 model_builder/C/core/load.c
 model_builder/C/core/load.o
+model_builder/C/core/mcmc_util.c
+model_builder/C/core/mcmc_util.h
+model_builder/C/core/mcmc_util.o
 model_builder/C/core/metropolis_hastings_prior.c
 model_builder/C/core/metropolis_hastings_prior.o
 model_builder/C/core/mvn.c

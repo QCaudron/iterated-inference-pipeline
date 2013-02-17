@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-fopenmp -std=gnu99 -Wall -O3 -I ../core/ -I ../pmcmc/ -DGSL_RANGE_CHECK_OFF
+CFLAGS=-fopenmp -std=gnu99 -Wall -O3 -I ../core/ -DGSL_RANGE_CHECK_OFF
 LDFLAGS=-lplomtpl -lplom -lm -lgsl -lgslcblas -ljansson -lzmq
 EXEC=kalman ksimplex kmcmc
 ALL_SRC= $(wildcard *.c)
@@ -19,10 +19,10 @@ kalman: $(OBJ) main.o
 ksimplex: $(OBJ) simplex_kalman.o
 	$(CC) $(CFLAGS) -L../lib -o $@ $^ $(LDFLAGS)
 
-kmcmc: $(OBJ) kmcmc_main.o kmcmc.o ../pmcmc/methods.o ../pmcmc/build.o ../pmcmc/pmcmc.o
+kmcmc: $(OBJ) kmcmc_main.o kmcmc.o
 	$(CC) $(CFLAGS) -L../lib -o $@ $^ $(LDFLAGS)
 
-%.o: %.c kalman.h pmcmc.h
+%.o: %.c kalman.h
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 .PHONY: clean mrproper install

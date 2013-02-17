@@ -154,7 +154,8 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         swap_D_p_hat(D_p_hat_prev, D_p_hat_new);
 
         // generate new theta
-        var = propose_new_theta_and_load_X0(&sd_fac, p_best, D_J_p_X[0][0], p_par, p_data, p_mcmc_calc_data, calc[0], m);
+	var = get_var_and_sd_fac(&sd_fac, p_best, p_mcmc_calc_data, calc[0], m);
+	propose_safe_theta_and_load_X0(p_best->proposed, p_best, var, sd_fac, p_par, D_J_p_X[0][0], p_data, calc[0],  (OPTION_FULL_UPDATE) ? plom_rmvnorm : ran_proposal_sequential);
 
         //load X_0 for the J-1 other particles
         replicate_J_p_X_0(D_J_p_X[0], p_data);

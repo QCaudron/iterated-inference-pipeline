@@ -18,68 +18,6 @@
 
 #include "pmcmc.h"
 
-struct s_mcmc_calc_data *build_mcmc_calc_data(struct s_best *p_best, const double a, const int m_switch, const int m_epsilon, const double epsilon_max, const int is_smoothed_tunning, const double alpha)
-{
-    /* which parameters have to be estimated (parameters with jump_size > 0.0) */
-    char str[STR_BUFFSIZE];
-    int k;
-
-    struct s_mcmc_calc_data *p;
-    p = malloc(sizeof(struct s_mcmc_calc_data));
-    if(p==NULL) {
-	snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
-        print_err(str);
-        exit(EXIT_FAILURE);
-    }
-
-    p->n_acceptance_rates = p_best->length;
-    p->acceptance_rates = init1d_set0(p->n_acceptance_rates);
-    p->smoothed_acceptance_rates = init1d_set0(p->n_acceptance_rates);
-
-    //start with 1.0 (for non fitted parameters it will stay at 1.0 (in a way, non fitted parameters are always accepted)
-    for(k=0; k< (p->n_acceptance_rates); k++) {
-        p->acceptance_rates[k] = 1.0;
-        p->smoothed_acceptance_rates[k] = 1.0;
-    }
-
-    p->global_acceptance_rate = 1.0;
-    p->smoothed_global_acceptance_rate = 1.0;
-
-    p->has_cycled = 1;
-    p->m_full_iteration = 0;
-    p->cycle_id = p_best->n_to_be_estimated -1;
-
-    p->epsilon = 1.0;
-    p->epsilon_max = epsilon_max;
-    p->a = a;
-
-    p->alpha = alpha;
-    p->is_smoothed_tunning = is_smoothed_tunning;
-
-    // iteration to swith between initial and empirical covariances
-    p->m_switch = m_switch;
-
-    int min_switch = 5*p_best->n_to_be_estimated*p_best->n_to_be_estimated;
-    if (m_switch < 0) {
-        p->m_switch = min_switch;
-    } else if (p->m_switch < min_switch) {
-	snprintf(str, STR_BUFFSIZE, "attention: covariance switching iteration (%i) is smaller than proposed one (%i)\n", m_switch, min_switch);
-        print_warning(str);
-    }
-
-    p->m_epsilon = m_epsilon;
-
-    return (p);
-}
-
-
-void clean_mcmc_calc_data(struct s_mcmc_calc_data *p)
-{
-    FREE(p->acceptance_rates);
-    FREE(p->smoothed_acceptance_rates);
-    FREE(p);
-}
-
 struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_noises_off noises_off, json_t *settings, double dt, double eps_abs, double eps_rel, double a, int m_switch, int m_epsilon, double epsilon_max, int is_smooth, double alpha, int update_covariance, int J, int *n_threads)
 {
     char str[STR_BUFFSIZE];

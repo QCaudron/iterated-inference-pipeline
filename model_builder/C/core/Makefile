@@ -10,7 +10,7 @@ all: $(EXEC) $(LIB)
 $(LIB): $(OBJ)
 	ar -rcs $@ $(OBJ)
 
-%.o: %.c plom.h
+%.o: %.c plom.h mcmc_util.h
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 .PHONY: clean mrproper install
