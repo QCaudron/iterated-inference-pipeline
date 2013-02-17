@@ -34,7 +34,7 @@ void run_propag(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *
 }
 
 
-void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_prev, struct s_hat ***D_p_hat_new, struct s_hat **D_p_hat_best, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred)
+void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_prev, struct s_hat ***D_p_hat_new, struct s_hat **D_p_hat_best, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int OPTION_ACC)
 {
     int m;              // iteration index
     int is_accepted;    // boolean
@@ -59,6 +59,11 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     FILE *p_file_X = NULL;
     if (OPTION_TRAJ){
         p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
+    }
+
+    FILE *p_file_acc = NULL;
+    if (OPTION_ACC){
+        p_file_acc = sfr_fopen(SFR_PATH, GENERAL_ID, "acc", "w", header_acceptance_rates, p_data);
     }
 
     void *context = NULL;
@@ -197,7 +202,10 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
             eval_var_emp(p_best, (double) p_mcmc_calc_data->m_full_iteration);
 
             print_best(p_file_best, p_mcmc_calc_data->m_full_iteration, p_best, p_data, p_like->Llike_prev);
-	    //	    print_acceptance_rates(p_mcmc_calc_data, p_mcmc_calc_data->m_full_iteration);
+
+            if (OPTION_ACC) {
+		print_acceptance_rates(p_file_acc, p_mcmc_calc_data, p_mcmc_calc_data->m_full_iteration);
+	    }
 
 #if FLAG_VERBOSE
 	    snprintf(str, STR_BUFFSIZE, "acceptance rate(s) at iteration %d: %g (smoothed: %g)", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->global_acceptance_rate, p_mcmc_calc_data->smoothed_global_acceptance_rate);
@@ -215,6 +223,9 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 
     if (OPTION_TRAJ) {
         sfr_fclose(p_file_X);
+    }
+    if (OPTION_ACC) {
+        sfr_fclose(p_file_acc);
     }
 
 

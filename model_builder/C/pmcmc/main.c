@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         "usage:\n"
         "pmcmc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
         "                [-s, --DT <float || 0.25 day>] [--eps_abs <float || 1e-6>] [--eps_rel <float || 1e-3>]\n"
-	"                [--full] [--traj] [-p, --path <path>] [-i, --id <integer || 0>] [-P, --N_THREAD <integer || N_CPUs>]\n"
+	"                [--full] [--traj] [--acc] [-p, --path <path>] [-i, --id <integer || 0>] [-P, --N_THREAD <integer || N_CPUs>]\n"
         "                [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
         "                [-C --cov] [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >] [-E --epsilon <int || 50>]"
         "                [-Z, --zmq] [-c, --chunk <integer>]\n"
@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
         "--alpha            smoothing factor of exponential smoothing used to compute the smoothed acceptance rate (low values increase degree of smoothing)\n"
 	"\n"
         "--traj             print the trajectories\n"
+        "--acc              print the acceptance rate\n"
         "-C, --cov          load an initial covariance from the settings\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
@@ -87,6 +88,7 @@ int main(int argc, char *argv[])
     OPTION_PIPELINE = 0;
     OPTION_FULL_UPDATE = 0;
     OPTION_TRAJ = 0;
+    static int OPTION_ACC = 0;
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
@@ -96,6 +98,7 @@ int main(int argc, char *argv[])
             {
                 /* These options set a flag. */
                 {"traj", no_argument,       &OPTION_TRAJ, 1},
+                {"acc", no_argument,       &OPTION_ACC, 1},
                 {"full", no_argument, &OPTION_FULL_UPDATE, 1},
 
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
@@ -258,7 +261,7 @@ int main(int argc, char *argv[])
     transform_theta(p_pmcmc->p_best, NULL, NULL, p_pmcmc->p_data, 1, !update_covariance);
     gsl_vector_memcpy(p_pmcmc->p_best->proposed, p_pmcmc->p_best->mean);
 
-    pmcmc(p_pmcmc->p_best, p_pmcmc->D_J_p_X, p_pmcmc->D_J_p_X_tmp, p_pmcmc->p_par, &(p_pmcmc->D_p_hat_prev), &(p_pmcmc->D_p_hat_new), p_pmcmc->D_p_hat_best, p_pmcmc->p_like, p_pmcmc->p_data, p_pmcmc->calc, get_f_pred(implementation, noises_off));
+    pmcmc(p_pmcmc->p_best, p_pmcmc->D_J_p_X, p_pmcmc->D_J_p_X_tmp, p_pmcmc->p_par, &(p_pmcmc->D_p_hat_prev), &(p_pmcmc->D_p_hat_new), p_pmcmc->D_p_hat_best, p_pmcmc->p_like, p_pmcmc->p_data, p_pmcmc->calc, get_f_pred(implementation, noises_off), OPTION_ACC);
 
     FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_pmcmc->p_data);
     print_hat(p_file_hat, p_pmcmc->D_p_hat_best, p_pmcmc->p_data);

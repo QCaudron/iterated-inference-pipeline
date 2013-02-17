@@ -134,7 +134,7 @@ void header_best(FILE *p_file, struct s_data *p_data)
 
     fprintf(p_file, "index,");
 
-    for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
+    for(i=0; i<p_data->p_it_all->length; i++) {
         const char *name = routers[i]->name;
         for(g=0; g<p_data->routers[i]->n_gp; g++) {
             const char *group = routers[i]->group_name[g];

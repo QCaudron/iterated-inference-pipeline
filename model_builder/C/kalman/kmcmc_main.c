@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         "usage:\n"
         "kmcmc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
         "                       [-s, --DT <float || 0.25 day>] [--eps_abs <float || 1e-6>] [--eps_rel <float || 1e-3>]\n"
-        "                       [--full] [--traj] [-p, --path <path>] [-i, --id <integer>]\n"
+        "                       [--full] [--traj] [--acc] [-p, --path <path>] [-i, --id <integer>]\n"
         "                       [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
         "                       [-C --cov] [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >] [-E --epsilon <int || 50>]"
         "                       [--help]\n"
@@ -52,6 +52,7 @@ int main(int argc, char *argv[])
         "--alpha            smoothing factor of exponential smoothing used to compute the smoothed acceptance rate (low values increase degree of smoothing)\n"
 	"\n"
         "--traj             print the trajectories\n"
+        "--acc              print the acceptance rate\n"
         "-C, --cov          load an initial covariance from the settings\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
@@ -77,6 +78,7 @@ int main(int argc, char *argv[])
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
     OPTION_TRAJ = 0;
+    static int OPTION_ACC = 0;
 
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
 
@@ -91,8 +93,9 @@ int main(int argc, char *argv[])
             {
                 /* These options set a flag. */
                 {"traj", no_argument,       &OPTION_TRAJ, 1},
+                {"acc", no_argument,       &OPTION_ACC, 1},
                 {"full", no_argument, &OPTION_FULL_UPDATE, 1},
-                {"transf",      no_argument, &OPTION_TRANSF,      1},
+                {"transf",      no_argument, &OPTION_TRANSF, 1},
 
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
 		{"no_dem_sto", no_argument,       0, 'x'},
@@ -239,7 +242,7 @@ int main(int argc, char *argv[])
 
     p_kalman->calc[0]->method_specific_shared_data = p_mcmc_calc_data; //needed to use ran_proposal_sequential in pmcmc
 
-    kmcmc(p_kalman, p_like, p_mcmc_calc_data, f_prediction_ode);
+    kmcmc(p_kalman, p_like, p_mcmc_calc_data, f_prediction_ode,  OPTION_ACC);
 
     // print empirical covariance
     if (OPTION_FULL_UPDATE) {

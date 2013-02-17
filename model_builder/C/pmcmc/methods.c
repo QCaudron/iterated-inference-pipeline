@@ -219,45 +219,69 @@ void compute_best_traj(struct s_hat **D_p_hat_best, struct s_hat **D_p_hat_prev,
 }
 
 
-//void print_acceptance_rates(struct s_mcmc_calc_data *p, int m_full_iteration)
-//{
-//    int k;
-//
-//#if FLAG_JSON
-//    json_t *root;
-//    json_t *j_print = json_array();
-//#endif
-//
-//#if FLAG_JSON
-//    json_array_append_new(j_print, json_integer(m_full_iteration));
-//#else
-//    printf("acceptance rate(s) at iteration %d: ", m_full_iteration);
-//#endif
-//
-//    /* parameter specific acceptance rates */
-//    if (!OPTION_FULL_UPDATE) {
-//        for(k=0; k< (p->n_acceptance_rates); k++) {
-//#if FLAG_JSON
-//            json_array_append_new(j_print, json_real(p->acceptance_rates[k]));
-//#else
-//            printf("%g%s", p->acceptance_rates[k], (k < (p->n_acceptance_rates-1)) ? ",": "");
-//#endif
-//        }
-//    }
-//
-//    /* global acceptance rate */
-//#if FLAG_JSON
-//    json_array_append_new(j_print, json_real(p->global_acceptance_rate));
-//
-//    root = json_pack("{s,s,s,o}", "flag", "pmcmc", "msg", j_print);
-//    json_dumpf(root, stdout, JSON_COMPACT); printf("\n");
-//    fflush(stdout);
-//    json_decref(root);
-//#else
-//    printf("%g\n", p->global_acceptance_rate);
-//#endif
-//
-//}
+
+void header_acceptance_rates(FILE *p_file, struct s_data *p_data)
+{
+    int i, g;
+    struct s_router **routers = p_data->routers;
+
+    fprintf(p_file, "index,epsilon,global_ar");
+
+    if (!OPTION_FULL_UPDATE) {
+	for(i=0; i<p_data->p_it_all->length; i++) {
+	    const char *name = routers[i]->name;
+	    for(g=0; g<p_data->routers[i]->n_gp; g++) {
+		const char *group = routers[i]->group_name[g];
+		fprintf(p_file, ",%s:%s", name, group);
+	    }
+	}
+    }
+
+    fprintf(p_file, "\n");
+}
+
+
+/**
+ * for the webApp, we print the smoothed values
+ */
+void print_acceptance_rates(FILE *p_file, struct s_mcmc_calc_data *p, int m_full_iteration)
+{
+    int k;
+
+#if FLAG_JSON
+    json_t *root;
+    json_t *j_print = json_array();
+#endif
+
+#if FLAG_JSON
+    json_array_append_new(j_print, json_integer(m_full_iteration));
+    json_array_append_new(j_print, json_real(p->epsilon));
+    json_array_append_new(j_print, json_real(p->smoothed_global_acceptance_rate));
+#else
+    fprintf(p_file, "%d,%g,%g", m_full_iteration, p->epsilon, p->global_acceptance_rate);
+#endif
+
+    /* parameter specific acceptance rates */
+    if (!OPTION_FULL_UPDATE) {
+        for(k=0; k< (p->n_acceptance_rates); k++) {
+#if FLAG_JSON
+            json_array_append_new(j_print, json_real(p->smoothed_acceptance_rates[k]));
+#else
+	    fprintf(p_file, ",%g", p->acceptance_rates[k]);
+#endif
+        }
+    }
+
+#if FLAG_JSON
+    root = json_pack("{s,s,s,o}", "flag", "pmcmc", "msg", j_print);
+    json_dumpf(root, stdout, JSON_COMPACT); printf("\n");
+    fflush(stdout);
+    json_decref(root);
+#else
+    fprintf(p_file, "\n");
+#endif
+
+}
 
 
 

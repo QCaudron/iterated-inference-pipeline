@@ -21,7 +21,7 @@
 /**
  * run KMCMC see pmcmc/pmcmc.c for doc
  */
-void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc_calc_data *p_mcmc_calc_data, plom_f_pred_t f_pred)
+void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc_calc_data *p_mcmc_calc_data, plom_f_pred_t f_pred,  int OPTION_ACC)
 {
 
     int m;              // iteration index
@@ -51,6 +51,11 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
     FILE *p_file_X = NULL;
     if (OPTION_TRAJ) {
         p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
+    }
+
+    FILE *p_file_acc = NULL;
+    if (OPTION_ACC){
+        p_file_acc = sfr_fopen(SFR_PATH, GENERAL_ID, "acc", "w", header_acceptance_rates, p_data);
     }
 
     /////////////////////////
@@ -140,7 +145,10 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
             eval_var_emp(p_best, (double) p_mcmc_calc_data->m_full_iteration);
 
             print_best(p_file_best, p_mcmc_calc_data->m_full_iteration, p_best, p_data, p_like->Llike_prev);
-            //print_acceptance_rates(p_mcmc_calc_data, p_mcmc_calc_data->m_full_iteration);
+
+            if (OPTION_ACC) {
+		print_acceptance_rates(p_file_acc, p_mcmc_calc_data, p_mcmc_calc_data->m_full_iteration);
+	    }
 
 #if FLAG_VERBOSE
 	    snprintf(str, STR_BUFFSIZE, "acceptance rate(s) at iteration %d: %g (smoothed: %g)", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->global_acceptance_rate, p_mcmc_calc_data->smoothed_global_acceptance_rate);
@@ -158,4 +166,8 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
     if (OPTION_TRAJ) {
         sfr_fclose(p_file_X);
     }
+    if (OPTION_ACC) {
+        sfr_fclose(p_file_acc);
+    }
+
 }

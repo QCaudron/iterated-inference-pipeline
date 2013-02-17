@@ -83,7 +83,7 @@ void run_propag(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *
                 struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred,
                 void *sender, void *receiver, void *controller);
 
-void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_prev, struct s_hat ***D_p_hat_new, struct s_hat **D_p_hat_best, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred);
+void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_prev, struct s_hat ***D_p_hat_new, struct s_hat **D_p_hat_best, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int OPTION_ACC);
 
 /* methods.c */
 gsl_matrix * propose_new_theta_and_load_X0(double *sd_fac, struct s_best *p_best, struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_mcmc_calc_data *p_mcmc_calc_data, struct s_calc *p_calc, int m);
@@ -93,7 +93,10 @@ void increment_iteration_counters(struct s_mcmc_calc_data *p_mcmc_calc_data, str
 void ran_proposal_sequential(gsl_vector *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc);
 
 void compute_best_traj(struct s_hat **D_p_hat_best, struct s_hat **D_p_hat_prev, struct s_hat **D_p_hat_new, struct s_data *p_data, double alpha, double m);
-void print_acceptance_rates(struct s_mcmc_calc_data *p, int m_full_iteration);
+
+void header_acceptance_rates(FILE *p_file, struct s_data *p_data);
+void print_acceptance_rates(FILE *p_file, struct s_mcmc_calc_data *p, int m_full_iteration);
+
 void compute_acceptance_rates(struct s_best *p_best, struct s_mcmc_calc_data *p, double is_accepted, int m);
 
 void print_covariance(FILE *p_file_cov, gsl_matrix *covariance);
