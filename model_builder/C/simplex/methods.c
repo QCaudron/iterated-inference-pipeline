@@ -40,6 +40,9 @@ double f_simplex(const gsl_vector *x, void *params)
     prop2Xpop_size(p_X, p_data);
     theta_driftIC2Xdrift(p_X, p_best->mean, p_data);
 
+    //reset dt
+    p_X->dt = p_X->dt0;
+
     /* if the initial conditions do not respect the constraint we set
        the log likelihood to the smallest possible value:
        smallest_log_like */

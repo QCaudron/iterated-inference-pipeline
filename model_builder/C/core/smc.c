@@ -172,6 +172,7 @@ void replicate_J_p_X_0(struct s_X **J_p_X, struct s_data *p_data)
 
     for(j=1; j<J; j++) {
         memcpy(J_p_X[j]->proj, J_p_X[0]->proj, size_proj * sizeof(double));
+	J_p_X[j]->dt = J_p_X[0]->dt;
     }
 }
 
@@ -238,6 +239,7 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
             //we are going to overwrite the content of the [nnp1] pointer: initialise it with values from [nn]
             for(j=0;j<J;j++) {
                 memcpy(D_J_p_X[nnp1][j]->proj, D_J_p_X[nn][j]->proj, size_proj * sizeof(double));
+                D_J_p_X[nnp1][j]->dt = D_J_p_X[nn][j]->dt;
             }
 
 #pragma omp parallel for private(thread_id)

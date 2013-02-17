@@ -984,8 +984,9 @@ struct s_X *build_X(int size_proj, int size_obs, struct s_data *p_data, double d
     if (dt <= 0.0){ //default to 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT
 	dt = 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT;
     }
-    //IMPORTANT: we ensure an integer multiple of dt in between 2 data points    
+    //IMPORTANT: for non adaptive time step methods, we ensure an integer multiple of dt in between 2 data points    
     p_X->dt = 1.0/ ((double) round(1.0/dt));
+    p_X->dt0 = p_X->dt;
 
     p_X->proj = init1d_set0(size_proj);
     p_X->obs = init1d_set0(size_obs);

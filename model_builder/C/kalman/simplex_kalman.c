@@ -29,6 +29,9 @@ double f_simplex_kalman(const gsl_vector *x, void *params)
     prop2Xpop_size(p->p_X, p->p_data);
     theta_driftIC2Xdrift(p->p_X, p->p_best->mean, p->p_data);
 
+    //reset dt
+    p->p_X->dt = p->p_X->dt0;
+
     double log_like = run_kalman(p->p_X, p->p_best, p->p_par, p->p_kalman_update, p->p_data, p->calc, f_prediction_ode,  NULL, 0);
 
     // "-": simplex minimizes hence the "-"

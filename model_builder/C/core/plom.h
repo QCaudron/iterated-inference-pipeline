@@ -425,7 +425,9 @@ struct s_X /* optionaly [N_DATA+1][J] for MIF and pMCMC "+1" is for initial cond
 {
     double *proj;    /**< [self.size_proj] x integrated (projected) (ODE, MARKOV...) */
     double *obs;     /**< [self.size_obs] x observed  matching the data (N_TS time series) */
+
     double dt;        /**< the integration time step (for ODE solved with adaptive time step solvers) */
+    double dt0;       /**< the integration time step initially picked by the user */
 };
 
 
