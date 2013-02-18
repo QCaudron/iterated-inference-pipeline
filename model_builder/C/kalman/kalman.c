@@ -157,6 +157,22 @@ double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **ro
 }
 
 
+
+/**
+ *  reset incidence-related rows and columns to 0
+ */
+void reset_inc_cov(gsl_matrix *Ct)
+{
+    int oi,oii;
+    for (oi=N_PAR_SV*N_CAC; oi<N_PAR_SV*N_CAC+N_TS_INC; oi++) {
+        for (oii=0; oii<N_KAL; oii++) {
+            gsl_matrix_set(Ct,oi,oii,0.0);	// set row to 0
+            gsl_matrix_set(Ct,oii,oi,0.0);	// set column to 0
+        }
+    }
+}
+
+
 /**
  *   run an extended Kalman filter and returns the log likelihood
  */

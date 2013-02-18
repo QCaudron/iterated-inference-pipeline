@@ -114,6 +114,14 @@ struct s_kalman_update *build_kalman_update(int n_kal)
     p->sc_st = 0.0;
     p->sc_pred_error = 0.0;
     p->sc_rt = 0.0;
+    
+    p->v_n_kal = gsl_vector_calloc(n_kal);
+    p->M_symm_n_kal = gsl_matrix_calloc(n_kal, n_kal);
+    p->M_symm_n_kal2 = gsl_matrix_calloc(n_kal, n_kal);
+
+    p->w_eigen_vv_nkal = gsl_eigen_symmv_alloc(n_kal);
+    p->eval_nkal = gsl_vector_alloc (n_kal);
+    p->evec_nkal = gsl_matrix_alloc (n_kal, n_kal);
 
     return p;
 }
@@ -123,6 +131,14 @@ void clean_kalman_update(struct s_kalman_update *p)
     gsl_vector_free(p->xk);
     gsl_vector_free(p->kt);
     gsl_vector_free(p->ht);
+
+    gsl_vector_free(p->v_n_kal);
+    gsl_matrix_free(p->M_symm_n_kal);
+    gsl_matrix_free(p->M_symm_n_kal2);  
+
+    gsl_eigen_symmv_free(p->w_eigen_vv_nkal);
+    gsl_vector_free(p->eval_nkal);
+    gsl_matrix_free(p->evec_nkal);  
 
     FREE(p);
 }

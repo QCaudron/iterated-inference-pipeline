@@ -8,7 +8,7 @@
  *
  *    plom is distributed in the hope that it will be useful, but
  *    WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANT ABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *    GNU General Public License for more details.
  *
  *    You should have received a copy of the GNU General Public
@@ -19,20 +19,6 @@
 #include "kalman.h"
 
 /**
- *  reset incidence-related rows and columns to 0
- */
-void reset_inc_cov(gsl_matrix *Ct)
-{
-    int oi,oii;
-    for (oi=N_PAR_SV*N_CAC; oi<N_PAR_SV*N_CAC+N_TS_INC; oi++) {
-        for (oii=0; oii<N_KAL; oii++) {
-            gsl_matrix_set(Ct,oi,oii,0.0);	// set row to 0
-            gsl_matrix_set(Ct,oii,oi,0.0);	// set column to 0
-        }
-    }
-}
-
-/**
  * Brings Ct back to being symetric and semi-definite positive,
  * in case numerical instabilities made it lose these properties.
  *
@@ -41,7 +27,7 @@ void reset_inc_cov(gsl_matrix *Ct)
  * but this is the most natural way to go as far as I know.
  * We shouldn't need this anymore with the Square-Root Unscented Kalman Filter.
  */
-void check_and_correct_Ct(gsl_matrix *Ct)
+void check_and_correct_Ct(gsl_matrix *Ct, struct s_kalman_update *p)
 {
     char str[STR_BUFFSIZE];
 
@@ -54,7 +40,7 @@ void check_and_correct_Ct(gsl_matrix *Ct)
     // Ct = (Ct + Ct')/2
 
 
-    gsl_matrix *temp = gsl_matrix_alloc (N_KAL, N_KAL);        // temporary matrix
+    gsl_matrix *temp = p->M_symm_n_kal; // temporary matrix
     gsl_matrix_memcpy(temp, Ct);	// temp = Ct
 
     for(i=0; i< Ct->size1; i++){
@@ -69,9 +55,9 @@ void check_and_correct_Ct(gsl_matrix *Ct)
     // Bringing negative eigen values of Ct back to zero
 
     // compute the eigen values and vectors of Ct
-    gsl_vector *eval = gsl_vector_alloc (N_KAL);	       // to store the eigen values    
-    gsl_matrix *evec = gsl_matrix_alloc (N_KAL, N_KAL);        // to store the eigen vectors
-    gsl_eigen_symmv_workspace *w = gsl_eigen_symmv_alloc (N_KAL);
+    gsl_vector *eval = p->eval_nkal;	       // to store the eigen values    
+    gsl_matrix *evec = p->evec_nkal;        // to store the eigen vectors
+    gsl_eigen_symmv_workspace *w = p->w_eigen_vv_nkal;
 
     //IMPORTANT: The diagonal and lower triangular part of Ct are destroyed during the computation so we do the computation on temp
     status = gsl_eigen_symmv(temp, eval, evec, w);
@@ -79,7 +65,6 @@ void check_and_correct_Ct(gsl_matrix *Ct)
 	sprintf(str, "error: %s\n", gsl_strerror (status));
 	print_err(str);
     }
-    gsl_eigen_symmv_free (w);
 
     gsl_matrix_set_zero(temp);
 
@@ -94,7 +79,7 @@ void check_and_correct_Ct(gsl_matrix *Ct)
     }
 
     if(change_basis){
-	gsl_matrix *temp2 = gsl_matrix_alloc (N_KAL, N_KAL);       // temporary matrix
+	gsl_matrix *temp2 = p->M_symm_n_kal2; // temporary matrix
 
 	//////////////////
 	// basis change //
@@ -115,13 +100,8 @@ void check_and_correct_Ct(gsl_matrix *Ct)
 	    sprintf(str, "error: %s\n", gsl_strerror (status));
 	    print_err(str);
 	}
-
-	gsl_matrix_free(temp2);
     }
 
-    gsl_vector_free(eval);
-    gsl_matrix_free(evec);
-    gsl_matrix_free(temp);
 }
 
 /**
@@ -133,13 +113,13 @@ void ekf_gain_computation(struct s_kalman_update *p, double xk_t_ts, double data
     char str[STR_BUFFSIZE];
 
     int status;
-    gsl_vector *workn = gsl_vector_calloc(N_KAL); // allocating space for a temporary work vector of size N_KAL, initialized to zero
+    gsl_vector *workn = p->v_n_kal;
 
     // pred_error = double data_t_ts - xk_t_ts
     p->sc_pred_error = data_t_ts - xk_t_ts;
 
     // positivity and symetry could have been lost when propagating Ct
-    check_and_correct_Ct(Ct);
+    check_and_correct_Ct(Ct, p);
 
     // sc_st = ht' * Ct * ht + sc_rt
     /*
@@ -172,8 +152,6 @@ void ekf_gain_computation(struct s_kalman_update *p, double xk_t_ts, double data
         print_err(str);
     }
 
-    // clear working variables:
-    gsl_vector_free(workn);
 }
 
 
@@ -186,7 +164,7 @@ double ekf_update(struct s_kalman_update *p, gsl_matrix *Ct)
     char str[STR_BUFFSIZE];
     int status;
 
-    gsl_vector *workn = gsl_vector_calloc(N_KAL); // allocating space for a temporary work vector of size N_KAL (dimension of the state vector), initialized to zero
+    gsl_vector *workn = p->v_n_kal;
 
     double like;
 
@@ -223,10 +201,7 @@ double ekf_update(struct s_kalman_update *p, gsl_matrix *Ct)
     }
 
     // positivity and symmetry could have been lost when updating Ct
-    check_and_correct_Ct(Ct);
-
-    // clear working variables:
-    gsl_vector_free(workn);
+    check_and_correct_Ct(Ct, p);
 
     like = gsl_ran_gaussian_pdf(p->sc_pred_error, sqrt(p->sc_st));
 

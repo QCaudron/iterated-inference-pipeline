@@ -69,6 +69,15 @@ struct s_kalman_update
     double sc_st;         /**< Innovation or residual covariance */
     double sc_pred_error; /**< Innovation or measurement residual */
     double sc_rt;         /**< observation process variance */
+
+    //temporary variables
+    gsl_vector *v_n_kal;  /**< temporary vector of size N_KAL */
+    gsl_matrix *M_symm_n_kal;  /**< temporary symmetric matrix of size N_KAL */
+    gsl_matrix *M_symm_n_kal2;  /**< another temporary symmetric matrix of size N_KAL */
+
+    gsl_eigen_symmv_workspace *w_eigen_vv_nkal;  /**< workspace to compute eigen values and eigen vector for symmetric matrix of size N_KAL */
+    gsl_vector *eval_nkal; /**< eigen values of symmetric matrix of size N_KAL  */
+    gsl_matrix *evec_nkal; /**<eigen vector of of symmetric matrix of size N_KAL */
 };
 
 
@@ -99,16 +108,16 @@ void clean_kalman(struct s_kalman *p_kalman);
 
 /* kalman.c */
 double drift_derivative(double jac_tpl, double jac_der, struct s_router *r, int cac);
-double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kalman_update *p_kalman_update, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, FILE *p_file_X, int m);
 double f_simplex_kalman(const gsl_vector *x, void *params);
 void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data);
 void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data);
 double get_total_pop(double *X);
 double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **routers);
+void reset_inc_cov(gsl_matrix *Ct);
+double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kalman_update *p_kalman_update, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, FILE *p_file_X, int m);
 
 /* ekf.c */
-void reset_inc_cov(gsl_matrix *Ct);
-void check_and_correct_Ct(gsl_matrix *Ct);
+void check_and_correct_Ct(gsl_matrix *Ct, struct s_kalman_update *p);
 void ekf_propag_cov(double *proj, gsl_matrix *Ft, gsl_matrix *Ct, gsl_matrix *Q, struct s_par *p_par, struct s_group ***compo_groups_drift_par_proc, double t);
 
 void ekf_gain_computation(struct s_kalman_update *p, double xk_t_ts, double data_t_ts, gsl_matrix *Ct);
