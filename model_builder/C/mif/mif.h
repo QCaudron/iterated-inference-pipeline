@@ -38,7 +38,6 @@ int OPTION_IC_ONLY; /**< only fixed lag smoothing */
 
 struct s_mif
 {
-  /* from simforence core */
   struct s_data *p_data;
   struct s_calc **calc;
   struct s_best *p_best;

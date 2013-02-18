@@ -208,7 +208,6 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-
     if(argc == 0) {
 	implementation = PLOM_PSR;
     } else {
@@ -224,7 +223,6 @@ int main(int argc, char *argv[])
             return 1;
         }
     }
-
 
 #if FLAG_VERBOSE
     print_log("memory allocation and inputs loading...\n");
