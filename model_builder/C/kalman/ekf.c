@@ -8,7 +8,7 @@
  *
  *    plom is distributed in the hope that it will be useful, but
  *    WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    MERCHANT ABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *    GNU General Public License for more details.
  *
  *    You should have received a copy of the GNU General Public
@@ -40,30 +40,21 @@ void reset_inc_cov(gsl_matrix *Ct)
  * and there is no right way to bring back a wrong covariance matrix to being right,
  * but this is the most natural way to go as far as I know.
  * We shouldn't need this anymore with the Square-Root Unscented Kalman Filter.
- *
- *
- * This function could could be optimized, first making each operation quicker when possible,
- * then starting by computing the eigen values to check
- * if there is any problem and only running all the rest when needed
  */
 void check_and_correct_Ct(gsl_matrix *Ct)
 {
     char str[STR_BUFFSIZE];
 
-    gsl_vector *eval = gsl_vector_alloc (N_KAL);	       // to store the eigen values
-    gsl_matrix *evec = gsl_matrix_alloc (N_KAL, N_KAL);        // to store the eigen vectors
-    gsl_matrix *temp = gsl_matrix_alloc (N_KAL, N_KAL);        // temporary matrix
-    gsl_matrix *temp2 = gsl_matrix_alloc (N_KAL, N_KAL);       // temporary matrix
-    gsl_eigen_symmv_workspace *w = gsl_eigen_symmv_alloc (N_KAL); // gsl needs this work to compute the eigen values and vectors
-
     int i,j;
     int status;
 
-    /////////////////////
-    // STEP 1: SYMETRY //
-    /////////////////////
+    //////////////////////
+    // STEP 1: SYMMETRY //
+    //////////////////////
     // Ct = (Ct + Ct')/2
 
+
+    gsl_matrix *temp = gsl_matrix_alloc (N_KAL, N_KAL);        // temporary matrix
     gsl_matrix_memcpy(temp, Ct);	// temp = Ct
 
     for(i=0; i< Ct->size1; i++){
@@ -78,52 +69,59 @@ void check_and_correct_Ct(gsl_matrix *Ct)
     // Bringing negative eigen values of Ct back to zero
 
     // compute the eigen values and vectors of Ct
-    //IMPORTANT: The diagonal and lower triangular part of Ct are destroyed during the computation
-    status = gsl_eigen_symmv(Ct, eval, evec, w);
-    if (status) {
-        sprintf(str, "error: %s\n", gsl_strerror (status));
-        print_err(str);
-    }
-    gsl_eigen_symmv_free (w); // free the space w
+    gsl_vector *eval = gsl_vector_alloc (N_KAL);	       // to store the eigen values    
+    gsl_matrix *evec = gsl_matrix_alloc (N_KAL, N_KAL);        // to store the eigen vectors
+    gsl_eigen_symmv_workspace *w = gsl_eigen_symmv_alloc (N_KAL);
 
+    //IMPORTANT: The diagonal and lower triangular part of Ct are destroyed during the computation so we do the computation on temp
+    status = gsl_eigen_symmv(temp, eval, evec, w);
+    if (status) {
+	sprintf(str, "error: %s\n", gsl_strerror (status));
+	print_err(str);
+    }
+    gsl_eigen_symmv_free (w);
 
     gsl_matrix_set_zero(temp);
 
+    int change_basis = 0;
     // eval = max(eval,0) and diag(eval)
-    for (i=0;i<N_KAL;i++) {
-        if (gsl_vector_get(eval,i)<0.0) {
+    for (i=0; i<N_KAL; i++) {
+        if (gsl_vector_get(eval,i) < 0.0) {
             gsl_vector_set(eval, i, 0.0); // keeps bringing negative eigen values to 0
+	    change_basis = 1;
         }
         gsl_matrix_set(temp, i, i, gsl_vector_get(eval, i)); // puts the eigen values in the diagonal of temp
     }
 
-    //////////////////
-    // basis change //
-    //////////////////
+    if(change_basis){
+	gsl_matrix *temp2 = gsl_matrix_alloc (N_KAL, N_KAL);       // temporary matrix
 
-    // Ct = evec * temp * evec'
+	//////////////////
+	// basis change //
+	//////////////////
 
-    // temp2 = 1.0*temp*t(evec) + 0.0*temp2
-    status = gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, temp, evec, 0.0, temp2);
-    if (status) {
-	sprintf(str, "error: %s\n", gsl_strerror (status));
-	print_err(str);
+	// Ct = evec * temp * evec'
+
+	// temp2 = 1.0*temp*t(evec) + 0.0*temp2
+	status = gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, temp, evec, 0.0, temp2);
+	if (status) {
+	    sprintf(str, "error: %s\n", gsl_strerror (status));
+	    print_err(str);
+	}
+
+	// Ct = 1.0*evec*temp2 + 0.0*temp2;
+	status = gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, evec, temp2, 0.0, Ct);
+	if (status) {
+	    sprintf(str, "error: %s\n", gsl_strerror (status));
+	    print_err(str);
+	}
+
+	gsl_matrix_free(temp2);
     }
 
-    // Ct = 1.0*evec*temp2 + 0.0*temp2;
-    status = gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, evec, temp2, 0.0, Ct);
-    if (status) {
-	sprintf(str, "error: %s\n", gsl_strerror (status));
-	print_err(str);
-    }
-
-
-    // free temp matrices
     gsl_vector_free(eval);
     gsl_matrix_free(evec);
     gsl_matrix_free(temp);
-    gsl_matrix_free(temp2);
-
 }
 
 /**
@@ -224,7 +222,7 @@ double ekf_update(struct s_kalman_update *p, gsl_matrix *Ct)
         print_err(str);
     }
 
-    // positivity and symetry could have been lost when updating Ct
+    // positivity and symmetry could have been lost when updating Ct
     check_and_correct_Ct(Ct);
 
     // clear working variables:
