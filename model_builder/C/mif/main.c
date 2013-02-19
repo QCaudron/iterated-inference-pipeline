@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
         sanitize_best_to_prior(p_mif->p_best, p_mif->p_data);
     }
 
-    transform_theta(p_mif->p_best, transit_mif, NULL, p_mif->p_data, 1, 1);
+    transform_theta(p_mif->p_best, transit_mif, NULL, p_mif->p_data, 1, !is_covariance);
 
     mif(p_mif->calc, p_mif->p_data, p_mif->p_best, &(p_mif->J_p_X), &(p_mif->J_p_X_tmp), p_mif->J_p_par, p_mif->p_like, p_mif->J_theta, p_mif->J_theta_tmp, p_mif->D_theta_bart, p_mif->D_theta_Vt, get_f_pred(implementation, noises_off), is_covariance);
 

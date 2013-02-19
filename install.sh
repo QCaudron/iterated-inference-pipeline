@@ -37,6 +37,6 @@ fi
 python setup.py sdist
 
 cd dist
-tar -zxvf plom-0.2.0.tar.gz
-cd plom-0.2.0
+tar -zxvf plom-0.3.0.tar.gz
+cd plom-0.3.0
 python setup.py install
