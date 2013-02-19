@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
         sanitize_best_to_prior(p_kalman->p_best, p_kalman->p_data);
     }
 
-    transform_theta(p_kalman->p_best, NULL, NULL, p_kalman->p_data, 1, 1);
+    transform_theta(p_kalman->p_best, p_kalman->p_data, 1);
 
     simplex(p_kalman->p_best, p_kalman->p_data, p_kalman, f_simplex_kalman, CONVERGENCE_STOP_SIMPLEX, M, option_no_trace);
 

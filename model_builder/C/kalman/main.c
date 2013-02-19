@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
     struct s_kalman *p_kalman = build_kalman(settings, implementation, noises_off, OPTION_PRIOR, 0, dt, eps_abs, eps_rel);
     json_decref(settings);
 
-    transform_theta(p_kalman->p_best, NULL, NULL, p_kalman->p_data, 1, 1);
+    transform_theta(p_kalman->p_best, p_kalman->p_data, 1);
 
 #if FLAG_VERBOSE
     int64_t time_begin, time_end;

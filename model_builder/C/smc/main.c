@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
     time_begin = s_clock();
 #endif
 
-    transform_theta(p_best, NULL, NULL, p_data, 1, 1);
+    transform_theta(p_best, p_data, 1);
 
     back_transform_theta2par(p_par, p_best->mean, p_data->p_it_all, p_data);
     linearize_and_repeat(D_J_p_X[0][0], p_par, p_data, p_data->p_it_par_sv);

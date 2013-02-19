@@ -594,7 +594,7 @@ void clean_best(struct s_best *p_best);
 /*webio.c*/
 void ask_update();
 void block();
-void update_walk_rates(struct s_best *p_best, double (*f_transit_par) (double sd_x_par), double (*f_transit_state) (double sd_x_state), struct s_data *p_data);
+void update_walk_rates(struct s_best *p_best, struct s_data *p_data);
 /*print.c*/
 FILE *sfr_fopen(const char* path, const int general_id, const char* file_name, const char *mode, void (*header)(FILE*, struct s_data *), struct s_data *p_data);
 void sfr_fclose(FILE *p_file);
@@ -704,8 +704,8 @@ void assign_f_transfo(double (**f_transfo) (double x, double mul, double a, doub
 void assign_f_derivative(double (**f_derivative) (double x, double mul, double a, double b), const char *f_transfo_name);
 void back_transform_theta2par(struct s_par *p_par, const theta_t *theta, const struct s_iterator *p_it, struct s_data *p_data);
 double back_transform_x(double x, int g, struct s_router *r);
-double transit_mif(double sd_x);
-void transform_theta(struct s_best *p_best, double (*f_transit_par) (double), double (*f_transit_state) (double), struct s_data *p_data, int transform_mean, int transform_var);
+void transform_theta(struct s_best *p_best, struct s_data *p_data, int square_diag_sd);
+void square_diag_sd(struct s_best *p_best, struct s_data *p_data);
 
 /* likelihood.c */
 double get_smallest_log_likelihood(struct s_data_ind **data_ind);

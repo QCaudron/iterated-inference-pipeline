@@ -258,8 +258,9 @@ int main(int argc, char *argv[])
 
     sanitize_best_to_prior(p_pmcmc->p_best, p_pmcmc->p_data);
 
-    transform_theta(p_pmcmc->p_best, NULL, NULL, p_pmcmc->p_data, 1, !update_covariance);
+    transform_theta(p_pmcmc->p_best, p_pmcmc->p_data, !update_covariance);
     gsl_vector_memcpy(p_pmcmc->p_best->proposed, p_pmcmc->p_best->mean);
+
 
     pmcmc(p_pmcmc->p_best, p_pmcmc->D_J_p_X, p_pmcmc->D_J_p_X_tmp, p_pmcmc->p_par, &(p_pmcmc->D_p_hat_prev), &(p_pmcmc->D_p_hat_new), p_pmcmc->D_p_hat_best, p_pmcmc->p_like, p_pmcmc->p_data, p_pmcmc->calc, get_f_pred(implementation, noises_off), OPTION_ACC);
 

@@ -45,11 +45,9 @@ void block()
 
 /**
  *   live update of the walk rates integrating data from the webApp.
- *  @see transform_theta
  */
-void update_walk_rates(struct s_best *p_best, double (*f_transit_par) (double sd_x_par), double (*f_transit_state) (double sd_x_state), struct s_data *p_data)
+void update_walk_rates(struct s_best *p_best, struct s_data *p_data)
 {
-
     ask_update();
 
     fflush(stderr); //just to be sure that ask_update has delivered its message
@@ -57,9 +55,12 @@ void update_walk_rates(struct s_best *p_best, double (*f_transit_par) (double sd
     json_t *theta = load_json();
 //	print_json_on_stdout(root);
 
-    if(json_object_size(theta)) { //we update sdt and priors
+    if(json_object_size(theta)) { 
+
         load_best(p_best, p_data, theta, 0, 0);
-        transform_theta(p_best, f_transit_par, f_transit_state, p_data, 0, 1); //we transform only best->var (as the webApp send a standard deviation)
+
+	square_diag_sd(p_best, p_data);    
+
         print_err("data integrated");
     }
 

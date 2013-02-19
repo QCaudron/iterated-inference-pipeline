@@ -444,115 +444,50 @@ double back_transform_x(double x, int g, struct s_router *r)
 
 
 
-double transit_mif(double sd_x)
-{
-    /*For the MIF, for par_proc and par_obs, we divide sdt by sqrt(N_DATA)*/
-
-    return sd_x /( sqrt( (double) N_DATA ) );
-}
-
-
 /**
-   Transform parameters and standard deviation entered by the user in
-   an intuitive scale in the transformed scale (converting time unit
-   to the unit of the data). The standard deviations are also
-   converted into **variance**.
+   Transform parameters entered by the user in an intuitive scale in
+   the transformed scale (converting time unit to the unit of the
+   data). 
 
-   *Note that 0.0 value for standard deviations are treated as a
-   special case and keep their 0.0 values.*
+   @param square_diag_sd boolean, squared the term on the diagonal of p_best->var
 
    @param[in, out] p_best the *untransformed* s_best structure that
    will be transformed
-
-   @param[in] f_transit_par, f_transit_state the transformation
-   functions. 2 transformation functions have to be provided as each
-   method (pMCMC, simplex, MIF...) can possibly need a different
-   transit function for *parameters* and *initial condition and
-   drift*.  For instance in case of MIF, parameters and initial
-   conditions are not estimated with the same method and might need
-   different transfromation functions. If the transformation functions
-   are @c NULL, the initial standard deviation is let untransformed
-   and just squared to a variance.
-
-   @param[in] transform_mean a flag indicating if p_best->mean should
-   be transformed
-
-   @param[in] transform_var a flag indicating if p_best->var should
-   be transformed
-
-
-   @see transit_mif, update_walk_rates
 */
-void transform_theta(struct s_best *p_best,
-                     double (*f_transit_par) (double),
-                     double (*f_transit_state) (double),
-                     struct s_data *p_data,
-                     int transform_mean, int transform_var)
-{
 
-    /* syntaxic shortcuts */
+void transform_theta(struct s_best *p_best, struct s_data *p_data, int square_diag_sd)
+{
+    int i, k;
+
+    struct s_router **routers = p_data->routers;
     gsl_vector *x = p_best->mean;
     gsl_matrix *var = p_best->var;
-    struct s_router **routers = p_data->routers;
-    struct s_iterator *p_it_mif = p_data->p_it_par_proc_par_obs_no_drift;
-    struct s_iterator *p_it_fls = p_data->p_it_par_sv_and_drift; //fls => fixed lag smoothing
-    double val_sd;
 
-    int i, k, myoffset;
-
-    //parameters
-    for (i=0; i<p_it_mif->length; i++) {
-
-        struct s_router *r = routers[ p_it_mif->ind[i] ];
-
+    struct s_iterator *p_it = p_data->p_it_all;
+    for (i=0; i<p_it->length; i++) {
+        struct s_router *r = routers[ p_it->ind[i] ];
         for (k=0; k< r->n_gp; k++) {
-            myoffset = p_it_mif->offset[i]+k;
+            int offset = p_it->offset[i]+k;
+	    gsl_vector_set(x, offset, (*(r->f))( gsl_vector_get(x, offset), r->min[k], r->max[k] ));
 
-            if (transform_var) {
-                if (gsl_matrix_get(var, myoffset, myoffset) > 0.0) { /*keep var to 0 if originaly 0...*/
-
-                    if (f_transit_par) {
-                        val_sd = (*f_transit_par)(gsl_matrix_get(var, myoffset, myoffset));
-                    } else {
-                        val_sd = gsl_matrix_get(var, myoffset, myoffset);
-                    }
-
-                    gsl_matrix_set(var, myoffset, myoffset, pow(val_sd, 2));
-                }
-            }
-
-            if (transform_mean) {
-                gsl_vector_set(x, myoffset,
-                               (*(r->f))( gsl_vector_get(x, myoffset), r->min[k], r->max[k] ) );
-            }
-        }
-    }
-
-    //initial conditions and drift parameters
-    for (i=0; i<p_it_fls->length; i++) {
-
-        struct s_router *r = routers[ p_it_fls->ind[i] ];
-
-        for (k=0; k< r->n_gp; k++) {
-            myoffset = p_it_fls->offset[i]+k;
-
-            if (transform_var) {
-                if (gsl_matrix_get(var, myoffset, myoffset) > 0.0) { /*keep var to 0 if originaly 0...*/
-                    if (f_transit_state) {
-                        val_sd = (*f_transit_state)(gsl_matrix_get(var, myoffset, myoffset));
-
-                    } else {
-                        val_sd = gsl_matrix_get(var, myoffset, myoffset);
-                    }
-
-                    gsl_matrix_set(var, myoffset, myoffset, pow(val_sd,2));
-                }
-            }
-
-            if (transform_mean) {
-                gsl_vector_set(x, myoffset,
-                               (*(r->f))( gsl_vector_get(x, myoffset), r->min[k], r->max[k] ) );
-            }
-        }
+	    if(square_diag_sd && (gsl_matrix_get(var, offset, offset) > 0.0) ) {
+		gsl_matrix_set(var, offset, offset, pow(gsl_matrix_get(var, offset, offset), 2));
+	    }
+	}
     }
 }
+
+
+void square_diag_sd(struct s_best *p_best, struct s_data *p_data)
+{
+    int i;
+    
+    gsl_matrix *var = p_best->var;
+    struct s_iterator *p_it = p_data->p_it_all;
+    for (i=0; i<p_it->nbtot; i++) {	    
+	if (gsl_matrix_get(var, i, i) > 0.0) {
+	    gsl_matrix_set(var, i, i, pow(gsl_matrix_get(var, i, i), 2));
+	}
+    }
+}
+

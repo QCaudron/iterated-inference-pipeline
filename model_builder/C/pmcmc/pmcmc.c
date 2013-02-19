@@ -147,7 +147,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         // web interface
 #if FLAG_JSON
         if (p_mcmc_calc_data->has_cycled) {
-            update_walk_rates(p_best, NULL, NULL, p_data);
+            update_walk_rates(p_best, p_data);
             update_to_be_estimated(p_best);
         }
 #endif
