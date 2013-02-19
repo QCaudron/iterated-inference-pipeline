@@ -33,7 +33,7 @@ void ran_proposal_chol(theta_t *proposed, struct s_best *p_best, gsl_matrix *var
     gsl_vector_memcpy(proposed, p_best->mean);
     for(k=0; k<p_best->n_to_be_estimated; k++) {
         gsl_vector_set(proposed,
-		       k,
+		       p_best->to_be_estimated[k],
 		       gsl_vector_get(p_best->mean, p_best->to_be_estimated[k]) + gsl_vector_get(ugaussian, k));
     }
 }
