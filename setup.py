@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='plom',
-      version='0.2.0',
+      version='0.3.0',
       description='PLoM model builder for epidemiology',
       author='Sebastien Ballesteros',
       author_email='sebastien@plom.io',

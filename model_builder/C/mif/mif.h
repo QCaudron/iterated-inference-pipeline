@@ -22,7 +22,7 @@
 
 //#define FLAG_TRAJ 1 set at compilation (if needed)
 
-#define FREEZE (pow(MIF_a,m-1))
+#define FREEZE (pow(MIF_a, m-1))
 
 /*-------global variables--------*/
 double MIF_a; /*cooling parameter of ionides 2006*/
@@ -30,9 +30,6 @@ double MIF_b; /*Ionides uses sqrt(20.0)*/
 int L;  /*fixed lag for fixed lag smoothing (needed to infer the initial conditions)*/
 int M; /*Number of MIF iterations*/
 int SWITCH; /*number of the MIF iteration when we start to apply Ionides (2006) MIF update formulae instead of the simple mean accross particles */
-
-int N_THETA_MIF; /* for the MIF, we exclude initial conditions and the drift parameters from theta because they are estimated with fixed lag smoothing  p_it_par_proc_par_obs_no_drift->nbtot */
-int N_IC_MIF; /* p_mif->p_data->p_it_par_sv_and_drift->nbtot */
 
 int OPTION_IC_ONLY; /**< only fixed lag smoothing */
 
@@ -49,43 +46,31 @@ struct s_mif
   struct s_likelihood *p_like;
 
   /*MIF specific*/
-  gsl_matrix *var_theta;
-  gsl_vector **J_theta; /* [J][N_THETA_MIF] */
-  gsl_vector **J_theta_tmp; /* [J][N_THETA_MIF] */
+  gsl_vector **J_theta; /* [J][s_best.length] */
+  gsl_vector **J_theta_tmp; /* [J][s_best.length] */
 
-  double **J_IC_grouped; /* [J][N_IC_MIF] */
-  double **J_IC_grouped_tmp; /* [J][N_IC_MIF] */
-
-  double **D_theta_bart; /* [N_DATA+1][N_THETA_MIF] mean of theta at each time step, (N_DATA+1) because we keep values for every data point + initial condition */
-  double **D_theta_Vt; /* [N_DATA+1][N_THETA_MIF] variance of theta at each time step */
+  double **D_theta_bart; /* [N_DATA+1][s_best.length] mean of theta at each time step, (N_DATA+1) because we keep values for every data point + initial condition */
+  double **D_theta_Vt; /* [N_DATA+1][s_best.length] variance of theta at each time step */
 };
+
 
 /*function prototypes*/
 
 /* methods.c */
-void get_submatrix_var_theta_mif(gsl_matrix *var_theta, struct s_best *p_best, struct s_data *p_data);
+void ran_proposal_chol(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc);
 void fill_theta_bart_and_Vt_mif(double **D_theta_bart, double **D_theta_Vt, struct s_best *p_best, struct s_data *p_data, int m);
-
-void split_theta_mif(theta_t *proposed, gsl_vector *J_theta_j, double *J_IC_grouped_j, struct s_data *p_data);
-void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gsl_vector **J_theta, gsl_matrix *var, struct s_likelihood *p_like, struct s_data *p_data, struct s_best *p_best, int m, double delta_t);
-void print_mean_var_theta_theoretical_mif(FILE *p_file, double *theta_bart_n, double *theta_Vt_n, struct s_likelihood *p_like, int m, int time);
+void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gsl_vector **J_theta, struct s_likelihood *p_like, struct s_data *p_data, struct s_best *p_best, int m, double delta_t, int is_printed);
+void print_mean_var_theta_theoretical_mif(FILE *p_file, double *theta_bart_n, double *theta_Vt_n, struct s_likelihood *p_like, struct s_data *p_data, int m, int time);
 void header_mean_var_theoretical_mif(FILE *p_file, struct s_data *p_data);
-
-void resample_and_mut_theta_mif(unsigned int *select, gsl_vector **J_theta, gsl_vector **J_theta_tmp, gsl_matrix *var_theta, struct s_calc **calc, double sd_fac);
-
+void resample_and_mut_theta_mif(unsigned int *select, gsl_vector **J_theta, gsl_vector **J_theta_tmp, struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, double sd_fac, gsl_matrix *var_fitted, int is_mvn);
+void update_fixed_lag_smoothing(struct s_best *p_best, struct s_likelihood *p_like, gsl_vector **J_theta, struct s_data *p_data);
 void update_theta_best_stable_mif(struct s_best *p_best, double **D_theta_bart, struct s_data *p_data);
 void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, double **D_theta_Vt, struct s_data *p_data, int m);
-void back_transform_theta2par_mif(struct s_par *p_par, gsl_vector *theta_mif, struct s_data *p_data);
-
-void fixed_lag_smoothing(theta_t *best_mean, struct s_likelihood *p_like, struct s_data *p_data, const struct s_iterator *p_it, double ***J_initial_cond, double ***J_initial_cond_tmp, int n, const int lag);
-void resample_IC(struct s_likelihood *p_like,  double ***J_initial_cond, double ***J_initial_cond_tmp, int N_initial_cond, int n);
-void update_IC(theta_t *best_mean, struct s_likelihood *p_like, double **J_initial_cond, struct s_data *p_data, const struct s_iterator *p_it);
-
-void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, gsl_vector **J_theta, double ***J_IC_grouped, struct s_data *p_data, int n_max, int n, const int lag);
+void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, gsl_vector **J_theta, struct s_data *p_data, int n_max, int n, const int lag);
 
 /* build.c */
-struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double eps_abs, double eps_rel, double prop_L_option, int J, int *n_threads);
+struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double eps_abs, double eps_rel, double prop_L_option, int J, int is_covariance, int *n_threads);
 void clean_mif(struct s_mif *p_mif);
 
 /* mif.c */
-void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_par **J_p_par, struct s_likelihood *p_like, gsl_matrix *var_theta, gsl_vector **J_theta, gsl_vector **J_theta_tmp, double ***J_IC_grouped, double ***J_IC_grouped_tmp, double **D_theta_bart, double **D_theta_Vt, plom_f_pred_t f_pred);
+void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_par **J_p_par, struct s_likelihood *p_like, gsl_vector **J_theta, gsl_vector **J_theta_tmp, double **D_theta_bart, double **D_theta_Vt, plom_f_pred_t f_pred, int is_mvn);

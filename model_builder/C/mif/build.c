@@ -18,7 +18,7 @@
 
 #include "mif.h"
 
-struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double eps_abs, double eps_rel, double prop_L_option, int J, int *n_threads)
+struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double eps_abs, double eps_rel, double prop_L_option, int J, int is_covariance, int *n_threads)
 {
     char str[STR_BUFFSIZE];
 
@@ -27,17 +27,17 @@ struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noi
 
     L = (int) floor(prop_L_option*N_DATA);
 
-    struct s_mif *p_mif;
-    p_mif = malloc(sizeof(struct s_mif));
-    if(p_mif==NULL) {
+    struct s_mif *p;
+    p = malloc(sizeof(struct s_mif));
+    if(p==NULL) {
         sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
 
-    p_mif->p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR); //also build obs2ts
+    p->p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR); //also build obs2ts
     json_decref(settings);
-    int size_proj = N_PAR_SV*N_CAC + p_mif->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
+    int size_proj = N_PAR_SV*N_CAC + p->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
     //N_DATA_NONAN is set in build_data
     if (L>N_DATA_NONAN) {
@@ -46,60 +46,63 @@ struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noi
         exit(EXIT_FAILURE);
     }
 
-    p_mif->p_best = build_best(p_mif->p_data, theta, 0);
+    p->p_best = build_best(p->p_data, theta, is_covariance);
     json_decref(theta);
 
-    p_mif->J_p_X = build_J_p_X(size_proj, N_TS, p_mif->p_data, dt);
-    p_mif->J_p_X_tmp = build_J_p_X(size_proj, N_TS, p_mif->p_data, dt);
-    p_mif->J_p_par = build_J_p_par(p_mif->p_data);
-    p_mif->p_like = build_likelihood();
+    p->J_p_X = build_J_p_X(size_proj, N_TS, p->p_data, dt);
+    p->J_p_X_tmp = build_J_p_X(size_proj, N_TS, p->p_data, dt);
+    p->J_p_par = build_J_p_par(p->p_data);
+    p->p_like = build_likelihood();
 
-    p_mif->calc = build_calc(n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p_mif->p_data);
+    p->calc = build_calc(n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p->p_data);
+
+    //read only
+    p->calc[0]->method_specific_shared_data = gsl_matrix_calloc(p->p_best->n_to_be_estimated, p->p_best->n_to_be_estimated); //used to store the cholesky decomposition
+
+    int nt;
+    for(nt=0; nt< *n_threads; nt++){
+	p->calc[nt]->method_specific_thread_safe_data = gsl_vector_calloc(p->p_best->n_to_be_estimated);  //used to store temporary vector for MVN
+	if(nt>0){
+	    p->calc[nt]->method_specific_shared_data = p->calc[0]->method_specific_shared_data;
+	}
+    }
 
     /*MIF specific*/
 
-    /* MIF global variables: */
-    N_THETA_MIF = p_mif->p_data->p_it_par_proc_par_obs_no_drift->nbtot;
-    N_IC_MIF = p_mif->p_data->p_it_par_sv_and_drift->nbtot;
-
     /* MIF computation variables */
-    p_mif->var_theta = gsl_matrix_calloc(N_THETA_MIF, N_THETA_MIF);
+    p->J_theta = init2_gsl_vector_d_set0(J, p->p_data->p_it_all->nbtot);
+    p->J_theta_tmp = init2_gsl_vector_d_set0(J, p->p_data->p_it_all->nbtot);
 
-    p_mif->J_theta = init2_gsl_vector_d_set0(J, N_THETA_MIF);
-    p_mif->J_theta_tmp = init2_gsl_vector_d_set0(J, N_THETA_MIF);
+    p->D_theta_bart = init2d_set0(N_DATA_NONAN+1, p->p_data->p_it_all->nbtot);
+    p->D_theta_Vt = init2d_set0(N_DATA_NONAN+1, p->p_data->p_it_all->nbtot);
 
-    p_mif->J_IC_grouped = init2d_set0(J, N_IC_MIF);
-    p_mif->J_IC_grouped_tmp = init2d_set0(J, N_IC_MIF);
-
-    p_mif->D_theta_bart = init2d_set0(N_DATA_NONAN+1, N_THETA_MIF);
-    p_mif->D_theta_Vt = init2d_set0(N_DATA_NONAN+1, N_THETA_MIF);
-
-    return p_mif;
+    return p;
 }
 
 
-void clean_mif(struct s_mif *p_mif)
+void clean_mif(struct s_mif *p)
 {
-    clean_calc(p_mif->calc, p_mif->p_data);
-    clean_best(p_mif->p_best);
+    int nt;
+    for(nt=0; nt< p->calc[0]->n_threads; nt++){
+	gsl_vector_free(p->calc[nt]->method_specific_thread_safe_data);
+    }
+    gsl_matrix_free(p->calc[0]->method_specific_shared_data);
 
-    clean_J_p_par(p_mif->J_p_par);
-    clean_J_p_X(p_mif->J_p_X);
-    clean_J_p_X(p_mif->J_p_X_tmp);
-    clean_likelihood(p_mif->p_like);
+    clean_calc(p->calc, p->p_data);
+    clean_best(p->p_best);
 
-    clean_data(p_mif->p_data);
+    clean_J_p_par(p->J_p_par);
+    clean_J_p_X(p->J_p_X);
+    clean_J_p_X(p->J_p_X_tmp);
+    clean_likelihood(p->p_like);
 
-    gsl_matrix_free(p_mif->var_theta);
+    clean_data(p->p_data);
 
-    clean2_gsl_vector_d(p_mif->J_theta, J);
-    clean2_gsl_vector_d(p_mif->J_theta_tmp, J);
+    clean2_gsl_vector_d(p->J_theta, J);
+    clean2_gsl_vector_d(p->J_theta_tmp, J);
 
-    clean2d(p_mif->J_IC_grouped, J);
-    clean2d(p_mif->J_IC_grouped_tmp, J);
+    clean2d(p->D_theta_bart, N_DATA_NONAN+1);
+    clean2d(p->D_theta_Vt, N_DATA_NONAN+1);
 
-    clean2d(p_mif->D_theta_bart, N_DATA_NONAN+1);
-    clean2d(p_mif->D_theta_Vt, N_DATA_NONAN+1);
-
-    FREE(p_mif);
+    FREE(p);
 }

@@ -18,9 +18,9 @@
 
 #include "mif.h"
 
-void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_par **J_p_par, struct s_likelihood *p_like, gsl_matrix *var_theta, gsl_vector **J_theta, gsl_vector **J_theta_tmp, double ***J_IC_grouped, double ***J_IC_grouped_tmp, double **D_theta_bart, double **D_theta_Vt, plom_f_pred_t f_pred)
+void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_par **J_p_par, struct s_likelihood *p_like, gsl_vector **J_theta, gsl_vector **J_theta_tmp, double **D_theta_bart, double **D_theta_Vt, plom_f_pred_t f_pred, int is_mvn)
 {
-    int j;
+    int i, j, k;
     int m, n, nn, nnp1; /*m:filtering iteration index, n: indeces N_DATA and nn N_DATA_NONAN */
 #if FLAG_VERBOSE
     char str[255];
@@ -48,15 +48,44 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
     fflush(p_file_best);
 #endif
 
+    gsl_matrix *var_fitted = NULL; 
+    if(is_mvn){
+	var_fitted = gsl_matrix_calloc(p_best->n_to_be_estimated, p_best->n_to_be_estimated);
+	for(i=0; i<p_best->n_to_be_estimated; i++) {
+	    for(k=0; k<p_best->n_to_be_estimated; k++) {
+		gsl_matrix_set(var_fitted, i, k, gsl_matrix_get(p_best->var, p_best->to_be_estimated[i], p_best->to_be_estimated[k]));
+	    }
+	}
+    }
+    gsl_matrix *chol = (gsl_matrix *) calc[0]->method_specific_shared_data;
+    void (*my_ran_proposal) (theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc);
+
     for(m=1; m<=M; m++) {
 #if FLAG_VERBOSE
         time_mif_begin = s_clock();
 #endif
+
         fill_theta_bart_and_Vt_mif(D_theta_bart, D_theta_Vt, p_best, p_data, m);
 
+	if(is_mvn){
+	    //compute chol only once
+	    gsl_matrix_memcpy(chol, var_fitted);	    
+	    gsl_matrix_scale(chol, pow(MIF_b*FREEZE, 2));
+
+	    int status = gsl_linalg_cholesky_decomp(chol);
+	    if(status == GSL_EDOM) {
+		// error: matrix not positive
+		print_err("Covariance matrix is not positive definite");
+	    }
+	   
+	    //the chol computed above will be used (and passed by calc in ran_proposal_mif)
+	    my_ran_proposal = &ran_proposal_chol;
+	} else {
+	    my_ran_proposal = &ran_proposal;
+	}
+
         for(j=0; j<J; j++) {
-            propose_safe_theta_and_load_X0(p_best->proposed, p_best, p_best->var, MIF_b*FREEZE, J_p_par[j], (*J_p_X)[j], p_data, calc[0], ran_proposal);
-            split_theta_mif(p_best->proposed, J_theta[j], (*J_IC_grouped)[j], p_data); // JD J_theta and J_IC, with corresponding intialisations!
+            propose_safe_theta_and_load_X0(J_theta[j], p_best, p_best->var, MIF_b*FREEZE, J_p_par[j], (*J_p_X)[j], p_data, calc[0], my_ran_proposal);
         }
 
         t0=0; p_like->Llike_best = 0.0; p_like->n_all_fail = 0;
@@ -72,7 +101,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
             t1=p_data->times[n];
 
             for(j=0; j<J; j++) {
-                back_transform_theta2par_mif(J_p_par[j],  J_theta[j], p_data);
+		back_transform_theta2par(J_p_par[j], J_theta[j], p_data->p_it_par_proc_par_obs_no_drift, p_data);
             }
 
             /*we have to use this subloop to mimate equaly spaced time step and hence set the incidence to 0 every time unit...*/
@@ -95,29 +124,33 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
             } /* end for on nn */
 
             if (OPTION_PRIOR) {
-                patch_likelihood_prior(p_like, p_best, J_theta, J_IC_grouped, p_data, n_max, n, L);
+                patch_likelihood_prior(p_like, p_best, J_theta, p_data, n_max, n, L);
             }
 
             int success = weight(p_like, n);
-            mean_var_theta_theoretical_mif(D_theta_bart[n+1], D_theta_Vt[n+1], J_theta, var_theta, p_like, p_data, p_best, m, ((double) (t1-t0)));
+	    mean_var_theta_theoretical_mif(D_theta_bart[n+1], D_theta_Vt[n+1], J_theta, p_like, p_data, p_best, m, ((double) (t1-t0)), OPTION_TRAJ);
+
             if (OPTION_TRAJ) {
-                print_mean_var_theta_theoretical_mif(p_file_mif, D_theta_bart[n+1], D_theta_Vt[n+1], p_like, m, t1);
+		print_mean_var_theta_theoretical_mif(p_file_mif, D_theta_bart[n+1], D_theta_Vt[n+1], p_like, p_data, m, t1);
             }
 
             if(success) {
-                systematic_sampling(p_like, calc[0], n);
+		systematic_sampling(p_like, calc[0], n);
             }
 
-            resample_and_mut_theta_mif(p_like->select[n], J_theta, J_theta_tmp, var_theta, calc, FREEZE*sqrt(((double) (t1-t0))));
-            resample_X(p_like->select[n], J_p_X, J_p_X_tmp, p_data);
-            fixed_lag_smoothing(p_best->mean, p_like, p_data, p_data->p_it_par_sv_and_drift, J_IC_grouped, J_IC_grouped_tmp, n, L);
+	    resample_and_mut_theta_mif(p_like->select[n], J_theta, J_theta_tmp, calc, p_data, p_best, FREEZE*sqrt(((double) (t1-t0))), var_fitted, is_mvn);
+	    resample_X(p_like->select[n], J_p_X, J_p_X_tmp, p_data);
+
+	    if(n==L){
+		update_fixed_lag_smoothing(p_best, p_like, J_theta, p_data);
+	    }
 
             t0=t1;
 
         } /*end of for loop on the time (n)*/
 
-        /*we update theta_best*/
-        (m<=SWITCH) ? update_theta_best_stable_mif(p_best, D_theta_bart, p_data) : update_theta_best_king_mif(p_best, D_theta_bart, D_theta_Vt, p_data, m);
+        /* update theta_best */
+	(m<=SWITCH) ? update_theta_best_stable_mif(p_best, D_theta_bart, p_data) : update_theta_best_king_mif(p_best, D_theta_bart, D_theta_Vt, p_data, m);
 
 #if FLAG_VERBOSE
         time_mif_end = s_clock();
@@ -132,6 +165,8 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 #endif
 
     } /*end for on m*/
+
+    gsl_matrix_free(var_fitted);
 
     sfr_fclose(p_file_best);
 

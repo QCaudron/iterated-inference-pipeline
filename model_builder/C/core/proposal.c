@@ -63,7 +63,7 @@ void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, gs
 
 /**
  * generate a randam vector proposed. proposed is drawn from a MVN
- * law with mean "p_best->mean" and var "var" 
+ * law with mean "p_best->mean" and diagonal matrix var "var" 
  */
 
 void ran_proposal(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc)
