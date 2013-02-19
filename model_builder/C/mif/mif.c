@@ -165,8 +165,10 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 #endif
 
     } /*end for on m*/
-
-    gsl_matrix_free(var_fitted);
+    
+    if(is_mvn){
+        gsl_matrix_free(var_fitted);
+    }
 
     sfr_fclose(p_file_best);
 
