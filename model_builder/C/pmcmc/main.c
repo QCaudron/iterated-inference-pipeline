@@ -29,22 +29,23 @@ int main(int argc, char *argv[])
         "usage:\n"
         "pmcmc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
         "                [-s, --DT <float || 0.25 day>] [--eps_abs <float || 1e-6>] [--eps_rel <float || 1e-3>]\n"
-	"                [--full] [--traj] [--acc] [-p, --path <path>] [-i, --id <integer || 0>] [-P, --N_THREAD <integer || N_CPUs>]\n"
+        "                [--full] [--traj] [--acc] [-p, --path <path>] [-i, --id <integer || 0>] [-P, --N_THREAD <integer || N_CPUs>]\n"
         "                [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
-        "                [-C --cov] [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >] [-E --epsilon <int || 50>]"
+        "                [-C --cov] [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >] "
+        "                [-E --epsilon <int || 50>] [--epsilon_max <float || 2.0>] [--smooth] [--alpha <float || 0.02>]"
         "                [-Z, --zmq] [-c, --chunk <integer>]\n"
         "                [--help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
-	"\n"
+        "\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_env_sto       turn off environmental stochasticity (if any)\n"
         "--no_drift         turn off drift (if any)\n"
-	"\n"
+        "\n"
         "-s, --DT           Initial integration time step\n"
-	"--eps_abs          Absolute error for adaptive step-size contro\n"
-	"--eps_rel          Relative error for adaptive step-size contro\n"
-	"\n"
+        "--eps_abs          Absolute error for adaptive step-size contro\n"
+        "--eps_rel          Relative error for adaptive step-size contro\n"
+        "\n"
         "--full             full update MVN mode\n"
         "-a, --cooling      cooling factor for sampling covariance live tuning\n"
         "-S, --switch       select switching iteration from initial covariance to empirical one\n"
@@ -52,7 +53,7 @@ int main(int argc, char *argv[])
         "--epsilon_max      maximum value allowed for epsilon\n"
         "--smooth           tune epsilon with the value of the acceptance rate obtained with exponential smoothing\n"
         "--alpha            smoothing factor of exponential smoothing used to compute the smoothed acceptance rate (low values increase degree of smoothing)\n"
-	"\n"
+        "\n"
         "--traj             print the trajectories\n"
         "--acc              print the acceptance rate\n"
         "-C, --cov          load an initial covariance from the settings\n"
@@ -73,7 +74,7 @@ int main(int argc, char *argv[])
     int m_eps = 50;
     double a = 0.999;
     double epsilon_max = 2.0;
-    double alpha = 0.05;
+    double alpha = 0.02;
 
     static int is_smooth = 0;
 
@@ -106,16 +107,16 @@ int main(int argc, char *argv[])
                 {"no_env_sto", no_argument,       0, 'y'},
                 {"no_drift",   no_argument,       0, 'z'},
 
-		{"DT",         required_argument, 0, 's'},
-		{"eps_abs",    required_argument, 0, 'v'},
-		{"eps_rel",    required_argument, 0, 'w'},
+                {"DT",         required_argument, 0, 's'},
+                {"eps_abs",    required_argument, 0, 'v'},
+                {"eps_rel",    required_argument, 0, 'w'},
 
                 {"switch",     required_argument,   0, 'S'},
                 {"epsilon",     required_argument,   0, 'E'},
                 {"cooling",     required_argument,   0, 'a'},
-		{"smooth",    no_argument, &is_smooth, 1},
-		{"epsilon_max", required_argument, 0, 'f'},
-		{"alpha",    required_argument, 0, 'g'},
+                {"smooth",    no_argument, &is_smooth, 1},
+                {"epsilon_max", required_argument, 0, 'f'},
+                {"alpha",    required_argument, 0, 'g'},
 
                 {"cov", no_argument, 0, 'C'},
 
@@ -232,7 +233,7 @@ int main(int argc, char *argv[])
     argv += optind;
 
     if(argc == 0) {
-	implementation = PLOM_PSR;
+        implementation = PLOM_PSR;
     } else {
         if (!strcmp(argv[0], "ode")) {
             implementation = PLOM_ODE;
@@ -250,10 +251,10 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
 
     int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?
-    struct s_pmcmc *p_pmcmc = build_pmcmc(implementation, noises_off, settings, 
-					  dt, eps_abs, eps_rel, 
-					  a, m_switch, m_eps, epsilon_max, is_smooth, alpha,
-					  update_covariance, J, &n_threads);
+    struct s_pmcmc *p_pmcmc = build_pmcmc(implementation, noises_off, settings,
+                                          dt, eps_abs, eps_rel,
+                                          a, m_switch, m_eps, epsilon_max, is_smooth, alpha,
+                                          update_covariance, J, &n_threads);
     json_decref(settings);
 
     transform_theta(p_pmcmc->p_best, p_pmcmc->p_data, !update_covariance);
