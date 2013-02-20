@@ -18,6 +18,62 @@
 
 #include "mif.h"
 
+
+/**
+ * if x is a prameter and y an initial condition and n the number of data points:
+ *  rescale cov(x,y) by 1/sqrt(n)
+ *  rescale cov(x,x) by (1/sqrt(n))*(1/sqrt(n))
+ */
+
+void rescale_covariance_mif(struct s_best *p_best, struct s_data *p_data)
+{
+    int i, k, ii, kk;
+    struct s_router **routers = p_data->routers;
+    struct s_iterator *p_it_mif = p_data->p_it_par_proc_par_obs_no_drift; //parameters fitted with MIF (as opposed to fixed lag smoothing)
+    struct s_iterator *p_it_fls = p_data->p_it_par_sv_and_drift; //parameters fitted with fixed lag smoothing (fls)
+
+    int row, col;
+    double inv_n_data = 1.0/((double) N_DATA);
+    double sqrt_inv_n_data = 1.0/sqrt((double) N_DATA);
+
+    //mif, mif terms: rescale by 1/N_DATA
+
+    for(i=0; i<p_it_mif->length; i++) {
+        for(k=0; k< routers[p_it_mif->ind[i]]->n_gp; k++) {
+            row = p_it_mif->offset[i]+k;
+
+	    for(ii=0; ii<p_it_mif->length; ii++) {
+		for(kk=0; kk< routers[p_it_mif->ind[ii]]->n_gp; kk++) {
+		    col = p_it_mif->offset[ii]+kk;
+		    
+		    gsl_matrix_set(p_best->var, row, col, gsl_matrix_get(p_best->var, row, col)*inv_n_data);
+		}
+	    }
+        }
+    }
+
+    //mif, fls and fls, mif terms: rescale by 1/sqrt(N_DATA)
+
+    for(i=0; i<p_it_mif->length; i++) {
+        for(k=0; k< routers[p_it_mif->ind[i]]->n_gp; k++) {
+            row = p_it_mif->offset[i]+k;
+
+	    for(ii=0; ii<p_it_fls->length; ii++) {
+		for(kk=0; kk< routers[p_it_fls->ind[ii]]->n_gp; kk++) {
+		    col = p_it_fls->offset[ii]+kk;
+		    
+		    gsl_matrix_set(p_best->var, row, col, gsl_matrix_get(p_best->var, row, col)*sqrt_inv_n_data);		   
+		    gsl_matrix_set(p_best->var, col, row, gsl_matrix_get(p_best->var, col, row)*sqrt_inv_n_data);
+
+		}
+	    }
+        }
+    }
+}
+
+
+
+
 void ran_proposal_chol(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc)
 {
     int k;
