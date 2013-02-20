@@ -241,10 +241,6 @@ int main(int argc, char *argv[])
     print_log(str);
 #endif
 
-    if (OPTION_PRIOR) {
-        sanitize_best_to_prior(p_mif->p_best, p_mif->p_data);
-    }
-
     transform_theta(p_mif->p_best, p_mif->p_data, !is_covariance);
     rescale_covariance_mif(p_mif->p_best, p_mif->p_data);
 

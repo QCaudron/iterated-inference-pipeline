@@ -211,10 +211,6 @@ int main(int argc, char *argv[])
     struct s_kalman *p_kalman = build_kalman(settings, implementation, noises_off, OPTION_PRIOR, 0, dt, eps_abs, eps_rel);
     json_decref(settings);
 
-    if (OPTION_PRIOR) {
-        sanitize_best_to_prior(p_kalman->p_best, p_kalman->p_data);
-    }
-
     transform_theta(p_kalman->p_best, p_kalman->p_data, 1);
 
     simplex(p_kalman->p_best, p_kalman->p_data, p_kalman, f_simplex_kalman, CONVERGENCE_STOP_SIMPLEX, M, option_no_trace);

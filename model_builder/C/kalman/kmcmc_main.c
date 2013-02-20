@@ -232,8 +232,6 @@ int main(int argc, char *argv[])
     struct s_kalman *p_kalman = build_kalman(settings, implementation,  noises_off, 1, update_covariance, dt, eps_abs, eps_rel);
     json_decref(settings);
 
-    sanitize_best_to_prior(p_kalman->p_best, p_kalman->p_data);
-
     transform_theta(p_kalman->p_best, p_kalman->p_data, !update_covariance);
     gsl_vector_memcpy(p_kalman->p_best->proposed, p_kalman->p_best->mean);
 

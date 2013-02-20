@@ -669,7 +669,6 @@ void update_to_be_estimated(struct s_best *p_best);
 int sanitize_n_threads(int n_threads, int J);
 void store_state_current_n_nn(struct s_calc **calc, int n, int nn);
 //void store_state_current_m(struct s_calc **calc, int m);
-void sanitize_best_to_prior(struct s_best *p_best, struct s_data *p_data);
 int in_u(int i, unsigned int *tab, int length);
 int in_drift(int i, struct s_drift **drift);
 

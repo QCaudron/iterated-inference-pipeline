@@ -216,36 +216,6 @@ void store_state_current_n_nn(struct s_calc **calc, int n, int nn)
 }
 
 
-/**
- * if the prior are uniform, the parameters for which guess is outside
- * the range [min,max] are brought back within the ranges
- */
-void sanitize_best_to_prior(struct s_best *p_best, struct s_data *p_data)
-{
-
-    struct s_iterator *p_it = p_data->p_it_all;
-    struct s_router **routers = p_data->routers;
-    int offset;
-    int i, k;
-
-    for(i=0; i<p_it->length ; i++) {
-        for(k=0; k<routers[i]->n_gp; k++) {
-	    offset = p_it->offset[i]+k;
-	    if ( (p_best->prior[k] == &pseudo_unif_prior) || (p_best->prior[k] == &gsl_ran_flat_pdf) ){
-
-                double min = routers[i]->min[k];
-                double max = routers[i]->max[k];
-                if (gsl_vector_get(p_best->mean, offset) < min){
-                    gsl_vector_set(p_best->mean, offset, min + 0.01 * (max - min));
-                }
-                if (gsl_vector_get(p_best->mean, offset) > max){
-                    gsl_vector_set(p_best->mean, offset, max - 0.01 * (max-min));
-                }
-            }
-        }
-    }
-}
-
 
 /**
  * return 1 if i is in tab else 0

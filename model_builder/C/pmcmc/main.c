@@ -256,8 +256,6 @@ int main(int argc, char *argv[])
 					  update_covariance, J, &n_threads);
     json_decref(settings);
 
-    sanitize_best_to_prior(p_pmcmc->p_best, p_pmcmc->p_data);
-
     transform_theta(p_pmcmc->p_best, p_pmcmc->p_data, !update_covariance);
     gsl_vector_memcpy(p_pmcmc->p_best->proposed, p_pmcmc->p_best->mean);
 
