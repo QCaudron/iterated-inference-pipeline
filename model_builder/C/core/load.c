@@ -494,7 +494,7 @@ json_t *load_settings(const char *path)
  */
 void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int update_guess, int update_covariance)
 {
-    int i, g, offset;
+    int i, k, g, offset;
     struct s_router **routers = p_data->routers;
     json_t *parameters = fast_get_json_object(theta, "value");
     json_t *partitions = fast_get_json_object(theta, "partition");
@@ -529,10 +529,11 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int
 
             if (strcmp(prior, "normal") == 0) {
                 p_best->prior[offset] = &normal_prior;
+            } else if (strcmp(prior, "pseudo_uniform") == 0) {
+                p_best->prior[offset] = &pseudo_unif_prior;
             } else {
                 p_best->prior[offset] = &gsl_ran_flat_pdf;
-                //p_best->prior[offset] = &pseudo_unif_prior;
-            }
+	    }
 	    
             if (update_guess) {
                 gsl_vector_set(p_best->mean, offset, fast_get_json_real_from_object(par_guess, my_group_id));
@@ -547,28 +548,36 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int
         }
     }
 
-    //turn off sd_transf of env noises parameters
+    if (update_covariance) {
+        load_covariance(p_best->var, fast_get_json_array(theta, "covariance"));
+    }
+
+    //zero terms of covariance matrix corresponding to env noises parameters
     if(p_data->noises_off & PLOM_NO_ENV_STO){
         struct s_iterator *p_it_noise = p_data->p_it_noise;
         for(i=0; i<p_it_noise->length; i++){
             for(g=0; g< routers[ p_it_noise->ind[i] ]->n_gp; g++){
-                gsl_matrix_set(p_best->var, p_it_noise->offset[i]+g, p_it_noise->offset[i]+g, 0.0);
+		offset = p_it_noise->offset[i]+g;
+		for(k=0; k< p_best->var->size1; k++){
+		    gsl_matrix_set(p_best->var, offset, k, 0.0); // set row to 0
+		    gsl_matrix_set(p_best->var, k, offset, 0.0); // set column to 0
+		}
             }
         }
     }
 
-    //we turn off sd_transf of the volatilities
+    //zero terms of covariance matrix corresponding to the volatilities
     if(p_data->noises_off & PLOM_NO_DRIFT){
-        for(i=0; i< N_DRIFT; i++) { //N_DRIFT as iterator could have been edited if PLOM_NO_DRIFT
+        for(i=0; i< N_DRIFT; i++) { //N_DRIFT as iterator could have been edited in case the user or a method imposed PLOM_NO_DRIFT (--no_drift)
             int ind_volatility = p_data->drift[i]->ind_volatility_Xdrift;
             for(g=0; g< routers[ind_volatility]->n_gp; g++) {
-                gsl_matrix_set(p_best->var, p_it_all->offset[ind_volatility]+g, p_it_all->offset[ind_volatility]+g, 0.0);
+		offset = p_it_all->offset[ind_volatility]+g;
+		for(k=0; k< p_best->var->size1; k++){
+		    gsl_matrix_set(p_best->var, offset, k, 0.0); // set row to 0
+		    gsl_matrix_set(p_best->var, k, offset, 0.0); // set column to 0
+		}
             }
         }
-    }
-
-    if (update_covariance) {
-        load_covariance(p_best->var, fast_get_json_array(theta, "covariance"));
     }
 
 }

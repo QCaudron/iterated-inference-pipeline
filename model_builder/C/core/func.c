@@ -163,15 +163,13 @@ int get_max_u(unsigned int *tab, int length_tab)
 
 
 /**
- * when the user set jump_sizes to 0 on the webApp or release some
- * jump_sizes from 0 we need to recompute p_best->n_to_be_estimated
+ * when the user set sd_transf to 0 on the webApp or release some
+ * sd_transf from 0 we need to recompute p_best->n_to_be_estimated
  * and p_best->to_be_estimated.
  */
 
-
 void update_to_be_estimated(struct s_best *p_best)
 {
-
     int k;
 
     p_best->n_to_be_estimated = 0;

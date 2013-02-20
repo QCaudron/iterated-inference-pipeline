@@ -114,6 +114,8 @@ double normal_prior(double x, double min, double max)
  * but a twice-differentiable function, to prevent optimization
  * methods from bumping into boundaries and creating numerical
  * problems
+ *
+ * TODO: give users control on delta
  */
 double pseudo_unif_prior(double x, double min, double max)
 {

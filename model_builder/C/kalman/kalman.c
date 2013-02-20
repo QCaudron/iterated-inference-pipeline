@@ -165,7 +165,7 @@ void reset_inc_cov(gsl_matrix *Ct)
 {
     int oi,oii;
     for (oi=N_PAR_SV*N_CAC; oi<N_PAR_SV*N_CAC+N_TS_INC; oi++) {
-        for (oii=0; oii<N_KAL; oii++) {
+        for (oii=0; oii<Ct->size1; oii++) {
             gsl_matrix_set(Ct,oi,oii,0.0);	// set row to 0
             gsl_matrix_set(Ct,oii,oi,0.0);	// set column to 0
         }

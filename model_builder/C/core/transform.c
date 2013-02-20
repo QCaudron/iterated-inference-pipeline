@@ -300,7 +300,7 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
     p_router->is_duration = is_duration(par);
     p_router->multiplier = get_multiplier(u_data, par, 0);
 
-    if ( is_bayesian && (strcmp(prior_type, "uniform") == 0)) {
+    if ( is_bayesian && ((strcmp(prior_type, "uniform") == 0) || (strcmp(prior_type, "pseudo_uniform") == 0)) ) {
 
         p_router->f = &f_logit_ab;
         p_router->f_inv = &f_inv_logit_ab;
