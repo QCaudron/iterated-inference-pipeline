@@ -305,7 +305,7 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
         p_router->f = &f_logit_ab;
         p_router->f_inv = &f_inv_logit_ab;
 
-        if (strcmp(mytransf, "scale_pow10") == 0) {
+        if ( (strcmp(mytransf, "scale_pow10") == 0) || (strcmp(mytransf, "scale_pow10_bounded") == 0) )  {
             p_router->f_scale = &f_scale_pow10;
         } else if (strcmp(mytransf, "scale_pow10_pos") == 0) {
             p_router->f_scale = &f_scale_pow10_pos;
@@ -358,6 +358,14 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
             p_router->f_inv_derivative = &f_id;
             p_router->f_scale = &f_scale_pow10;
 
+        } else if (strcmp(mytransf, "scale_pow10_bounded")==0) {
+
+            p_router->f =  &f_logit_ab;
+            p_router->f_inv = &f_inv_logit_ab;
+            p_router->f_derivative = &f_der_logit_ab;
+            p_router->f_inv_derivative = &f_der_inv_logit_ab;
+            p_router->f_scale = &f_scale_pow10;
+
         } else if (strcmp(mytransf, "scale_pow10_pos")==0) {
 
             p_router->f =  &f_log;
@@ -370,7 +378,6 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
 
             print_err("error transf != log, logit, logit_ab, scale_pow10");
             exit(EXIT_FAILURE);
-
         }
     }
 
