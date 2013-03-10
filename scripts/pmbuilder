@@ -72,7 +72,7 @@ def main():
     if mycli.input == 'files':
 
         if not (mycli.context_file and mycli.process_file and mycli.link_file):
-            sys.stderr.write(FAIL + 'FAILURE! ' + ENDC + 'To create a model plom needs 3 JSON files (plom context.json process.json link.json otherwise see plom --help\n')
+            sys.stderr.write(FAIL + 'FAIL ' + ENDC + ': To create a model pmbuilder needs 3 JSON files (context.json process.json link.json otherwise see pmbuilder --help\n')
             sys.exit(1)
 
         c = getJSON(mycli.context_file)
@@ -100,19 +100,14 @@ def main():
 
     print('preparing model...')
     model.prepare()
-    print(OKBLUE + "model ready" + ENDC)
     print('coding model...')
-    model.render()
-    print(OKBLUE + "model coded" + ENDC)
-
     print('writting settings...')
     model.write_settings()
-    print(OKBLUE + "settings written" + ENDC)
-
-    print(OKGREEN + 'Successfully created!' + ENDC + ' in {0}'.format(path_rendered))
-
     if mycli.zip:
+        print('compressing...')
         archive_model(path_rendered, True)
+
+    print(OKGREEN + 'SUCCESS' + ENDC + ': model created in {0}{1}'.format(path_rendered, '.tar.gz' if mycli.zip else ''))
 
 
 if __name__ == '__main__':
