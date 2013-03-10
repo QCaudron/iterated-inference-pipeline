@@ -101,6 +101,7 @@ def main():
     print('preparing model...')
     model.prepare()
     print('coding model...')
+    model.render()
     print('writting settings...')
     model.write_settings()
     if mycli.zip:
