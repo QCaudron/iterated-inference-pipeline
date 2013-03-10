@@ -26,7 +26,6 @@ import json
 from Ccoder import Ccoder
 from plom_settings import make_settings_json
 from django.conf import settings as django_settings
-import distutils.spawn
 
 from Context import Context
 
@@ -150,7 +149,7 @@ class PlomModelBuilder(Context, Ccoder):
         prepare_model(self.path_rendered, path_templates, replace)
 
 
-    def code(self):
+    def render(self):
         """generate C code for MIF, Simplex, pMCMC, Kalman, simulation, ..."""
 
         if not django_settings.configured:
@@ -208,60 +207,6 @@ class PlomModelBuilder(Context, Ccoder):
         f.close()
         os.remove(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_template.c'))
 
-
-
-    def compile(self, simulation_only=False):
-        """compiles the generated code.
-        web is a flag indicating if outputs should be printed in JSON on stdout or in csv on FILE
-        """
-
-        path_src_C = os.path.join(self.path_rendered, 'C')
-        wd = os.getcwd()
-
-        ##compile the templates and create libplomtpl
-        cmd = 'make {0} && make install'.format('CC=gcc-4.7' if distutils.spawn.find_executable('gcc-4.7') else '')
-        print('\033[94m  compiling the templates (running {0})...\033[0m'.format(cmd))
-        os.chdir(os.path.join(path_src_C,  'templates'))
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
-        for line in p.readlines():
-            print(line.rstrip())
-        os.chdir(wd)
-
-        ##linking
-        def link(target, install=True):
-            print('\033[94m linking {0}...\033[0m'.format(target))
-            cmd = 'make {0} {1}'.format('CC=gcc-4.7' if distutils.spawn.find_executable('gcc-4.7') else '', target)
-            if install:
-                 cmd += ' && make install'
-
-            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
-            for line in p.readlines():
-                print(line.rstrip())
-
-        os.chdir(os.path.join(path_src_C,  'simulation'))
-        link('simul')
-
-        if not simulation_only:
-            os.chdir(os.path.join(path_src_C,  'smc'))
-            link('smc')
-
-            os.chdir(os.path.join(path_src_C,  'simplex'))
-            link('simplex')
-
-            os.chdir(os.path.join(path_src_C,  'mif'))
-            link('mif')
-
-            os.chdir(os.path.join(path_src_C,  'pmcmc'))
-            link('pmcmc')
-
-            os.chdir(os.path.join(path_src_C,  'worker'))
-            link('worker')
-
-            os.chdir(os.path.join(path_src_C,  'kalman'))
-            link('kalman', False)
-            link('kmcmc', False)
-            link('ksimplex')
-
     ##########################
     ##write
     ##########################
@@ -273,7 +218,6 @@ class PlomModelBuilder(Context, Ccoder):
 
     def archive(self, replace=True):
         archive_model(self.path_rendered, replace)
-
 
 
 if __name__=="__main__":
@@ -303,5 +247,4 @@ if __name__=="__main__":
 
     model.prepare()
     model.write_settings()
-    model.code()
-#    model.compile()
+    model.render()

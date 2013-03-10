@@ -1,26 +1,55 @@
 CC=gcc
-CFLAGS=-fopenmp -std=gnu99 -Wall -O3 -I ../core/ -I ../simulation/ -I ../kalman/ -I ../pmcmc/ -DGSL_RANGE_CHECK_OFF
-LDFLAGS=-lm -lgsl -lgslcblas -ljansson -lzmq
+CFLAGS=-fopenmp -std=gnu99 -Wall -O3 -DGSL_RANGE_CHECK_OFF
+LDFLAGS=-lplomtpl -lplom -lm -lgsl -lgslcblas -ljansson -lzmq
 LIB=libplomtpl.a
 SRC= $(wildcard *.c)
 OBJ= $(SRC:.c=.o)
 LIBDIR=../lib
 
-all: $(EXEC) $(LIB)
+EXEC=simul simplex smc mif pmcmc kalman ksimplex kmcmc worker
+
+all: $(LIB)
+
+install: $(EXEC)
+	mv $(EXEC) ../../
 
 $(LIB): $(OBJ)
 	ar -rcs $@ $(OBJ)
 
-%.o: %.c plom.h simulation.h kalman.h pmcmc.h
+%.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-.PHONY: clean mrproper install
+simul: libplomtpl.a
+	$(CC) $(CFLAGS) -L. -o $@  -lplom_simul $(LDFLAGS) 
 
-install:
-	test -d $(LIBDIR) || mkdir $(LIBDIR); mv $(LIB) $(LIBDIR)/
+simplex: libplomtpl.a
+	$(CC) $(CFLAGS) -L. -o $@  -lplom_simplex $(LDFLAGS) 
+
+smc: libplomtpl.a
+	$(CC) $(CFLAGS) -L. -o $@  -lplom_smc $(LDFLAGS) 
+
+mif: libplomtpl.a
+	$(CC) $(CFLAGS) -L. -o $@  -lplom_mif $(LDFLAGS) 
+
+pmcmc: libplomtpl.a
+	$(CC) $(CFLAGS) -L. -o $@  -lplom_pmcmc $(LDFLAGS) 
+
+kalman: libplomtpl.a
+	$(CC) $(CFLAGS) -L. -o $@  -lplom_kalman $(LDFLAGS) 
+
+ksimplex: libplomtpl.a
+	$(CC) $(CFLAGS) -L. -o $@  -lplom_ksimplex $(LDFLAGS) 
+
+kmcmc: libplomtpl.a
+	$(CC) $(CFLAGS) -L. -o $@  -lplom_kmcmc $(LDFLAGS) 
+
+worker: libplomtpl.a
+	$(CC) $(CFLAGS) -L. -o $@  -lplom_worker $(LDFLAGS)
+
+.PHONY: clean
 
 clean:
-	rm *.o
+	rm *.o $(LIB)
 
-mrproper: clean
-	rm $(LIBDIR)/$(LIB)
+uninstall: clean
+	rm ../../{simul,simplex,smc,mif,pmcmc,kalman,ksimplex,kmcmc,worker}

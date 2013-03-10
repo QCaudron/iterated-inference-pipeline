@@ -1,11 +1,9 @@
 plom-sfi
 ========
 
-Simulation Forecasting and Inference methods for http://www.plom.io/
+**plug-and-play** inference methods in plain C for for http://www.plom.io/.
 
-- pmbuilder command line tools. The code lives in script/
-- Python code to generate model in plain C. The code lives in model_builder/
-- C code to perform simulation, forecasting and inference. This code lives in model_builder/C/ The C code contain generic part and model specific part that are rendered using model_builder
+The C code contain generic part and model specific part. Specific part are templated using the plom python package.
 
 ##Dependencies
 
@@ -21,7 +19,13 @@ Python:
 - SymPy: http://sympy.org/
 
 
-##Creating and installing the python package (containing the C code as package data)
+##Building the C libraries
+in model_builder/C:
+
+    make
+    make install
+
+##Creating and installing the python package
 
 At the root of the repo run:
 
@@ -32,26 +36,35 @@ At the root of the repo run:
 
 ##Usage
 
+###Generatic the model-specific code:
+
 From the command line, run:
 
     pmbuilder context.json process.json link.json -o path_model_coded_in_C
-
 
 In your script you can use:
 
     import json
     from plom.Builder import PlomModelBuilder
 
-    c = json.load(open('example/context.json'))
-    p = json.load(open('example/process.json'))
-    l = json.load(open('example/link.json'))
+    c = json.load(open('example/noise/context.json'))
+    p = json.load(open('example/noise/process.json'))
+    l = json.load(open('example/noise/link.json'))
 
     model = PlomModelBuilder('path_model_coded_in_C', c, p, l)
 
     model.prepare()
     model.write_settings()
-    model.code()
-    model.compile()
+    model.render()
+
+###Building the inference methods
+
+in path_model_coded_in_C/C/template:
+
+    make
+    make install
+    
+You now have all the inference methods binaries available in path_model_coded_in_C
 
 
 See http://www.plom.io/doc/modeler/intro for documentation on how to
@@ -73,7 +86,6 @@ a web browser.
 After having learned the basic structures involved in ```core```, we
 recommend to use call and caller graphs as an entry point to the
 sources.
-
 
 License
 =======

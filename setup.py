@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='plom',
-      version='0.3.0',
+      version='0.4.0',
       description='PLoM model builder for epidemiology',
       author='Sebastien Ballesteros',
       author_email='sebastien@plom.io',
@@ -11,14 +11,5 @@ setup(name='plom',
       packages=['plom'],
       package_dir={'plom': 'model_builder'},
       scripts=['scripts/pmbuilder'],
-      package_data={'plom': ['C/lib/*',
-                             'C/core/*',
-                             'C/templates/*',
-                             'C/kalman/*',
-                             'C/mif/*',
-                             'C/pmcmc/*',
-                             'C/simplex/*',
-                             'C/simulation/*',
-                             'C/smc/*',
-                             'C/worker/*']}
+      package_data={'plom': ['C/templates/*']}
 )
