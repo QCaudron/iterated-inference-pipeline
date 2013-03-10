@@ -1,7 +1,7 @@
 plom-sfi
 ========
 
-**plug-and-play** inference methods in plain C for for http://www.plom.io/.
+**Plug-and-play** inference methods in plain C for http://www.plom.io/.
 
 The C code contain generic part and model specific part. Specific part are templated using the plom python package.
 
@@ -36,7 +36,7 @@ At the root of the repo run:
 
 ##Usage
 
-###Generatic the model-specific code:
+###Generating the model-specific code:
 
 From the command line, run:
 
@@ -59,13 +59,12 @@ In your script you can use:
 
 ###Building the inference methods
 
-in path_model_coded_in_C/C/template:
+in path_model_coded_in_C/C/templates:
 
     make
     make install
     
-You now have all the inference methods binaries available in path_model_coded_in_C
-
+All the inference methods binaries are now available in path_model_coded_in_C
 
 See http://www.plom.io/doc/modeler/intro for documentation on how to
 use the generated binaries.
