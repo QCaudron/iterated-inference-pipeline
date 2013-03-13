@@ -32,7 +32,15 @@ double f_simplex_kalman(const gsl_vector *x, void *params)
     //reset dt
     p->p_X->dt = p->p_X->dt0;
 
-    double log_like = run_kalman(p->p_X, p->p_best, p->p_par, p->p_kalman_update, p->p_data, p->calc, f_prediction_ode,  NULL, 0);
+    double log_like;
+    if (check_IC(p->p_X, p->p_data) == 0) {
+	log_like = run_kalman(p->p_X, p->p_best, p->p_par, p->p_kalman_update, p->p_data, p->calc, f_prediction_ode,  NULL, 0);
+    } else { //new IC do not respect the constraint:
+#if FLAG_VERBOSE
+        print_err("IC constraint has not been respected: pop_IC>pop_size at t=0 minimal likelihood value has been assigned");
+#endif
+	log_like = p->smallest_log_like;
+    }
 
     // "-": simplex minimizes hence the "-"
     return - log_like;

@@ -72,8 +72,12 @@ double f_simplex(const gsl_vector *x, void *params)
             t0=t1;
 
         } /*end of for loop on n*/
-    }
-    else { //new IC do not respect the constraint:
+	
+	if (OPTION_PRIOR) {
+	    fitness += log_prob_prior(p_best, p_best->mean, p_best->var, p_data);
+	}
+
+    } else { //new IC do not respect the constraint:
 #if FLAG_VERBOSE
         print_err("IC constraint has not been respected: pop_IC>pop_size at t=0 minimal likelihood value has been assigned");
 #endif
@@ -85,9 +89,6 @@ double f_simplex(const gsl_vector *x, void *params)
         }
     }
 
-    if (OPTION_PRIOR) {
-        fitness += log_prob_prior(p_best, p_best->mean, p_best->var, p_data);
-    }
 
     if(!OPTION_LEAST_SQUARE) {
         fitness = -fitness; //GSL simplex algo minimizes so we multiply by -1 in case of log likelihood
