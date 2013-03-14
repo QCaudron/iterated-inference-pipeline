@@ -2,6 +2,8 @@
  "name": "my_id",
  "description": "my comment",
 
+ "disease": ["measles"],
+
  "population": [{"id": "city1__all",
                  "size_t0": 1e6,
                  "comment": "city 1, all age classes"},
