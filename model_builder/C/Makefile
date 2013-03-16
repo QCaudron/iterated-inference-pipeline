@@ -3,7 +3,7 @@ CFLAGS=-fopenmp -std=gnu99 -Wall -O3 -DGSL_RANGE_CHECK_OFF -I kalman -I pmcmc -I
 LIB=libplom.a libplom_smc.a libplom_simplex.a libplom_mif.a libplom_pmcmc.a libplom_kalman.a libplom_ksimplex.a libplom_kmcmc.a libplom_simul.a libplom_worker.a
 ALL_SRC= $(wildcard */*.c)
 ALL_SRC_NO_TEMPLATE=$(filter-out templates/core_template.c templates/kalman_template.c templates/simulation_template.c, $(ALL_SRC))
-SRC=$(filter-out smc/main.c simplex/main.c mif/main.c worker/main.c pmcmc/mainc.c kalman/main.c kalman/kmcmc_main.c kalman/simplex_kalmanc.c simulation/main.c, $(ALL_SRC_NO_TEMPLATE))
+SRC=$(filter-out smc/main.c simplex/main.c mif/main.c worker/main.c pmcmc/main.c kalman/main.c kalman/kmcmc_main.c kalman/simplex_kalman.c simulation/main.c, $(ALL_SRC_NO_TEMPLATE))
 INCLUDES=$(wildcard */*.h)
 OBJ= $(SRC:.c=.o)
 ALL_OBJ= $(ALL_SRC_NO_TEMPLATE:.c=.o)
