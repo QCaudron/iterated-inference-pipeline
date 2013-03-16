@@ -20,31 +20,31 @@ $(LIB): $(OBJ)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 simul: libplomtpl.a
-	$(CC) $(CFLAGS) -L. -o $@  -lplom_simul $(LDFLAGS) 
+	$(CC) $(CFLAGS) -L. -o $@  $(LDFLAGS) -lplom_simul 
 
 simplex: libplomtpl.a
-	$(CC) $(CFLAGS) -L. -o $@  -lplom_simplex $(LDFLAGS) 
+	$(CC) $(CFLAGS) -L. -o $@  $(LDFLAGS) -lplom_simplex
 
 smc: libplomtpl.a
-	$(CC) $(CFLAGS) -L. -o $@  -lplom_smc $(LDFLAGS) 
+	$(CC) $(CFLAGS) -L. -o $@  $(LDFLAGS) -lplom_smc 
 
 mif: libplomtpl.a
-	$(CC) $(CFLAGS) -L. -o $@  -lplom_mif $(LDFLAGS) 
+	$(CC) $(CFLAGS) -L. -o $@  $(LDFLAGS) -lplom_mif 
 
 pmcmc: libplomtpl.a
-	$(CC) $(CFLAGS) -L. -o $@  -lplom_pmcmc $(LDFLAGS) 
+	$(CC) $(CFLAGS) -L. -o $@  $(LDFLAGS) -lplom_pmcmc 
 
 kalman: libplomtpl.a
-	$(CC) $(CFLAGS) -L. -o $@  -lplom_kalman $(LDFLAGS) 
+	$(CC) $(CFLAGS) -L. -o $@  $(LDFLAGS) -lplom_kalman
 
 ksimplex: libplomtpl.a
-	$(CC) $(CFLAGS) -L. -o $@  -lplom_ksimplex $(LDFLAGS) 
+	$(CC) $(CFLAGS) -L. -o $@  $(LDFLAGS) -lplom_ksimplex
 
 kmcmc: libplomtpl.a
-	$(CC) $(CFLAGS) -L. -o $@  -lplom_kmcmc $(LDFLAGS) 
+	$(CC) $(CFLAGS) -L. -o $@  $(LDFLAGS) -lplom_kmcmc
 
 worker: libplomtpl.a
-	$(CC) $(CFLAGS) -L. -o $@  -lplom_worker $(LDFLAGS)
+	$(CC) $(CFLAGS) -L. -o $@  $(LDFLAGS) -lplom_worker 
 
 .PHONY: clean
 
