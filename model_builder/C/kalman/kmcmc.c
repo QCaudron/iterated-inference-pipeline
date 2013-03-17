@@ -101,7 +101,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
         // web interface
 #if FLAG_JSON
         if (p_mcmc_calc_data->has_cycled) {
-            update_walk_rates(p_best, NULL, NULL, p_data);
+            update_walk_rates(p_best, p_data);
             update_to_be_estimated(p_best);
         }
 #endif
