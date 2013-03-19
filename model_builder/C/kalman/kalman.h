@@ -60,25 +60,6 @@ struct s_kalman_specific_data
 };
 
 
-struct s_kalman_update
-{
-    gsl_vector *xk;  /**< [N_KAL] concatenation of non-overlapping components of X->proj, X->obs and X->drift */
-    gsl_vector *kt;  /**< [N_KAL] Kalman Gain vector */
-    gsl_vector *ht;  /**< [N_KAL] Gradient of the observation function */
-
-    double sc_st;         /**< Innovation or residual covariance */
-    double sc_pred_error; /**< Innovation or measurement residual */
-    double sc_rt;         /**< observation process variance */
-
-    //temporary variables
-    gsl_vector *v_n_kal;  /**< temporary vector of size N_KAL */
-    gsl_matrix *M_symm_n_kal;  /**< temporary symmetric matrix of size N_KAL */
-    gsl_matrix *M_symm_n_kal2;  /**< another temporary symmetric matrix of size N_KAL */
-
-    gsl_eigen_symmv_workspace *w_eigen_vv_nkal;  /**< workspace to compute eigen values and eigen vector for symmetric matrix of size N_KAL */
-    gsl_vector *eval_nkal; /**< eigen values of symmetric matrix of size N_KAL  */
-    gsl_matrix *evec_nkal; /**<eigen vector of of symmetric matrix of size N_KAL */
-};
 
 
 struct s_kalman

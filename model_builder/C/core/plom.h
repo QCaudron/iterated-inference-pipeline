@@ -73,7 +73,7 @@ enum plom_noises_off {PLOM_NO_DEM_STO = 1 << 0, PLOM_NO_ENV_STO = 1 << 1, PLOM_N
 #define FLAG_DEBUG 0
 #define FLAG_VERBOSE 1
 #define FLAG_WARNING 0
-#define FLAG_JSON 1 /**< webApp */
+#define FLAG_JSON 0 /**< webApp */
 
 #define PLOM_EPS_ABS 1e-6 /**< absolute error control for ODEs*/
 #define PLOM_EPS_REL 1e-3 /**< relative error control for ODEs*/
@@ -448,6 +448,27 @@ struct s_hat /* ([N_DATA]) */
     double **drift_95;     /**< [p_data->p_it_only_drift->nbtot][2] 5% and 95% quantile of the estimates of the diffusion */
 };
 
+struct s_kalman_update
+{
+    gsl_vector *xk;  /**< [N_KAL] concatenation of non-overlapping components of X->proj, X->obs and X->drift */
+    gsl_vector *kt;  /**< [N_KAL] Kalman Gain vector */
+    gsl_vector *ht;  /**< [N_KAL] Gradient of the observation function */
+
+    double sc_st;         /**< Innovation or residual covariance */
+    double sc_pred_error; /**< Innovation or measurement residual */
+    double sc_rt;         /**< observation process variance */
+
+    //temporary variables
+    gsl_vector *v_n_kal;  /**< temporary vector of size N_KAL */
+    gsl_matrix *M_symm_n_kal;  /**< temporary symmetric matrix of size N_KAL */
+    gsl_matrix *M_symm_n_kal2;  /**< another temporary symmetric matrix of size N_KAL */
+
+    gsl_eigen_symmv_workspace *w_eigen_vv_nkal;  /**< workspace to compute eigen values and eigen vector for symmetric matrix of size N_KAL */
+    gsl_vector *eval_nkal; /**< eigen values of symmetric matrix of size N_KAL  */
+    gsl_matrix *evec_nkal; /**<eigen vector of of symmetric matrix of size N_KAL */
+};
+
+
 
 
 /**
@@ -605,6 +626,7 @@ void print_err(char *msg);
 void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int j_or_m, double time);
 void print_best(FILE *p_file_best, int m, struct s_best *p_best, struct s_data *p_data, double log_like);
 void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s_data *p_data, int n);
+void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_kalman_update *p, gsl_matrix *Ct, int n);
 void print_hat(FILE *p_file, struct s_hat **D_p_hat, struct s_data *p_data);
 void print_par(struct s_par *p_par, struct s_data *p_data);
 void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X **J_p_X, double llike_t, double ess_t, int time, int is_p_par_cst);

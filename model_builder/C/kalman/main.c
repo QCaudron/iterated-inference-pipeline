@@ -74,6 +74,7 @@ int main(int argc, char *argv[])
 
 
     static struct option long_options[] = {
+        {"traj", no_argument,       &OPTION_TRAJ, 1},
 	{"no_dem_sto", no_argument,       0, 'x'},
 	{"no_env_sto", no_argument,       0, 'y'},
 	{"no_drift",   no_argument,       0, 'z'},

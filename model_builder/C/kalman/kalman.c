@@ -281,10 +281,15 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 
             like = ekf_update(p_kalman_update, &Ct.matrix);
             log_lik_temp += log(like);
+
+	   
         }
 
         //echo back the change on xk to p_X->proj
         xk2X(p_X, p_kalman_update->xk, p_data);
+
+	FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
+	print_p_hat_ekf(p_file_hat, p_data, p_kalman_update, &Ct.matrix,n);
 
         log_lik += log_lik_temp;
         t0=t1;

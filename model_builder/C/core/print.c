@@ -319,6 +319,10 @@ void print_X(FILE *p_file_X, struct s_par **J_p_par, struct s_X **J_p_X, struct 
 }
 
 
+
+
+
+
 void print_best(FILE *p_file_best, int m, struct s_best *p_best, struct s_data *p_data, double log_like)
 {
     int i, k;
@@ -464,7 +468,138 @@ void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s
     fprintf(p_file, "\n");
 #endif
 
+
+    /* drift */
+    for(i=0; i< p_data->p_it_only_drift->nbtot; i++) {
+        x = p_hat->drift_95[i][0];
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,",%g,", x);
+#endif
+
+        x = p_hat->drift[i];
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g,", x);
+#endif
+
+        x = p_hat->drift_95[i][1];
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g", x);
+#endif
+    }
+
+
+    fprintf(p_file, "\n");
+
 }
+
+
+
+
+
+
+
+
+void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_kalman_update *p, gsl_matrix *Ct, int n)
+{
+    int i;
+    double x;
+
+#if FLAG_JSON
+    json_t *json_print_n = json_array();
+    json_array_append_new(json_print_n, json_integer(n+1));
+#else
+    fprintf(p_file, "%d,", n+1);
+#endif
+
+    /* par_sv */
+    for(i=0; i< N_PAR_SV*N_CAC; i++) {
+      x = gsl_vector_get(p->xk,i);
+      x = gsl_max(0,gsl_vector_get(p->xk,i) - gsl_matrix_get(Ct, i, i));
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g,", x);
+#endif
+
+        x = gsl_vector_get(p->xk,i);
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g,", x);
+#endif
+
+         x = gsl_min(1,gsl_vector_get(p->xk,i) + gsl_matrix_get(Ct, i, i));
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g,", x);
+#endif
+    }
+
+
+    /* ts */
+    for(i= N_PAR_SV*N_CAC; i< N_PAR_SV*N_CAC + N_TS; i++) {
+        
+      	x = gsl_max(0,gsl_vector_get(p->xk,i) - gsl_matrix_get(Ct, i, i));
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g,", x);
+#endif
+
+	x = gsl_vector_get(p->xk,i);
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g,", x);
+#endif
+
+	x = gsl_min(1,gsl_vector_get(p->xk,i) + gsl_matrix_get(Ct, i, i));
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g%s", x, (i< (N_TS-1)) ? ",": "");
+#endif
+    }
+
+
+    /* drift */
+    for(i=N_PAR_SV*N_CAC + N_TS; i<N_PAR_SV*N_CAC+ N_TS + p_data->p_it_only_drift->nbtot; i++) {
+        
+	x = gsl_max(0,gsl_vector_get(p->xk,i) - gsl_matrix_get(Ct, i, i));
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,",%g,", x);
+#endif
+
+	x = gsl_vector_get(p->xk,i);
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g,", x);
+#endif
+
+	x = gsl_min(1,gsl_vector_get(p->xk,i) + gsl_matrix_get(Ct, i, i));
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g", x);
+#endif
+    }
+
+
+    fprintf(p_file, "\n");
+
+}
+
+
 
 
 
@@ -498,7 +633,6 @@ void print_hat(FILE *p_file, struct s_hat **D_p_hat, struct s_data *p_data)
 #endif
 
 }
-
 
 
 
