@@ -176,7 +176,7 @@ void reset_inc_cov(gsl_matrix *Ct)
 /**
  *   run an extended Kalman filter and returns the log likelihood
  */
-double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kalman_update *p_kalman_update, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, FILE *p_file_X, int m)
+double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kalman_update *p_kalman_update, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, FILE *p_file_X, int m, FILE *p_file_pred_res)
 {
     // loops indices
     int n, nn;		// data and nonan data indices
@@ -262,6 +262,10 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
         //change the outcome but makes the code more robust to varying
         //numbers of observations.
 
+
+	print_prediction_residuals_ekf(p_file_pred_res, p_par, p_data, calc[0], p_X, p_kalman_update, &Ct.matrix, t1);
+        
+
         for(ts=0; ts< data_ind[n]->n_nonan; ts++) {
 
             int ts_nonan = data_ind[n]->ind_nonan[ts];
@@ -291,7 +295,12 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 	FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
 	print_p_hat_ekf(p_file_hat, p_data, p_kalman_update, &Ct.matrix,n);
 
+
+
         log_lik += log_lik_temp;
+
+
+
         t0=t1;
 
     } // end of for loop on n

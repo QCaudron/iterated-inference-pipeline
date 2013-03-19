@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
         {0, 0, 0, 0}
     };
 
-
+    int output_pred_res = 1 ;
     int option_index = 0;
     while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:b", long_options, &option_index)) != -1) {
         switch (ch) {
@@ -140,6 +140,9 @@ int main(int argc, char *argv[])
             break;
         case 'b':
             output_best = 0;
+            break;
+	case 'r':
+            output_pred_res = 0;
             break;
 
         case '?':
@@ -194,8 +197,10 @@ int main(int argc, char *argv[])
     if(OPTION_TRAJ) {
         p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_kalman->p_data);
     }
+    FILE *p_file_pred_res = (output_pred_res==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals, p_kalman->p_data): NULL;
 
-    double log_like = run_kalman(p_kalman->p_X, p_kalman->p_best, p_kalman->p_par, p_kalman->p_kalman_update, p_kalman->p_data, p_kalman->calc, f_prediction_ode, p_file_X, 0);
+
+    double log_like = run_kalman(p_kalman->p_X, p_kalman->p_best, p_kalman->p_par, p_kalman->p_kalman_update, p_kalman->p_data, p_kalman->calc, f_prediction_ode, p_file_X, 0,p_file_pred_res);
 
     if (OPTION_TRAJ) {
         sfr_fclose(p_file_X);

@@ -95,7 +95,7 @@ void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data);
 double get_total_pop(double *X);
 double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **routers);
 void reset_inc_cov(gsl_matrix *Ct);
-double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kalman_update *p_kalman_update, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, FILE *p_file_X, int m);
+double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kalman_update *p_kalman_update, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, FILE *p_file_X, int m, FILE *p_file_pred_res);
 
 /* ekf.c */
 void check_and_correct_Ct(gsl_matrix *Ct, struct s_kalman_update *p);

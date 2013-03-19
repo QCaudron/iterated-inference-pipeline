@@ -721,10 +721,10 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
 
 
 #if FLAG_JSON
-    json_array_append_new(json_print, json_real(ess_t));
     json_array_append_new(json_print, json_real(llike_t));
+    json_array_append_new(json_print, json_real(ess_t));
 #else
-    fprintf(p_file_pred_res,"%g,%g\n", ess_t, llike_t);
+    fprintf(p_file_pred_res,"%g,%g\n", llike_t, ess_t);
 #endif
 
 
@@ -736,6 +736,70 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
 
 
 }
+
+
+
+void print_prediction_residuals_ekf(FILE *p_file_pred_res, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X *p_X, struct s_kalman_update *p, gsl_matrix *Ct, int time)
+{
+    int ts,j;
+    int zero = 0;
+
+    double mean_state;
+    double var_obs;
+    double var_state;
+
+    double y;
+    double res;
+
+#if FLAG_JSON
+    json_t *root;
+    json_t *json_print = json_array();
+#endif
+
+#if FLAG_JSON
+   json_array_append_new(json_print, json_integer(time));
+#else
+   fprintf(p_file_pred_res,"%d,", time);
+#endif
+
+
+
+   for(ts=0; ts<N_TS; ts++) {
+
+     var_obs = obs_var(p_X->obs[ts], p_par, p_data, p_calc, ts);
+        
+     y = p_data->data[ p_calc->current_nn ][ts];
+
+     res = (y - gsl_vector_get(p->xk,N_PAR_SV*N_CAC+ts))/sqrt( gsl_matrix_get(Ct,N_PAR_SV*N_CAC+ts,N_PAR_SV*N_CAC+ts)  + var_obs);
+
+#if FLAG_JSON
+     json_array_append_new(json_print, json_real(mean_state));
+     json_array_append_new(json_print, json_real(res));
+#else
+     if (ts == N_TS) {
+       fprintf(p_file_pred_res,"%g,%g",  gsl_vector_get(p->xk,N_PAR_SV*N_CAC+ts), res);
+     } else {
+       fprintf(p_file_pred_res,"%g,%g,",  gsl_vector_get(p->xk,N_PAR_SV*N_CAC+ts), res);
+     };
+
+#endif
+   }
+
+
+    fprintf(p_file_pred_res,"\n");
+
+    
+
+#if FLAG_JSON
+    root = json_pack("{s,s,s,o}", "flag", "pred_res", "msg", json_print);
+    json_dumpf(root, stdout, JSON_COMPACT); printf("\n");
+    json_decref(root);
+#endif
+
+
+}
+
+
 
 
 void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_data, unsigned int **select, double *weights, unsigned int *times, struct s_calc *p_calc, int m)
