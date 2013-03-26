@@ -59,10 +59,9 @@ int main(int argc, char *argv[])
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(LIKE_MIN);
-    int output_best = 1, output_hat = 1, output_pred_res =1;
+    enum plom_print print_opt = PLOM_PRINT_BEST | PLOM_PRINT_HAT | PLOM_PRINT_PRED_RES;
 
     // options
-    OPTION_TRAJ = 0;
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
 
@@ -77,7 +76,7 @@ int main(int argc, char *argv[])
 
 
     static struct option long_options[] = {
-        {"traj", no_argument,       &OPTION_TRAJ, 1},
+	{"traj",       no_argument,       0, 'j'},
 	{"no_dem_sto", no_argument,       0, 'x'},
 	{"no_env_sto", no_argument,       0, 'y'},
 	{"no_drift",   no_argument,       0, 'z'},
@@ -104,7 +103,7 @@ int main(int argc, char *argv[])
     };
 
     int option_index = 0;
-    while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:b", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:jbhr", long_options, &option_index)) != -1) {
         switch (ch) {
         case 0:
             break;
@@ -143,14 +142,17 @@ int main(int argc, char *argv[])
             LIKE_MIN = atof(optarg);
             LOG_LIKE_MIN = log(LIKE_MIN);
             break;
+        case 'j':
+	    print_opt |= PLOM_PRINT_X;
+            break;
         case 'b':
-            output_best = 0;
+	    print_opt &= ~PLOM_PRINT_BEST;
             break;
         case 'h':
-            output_hat = 0;
+	    print_opt &= ~PLOM_PRINT_HAT;
             break;
         case 'r':
-            output_pred_res = 0;
+	    print_opt &= ~PLOM_PRINT_PRED_RES;
             break;
 
         case '?':
@@ -200,22 +202,23 @@ int main(int argc, char *argv[])
     prop2Xpop_size(p_kalman->p_X, p_kalman->p_data);
     theta_driftIC2Xdrift(p_kalman->p_X, p_kalman->p_best->mean, p_kalman->p_data);
 
-    FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_kalman->p_data): NULL;
-    FILE *p_file_pred_res = (output_pred_res==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals_ekf, p_kalman->p_data): NULL;
-    FILE *p_file_hat = (output_hat==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_kalman->p_data): NULL;
+    FILE *p_file_X = (print_opt & PLOM_PRINT_X) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_kalman->p_data): NULL;
+    FILE *p_file_hat = (print_opt & PLOM_PRINT_HAT) ? sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_kalman->p_data): NULL;
+    FILE *p_file_pred_res = (print_opt & PLOM_PRINT_PRED_RES) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals_ekf, p_kalman->p_data): NULL;
 
-    double log_like = run_kalman(p_kalman->p_X, p_kalman->p_best, p_kalman->p_par, p_kalman->p_kalman_update, p_kalman->p_data, p_kalman->calc, f_prediction_ode, p_file_X, 0, p_file_pred_res);
+    double log_like = run_kalman(p_kalman->p_X, p_kalman->p_best, p_kalman->p_par, p_kalman->p_kalman_update, p_kalman->p_data, p_kalman->calc, f_prediction_ode, 0, p_file_X, p_file_hat, p_file_pred_res, print_opt);
 
-    if (p_file_X) {
+
+    if (print_opt & PLOM_PRINT_X) {
         sfr_fclose(p_file_X);
     }
 
-    if (p_file_pred_res) {
-        sfr_fclose(p_file_pred_res);
+    if (print_opt & PLOM_PRINT_HAT) {
+        sfr_fclose(p_file_hat);
     }
 
-    if (p_file_hat) {
-        sfr_fclose(p_file_hat);
+    if (print_opt & PLOM_PRINT_PRED_RES) {
+        sfr_fclose(p_file_pred_res);
     }
 
 
@@ -226,7 +229,7 @@ int main(int argc, char *argv[])
     print_log(str);
 #endif
 
-    if(output_best) {
+    if (print_opt & PLOM_PRINT_BEST) {
         FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_kalman->p_data);
         print_best(p_file_best, 0, p_kalman->p_best, p_kalman->p_data, log_like);
         sfr_fclose(p_file_best);

@@ -207,13 +207,13 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
              struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like,
              struct s_data *p_data, struct s_calc **calc,
              plom_f_pred_t f_pred,
-             int option_filter, FILE *p_file_X, FILE *p_file_pred_res
+             int option_filter, FILE *p_file_X, FILE *p_file_hat, FILE *p_file_pred_res,
+	     const enum plom_print print_opt
              )
 {
     int j, n, nn, nnp1;
     int t0,t1;
     int thread_id;
-    double invJ = 1.0 / J;
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
     t0=0;
@@ -223,7 +223,7 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
     for(n=0; n<N_DATA_NONAN; n++) {
 
 #if FLAG_JSON //for the webApp, we block at every iterations to prevent the client to be saturated with msg
-        if (OPTION_TRAJ) {
+        if (print_opt & PLOM_PRINT_HAT) {
             if(n % 10 == 0){
                 block();
             }
@@ -257,12 +257,16 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
                 }
             }
 
-            if (p_file_X || (OPTION_TRAJ && FLAG_JSON)) {
+            if (print_opt & PLOM_PRINT_X) {
                 print_X(p_file_X, &p_par, D_J_p_X[nnp1], p_data, calc[0], (double) nnp1, 1, 0, 0);
             }
 	    
-	    if( nnp1 < t1 ){
+	    if(nnp1 < t1){
 		compute_hat_nn(D_J_p_X[nnp1], p_par, p_data, calc, D_p_hat[nn]);		
+
+		if (print_opt & PLOM_PRINT_HAT) {
+		    print_p_hat(p_file_hat, NULL, D_p_hat[nn], p_data, nn);
+		}
 	    }
 
         } /* end for on nn */
@@ -278,13 +282,17 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
 
             resample_X(p_like->select[n], &(D_J_p_X[t1]), &(D_J_p_X_tmp[t1]), p_data);
 
-            if (p_file_pred_res) {
+	    if (print_opt & PLOM_PRINT_PRED_RES) {
                 print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[t1], p_like->Llike_best_n, p_like->ess_n, t1, 1);
             }
         } else {
             //we do not fiter. hat wil be used to get mean and 95% CI of J independant realisations
 	    compute_hat_nn(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1]);
         }
+
+	if (print_opt & PLOM_PRINT_HAT) {
+	    print_p_hat(p_file_hat, NULL, D_p_hat[t1-1], p_data, t1-1);
+	}
 
         t0=t1;
 

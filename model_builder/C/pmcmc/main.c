@@ -88,21 +88,20 @@ int main(int argc, char *argv[])
     int n_threads = omp_get_max_threads();
     OPTION_PIPELINE = 0;
     OPTION_FULL_UPDATE = 0;
-    OPTION_TRAJ = 0;
-    static int OPTION_ACC = 0;
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
+    enum plom_print print_opt = 0;
 
     while (1) {
         static struct option long_options[] =
             {
                 /* These options set a flag. */
-                {"traj", no_argument,       &OPTION_TRAJ, 1},
-                {"acc", no_argument,       &OPTION_ACC, 1},
                 {"full", no_argument, &OPTION_FULL_UPDATE, 1},
 
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
+                {"traj",       no_argument,       0, 'j'},
+                {"acc",        no_argument,       0, 'r'},
                 {"no_dem_sto", no_argument,       0, 'x'},
                 {"no_env_sto", no_argument,       0, 'y'},
                 {"no_drift",   no_argument,       0, 'z'},
@@ -135,7 +134,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:Ci:J:l:M:p:c:P:ZS:E:a:f:g:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "rjxyzs:v:w:Ci:J:l:M:p:c:P:ZS:E:a:f:g:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -218,6 +217,12 @@ int main(int argc, char *argv[])
         case 'M':
             M = atoi(optarg);
             break;
+        case 'j':
+	    print_opt |= PLOM_PRINT_X_SMOOTH;
+            break;
+        case 'r':
+	    print_opt |= PLOM_PRINT_ACC;
+            break;
 
         case '?':
             /* getopt_long already printed an error message. */
@@ -261,7 +266,8 @@ int main(int argc, char *argv[])
     gsl_vector_memcpy(p_pmcmc->p_best->proposed, p_pmcmc->p_best->mean);
 
 
-    pmcmc(p_pmcmc->p_best, p_pmcmc->D_J_p_X, p_pmcmc->D_J_p_X_tmp, p_pmcmc->p_par, &(p_pmcmc->D_p_hat_prev), &(p_pmcmc->D_p_hat_new), p_pmcmc->D_p_hat_best, p_pmcmc->p_like, p_pmcmc->p_data, p_pmcmc->calc, get_f_pred(implementation, noises_off), OPTION_ACC);
+    pmcmc(p_pmcmc->p_best, p_pmcmc->D_J_p_X, p_pmcmc->D_J_p_X_tmp, p_pmcmc->p_par, &(p_pmcmc->D_p_hat_prev), &(p_pmcmc->D_p_hat_new), p_pmcmc->D_p_hat_best, p_pmcmc->p_like, p_pmcmc->p_data, p_pmcmc->calc, get_f_pred(implementation, noises_off), print_opt);
+
 
     FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_pmcmc->p_data);
     print_hat(p_file_hat, p_pmcmc->D_p_hat_best, p_pmcmc->p_data);

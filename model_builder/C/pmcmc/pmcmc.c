@@ -23,18 +23,17 @@
  */
 void run_propag(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_new,
                 struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred,
-                void *sender, void *receiver, void *controller)
+                void *sender, void *receiver, void *controller, const enum plom_print print_opt)
 {
-
     if (OPTION_PIPELINE) {
 	run_SMC_zmq(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_pred, JCHUNK, sender, receiver, controller);
     } else {
-	run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_pred, 1, NULL, NULL);
+	run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_pred, 1, NULL, NULL, NULL, print_opt);
     }
 }
 
 
-void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_prev, struct s_hat ***D_p_hat_new, struct s_hat **D_p_hat_best, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int OPTION_ACC)
+void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_prev, struct s_hat ***D_p_hat_new, struct s_hat **D_p_hat_best, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, const enum plom_print print_opt)
 {
     int m;              // iteration index
     int is_accepted;    // boolean
@@ -57,12 +56,12 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     // open output files
     FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
     FILE *p_file_X = NULL;
-    if (OPTION_TRAJ){
+    if (print_opt & PLOM_PRINT_X_SMOOTH) {
         p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
     }
 
     FILE *p_file_acc = NULL;
-    if (OPTION_ACC){
+    if (print_opt & PLOM_PRINT_ACC){
         p_file_acc = sfr_fopen(SFR_PATH, GENERAL_ID, "acc", "w", header_acceptance_rates, p_data);
     }
 
@@ -109,11 +108,11 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     replicate_J_p_X_0(D_J_p_X[0], p_data);
 
     //run SMC
-    run_propag(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat_new, p_like, p_data, calc, f_pred, sender, receiver, controller);
+    run_propag(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat_new, p_like, p_data, calc, f_pred, sender, receiver, controller, print_opt);
 
     p_like->Llike_new = p_like->Llike_best;
 
-    if (OPTION_TRAJ) {
+    if (print_opt & PLOM_PRINT_X_SMOOTH) {
         sample_traj_and_print(p_file_X, D_J_p_X, p_par, p_data, p_like->select, p_like->weights, p_data->times, calc[0], 0);
     }
 
@@ -163,7 +162,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         back_transform_theta2par(p_par, p_best->proposed, p_data->p_it_par_proc_par_obs_no_drift, p_data);
 
         //run SMC
-        run_propag(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat_new, p_like, p_data, calc, f_pred, sender, receiver, controller);
+        run_propag(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat_new, p_like, p_data, calc, f_pred, sender, receiver, controller, print_opt);
 
         p_like->Llike_new = p_like->Llike_best;
 
@@ -173,7 +172,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 
         if (is_accepted) {
             //we print only the accepted theta to save disk space
-            if (OPTION_TRAJ) {
+	    if (print_opt & PLOM_PRINT_X_SMOOTH) {
                 sample_traj_and_print(p_file_X, D_J_p_X, p_par, p_data, p_like->select, p_like->weights, p_data->times, calc[0], m);
             }
             p_like->Llike_prev = p_like->Llike_new;
@@ -204,7 +203,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 
             print_best(p_file_best, p_mcmc_calc_data->m_full_iteration, p_best, p_data, p_like->Llike_prev);
 
-            if (OPTION_ACC) {
+	    if (print_opt & PLOM_PRINT_ACC) {
 		print_acceptance_rates(p_file_acc, p_mcmc_calc_data, p_mcmc_calc_data->m_full_iteration);
 	    }
 
@@ -222,10 +221,10 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 
     sfr_fclose(p_file_best);
 
-    if (OPTION_TRAJ) {
+    if (print_opt & PLOM_PRINT_X_SMOOTH) {
         sfr_fclose(p_file_X);
     }
-    if (OPTION_ACC) {
+    if (print_opt & PLOM_PRINT_ACC) {
         sfr_fclose(p_file_acc);
     }
 

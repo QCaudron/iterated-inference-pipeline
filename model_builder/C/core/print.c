@@ -514,14 +514,13 @@ void print_par(struct s_par *p_par, struct s_data *p_data)
         }
         printf("\n");
     }
-
 }
 
 /**
  * computes standardized prediction residuals
  * res = (data-one_set_ahead_pred)/sqrt(var_one_step_ahead +var_obs)
  *
- * AND print log likelihood at time t and effective sample size.
+ * AND effective sample size.
  *
  * Note that this function is designed to be called only N_DATA
  * times by opposed to N_DATA_NONAN (ie when there is information)
@@ -574,7 +573,6 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
         var_obs /= ((double) J);
 
         y = p_data->data[ p_calc->current_nn ][ts];
-
         res = (y - pred)/sqrt(var_state + var_obs);
 
 #if FLAG_JSON

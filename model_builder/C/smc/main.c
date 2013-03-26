@@ -63,14 +63,12 @@ int main(int argc, char *argv[])
         "--help             print the usage on stdout\n";
 
     int filter = 1;
-    int output_best = 1, output_hat = 1, output_pred_res =1;
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
-
-    
-    OPTION_TRAJ = 0;
+    enum plom_print print_opt = PLOM_PRINT_BEST | PLOM_PRINT_HAT | PLOM_PRINT_PRED_RES;
+   
     OPTION_PRIOR = 0;
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
@@ -83,9 +81,8 @@ int main(int argc, char *argv[])
     while (1) {
         static struct option long_options[] =
             {
-                /* These options set a flag. */
-                {"traj", no_argument,       &OPTION_TRAJ, 1},
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
+                {"traj",       no_argument,       0, 'j'},
                 {"no_dem_sto", no_argument,       0, 'x'},
                 {"no_env_sto", no_argument,       0, 'y'},
                 {"no_drift",   no_argument,       0, 'z'},
@@ -111,7 +108,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:p:i:J:l:tbhrP:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:p:i:J:l:tjbhrP:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -126,13 +123,13 @@ int main(int argc, char *argv[])
             break;
 
         case 'x':
-            noises_off = noises_off | PLOM_NO_DEM_STO;
+            noises_off |= PLOM_NO_DEM_STO;
             break;
         case 'y':
-            noises_off = noises_off | PLOM_NO_ENV_STO;
+            noises_off |= PLOM_NO_ENV_STO;
             break;
         case 'z':
-            noises_off = noises_off | PLOM_NO_DRIFT;
+            noises_off |= PLOM_NO_DRIFT;
             break;
 
         case 's':
@@ -169,14 +166,17 @@ int main(int argc, char *argv[])
             LIKE_MIN = atof(optarg);
             LOG_LIKE_MIN = log(LIKE_MIN);
             break;
+        case 'j':
+	    print_opt |= PLOM_PRINT_X;
+            break;
         case 'b':
-            output_best = 0;
+	    print_opt &= ~PLOM_PRINT_BEST;
             break;
         case 'h':
-            output_hat = 0;
+	    print_opt &= ~PLOM_PRINT_HAT;
             break;
         case 'r':
-            output_pred_res = 0;
+	    print_opt &= ~PLOM_PRINT_PRED_RES;
             break;
 
         case '?':
@@ -226,9 +226,9 @@ int main(int argc, char *argv[])
 
     struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p_data);
 
-    FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
-    FILE *p_file_pred_res = (output_pred_res==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals, p_data): NULL;
-
+    FILE *p_file_X = (print_opt & PLOM_PRINT_X) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
+    FILE *p_file_hat = (print_opt & PLOM_PRINT_HAT) ? sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data): NULL;
+    FILE *p_file_pred_res = (print_opt & PLOM_PRINT_PRED_RES) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals, p_data): NULL;
 
 #if FLAG_VERBOSE
     snprintf(str, STR_BUFFSIZE, "Starting Plom-smc with the following options: i = %d, J = %d, LIKE_MIN = %g, N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, n_threads);
@@ -247,13 +247,11 @@ int main(int argc, char *argv[])
 
     replicate_J_p_X_0(D_J_p_X[0], p_data);
 
-    run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, get_f_pred(implementation, noises_off), filter, p_file_X, p_file_pred_res);
-
+    run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, get_f_pred(implementation, noises_off), filter, p_file_X, p_file_hat, p_file_pred_res, print_opt);
 
     if (OPTION_PRIOR) {
         p_like->Llike_best += log_prob_prior(p_best, p_best->mean, p_best->var, p_data);
     }
-
 
 #if FLAG_VERBOSE
     time_end = s_clock();
@@ -267,21 +265,19 @@ int main(int argc, char *argv[])
     print_log(str);
 #endif
 
-    if (p_file_X) {
+    if (print_opt & PLOM_PRINT_X) {
         sfr_fclose(p_file_X);
     }
 
-    if (p_file_pred_res) {
-        sfr_fclose(p_file_pred_res);
-    }
-
-    if (output_hat) {
-        FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
-        print_hat(p_file_hat, D_p_hat, p_data);
+    if (print_opt & PLOM_PRINT_HAT) {
         sfr_fclose(p_file_hat);
     }
 
-    if (output_best) {
+    if (print_opt & PLOM_PRINT_PRED_RES) {
+        sfr_fclose(p_file_pred_res);
+    }
+
+    if (print_opt & PLOM_PRINT_BEST) {
         FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
         print_best(p_file_best, 0, p_best, p_data, p_like->Llike_best);
         sfr_fclose(p_file_best);

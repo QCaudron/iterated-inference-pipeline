@@ -176,7 +176,7 @@ void reset_inc_cov(gsl_matrix *Ct)
 /**
  *   run an extended Kalman filter and returns the log likelihood
  */
-double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kalman_update *p_kalman_update, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, FILE *p_file_X, int m, FILE *p_file_pred_res)
+double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kalman_update *p_kalman_update, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int m, FILE *p_file_X, FILE *p_file_hat, FILE *p_file_pred_res, const enum plom_print print_opt)
 {
     // loops indices
     int n, nn;		// data and nonan data indices
@@ -244,9 +244,17 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 
             proj2obs(p_X, p_data);
 
-            if (OPTION_TRAJ) {
+            if (print_opt & PLOM_PRINT_X) {
                 print_X(p_file_X, &p_par, &p_X, p_data, calc[0], nn+1, 1, 1, m);
             }
+
+	    if (print_opt & PLOM_PRINT_HAT) {
+		if( (nn+1) < t1){
+		    X2xk(p_kalman_update->xk, p_X, p_data);
+		    print_p_hat_ekf(p_file_hat, p_data, p_kalman_update, &Ct.matrix, nn);
+		}
+	    }
+
         } // end of for loop on nn
 
         // transform p_X to x_k
@@ -257,17 +265,14 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
         log_lik_temp = 0.0;
 	int current_nn = calc[0]->current_nn; //nn-1
 
-
         //Observations are assimilated one by one, which does not
         //change the outcome but makes the code more robust to varying
         //numbers of observations.
-
-
-	print_prediction_residuals_ekf(p_file_pred_res, p_par, p_data, calc[0], p_X, p_kalman_update, &Ct.matrix, t1);
-        
-
+	if (print_opt & PLOM_PRINT_PRED_RES) {
+	    print_prediction_residuals_ekf(p_file_pred_res, p_par, p_data, calc[0], p_X, p_kalman_update, &Ct.matrix, t1);
+	}
+    
         for(ts=0; ts< data_ind[n]->n_nonan; ts++) {
-
             int ts_nonan = data_ind[n]->ind_nonan[ts];
 	    double xk_t_ts = gsl_vector_get(p_kalman_update->xk, N_PAR_SV*N_CAC + ts_nonan);
 
@@ -284,22 +289,16 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
                                  &Ct.matrix); 
 
             like = ekf_update(p_kalman_update, &Ct.matrix);
-            log_lik_temp += log(like);
-
-	   
+            log_lik_temp += log(like);	  
         }
 
         //echo back the change on xk to p_X->proj
         xk2X(p_X, p_kalman_update->xk, p_data);
 
-	FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
-	print_p_hat_ekf(p_file_hat, p_data, p_kalman_update, &Ct.matrix,n);
-
-
-
+	if (print_opt & PLOM_PRINT_HAT) {
+	    print_p_hat_ekf(p_file_hat, p_data, p_kalman_update, &Ct.matrix, t1-1);
+	}
         log_lik += log_lik_temp;
-
-
 
         t0=t1;
 

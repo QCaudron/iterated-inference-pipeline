@@ -62,7 +62,7 @@
 enum plom_implementations {PLOM_ODE, PLOM_SDE, PLOM_PSR};
 enum plom_noises_off {PLOM_NO_DEM_STO = 1 << 0, PLOM_NO_ENV_STO = 1 << 1, PLOM_NO_DRIFT = 1 << 2 }; //several noises can be turned off
 
-enum plom_print {PRINT_BEST = 1 << 0, PRINT_X = 1 << 1, PRINT_HAT = 1 << 2, PRINT_PRED_RES = 1 << 3 };
+enum plom_print {PLOM_PRINT_BEST = 1 << 0, PLOM_PRINT_X = 1 << 1, PLOM_PRINT_HAT = 1 << 2, PLOM_PRINT_PRED_RES = 1 << 3, PLOM_PRINT_X_SMOOTH = 1 << 4, PLOM_PRINT_ACC = 1 << 5 };
 
 
 #define BUFFER_SIZE (5000 * 1024)  /**< 5000 KB buffer size for settings.json inputs */
@@ -752,7 +752,9 @@ void systematic_sampling(struct s_likelihood *p_like, struct s_calc *p_calc, int
 void multinomial_sampling(struct s_likelihood *p_like, struct s_calc *p_calc, int n);
 void resample_X(unsigned int *select, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_data *p_data);
 void replicate_J_p_X_0(struct s_X **J_p_X, struct s_data *p_data);
-void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int option_filter, FILE *p_file_X, FILE *p_file_pred_res);
+
+void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int option_filter, FILE *p_file_X, FILE *p_file_hat, FILE *p_file_pred_res, const enum plom_print print_opt);
+
 void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int Jchunk, void *sender, void *receiver, void *controller);
 
 /* metropolis_hastings_prior.c */

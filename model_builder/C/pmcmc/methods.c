@@ -18,15 +18,13 @@
 
 #include "pmcmc.h"
 
+
 /**
  * recursive expression for the average so that it can be used in
  * real time by print_hat (zmq and co...)
  */
 void compute_best_traj(struct s_hat **D_p_hat_best, struct s_hat **D_p_hat_prev, struct s_hat **D_p_hat_new, struct s_data *p_data, double alpha, double m)
 {
-    /* recursive expression for the average so that it can be used in
-       real time by print_hat (zmq and co...) */
-
     int n, i, ts;
 
     for(n=0; n<N_DATA; n++) {
@@ -51,7 +49,4 @@ void compute_best_traj(struct s_hat **D_p_hat_best, struct s_hat **D_p_hat_prev,
             D_p_hat_best[n]->drift_95[i][1] = ((m-1.0)/m)*D_p_hat_best[n]->drift_95[i][1] + (1.0/m)*(alpha*D_p_hat_new[n]->drift_95[i][1] + (1.0-alpha)*D_p_hat_prev[n]->drift_95[i][1]);
         }
     }
-
 }
-
-
