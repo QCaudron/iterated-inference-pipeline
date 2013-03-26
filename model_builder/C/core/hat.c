@@ -64,91 +64,52 @@ void get_CI95(double *hat_95, const double *to_be_sorted, size_t *index_sorted, 
  *  D_p_hat->obs_95. Note that the estimations are computed by a
  *  weighted average (each value is weighted by it's likelihood
  *  value).
- *
- *  A potential issue is that when we have missing data for all the
- *  time series, we don't have the weights for these times... In this
- *  case this function assume equal weight for every particle
- *  (weight= 1.0/J) so we compute an empirical average.
- *
- *  Time indexes: ok this is pretty confusing. D_J_p_X is [N_DATA+1],
- *  D_p_hat->... are in [N_DATA] so we have to be carrefull!
- *
- *  This function should be rewritten to avoid excessive code
- *  duplication...
  */
 
-void compute_hat(struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat **D_p_hat, double *weights, int t0, int t1)
+void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, double *weights)
 {
-
     //TODO weights = 1/J when no information
 
-    int j, nn, i, k, ts;
+    int j, i, k, ts;
     int thread_id;
 
     struct s_router **routers = p_data->routers;
 
     /* par_sv */
-#pragma omp parallel for private(thread_id, j, nn)
+#pragma omp parallel for private(thread_id, j)
     for(i=0; i<(N_PAR_SV*N_CAC); i++) {
         thread_id = omp_get_thread_num();
 
-        /* D_J_p_X[t1] contains the particles at t1 projected from
+        /* J_p_X contains the particles at t1 projected from
            t0. At t1 we have data so we know the weights hence we
            compute a weighted average */
 
-        D_p_hat[t1-1]->state[i] = 0.0;
+        p_hat->state[i] = 0.0;
         for(j=0;j<J;j++) {
-            calc[thread_id]->to_be_sorted[j] = D_J_p_X[t1][j]->proj[i]; //This sucks... gsl_sort_index requires an array to be sorted and our particles are in J_p_X[t1][j]->proj[i] so we use an helper array (calc[thread_id]->to_be_sorted)
-            D_p_hat[t1-1]->state[i] += calc[thread_id]->to_be_sorted[j]*weights[j];
+            calc[thread_id]->to_be_sorted[j] = J_p_X[j]->proj[i]; //This sucks... gsl_sort_index requires an array to be sorted and our particles are in J_p_X[t1][j]->proj[i] so we use an helper array (calc[thread_id]->to_be_sorted)
+            p_hat->state[i] += calc[thread_id]->to_be_sorted[j]*weights[j];
         }
 
-        get_CI95(D_p_hat[t1-1]->state_95[i], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, weights);
-
-        /* in between t0 and t1 (if t1-t0>1) there are no data (all ts
-           are NaN) so there are no weights. In this case we compute an
-           empirical average */
-        for(nn=(t0+1); nn<t1; nn++) { //only if no data
-            D_p_hat[nn-1]->state[i] = 0.0;
-            for(j=0;j<J;j++) {
-                calc[thread_id]->to_be_sorted[j] = D_J_p_X[nn][j]->proj[i]; //This sucks... gsl_sort_index requires an array to be sorted and our particles are in J_p_X[t1][j]->proj[i] so we use an helper array (calc[thread_id]->to_be_sorted)
-                D_p_hat[nn-1]->state[i] += calc[thread_id]->to_be_sorted[j];
-            }
-            D_p_hat[nn-1]->state[i] /= ((double) J);
-
-            get_CI95(D_p_hat[nn-1]->state_95[i], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, NULL);
-        }
+        get_CI95(p_hat->state_95[i], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, weights);
 
     } /* end for on i */
 
-
     /* obs [N_TS] same thing as for state except that we use obs_mean()
        on p_X->obs */
-#pragma omp parallel for private(thread_id, j, nn)
+#pragma omp parallel for private(thread_id, j)
     for(ts=0; ts<N_TS; ts++) {
         thread_id = omp_get_thread_num();
 
         /* weighted average */
-        D_p_hat[t1-1]->obs[ts] = 0.0;
+        p_hat->obs[ts] = 0.0;
         for(j=0;j<J;j++) {
-            calc[thread_id]->to_be_sorted[j] = obs_mean(D_J_p_X[t1][j]->obs[ts], p_par, p_data, calc[thread_id], ts);
-            D_p_hat[t1-1]->obs[ts] += calc[thread_id]->to_be_sorted[j]*weights[j];
+            calc[thread_id]->to_be_sorted[j] = obs_mean(J_p_X[j]->obs[ts], p_par, p_data, calc[thread_id], ts);
+            p_hat->obs[ts] += calc[thread_id]->to_be_sorted[j]*weights[j];
         }
 
-        get_CI95(D_p_hat[t1-1]->obs_95[ts], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, weights);
+        get_CI95(p_hat->obs_95[ts], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, weights);
 
-        /* empirical average */
-        for(nn=(t0+1); nn<t1; nn++) { //only if no data
-            D_p_hat[nn-1]->obs[ts] = 0.0;
-            for(j=0;j<J;j++) {
-                calc[thread_id]->to_be_sorted[j] = obs_mean(D_J_p_X[nn][j]->obs[ts], p_par, p_data, calc[thread_id], ts);
-                D_p_hat[nn-1]->obs[ts] += calc[thread_id]->to_be_sorted[j];
-            }
-            D_p_hat[nn-1]->obs[ts] /= ((double) J);
-
-            get_CI95(D_p_hat[nn-1]->obs_95[ts], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, NULL);
-        }
     } /* end for on ts */
-
 
     /* drift */
     struct s_drift **drift = p_data->drift;
@@ -156,32 +117,18 @@ void compute_hat(struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_da
     for (i=0; i< p_data->p_it_only_drift->length ; i++) {
         int ind_par_Xdrift_applied = drift[i]->ind_par_Xdrift_applied;
 
-#pragma omp parallel for private(thread_id, j, nn) //we parallelize k and not i as in most cases there are only one single diffusion
+#pragma omp parallel for private(thread_id, j) //we parallelize k and not i as in most cases there are only one single diffusion
         for (k=0; k< routers[ ind_par_Xdrift_applied ]->n_gp; k++) {
             thread_id = omp_get_thread_num();
 
-            D_p_hat[t1-1]->drift[offset+k] = 0.0;
+            p_hat->drift[offset+k] = 0.0;
 
             for (j=0; j<J; j++) {
-                calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))( D_J_p_X[t1][j]->proj[drift[i]->offset + k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
-                D_p_hat[t1-1]->drift[offset+k] += calc[thread_id]->to_be_sorted[j]*weights[j];
+                calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))( J_p_X[j]->proj[drift[i]->offset + k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
+                p_hat->drift[offset+k] += calc[thread_id]->to_be_sorted[j]*weights[j];
             }
-            get_CI95(D_p_hat[t1-1]->drift_95[offset+k], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, weights);
+            get_CI95(p_hat->drift_95[offset+k], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, weights);
 
-            /* in between t0 and t1 (if t1-t0>1) there are no data (all ts
-               are NaN) so there are no weights. In this case we compute an
-               empirical average */
-            for (nn=(t0+1); nn<t1; nn++) { //only if no data
-
-                D_p_hat[nn-1]->drift[offset+k] = 0.0;
-                for(j=0; j<J; j++) {
-                    calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))( D_J_p_X[nn][j]->proj[drift[i]->offset + k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
-                    D_p_hat[nn-1]->drift[offset+k] += calc[thread_id]->to_be_sorted[j];
-                }
-                D_p_hat[nn-1]->drift[offset+k] /= ((double) J);
-
-                get_CI95(D_p_hat[nn-1]->drift_95[offset+k], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, NULL);
-            }
         }
 
         offset += routers[ ind_par_Xdrift_applied ]->n_gp;
@@ -248,7 +195,7 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_da
             for(j=0; j<J; j++) {
                 calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))(J_p_X[j]->proj[drift[i]->offset + k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
                 p_hat->drift[offset+k] += calc[thread_id]->to_be_sorted[j];
-            }
+	    }
             p_hat->drift[offset+k] /= ((double) J);
 
             get_CI95(p_hat->drift_95[offset+k], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, NULL);

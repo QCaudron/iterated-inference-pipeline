@@ -260,16 +260,22 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
             if (p_file_X || (OPTION_TRAJ && FLAG_JSON)) {
                 print_X(p_file_X, &p_par, D_J_p_X[nnp1], p_data, calc[0], (double) nnp1, 1, 0, 0);
             }
+	    
+	    if( nnp1 < t1 ){
+		compute_hat_nn(D_J_p_X[nnp1], p_par, p_data, calc, D_p_hat[nn]);		
+	    }
 
         } /* end for on nn */
 
 
         if(option_filter) {
-
             if(weight(p_like, n)) {
                 systematic_sampling(p_like, calc[0], n);
             }
-            compute_hat(D_J_p_X, p_par, p_data, calc, D_p_hat, p_like->weights, t0, t1);
+
+	    //!! time indexes: D_J_p_X is [N_DATA+1], *D_p_hat->... are in [N_DATA] so we have to be carrefull!
+            compute_hat(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1], p_like->weights);
+
             resample_X(p_like->select[n], &(D_J_p_X[t1]), &(D_J_p_X_tmp[t1]), p_data);
 
             if (p_file_pred_res) {
@@ -277,10 +283,7 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
             }
         } else {
             //we do not fiter. hat wil be used to get mean and 95% CI of J independant realisations
-            for(j=0;j<J;j++) {
-                p_like->weights[j] = invJ;
-            }
-            compute_hat(D_J_p_X, p_par, p_data, calc, D_p_hat, p_like->weights, t0, t1);
+	    compute_hat_nn(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1]);
         }
 
         t0=t1;
@@ -333,13 +336,18 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
                 p_like->weights[the_j] = recv_double(receiver);
             }
 
+	    if( nnp1 < t1 ){
+		compute_hat_nn(D_J_p_X[nnp1], p_par, p_data, calc, D_p_hat[nn]);		
+	    }
+
         } /* end for on nn */
 
         if (weight(p_like, n)) {
             systematic_sampling(p_like, calc[0], n);
         }
 
-        compute_hat(D_J_p_X, p_par, p_data, calc, D_p_hat, p_like->weights, t0, t1);
+	compute_hat(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1], p_like->weights);
+
         resample_X(p_like->select[n], &(D_J_p_X[t1]), &(D_J_p_X_tmp[t1]), p_data);
         t0=t1;
 

@@ -469,8 +469,6 @@ void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s
 }
 
 
-
-
 void print_hat(FILE *p_file, struct s_hat **D_p_hat, struct s_data *p_data)
 {
     /* print trajectory

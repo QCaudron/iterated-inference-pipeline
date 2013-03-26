@@ -200,9 +200,9 @@ int main(int argc, char *argv[])
     prop2Xpop_size(p_kalman->p_X, p_kalman->p_data);
     theta_driftIC2Xdrift(p_kalman->p_X, p_kalman->p_best->mean, p_kalman->p_data);
 
-    FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
-    FILE *p_file_pred_res = (output_pred_res==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals_ekf, p_data): NULL;
-    FILE *p_file_hat = (output_hat==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data): NULL;
+    FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_kalman->p_data): NULL;
+    FILE *p_file_pred_res = (output_pred_res==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals_ekf, p_kalman->p_data): NULL;
+    FILE *p_file_hat = (output_hat==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_kalman->p_data): NULL;
 
     double log_like = run_kalman(p_kalman->p_X, p_kalman->p_best, p_kalman->p_par, p_kalman->p_kalman_update, p_kalman->p_data, p_kalman->calc, f_prediction_ode, p_file_X, 0, p_file_pred_res);
 
@@ -217,7 +217,6 @@ int main(int argc, char *argv[])
     if (p_file_hat) {
         sfr_fclose(p_file_hat);
     }
-
 
 
 #if FLAG_VERBOSE

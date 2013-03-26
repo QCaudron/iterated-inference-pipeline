@@ -62,6 +62,8 @@
 enum plom_implementations {PLOM_ODE, PLOM_SDE, PLOM_PSR};
 enum plom_noises_off {PLOM_NO_DEM_STO = 1 << 0, PLOM_NO_ENV_STO = 1 << 1, PLOM_NO_DRIFT = 1 << 2 }; //several noises can be turned off
 
+enum plom_print {PRINT_BEST = 1 << 0, PRINT_X = 1 << 1, PRINT_HAT = 1 << 2, PRINT_PRED_RES = 1 << 3 };
+
 
 #define BUFFER_SIZE (5000 * 1024)  /**< 5000 KB buffer size for settings.json inputs */
 #define STR_BUFFSIZE 255 /**< buffer for log and error strings */
@@ -771,7 +773,7 @@ void apply_following_constraints(theta_t *proposed, struct s_best *p_best, struc
 
 /* hat.c */
 void get_CI95(double *hat_95, const double *to_be_sorted, size_t *index_sorted, double *weights);
-void compute_hat(struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat **D_p_hat, double *weights, int t0, int t1);
+void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, double *weights);
 void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat);
 
 /* json.c */
