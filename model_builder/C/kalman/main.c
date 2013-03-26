@@ -47,16 +47,19 @@ int main(int argc, char *argv[])
         "--transf           add log(JacobianDeterminant(transf)) to the estimated loglik. (combined to --prior, gives posterior density in transformed space)\n"
         "-p, --path         path where the outputs will be stored\n"
         "-b, --no_best      do not write best_<general_id>.output file\n"
+        "-h, --no_hat       do not write hat_<general_id>.output file\n"
+        "-r, --no_pred_res  do not write pred_res_<general_id>.output file (prediction residuals)\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "--help             print the usage on stdout\n";
+
 
     // general options
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(LIKE_MIN);
-    int output_best = 1;
+    int output_best = 1, output_hat = 1, output_pred_res =1;
 
     // options
     OPTION_TRAJ = 0;
@@ -86,7 +89,10 @@ int main(int argc, char *argv[])
         {"help",       no_argument,       0, 'e'},
         {"path",       required_argument, 0, 'p'},
         {"id",         required_argument, 0, 'i'},
-        {"no_best",    no_argument,       0, 'b'},
+	{"no_best",    no_argument,       0, 'b'},
+	{"no_hat",     no_argument,       0, 'h'},
+	{"no_pred_res",no_argument,       0, 'r'},
+
 
         {"traj", no_argument, &OPTION_TRAJ, 1},
         {"prior", no_argument, &OPTION_PRIOR, 1},
@@ -97,7 +103,6 @@ int main(int argc, char *argv[])
         {0, 0, 0, 0}
     };
 
-    int output_pred_res = 1 ;
     int option_index = 0;
     while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:b", long_options, &option_index)) != -1) {
         switch (ch) {
@@ -141,7 +146,10 @@ int main(int argc, char *argv[])
         case 'b':
             output_best = 0;
             break;
-	case 'r':
+        case 'h':
+            output_hat = 0;
+            break;
+        case 'r':
             output_pred_res = 0;
             break;
 
@@ -170,7 +178,6 @@ int main(int argc, char *argv[])
         }
     }
 
-
     json_t *settings = load_settings(PATH_SETTINGS);
 
 #if FLAG_VERBOSE
@@ -193,18 +200,25 @@ int main(int argc, char *argv[])
     prop2Xpop_size(p_kalman->p_X, p_kalman->p_data);
     theta_driftIC2Xdrift(p_kalman->p_X, p_kalman->p_best->mean, p_kalman->p_data);
 
-    FILE *p_file_X = NULL;
-    if(OPTION_TRAJ) {
-        p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_kalman->p_data);
-    }
-    FILE *p_file_pred_res = (output_pred_res==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals, p_kalman->p_data): NULL;
+    FILE *p_file_X = (OPTION_TRAJ==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
+    FILE *p_file_pred_res = (output_pred_res==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals_ekf, p_data): NULL;
+    FILE *p_file_hat = (output_hat==1) ? sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data): NULL;
 
+    double log_like = run_kalman(p_kalman->p_X, p_kalman->p_best, p_kalman->p_par, p_kalman->p_kalman_update, p_kalman->p_data, p_kalman->calc, f_prediction_ode, p_file_X, 0, p_file_pred_res);
 
-    double log_like = run_kalman(p_kalman->p_X, p_kalman->p_best, p_kalman->p_par, p_kalman->p_kalman_update, p_kalman->p_data, p_kalman->calc, f_prediction_ode, p_file_X, 0,p_file_pred_res);
-
-    if (OPTION_TRAJ) {
+    if (p_file_X) {
         sfr_fclose(p_file_X);
     }
+
+    if (p_file_pred_res) {
+        sfr_fclose(p_file_pred_res);
+    }
+
+    if (p_file_hat) {
+        sfr_fclose(p_file_hat);
+    }
+
+
 
 #if FLAG_VERBOSE
     time_end = s_clock();

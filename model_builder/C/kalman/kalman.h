@@ -77,6 +77,11 @@ struct s_kalman
     struct s_kalman_update *p_kalman_update;
 };
 
+/* print.c */
+void header_prediction_residuals_ekf(FILE *p_file, struct s_data *p_data);
+void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_kalman_update *p, gsl_matrix *Ct, int n);
+void print_prediction_residuals_ekf(FILE *p_file_pred_res, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X *p_X, struct s_kalman_update *p, gsl_matrix *Ct, int time);
+
 
 /* build.c */
 struct s_kalman_specific_data *build_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data);

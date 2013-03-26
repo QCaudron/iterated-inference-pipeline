@@ -85,9 +85,8 @@ void header_prediction_residuals(FILE *p_file, struct s_data *p_data)
         fprintf(p_file, "mean:%s,res:%s,", p_data->ts_name[ts], p_data->ts_name[ts]);
     }
 
-    fprintf(p_file, "ess,log_like_t\n");
+    fprintf(p_file, "ess\n");
 }
-
 
 
 void header_hat(FILE *p_file, struct s_data *p_data)
@@ -406,7 +405,6 @@ void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s
 #endif
     }
 
-
     /* ts */
     for(i=0; i< N_TS; i++) {
         x = p_hat->obs_95[i][0];
@@ -468,137 +466,7 @@ void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s
     fprintf(p_file, "\n");
 #endif
 
-
-    /* drift */
-    for(i=0; i< p_data->p_it_only_drift->nbtot; i++) {
-        x = p_hat->drift_95[i][0];
-#if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
-#else
-        fprintf(p_file,",%g,", x);
-#endif
-
-        x = p_hat->drift[i];
-#if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
-#else
-        fprintf(p_file,"%g,", x);
-#endif
-
-        x = p_hat->drift_95[i][1];
-#if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
-#else
-        fprintf(p_file,"%g", x);
-#endif
-    }
-
-
-    fprintf(p_file, "\n");
-
 }
-
-
-
-
-
-
-
-
-void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_kalman_update *p, gsl_matrix *Ct, int n)
-{
-    int i;
-    double x;
-
-#if FLAG_JSON
-    json_t *json_print_n = json_array();
-    json_array_append_new(json_print_n, json_integer(n+1));
-#else
-    fprintf(p_file, "%d,", n+1);
-#endif
-
-    /* par_sv */
-    for(i=0; i< N_PAR_SV*N_CAC; i++) {
-      x = gsl_vector_get(p->xk,i);
-      x = gsl_max(0,gsl_vector_get(p->xk,i) - gsl_matrix_get(Ct, i, i));
-#if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
-#else
-        fprintf(p_file,"%g,", x);
-#endif
-
-        x = gsl_vector_get(p->xk,i);
-#if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
-#else
-        fprintf(p_file,"%g,", x);
-#endif
-
-         x = gsl_min(1,gsl_vector_get(p->xk,i) + gsl_matrix_get(Ct, i, i));
-#if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
-#else
-        fprintf(p_file,"%g,", x);
-#endif
-    }
-
-
-    /* ts */
-    for(i= N_PAR_SV*N_CAC; i< N_PAR_SV*N_CAC + N_TS; i++) {
-        
-      	x = gsl_max(0,gsl_vector_get(p->xk,i) - gsl_matrix_get(Ct, i, i));
-#if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
-#else
-        fprintf(p_file,"%g,", x);
-#endif
-
-	x = gsl_vector_get(p->xk,i);
-#if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
-#else
-        fprintf(p_file,"%g,", x);
-#endif
-
-	x = gsl_min(1,gsl_vector_get(p->xk,i) + gsl_matrix_get(Ct, i, i));
-#if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
-#else
-        fprintf(p_file,"%g%s", x, (i< (N_TS-1)) ? ",": "");
-#endif
-    }
-
-
-    /* drift */
-    for(i=N_PAR_SV*N_CAC + N_TS; i<N_PAR_SV*N_CAC+ N_TS + p_data->p_it_only_drift->nbtot; i++) {
-        
-	x = gsl_max(0,gsl_vector_get(p->xk,i) - gsl_matrix_get(Ct, i, i));
-#if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
-#else
-        fprintf(p_file,",%g,", x);
-#endif
-
-	x = gsl_vector_get(p->xk,i);
-#if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
-#else
-        fprintf(p_file,"%g,", x);
-#endif
-
-	x = gsl_min(1,gsl_vector_get(p->xk,i) + gsl_matrix_get(Ct, i, i));
-#if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
-#else
-        fprintf(p_file,"%g", x);
-#endif
-    }
-
-
-    fprintf(p_file, "\n");
-
-}
-
 
 
 
@@ -667,7 +535,7 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
     int zero = 0;
     int *fake_j = (is_p_par_cst) ? &zero : &j;
 
-    double mean_state;
+    double pred;
     double var_obs;
     double var_state;
 
@@ -690,7 +558,7 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
 
     for(ts=0; ts<N_TS; ts++) {
         kn=0.0;
-        mean_state=0.0;
+        pred=0.0;
         var_obs=0.0;
         M2=0.0;
 
@@ -698,9 +566,9 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
             kn += 1.0;
             x = obs_mean(J_p_X[j]->obs[ts], J_p_par[*fake_j], p_data, p_calc, ts);
 
-            delta = x - mean_state;
-            mean_state += delta/kn;
-            M2 += delta*(x - mean_state);
+            delta = x - pred;
+            pred += delta/kn;
+            M2 += delta*(x - pred);
             var_obs += obs_var(J_p_X[j]->obs[ts], J_p_par[*fake_j], p_data, p_calc, ts);
         }
 
@@ -709,24 +577,21 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
 
         y = p_data->data[ p_calc->current_nn ][ts];
 
-        res = (y - mean_state)/sqrt(var_state + var_obs);
+        res = (y - pred)/sqrt(var_state + var_obs);
 
 #if FLAG_JSON
-        json_array_append_new(json_print, json_real(mean_state));
+        json_array_append_new(json_print, json_real(pred));
         json_array_append_new(json_print, json_real(res));
 #else
-        fprintf(p_file_pred_res,"%g,%g,", mean_state, res);
+        fprintf(p_file_pred_res,"%g,%g,", pred, res);
 #endif
     }
 
-
 #if FLAG_JSON
-    json_array_append_new(json_print, json_real(llike_t));
     json_array_append_new(json_print, json_real(ess_t));
 #else
-    fprintf(p_file_pred_res,"%g,%g\n", llike_t, ess_t);
+    fprintf(p_file_pred_res,"%g\n", ess_t);
 #endif
-
 
 #if FLAG_JSON
     root = json_pack("{s,s,s,o}", "flag", "pred_res", "msg", json_print);
@@ -734,71 +599,7 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
     json_decref(root);
 #endif
 
-
 }
-
-
-
-void print_prediction_residuals_ekf(FILE *p_file_pred_res, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X *p_X, struct s_kalman_update *p, gsl_matrix *Ct, int time)
-{
-    int ts,j;
-    int zero = 0;
-
-    double mean_state;
-    double var_obs;
-    double var_state;
-
-    double y;
-    double res;
-
-#if FLAG_JSON
-    json_t *root;
-    json_t *json_print = json_array();
-#endif
-
-#if FLAG_JSON
-   json_array_append_new(json_print, json_integer(time));
-#else
-   fprintf(p_file_pred_res,"%d,", time);
-#endif
-
-
-
-   for(ts=0; ts<N_TS; ts++) {
-
-     var_obs = obs_var(p_X->obs[ts], p_par, p_data, p_calc, ts);
-        
-     y = p_data->data[ p_calc->current_nn ][ts];
-
-     res = (y - gsl_vector_get(p->xk,N_PAR_SV*N_CAC+ts))/sqrt( gsl_matrix_get(Ct,N_PAR_SV*N_CAC+ts,N_PAR_SV*N_CAC+ts)  + var_obs);
-
-#if FLAG_JSON
-     json_array_append_new(json_print, json_real(mean_state));
-     json_array_append_new(json_print, json_real(res));
-#else
-     if (ts == N_TS) {
-       fprintf(p_file_pred_res,"%g,%g",  gsl_vector_get(p->xk,N_PAR_SV*N_CAC+ts), res);
-     } else {
-       fprintf(p_file_pred_res,"%g,%g,",  gsl_vector_get(p->xk,N_PAR_SV*N_CAC+ts), res);
-     };
-
-#endif
-   }
-
-
-    fprintf(p_file_pred_res,"\n");
-
-    
-
-#if FLAG_JSON
-    root = json_pack("{s,s,s,o}", "flag", "pred_res", "msg", json_print);
-    json_dumpf(root, stdout, JSON_COMPACT); printf("\n");
-    json_decref(root);
-#endif
-
-
-}
-
 
 
 
