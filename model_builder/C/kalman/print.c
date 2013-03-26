@@ -169,4 +169,3 @@ void print_prediction_residuals_ekf(FILE *p_file_pred_res, struct s_par *p_par, 
 #endif
 
 }
-

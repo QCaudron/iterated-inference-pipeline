@@ -78,8 +78,8 @@ int main(int argc, char *argv[])
     OPTION_FULL_UPDATE = 0;
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
-    OPTION_TRAJ = 0;
-    static int OPTION_ACC = 0;
+
+    enum plom_print print_opt = 0;
 
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
 
@@ -93,12 +93,12 @@ int main(int argc, char *argv[])
         static struct option long_options[] =
             {
                 /* These options set a flag. */
-                {"traj", no_argument,       &OPTION_TRAJ, 1},
-                {"acc", no_argument,       &OPTION_ACC, 1},
                 {"full", no_argument, &OPTION_FULL_UPDATE, 1},
                 {"transf",      no_argument, &OPTION_TRANSF, 1},
 
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
+                {"traj",       no_argument,       0, 'j'},
+                {"acc",        no_argument,       0, 'r'},
                 {"no_dem_sto", no_argument,       0, 'x'},
                 {"no_env_sto", no_argument,       0, 'y'},
                 {"no_drift",   no_argument,       0, 'z'},
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:Ci:l:M:p:S:E:a:f:g:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "jrxyzs:v:w:Ci:l:M:p:S:E:a:f:g:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -201,6 +201,12 @@ int main(int argc, char *argv[])
         case 'M':
             M = atoi(optarg);
             break;
+        case 'j':
+	    print_opt |= PLOM_PRINT_X;
+            break;
+        case 'r':
+	    print_opt |= PLOM_PRINT_ACC;
+            break;
 
         case '?':
             /* getopt_long already printed an error message. */
@@ -241,7 +247,7 @@ int main(int argc, char *argv[])
 
     p_kalman->calc[0]->method_specific_shared_data = p_mcmc_calc_data; //needed to use ran_proposal_sequential in pmcmc
 
-    kmcmc(p_kalman, p_like, p_mcmc_calc_data, f_prediction_ode,  OPTION_ACC);
+    kmcmc(p_kalman, p_like, p_mcmc_calc_data, f_prediction_ode,  print_opt);
 
     // print empirical covariance
     if (OPTION_FULL_UPDATE) {

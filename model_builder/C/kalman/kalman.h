@@ -124,4 +124,4 @@ void eval_Q_no_dem_sto_no_env_sto(gsl_matrix *Q, const double *X, struct s_par *
 
 
 /* kmcmc.c */
-void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc_calc_data *p_mcmc_calc_data, plom_f_pred_t f_pred,  int OPTION_ACC);
+void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc_calc_data *p_mcmc_calc_data, plom_f_pred_t f_pred, const enum plom_print print_opt);

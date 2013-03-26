@@ -21,9 +21,8 @@
 /**
  * run KMCMC see pmcmc/pmcmc.c for doc
  */
-void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc_calc_data *p_mcmc_calc_data, plom_f_pred_t f_pred,  int OPTION_ACC)
+void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc_calc_data *p_mcmc_calc_data, plom_f_pred_t f_pred, const enum plom_print print_opt)
 {
-
     int m;              // iteration index
     int is_accepted;    // boolean
     double alpha;       // acceptance rate
@@ -49,12 +48,12 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
     // open output files
     FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
     FILE *p_file_X = NULL;
-    if (OPTION_TRAJ) {
+    if (print_opt & PLOM_PRINT_X) {
         p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
     }
 
     FILE *p_file_acc = NULL;
-    if (OPTION_ACC){
+    if (print_opt & PLOM_PRINT_ACC){
         p_file_acc = sfr_fopen(SFR_PATH, GENERAL_ID, "acc", "w", header_acceptance_rates, p_data);
     }
 
@@ -70,7 +69,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
     theta_driftIC2Xdrift(p_X, p_best->proposed, p_data);
 
     //run Kalman
-    p_like->Llike_best = run_kalman(p_X, p_best, p_par, p_kalman->p_kalman_update, p_data, calc, f_pred, m, p_file_X, NULL, NULL, 0);
+    p_like->Llike_best = run_kalman(p_X, p_best, p_par, p_kalman->p_kalman_update, p_data, calc, f_pred, m, p_file_X, NULL, NULL, print_opt);
     p_like->Llike_new = p_like->Llike_best;
 
     //the initial iteration is "accepted"
@@ -113,7 +112,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
         back_transform_theta2par(p_par, p_best->proposed, p_data->p_it_par_proc_par_obs_no_drift, p_data);
 
         //run Kalman
-        p_like->Llike_best = run_kalman(p_X, p_best, p_par, p_kalman->p_kalman_update, p_data, calc, f_pred, m, p_file_X, NULL, NULL, 0);
+        p_like->Llike_best = run_kalman(p_X, p_best, p_par, p_kalman->p_kalman_update, p_data, calc, f_pred, m, p_file_X, NULL, NULL, print_opt);
 
         p_like->Llike_new = p_like->Llike_best;
 
@@ -148,7 +147,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
 
             print_best(p_file_best, p_mcmc_calc_data->m_full_iteration, p_best, p_data, p_like->Llike_prev);
 
-            if (OPTION_ACC) {
+	    if (print_opt & PLOM_PRINT_ACC) {
 		print_acceptance_rates(p_file_acc, p_mcmc_calc_data, p_mcmc_calc_data->m_full_iteration);
 	    }
 
@@ -157,7 +156,6 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
 	    print_log(str);
 #endif
         }
-
     }
 
     /////////////////
@@ -165,10 +163,11 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
     /////////////////
 
     sfr_fclose(p_file_best);
-    if (OPTION_TRAJ) {
+
+    if (print_opt & PLOM_PRINT_X) {
         sfr_fclose(p_file_X);
     }
-    if (OPTION_ACC) {
+    if (print_opt & PLOM_PRINT_ACC) {
         sfr_fclose(p_file_acc);
     }
 
