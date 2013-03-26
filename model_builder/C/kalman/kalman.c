@@ -251,7 +251,7 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 	    if (print_opt & PLOM_PRINT_HAT) {
 		if( (nn+1) < t1){
 		    X2xk(p_kalman_update->xk, p_X, p_data);
-		    print_p_hat_ekf(p_file_hat, p_data, p_kalman_update, &Ct.matrix, nn);
+		    print_p_hat_ekf(p_file_hat, p_data, p_par, calc[0], p_kalman_update, &Ct.matrix, nn);
 		}
 	    }
 
@@ -296,7 +296,7 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
         xk2X(p_X, p_kalman_update->xk, p_data);
 
 	if (print_opt & PLOM_PRINT_HAT) {
-	    print_p_hat_ekf(p_file_hat, p_data, p_kalman_update, &Ct.matrix, t1-1);
+	    print_p_hat_ekf(p_file_hat, p_data, p_par, calc[0], p_kalman_update, &Ct.matrix, t1-1);
 	}
         log_lik += log_lik_temp;
 

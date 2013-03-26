@@ -31,10 +31,9 @@ void header_prediction_residuals_ekf(FILE *p_file, struct s_data *p_data)
     fprintf(p_file, "\n");
 }
 
-
-void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_kalman_update *p, gsl_matrix *Ct, int n)
+void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_par *p_par, struct s_calc *p_calc, struct s_kalman_update *p, gsl_matrix *Ct, int n)
 {
-    int i;
+    int i, ts;
     double x;
 
 #if FLAG_JSON
@@ -44,9 +43,9 @@ void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_kalman_update
     fprintf(p_file, "%d,", n+1);
 #endif
 
-    /* par_sv ts and drift */
-    for(i=0; i< N_KAL; i++) {
-	x = gsl_vector_get(p->xk,i) - gsl_matrix_get(Ct, i, i);
+    /* par_sv */
+    for(i=0; i< N_PAR_SV*N_CAC; i++) {
+	x = gsl_vector_get(p->xk,i) - 1.96*sqrt(gsl_matrix_get(Ct, i, i));
 #if FLAG_JSON
         json_array_append_new(json_print_n, json_real(x));
 #else
@@ -60,11 +59,62 @@ void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_kalman_update
         fprintf(p_file,"%g,", x);
 #endif
 
-	x = gsl_vector_get(p->xk,i) + gsl_matrix_get(Ct, i, i);
+	x = gsl_vector_get(p->xk,i) + 1.96*sqrt(gsl_matrix_get(Ct, i, i));
 #if FLAG_JSON
         json_array_append_new(json_print_n, json_real(x));
 #else
-        fprintf(p_file,"%g%s", x, (i< (N_KAL-1)) ? ",": "");
+        fprintf(p_file,"%g,", x);
+#endif
+    }
+
+    /* ts */
+    for(ts= 0; ts<N_TS; ts++) {
+	i = N_PAR_SV*N_CAC+ts;
+	
+	x = obs_mean(gsl_vector_get(p->xk, i) - 1.96*sqrt(gsl_matrix_get(Ct, i, i)), p_par, p_data, p_calc, ts);
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g,", x);
+#endif
+
+	x = obs_mean(gsl_vector_get(p->xk, i), p_par, p_data, p_calc, ts);
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g,", x);
+#endif
+
+	x = obs_mean(gsl_vector_get(p->xk, i) + 1.96*sqrt(gsl_matrix_get(Ct, i, i)), p_par, p_data, p_calc, ts);
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g%s", x, (ts< (N_TS-1)) ? ",": "");
+#endif
+    }
+
+    /* drift */
+    for(i=N_PAR_SV*N_CAC + N_TS; i<N_PAR_SV*N_CAC+ N_TS + p_data->p_it_only_drift->nbtot; i++) {
+        
+	x = gsl_vector_get(p->xk,i) - 1.96*sqrt(gsl_matrix_get(Ct, i, i));
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,",%g,", x);
+#endif
+
+	x = gsl_vector_get(p->xk,i);
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g,", x);
+#endif
+
+	x = gsl_vector_get(p->xk,i) + 1.96*sqrt(gsl_matrix_get(Ct, i, i));
+#if FLAG_JSON
+        json_array_append_new(json_print_n, json_real(x));
+#else
+        fprintf(p_file,"%g", x);
 #endif
     }
 
@@ -99,8 +149,10 @@ void print_prediction_residuals_ekf(FILE *p_file_pred_res, struct s_par *p_par, 
     for(ts=0; ts<N_TS; ts++) {
 	var_obs = obs_var(p_X->obs[ts], p_par, p_data, p_calc, ts);        
 	y = p_data->data[ p_calc->current_nn ][ts];
-	res = (y - gsl_vector_get(p->xk, N_PAR_SV*N_CAC + ts))/sqrt( gsl_matrix_get(Ct, N_PAR_SV*N_CAC + ts, N_PAR_SV*N_CAC + ts)  + var_obs);
-	pred = gsl_vector_get(p->xk,N_PAR_SV*N_CAC+ts);
+
+	pred = obs_mean(gsl_vector_get(p->xk, N_PAR_SV*N_CAC+ts), p_par, p_data, p_calc, ts);
+	res = (y - pred)/sqrt( gsl_matrix_get(Ct, N_PAR_SV*N_CAC + ts, N_PAR_SV*N_CAC + ts)  + var_obs); //TODO rescale Ct
+
 
 #if FLAG_JSON
 	json_array_append_new(json_print, json_real(pred));
