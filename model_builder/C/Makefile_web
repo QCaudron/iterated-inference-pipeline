@@ -1,0 +1,57 @@
+CC=gcc
+CFLAGS=-fopenmp -std=gnu99 -Wall -O3 -DGSL_RANGE_CHECK_OFF -I kalman -I pmcmc -I simulation -I mif -I simplex -I core
+LIB=libplom_web.a libplom_smc_web.a libplom_simplex_web.a libplom_mif_web.a libplom_pmcmc_web.a libplom_kalman_web.a libplom_ksimplex_web.a libplom_kmcmc_web.a libplom_simul_web.a libplom_worker_web.a
+ALL_SRC= $(wildcard */*.c)
+ALL_SRC_NO_TEMPLATE=$(filter-out templates/core_template.c templates/kalman_template.c templates/simulation_template.c, $(ALL_SRC))
+SRC=$(filter-out smc/main.c simplex/main.c mif/main.c worker/main.c pmcmc/main.c kalman/main.c kalman/kmcmc_main.c kalman/simplex_kalman.c simulation/main.c, $(ALL_SRC_NO_TEMPLATE))
+INCLUDES=$(wildcard */*.h)
+OBJ= $(SRC:.c=.o)
+ALL_OBJ= $(ALL_SRC_NO_TEMPLATE:.c=.o)
+
+PREFIX=/usr/local
+
+all: $(LIB)
+
+libplom_web.a: $(OBJ)
+	ar -rcs $@ $(OBJ)
+
+%.o: %.c $(INCLUDES)
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+libplom_smc_web.a: smc/main.o
+	ar -rcs $@ $^
+
+libplom_simplex_web.a: simplex/main.o
+	ar -rcs $@ $^
+
+libplom_mif_web.a: mif/main.o
+	ar -rcs $@ $^
+
+libplom_pmcmc_web.a: pmcmc/main.o
+	ar -rcs $@ $^
+
+libplom_kalman_web.a: kalman/main.o
+	ar -rcs $@ $^
+
+libplom_ksimplex_web.a: kalman/simplex_kalman.o
+	ar -rcs $@ $^
+
+libplom_kmcmc_web.a: kalman/kmcmc_main.o
+	ar -rcs $@ $^
+
+libplom_simul_web.a: simulation/main.o
+	ar -rcs $@ $^
+
+libplom_worker_web.a: worker/main.o
+	ar -rcs $@ $^
+
+.PHONY: clean uninstall install
+
+install:
+	test -d $(PREFIX)/lib || mkdir $(PREFIX)/lib; mv $(LIB) $(PREFIX)/lib/;
+
+clean:
+	rm $(ALL_OBJ)
+
+uninstall:
+	rm $(PREFIX)/{lib/libplom_web.a,lib/libplom_smc_web.a,lib/libplom_simplex_web.a,lib/libplom_mif_web.a,lib/libplom_pmcmc_web.a,lib/libplom_kalman_web.a,lib/libplom_ksimplex_web.a,lib/libplom_kmcmc_web.a,lib/libplom_simul_web.a,lib/libplom_worker_web.a}

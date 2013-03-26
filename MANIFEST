@@ -7,6 +7,7 @@ model_builder/Context.py
 model_builder/__init__.py
 model_builder/plom_settings.py
 model_builder/C/templates/Makefile
+model_builder/C/templates/Makefile_web
 model_builder/C/templates/core_template.c
 model_builder/C/templates/kalman_template.c
 model_builder/C/templates/simulation_template.c
