@@ -157,7 +157,7 @@ void print_prediction_residuals_ekf(FILE *p_file_pred_res, struct s_par *p_par, 
 
 #if FLAG_JSON
 	json_array_append_new(json_print, json_real(pred));
-	json_array_append_new(json_print, json_real(res));
+	json_array_append_new(json_print, (isnan(res)==1)? json_null() : json_real(res));
 #else
 	fprintf(p_file_pred_res, "%g,%g%s", pred, res, (ts < (N_TS-1)) ? ",": "\n");	
 #endif

@@ -577,7 +577,7 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
 
 #if FLAG_JSON
         json_array_append_new(json_print, json_real(pred));
-        json_array_append_new(json_print, json_real(res));
+	json_array_append_new(json_print, (isnan(res)==1)? json_null() : json_real(res));
 #else
         fprintf(p_file_pred_res,"%g,%g,", pred, res);
 #endif
