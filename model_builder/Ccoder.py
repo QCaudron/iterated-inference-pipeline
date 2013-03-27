@@ -687,10 +687,17 @@ class Ccoder(Cmodel):
                 'caches_jac_only': caches_jac_only}
 
 
-    def jac_proc_obs(self):
+    def der_mean_proc_obs(self):
         """compute jacobian matrix of the mean of the obs process (assumed to be Gaussian) using Sympy"""
 
         return self.make_C_term(self.obs_model['mean'], True, derivate='x')
+
+    def der2_mean_proc_obs(self):
+        """compute the second derivative of the mean of the obs process (assumed to be Gaussian) using Sympy"""
+
+        first = self.make_C_term(self.obs_model['mean'], True, derivate='x', human=True)
+
+        return self.make_C_term(first, True, derivate='x')
 
 
 
@@ -983,6 +990,8 @@ if __name__=="__main__":
     c = json.load(open(os.path.join('example', 'noise', 'context.json')))
     p = json.load(open(os.path.join('example', 'noise', 'process.json')))
     l = json.load(open(os.path.join('example', 'noise', 'link.json')))
+    
+    #l["model"]["common"]["mean"] = "rep*prop*x +x**2*rep"
 
     ##fix path (this is normally done by plom(1))
     for x in c['data']:
@@ -991,6 +1000,8 @@ if __name__=="__main__":
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
 
     model.eval_Q(debug=True)
+
+    print model.der2_mean_proc_obs2()
 
 ##    print ''.join(model.generator_C("(1.0+e*sin((a*x+(b)), ((e)) )) + r0", False))
 ##    print model.generator_C("-mu_d - r0_1*v*(e*sin(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin(d) + 1.0)*(RI + SI + iota_2)/N", False)

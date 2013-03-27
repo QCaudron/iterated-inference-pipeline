@@ -342,21 +342,44 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
  */
 void eval_ht(struct s_kalman_update * p, double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
 {
-    struct s_router **routers = p_data->routers;  /* syntaxic shortcut */
+    struct s_router **routers = p_data->routers;
 
     //the automaticaly generated code may need these variables
-    int n, nn;
-    n = p_calc->current_n;
-    nn = p_calc->current_nn;
-    double t;
-    t = (double) p_data->times[n];
+    int n = p_calc->current_n;
+    int nn = p_calc->current_nn;
+    double t = (double) p_data->times[n];
 
     double **par = p_par->natural;
     double ***covar = p_data->par_fixed;
 
     //derivative against state variable are always nul so we focus on the derivative against the observed variable
-    gsl_vector_set(p->ht, N_PAR_SV*N_CAC +ts, {{ jac_proc_obs|safe }});
+    gsl_vector_set(p->ht, N_PAR_SV*N_CAC +ts, {{ der_mean_proc_obs|safe }});
 }
+
+
+/**
+ * Approximation of the variance of a function of one random variable
+ * Second order Taylor expansion
+ * Var(f(X))=[f'(EX)]^2Var(X)+\frac{[f''(EX)]^2}{4}Var^2(X)
+ */
+double var_f_x(double varx, double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
+{
+    struct s_router **routers = p_data->routers;
+
+    //the automaticaly generated code may need these variables
+    int n = p_calc->current_n;
+    int nn = p_calc->current_nn;
+    double t = (double) p_data->times[n];
+
+    double **par = p_par->natural;
+    double ***covar = p_data->par_fixed;
+
+    double derf = {{ der_mean_proc_obs|safe }};
+    double der2f = {{ der2_mean_proc_obs|safe }};
+
+    return pow(derf, 2)*varx + (pow(der2f, 2)/4.0) * pow(varx, 2);
+}
+
 
 
 

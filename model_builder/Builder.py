@@ -198,7 +198,8 @@ class PlomModelBuilder(Context, Ccoder):
         t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'kalman_template.c'))
         c = DjangoContext({'order':order,
                            'jacobian':jac,
-                           'jac_proc_obs':self.jac_proc_obs(),
+                           'der_mean_proc_obs':self.der_mean_proc_obs(),
+                           'der2_mean_proc_obs':self.der2_mean_proc_obs(),
                            'calc_Q': self.eval_Q(),
                            'is_drift': is_drift,
                            'step_ode_sde': step_ode_sde})

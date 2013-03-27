@@ -35,6 +35,7 @@ void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_par *p_par, s
 {
     int i, ts;
     double x;
+    double xobs, sdobs;
 
 #if FLAG_JSON
     json_t *json_print_n = json_array();
@@ -70,22 +71,23 @@ void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_par *p_par, s
     /* ts */
     for(ts= 0; ts<N_TS; ts++) {
 	i = N_PAR_SV*N_CAC+ts;
+	xobs = obs_mean(gsl_vector_get(p->xk, i), p_par, p_data, p_calc, ts);
+	sdobs = sqrt(var_f_x(gsl_matrix_get(Ct, i, i), gsl_vector_get(p->xk, i), p_par, p_data, p_calc, ts));
 	
-	x = obs_mean(gsl_vector_get(p->xk, i) - 1.96*sqrt(gsl_matrix_get(Ct, i, i)), p_par, p_data, p_calc, ts);
+	x = xobs - 1.96*sdobs;
 #if FLAG_JSON
         json_array_append_new(json_print_n, json_real(x));
 #else
         fprintf(p_file,"%g,", x);
 #endif
 
-	x = obs_mean(gsl_vector_get(p->xk, i), p_par, p_data, p_calc, ts);
 #if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
+        json_array_append_new(json_print_n, json_real(xobs));
 #else
-        fprintf(p_file,"%g,", x);
+        fprintf(p_file,"%g,", xobs);
 #endif
 
-	x = obs_mean(gsl_vector_get(p->xk, i) + 1.96*sqrt(gsl_matrix_get(Ct, i, i)), p_par, p_data, p_calc, ts);
+	x = xobs + 1.96*sdobs;
 #if FLAG_JSON
         json_array_append_new(json_print_n, json_real(x));
 #else
@@ -133,7 +135,7 @@ void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_par *p_par, s
 void print_prediction_residuals_ekf(FILE *p_file_pred_res, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X *p_X, struct s_kalman_update *p, gsl_matrix *Ct, int time)
 {
     int ts;
-    double var_obs, pred, y, res;
+    double var_obs, pred, y, res, fCt;
 
 #if FLAG_JSON
     json_t *root;
@@ -149,10 +151,9 @@ void print_prediction_residuals_ekf(FILE *p_file_pred_res, struct s_par *p_par, 
     for(ts=0; ts<N_TS; ts++) {
 	var_obs = obs_var(p_X->obs[ts], p_par, p_data, p_calc, ts);        
 	y = p_data->data[ p_calc->current_nn ][ts];
-
 	pred = obs_mean(gsl_vector_get(p->xk, N_PAR_SV*N_CAC+ts), p_par, p_data, p_calc, ts);
-	res = (y - pred)/sqrt( gsl_matrix_get(Ct, N_PAR_SV*N_CAC + ts, N_PAR_SV*N_CAC + ts)  + var_obs); //TODO rescale Ct
-
+	fCt = var_f_x(gsl_matrix_get(Ct, N_PAR_SV*N_CAC + ts, N_PAR_SV*N_CAC + ts), gsl_vector_get(p->xk, N_PAR_SV*N_CAC+ts), p_par, p_data, p_calc, ts);
+	res = (y - pred)/sqrt(fCt + var_obs);
 
 #if FLAG_JSON
 	json_array_append_new(json_print, json_real(pred));
