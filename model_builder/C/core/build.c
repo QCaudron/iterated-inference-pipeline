@@ -201,36 +201,76 @@ struct s_router *build_router(const json_t *par, const char *par_key, const json
     json_t *groups = fast_get_json_array(partition, "group");
     p_router->p = json_array_size(order);
 
-    p_router->n_gp = json_array_size(groups);
+    int n_gp = json_array_size(groups);
+    p_router->n_gp = n_gp;
 
     p_router->map = init1u_set0(p_router->p);
-    p_router->min = init1d_set0(p_router->n_gp);
-    p_router->max = init1d_set0(p_router->n_gp);
-    p_router->min_z = init1d_set0(p_router->n_gp);
-    p_router->max_z = init1d_set0(p_router->n_gp);
+    p_router->min = init1d_set0(n_gp);
+    p_router->max = init1d_set0(n_gp);
+    p_router->min_z = init1d_set0(n_gp);
+    p_router->max_z = init1d_set0(n_gp);
 
     //alloc for group_name
-    p_router->group_name = malloc(p_router->n_gp * sizeof(char *));
+    p_router->group_name = malloc(n_gp * sizeof(char *));
     if (p_router->group_name == NULL) {
         snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
     }
 
-    json_t *par_min = fast_get_json_object(par, "min");
-    json_t *par_max = fast_get_json_object(par, "max");
+    //alloc transformation function
+    p_router->f = malloc(n_gp * sizeof(double (*) (double, double, double)) );
+    if (p_router->f == NULL) {
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        print_err(str);
+        exit(EXIT_FAILURE);
+    }
+    p_router->f_inv = malloc(n_gp * sizeof(double (*) (double, double, double)) );
+    if (p_router->f_inv == NULL) {
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        print_err(str);
+        exit(EXIT_FAILURE);
+    }
+    p_router->f_derivative = malloc(n_gp * sizeof(double (*) (double, double, double)) );
+    if (p_router->f_derivative == NULL) {
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        print_err(str);
+        exit(EXIT_FAILURE);
+    }
+    p_router->f_inv_derivative = malloc(n_gp * sizeof(double (*) (double, double, double)) );
+    if (p_router->f_inv_derivative == NULL) {
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        print_err(str);
+        exit(EXIT_FAILURE);
+    }
+    p_router->f_scale = malloc(n_gp * sizeof(double (*) (double)) );
+    if (p_router->f_scale == NULL) {
+        snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+        print_err(str);
+        exit(EXIT_FAILURE);
+    }
 
-    for (g=0; g < p_router->n_gp; g++) { //for each group
+    const char *mytransf = json_string_value(json_object_get(par, "transformation"));
+    p_router->is_duration = is_duration(par);
+    p_router->multiplier = get_multiplier(u_data, par, 0);
+
+    for (g=0; g < n_gp; g++) { //for each group
 
         json_t *my_group = json_array_get(groups, g); //TODO check if we get an object...
 
         const char *my_group_id = fast_get_json_string_from_object(my_group, "id");
+	json_t *par_group = fast_get_json_object(fast_get_json_object(par, "group"), my_group_id);
 
         p_router->group_name[g] = init1c(strlen(my_group_id) + 1);
         strcpy(p_router->group_name[g], my_group_id);
 
-        p_router->min[g] = fast_get_json_real_from_object(par_min, my_group_id);
-        p_router->max[g] = fast_get_json_real_from_object(par_max, my_group_id);
+        p_router->min[g] = fast_get_json_real_from_object(fast_get_json_object(par_group, "min"), "value");
+        p_router->max[g] = fast_get_json_real_from_object(fast_get_json_object(par_group, "max"), "value");
+
+	const char *prior_type = fast_get_json_string_from_object(fast_get_json_object(par_group, "prior"), "value");
+
+	set_f_trans(p_router, mytransf, prior_type, u_data, g, is_bayesian);
+	set_ab_z(p_router, g);
 
         json_t *compo = fast_get_json_array(my_group, link_key); //link_key is population_id or time_series_id
         for (k = 0; k< json_array_size(compo); k++) {
@@ -247,9 +287,6 @@ struct s_router *build_router(const json_t *par, const char *par_key, const json
         }
     }
 
-    set_f_trans(p_router, par, u_data, is_bayesian);
-    set_ab_z(p_router);
-
     return p_router;
 }
 
@@ -263,6 +300,12 @@ void clean_router(struct s_router *p_router)
     FREE(p_router->group_name);
     FREE(p_router->name);
 
+    FREE(p_router->f);
+    FREE(p_router->f_inv);
+    FREE(p_router->f_scale);
+    FREE(p_router->f_derivative);
+    FREE(p_router->f_inv_derivative);
+
     FREE(p_router->min);
     FREE(p_router->max);
     FREE(p_router->min_z);
@@ -274,7 +317,7 @@ void clean_router(struct s_router *p_router)
 struct s_router **build_routers(json_t *settings, json_t *theta, int is_bayesian)
 {
     int i, j, offset;
-    json_t *parameters = fast_get_json_object(theta, "value");
+    json_t *parameters = fast_get_json_object(theta, "parameter");
     json_t *partitions = fast_get_json_object(theta, "partition");
     json_t *orders = fast_get_json_object(settings, "orders");
     const char *frequency = fast_get_json_string_from_object(fast_get_json_object(settings, "cst"), "FREQUENCY");
@@ -1214,7 +1257,7 @@ struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covar
     p_best->n_follow = 0;
     for(i=0; i<p_data->p_it_all->length; i++) {
         const char *par_key = routers[i]->name;
-        json_t *par = fast_get_json_object(fast_get_json_object(theta, "value"), par_key);
+        json_t *par = fast_get_json_object(fast_get_json_object(theta, "parameter"), par_key);
 
         if(json_object_get(par, "follow")) {
             const char *par_follow_key = fast_get_json_string_from_object(par, "follow");

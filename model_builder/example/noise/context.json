@@ -42,8 +42,6 @@
            "comment": "birth rates"},
           {"id": "mu_d",
            "source": "data/mu_d.csv",
-           "comment": "death rates"}],
+           "comment": "death rates"}]
 
- "model": {"space": {"type": ["external"]},
-           "age": {}}
 }

@@ -495,9 +495,9 @@ json_t *load_settings(const char *path)
 void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int update_guess, int update_covariance)
 {
     int i, k, g, offset;
+
     struct s_router **routers = p_data->routers;
-    json_t *parameters = fast_get_json_object(theta, "value");
-    json_t *partitions = fast_get_json_object(theta, "partition");
+    json_t *parameters = fast_get_json_object(theta, "parameter");
     struct s_iterator *p_it_all = p_data->p_it_all;
 
     offset = 0;
@@ -511,22 +511,15 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int
             const char *par_follow_key = fast_get_json_string_from_object(par, "follow");
             par = fast_get_json_object(parameters, par_follow_key);
         }
+	json_t *groups = fast_get_json_object(par, "group");
 
-        const char *partition_key = fast_get_json_string_from_object(par, "partition_id");
-        json_t *my_partitition = fast_get_json_object(partitions, partition_key);
-        json_t *groups = fast_get_json_array(my_partitition, "group");
+        for (g=0; g < routers[i]->n_gp; g++) {
+	    const char *group_key = routers[i]->group_name[g];
+	    json_t *group = fast_get_json_object(groups, group_key);
 
-        json_t *par_min = fast_get_json_object(par, "min");
-        json_t *par_max = fast_get_json_object(par, "max");
-        json_t *par_sd_transf = fast_get_json_object(par, "sd_transf");
-        json_t *par_guess = fast_get_json_object(par, "guess");
 
-        const char *prior = fast_get_json_string_from_object(par, "prior");
-
-        for (g=0; g < json_array_size(groups); g++) { //for each group
-            json_t *my_group = json_array_get(groups, g);
-            const char *my_group_id = fast_get_json_string_from_object(my_group, "id");
-
+	    const char *prior = fast_get_json_string_from_object(fast_get_json_object(group, "prior"), "value");
+	    
             if (strcmp(prior, "normal") == 0) {
                 p_best->prior[offset] = &normal_prior;
             } else if (strcmp(prior, "pseudo_uniform") == 0) {
@@ -536,16 +529,16 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int
 	    }
 	    
             if (update_guess) {
-                gsl_vector_set(p_best->mean, offset, fast_get_json_real_from_object(par_guess, my_group_id));
+                gsl_vector_set(p_best->mean, offset, fast_get_json_real_from_object(fast_get_json_object(group, "guess"), "value"));
             }
 
-            gsl_matrix_set(p_best->var, offset, offset, (follow) ? 0.0 : fast_get_json_real_from_object(par_sd_transf, my_group_id));
+            gsl_matrix_set(p_best->var, offset, offset, (follow) ? 0.0 : fast_get_json_real_from_object(fast_get_json_object(group, "sd_transf"), "value"));
 
-            p_best->par_prior[offset][0] = fast_get_json_real_from_object(par_min, my_group_id);
-            p_best->par_prior[offset][1] = fast_get_json_real_from_object(par_max, my_group_id);
-
+            p_best->par_prior[offset][0] = fast_get_json_real_from_object(fast_get_json_object(group, "min"), "value");
+            p_best->par_prior[offset][1] = fast_get_json_real_from_object(fast_get_json_object(group, "max"), "value");
+	    
             offset++;
-        }
+	}
     }
 
     if (update_covariance) {
@@ -579,7 +572,6 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int
             }
         }
     }
-
 }
 
 

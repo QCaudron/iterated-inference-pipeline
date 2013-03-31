@@ -46,7 +46,7 @@ double drift_derivative(double jac_tpl, double jac_der, struct s_router *r, int 
 
     if(jac_tpl){
         int g = r->map[cac];
-        return jac_tpl / r->f_derivative(jac_der, r->min_z[g], r->max_z[g]);
+        return jac_tpl / r->f_derivative[g](jac_der, r->min_z[g], r->max_z[g]);
     }
 
     return 0.0;
@@ -135,7 +135,7 @@ double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **ro
         for(k=0; k<routers[i]->n_gp; k++) {
             if(gsl_matrix_get(var, offset, offset) >0.0) {
 
-                p_tmp = 1./((*(routers[i]->f_inv_derivative))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]));
+                p_tmp = 1./((*(routers[i]->f_inv_derivative[k]))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]));
 
                 //check for numerical issues
                 if((isinf(p_tmp)==1) || (isnan(p_tmp)==1)) {

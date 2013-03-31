@@ -289,90 +289,81 @@ int is_duration(const json_t *par)
  * corresponding to the parameter par
  */
 
-void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_data, int is_bayesian)
+void set_f_trans(struct s_router *p_router, const char *transf, const char *prior_type, const char *u_data, int g, int is_bayesian)
 {
-    const char *prior_type = fast_get_json_string_from_object(par, "prior");
-    json_t *transf = json_object_get(par, "transformation");
-    const char *mytransf = json_string_value(transf);
-
-
-
-    p_router->is_duration = is_duration(par);
-    p_router->multiplier = get_multiplier(u_data, par, 0);
-
     if ( is_bayesian && ((strcmp(prior_type, "uniform") == 0) || (strcmp(prior_type, "pseudo_uniform") == 0)) ) {
 
-        p_router->f = &f_logit_ab;
-        p_router->f_inv = &f_inv_logit_ab;
+        p_router->f[g] = &f_logit_ab;
+        p_router->f_inv[g] = &f_inv_logit_ab;
 
-        if ( (strcmp(mytransf, "scale_pow10") == 0) || (strcmp(mytransf, "scale_pow10_bounded") == 0) )  {
-            p_router->f_scale = &f_scale_pow10;
-        } else if (strcmp(mytransf, "scale_pow10_pos") == 0) {
-            p_router->f_scale = &f_scale_pow10_pos;
+        if ( (strcmp(transf, "scale_pow10") == 0) || (strcmp(transf, "scale_pow10_bounded") == 0) )  {
+            p_router->f_scale[g] = &f_scale_pow10;
+        } else if (strcmp(transf, "scale_pow10_pos") == 0) {
+            p_router->f_scale[g] = &f_scale_pow10_pos;
         } else {
-            p_router->f_scale = &f_scale_id;
+            p_router->f_scale[g] = &f_scale_id;
         }
 
-        p_router->f_derivative = &f_der_logit_ab;
-        p_router->f_inv_derivative = &f_der_inv_logit_ab;
+        p_router->f_derivative[g] = &f_der_logit_ab;
+        p_router->f_inv_derivative[g] = &f_der_inv_logit_ab;
 
     } else {
 
-        if (strcmp(mytransf, "log")==0) {
+        if (strcmp(transf, "log")==0) {
 
-            p_router->f = &f_log;
-            p_router->f_inv = &f_inv_log;
-            p_router->f_derivative = &f_der_log;
-            p_router->f_inv_derivative = &f_der_inv_log;
-            p_router->f_scale = &f_scale_id;
+            p_router->f[g] = &f_log;
+            p_router->f_inv[g] = &f_inv_log;
+            p_router->f_derivative[g] = &f_der_log;
+            p_router->f_inv_derivative[g] = &f_der_inv_log;
+            p_router->f_scale[g] = &f_scale_id;
 
-        } else if (strcmp(mytransf, "logit")==0) {
+        } else if (strcmp(transf, "logit")==0) {
 
-            p_router->f =  &f_logit;
-            p_router->f_inv = &f_inv_logit;
-            p_router->f_derivative = &f_der_logit;
-            p_router->f_inv_derivative = &f_der_inv_logit;
-            p_router->f_scale = &f_scale_id;
+            p_router->f[g] =  &f_logit;
+            p_router->f_inv[g] = &f_inv_logit;
+            p_router->f_derivative[g] = &f_der_logit;
+            p_router->f_inv_derivative[g] = &f_der_inv_logit;
+            p_router->f_scale[g] = &f_scale_id;
 
-        } else if (strcmp(mytransf, "logit_ab")==0) {
+        } else if (strcmp(transf, "logit_ab")==0) {
 
-            p_router->f =  &f_logit_ab;
-            p_router->f_inv = &f_inv_logit_ab;
-            p_router->f_derivative = &f_der_logit_ab;
-            p_router->f_inv_derivative = &f_der_inv_logit_ab;
-            p_router->f_scale = &f_scale_id;
+            p_router->f[g] =  &f_logit_ab;
+            p_router->f_inv[g] = &f_inv_logit_ab;
+            p_router->f_derivative[g] = &f_der_logit_ab;
+            p_router->f_inv_derivative[g] = &f_der_inv_logit_ab;
+            p_router->f_scale[g] = &f_scale_id;
 
-        } else if (strcmp(mytransf, "identity")==0) {
+        } else if (strcmp(transf, "identity")==0) {
 
-            p_router->f = &f_id;
-            p_router->f_inv = &f_id;
-            p_router->f_derivative = &f_id;
-            p_router->f_inv_derivative = &f_id;
-            p_router->f_scale = &f_scale_id;
+            p_router->f[g] = &f_id;
+            p_router->f_inv[g] = &f_id;
+            p_router->f_derivative[g] = &f_id;
+            p_router->f_inv_derivative[g] = &f_id;
+            p_router->f_scale[g] = &f_scale_id;
 
-        } else if (strcmp(mytransf, "scale_pow10")==0) {
+        } else if (strcmp(transf, "scale_pow10")==0) {
 
-            p_router->f =  &f_id;
-            p_router->f_inv = &f_id;
-            p_router->f_derivative = &f_id;
-            p_router->f_inv_derivative = &f_id;
-            p_router->f_scale = &f_scale_pow10;
+            p_router->f[g] =  &f_id;
+            p_router->f_inv[g] = &f_id;
+            p_router->f_derivative[g] = &f_id;
+            p_router->f_inv_derivative[g] = &f_id;
+            p_router->f_scale[g] = &f_scale_pow10;
 
-        } else if (strcmp(mytransf, "scale_pow10_bounded")==0) {
+        } else if (strcmp(transf, "scale_pow10_bounded")==0) {
 
-            p_router->f =  &f_logit_ab;
-            p_router->f_inv = &f_inv_logit_ab;
-            p_router->f_derivative = &f_der_logit_ab;
-            p_router->f_inv_derivative = &f_der_inv_logit_ab;
-            p_router->f_scale = &f_scale_pow10;
+            p_router->f[g] =  &f_logit_ab;
+            p_router->f_inv[g] = &f_inv_logit_ab;
+            p_router->f_derivative[g] = &f_der_logit_ab;
+            p_router->f_inv_derivative[g] = &f_der_inv_logit_ab;
+            p_router->f_scale[g] = &f_scale_pow10;
 
-        } else if (strcmp(mytransf, "scale_pow10_pos")==0) {
+        } else if (strcmp(transf, "scale_pow10_pos")==0) {
 
-            p_router->f =  &f_log;
-            p_router->f_inv = &f_inv_log;
-            p_router->f_derivative = &f_der_log;
-            p_router->f_inv_derivative = &f_der_inv_log;
-            p_router->f_scale = &f_scale_pow10_pos;
+            p_router->f[g] =  &f_log;
+            p_router->f_inv[g] = &f_inv_log;
+            p_router->f_derivative[g] = &f_der_log;
+            p_router->f_inv_derivative[g] = &f_der_inv_log;
+            p_router->f_scale[g] = &f_scale_pow10_pos;
 
         } else {
 
@@ -383,31 +374,30 @@ void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_dat
 
 }
 
-void set_ab_z(struct s_router *r)
+void set_ab_z(struct s_router *r, int g)
 {
     double a, b;
-    int g;
+
     //convert into data unit;
-    for(g=0; g<r->n_gp; g++){
 
-        //scale
-        a = r->f_scale(r->min[g]);
-        b = r->f_scale(r->max[g]);
+    //scale
+    a = (*(r->f_scale[g]))(r->min[g]);
+    b = (*(r->f_scale[g]))(r->max[g]);
 
-        //to data unit
-        a *= r->multiplier;
-        b *= r->multiplier;
+    //to data unit
+    a *= r->multiplier;
+    b *= r->multiplier;
 
-        //make rate (if needed)
-        if(r->is_duration){
-            a = 1.0/a;
-            b = 1.0/b;
-        }
-
-        //be sure that a < b
-        r->min_z[g] = GSL_MIN(a, b);
-        r->max_z[g] = GSL_MAX(a, b);
+    //make rate (if needed)
+    if(r->is_duration){
+	a = 1.0/a;
+	b = 1.0/b;
     }
+
+    //be sure that a < b
+    r->min_z[g] = GSL_MIN(a, b);
+    r->max_z[g] = GSL_MAX(a, b);
+
 }
 
 
@@ -433,10 +423,10 @@ double back_transform_x(double x, int g, struct s_router *r)
 {
     double trans;
     //back transform
-    trans= (*(r->f_inv))(x, r->min[g], r->max[g]);
+    trans= (*(r->f_inv[g]))(x, r->min[g], r->max[g]);
 
     //scale
-    trans= (*(r->f_scale))(trans);
+    trans= (*(r->f_scale[g]))(trans);
 
     //convert unit
     trans *= r->multiplier;

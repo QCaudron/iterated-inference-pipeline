@@ -60,7 +60,7 @@ int check_prior(struct s_best *p_best, gsl_vector *mean, gsl_matrix *var, struct
   for(i=0; i<p_data->p_it_all->length; i++) {
       for(k=0; k<routers[i]->n_gp; k++) {
           if(p_best->is_estimated[offset]) {
-              back_transformed = (*(routers[i]->f_inv))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]);
+              back_transformed = (*(routers[i]->f_inv[k]))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]);
 
               p = (*(p_best->prior[offset]))(back_transformed, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);
               if(p == 0.0) {
@@ -89,7 +89,7 @@ double log_prob_prior(struct s_best *p_best, gsl_vector *mean, gsl_matrix *var, 
     for(i=0; i<p_data->p_it_all->length; i++) {
         for(k=0; k<routers[i]->n_gp; k++) {
 	    if(p_best->is_estimated[offset]) {
-                back_transformed = (*(routers[i]->f_inv))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]);
+                back_transformed = (*(routers[i]->f_inv[k]))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]);
                 p_tmp = (*(p_best->prior[offset]))(back_transformed, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);
                 Lp += log(sanitize_likelihood(p_tmp));
             }

@@ -75,7 +75,7 @@ enum plom_print {PLOM_PRINT_BEST = 1 << 0, PLOM_PRINT_X = 1 << 1, PLOM_PRINT_HAT
 #define FLAG_DEBUG 0
 #define FLAG_VERBOSE 1
 #define FLAG_WARNING 0
-#define FLAG_JSON 1 /**< webApp */
+#define FLAG_JSON 0 /**< webApp */
 
 #define PLOM_EPS_ABS 1e-6 /**< absolute error control for ODEs*/
 #define PLOM_EPS_REL 1e-3 /**< relative error control for ODEs*/
@@ -187,13 +187,13 @@ struct s_router /* [ N_PAR_SV + N_PAR_PROC + N_PAR_OBS ] */
     char **group_name; /**< [self.n_gp] name of the groups */
 
     /* transformations */
-    double (*f) (double, double, double); /**< transformation (log, logit...) */
-    double (*f_inv) (double, double, double); /**< inverse of f (f*f_inv=identity) */
+    double (**f) (double, double, double); /**< [self.n_gp] transformation (log, logit...) */
+    double (**f_inv) (double, double, double); /**< [self.n_gp] inverse of f (f*f_inv=identity) */
 
-    double (*f_scale) (double); /**< scale value (10^x or 10^-x has an effect on s_par only.) */
+    double (**f_scale) (double); /**< [self.n_gp] scale value (10^x or 10^-x has an effect on s_par only.) */
 
-    double (*f_derivative) (double, double, double); /**< derivative of f */
-    double (*f_inv_derivative) (double, double, double); /**< derivative of f_inv */
+    double (**f_derivative) (double, double, double); /**< [self.n_gp] derivative of f */
+    double (**f_inv_derivative) (double, double, double); /**< [self.n_gp] derivative of f_inv */
 
     double multiplier; /**< multiplier to go from the intuitive scale to the unit of data *before*  duration as been converted to rates (if relevant) */
     int is_duration; /**< boolean specifying if a duration has to be converted into a rate */
@@ -722,8 +722,8 @@ double f_der_inv_logit_ab(double x, double a, double b);
 double u_duration_par2u_data(const char *u_par, const char *u_data);
 double get_multiplier(const char *u_data, const json_t *par, int is_print);
 int is_duration(const json_t *par);
-void set_f_trans(struct s_router *p_router, const json_t *par, const char *u_data, int is_bayesian);
-void set_ab_z(struct s_router *r);
+void set_f_trans(struct s_router *p_router, const char *transf, const char *prior_type, const char *u_data, int g, int is_bayesian);
+void set_ab_z(struct s_router *r, int g);
 
 void assign_f_transfo(double (**f_transfo) (double x, double mul, double a, double b), const char *f_transfo_name);
 void assign_f_derivative(double (**f_derivative) (double x, double mul, double a, double b), const char *f_transfo_name);

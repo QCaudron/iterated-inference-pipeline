@@ -19,39 +19,6 @@
 import copy
 import sys
 
-def contextualize(par_proc, proc_model, obs_var_def=[]):
-    """add iotas: modify par_proc, proc_model and obs_var_def in place"""
-
-    ##find unique number of infectors types
-    ##create a list of tuples of infector types
-    infectors = [ tuple(m['tag']['transmission']['by']) for m in proc_model if 'tag' in m and 'transmission' in  m['tag'] ]
-
-    ##create the iota parameters (external introduction) and add
-    ##iotas to par_proc set(infector) give the unique set of
-    ##tuple. Each of these unique tuple is a key and the value is
-    ##the name of the iota parameter
-    iotas = {}
-    for i, k in enumerate(set(infectors)):
-        iotas[k] = 'iota_{0}'.format(i)
-        par_proc.append(iotas[k])
-
-    ##add iotas to the force of infection **and** update obs_var_def
-    for i, m in enumerate(proc_model):
-        if 'tag' in m and 'transmission' in m['tag']:
-            ##to do safer iota insertion... if beta*S*(I**2+sigma*I) the current version will fail
-            new_rate =  m['rate'].replace(m['tag']['transmission']['by'][0], '({0}+{1})'.format(iotas[tuple(m['tag']['transmission']['by'])], m['tag']['transmission']['by'][0]))
-
-            ##update obs_var_def:
-            for ii, o in enumerate(obs_var_def):
-                if isinstance(o[0], dict): ##incidence
-                    for iii, oo in enumerate(o):
-                        if oo['from'] == m['from'] and oo['to'] == m['to'] and oo['rate'] == m['rate']:
-                            obs_var_def[ii][iii]['rate'] = new_rate
-
-            proc_model[i]['rate'] = new_rate
-
-
-
 class Cmodel:
 
     """
@@ -59,7 +26,6 @@ class Cmodel:
 
     -remove par_fixed from par_obs and par_proc
     -replace N by either sum_SV, p_0 or N depending the context
-    -contextualize the model (take into account age and spate structure)
     """
 
     def __init__(self, context, process, link,  **kwargs):
@@ -176,9 +142,6 @@ class Cmodel:
                                                                              'sd': x['sd']}
 
 
-        ##############################
-        ##contextualize
-        ##############################
 
         ##resolve the population size: (replace 'N' by either 'sum_SV', 'p_0' or 'N')
         if self.pop_size_eq_sum_sv:
@@ -198,11 +161,7 @@ class Cmodel:
                 if isinstance(d, dict):
                     d['rate'] = d['rate'].replace('N', myN)
 
-        ##other models (spate or age structure)
-        if 'model' in context and 'space' in context['model'] and 'type' in context['model']['space'] and 'external' in context['model']['space']['type']:
-            contextualize(self.par_proc, self.proc_model, self.obs_var_def)
-
-
+        ##TODO other models (spate or age structure)
 
 
 
@@ -270,8 +229,6 @@ if __name__=="__main__":
 
     ##context elements needed for Cmodel
     c = {}
-    c['model'] = {"space": {"type": ["external"]},
-                  "age": None}
 
     c['data'] = [{'id': 'N'}, {'id': 'mu_b'}, {'id': 'mu_d'}]
 

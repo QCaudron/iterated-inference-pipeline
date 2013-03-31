@@ -93,11 +93,11 @@ def make_settings_json(self):
     settings['data']['rep1'] = self.prop
     settings['data']['par_fixed_values'] = self.par_fixed_values
 
-    ##TO DO
+    ##TODO
     ##settings['data']['school_terms'] = self.school_terms
     settings['data']['dates'] = self.dates
 
-    ##data/drift
+    ##drift
     all_order = self.par_sv + self.par_proc + self.par_obs
     settings['drift'] = {'ind_par_Xdrift_applied': [ all_order.index(x) for x in self.drift_par_proc + self.drift_par_obs ],
                          'ind_volatility_Xdrift': [ all_order.index(x) for x in self.vol_par_proc + self.vol_par_obs ]}
