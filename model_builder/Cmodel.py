@@ -142,7 +142,6 @@ class Cmodel:
                                                                              'sd': x['sd']}
 
 
-
         ##resolve the population size: (replace 'N' by either 'sum_SV', 'p_0' or 'N')
         if self.pop_size_eq_sum_sv:
             myN = 'N' if 'N' in self.par_fixed else 'sum_SV'
@@ -151,15 +150,15 @@ class Cmodel:
 
         for k, v in self.obs_model.iteritems():
             if k != 'distribution':
-                self.obs_model[k] = v.replace('N', myN)
+                self.obs_model[k] = ''.join(map(lambda x: myN if x == 'N' else x, self.change_user_input(v)))
 
         for i, m in enumerate(self.proc_model):
-            self.proc_model[i]['rate'] = m['rate'].replace('N', myN)
+            self.proc_model[i]['rate'] = ''.join(map(lambda x: myN if x == 'N' else x, self.change_user_input(m['rate'])))
 
         for x in self.obs_var_def:
             for d in x:
                 if isinstance(d, dict):
-                    d['rate'] = d['rate'].replace('N', myN)
+                    d['rate'] = ''.join(map(lambda x: myN if x == 'N' else x, self.change_user_input(d['rate'])))
 
         ##TODO other models (spate or age structure)
 
