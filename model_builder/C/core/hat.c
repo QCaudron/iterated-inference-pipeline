@@ -139,8 +139,11 @@ void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data,
 
 /**
  * Compute hat at nn
+ * 2 versions are possible: all the particles have the same
+ * parameters (J of J_p_par=1, is_p_par_cst=1) or the particles have
+ * different parameters values (J of J_p_par =J, is_p_par_cst=0).
  */
-void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat)
+void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, int is_p_par_cst)
 {
     int j, i, k, ts;
     int thread_id;
@@ -165,21 +168,44 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_da
 
     /* obs [N_TS] same thing as for state except that we use obs_mean()
        on p_X->obs */
+
+    if(is_p_par_cst){ //J_p_par -> J_p_par[0]
+
 #pragma omp parallel for private(thread_id, j)
-    for(ts=0; ts<N_TS; ts++) {
-        thread_id = omp_get_thread_num();
+        for(ts=0; ts<N_TS; ts++) {
+            thread_id = omp_get_thread_num();
 
-        /* empirical average */
-        p_hat->obs[ts] = 0.0;
-        for(j=0;j<J;j++) {
-            calc[thread_id]->to_be_sorted[j] = obs_mean(J_p_X[j]->obs[ts], p_par, p_data, calc[thread_id], ts);
-            p_hat->obs[ts] += calc[thread_id]->to_be_sorted[j];
-        }
-        p_hat->obs[ts] /= ((double) J);
+            /* empirical average */
+            p_hat->obs[ts] = 0.0;
+            for(j=0;j<J;j++) {
+                calc[thread_id]->to_be_sorted[j] = obs_mean(J_p_X[j]->obs[ts], J_p_par[0], p_data, calc[thread_id], ts);
+                p_hat->obs[ts] += calc[thread_id]->to_be_sorted[j];
+            }
+            p_hat->obs[ts] /= ((double) J);
 
-        get_CI95(p_hat->obs_95[ts], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, NULL);
+            get_CI95(p_hat->obs_95[ts], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, NULL);
 
-    } /* end for on ts */
+        } /* end for on ts */
+    } else { //same as above, the only difference is that J_p_par -> J_p_par[j]
+
+#pragma omp parallel for private(thread_id, j)
+        for(ts=0; ts<N_TS; ts++) {
+            thread_id = omp_get_thread_num();
+
+            /* empirical average */
+            p_hat->obs[ts] = 0.0;
+            for(j=0;j<J;j++) {
+                calc[thread_id]->to_be_sorted[j] = obs_mean(J_p_X[j]->obs[ts], J_p_par[j], p_data, calc[thread_id], ts);
+                p_hat->obs[ts] += calc[thread_id]->to_be_sorted[j];
+            }
+            p_hat->obs[ts] /= ((double) J);
+
+            get_CI95(p_hat->obs_95[ts], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, NULL);
+
+        } /* end for on ts */
+
+    }
+
 
     /* drift */
     struct s_drift **drift = p_data->drift;
@@ -195,7 +221,7 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_da
             for(j=0; j<J; j++) {
                 calc[thread_id]->to_be_sorted[j] = (*(routers[ ind_par_Xdrift_applied ]->f_inv))(J_p_X[j]->proj[drift[i]->offset + k], routers[ind_par_Xdrift_applied]->min[k], routers[ind_par_Xdrift_applied]->max[k]);
                 p_hat->drift[offset+k] += calc[thread_id]->to_be_sorted[j];
-	    }
+            }
             p_hat->drift[offset+k] /= ((double) J);
 
             get_CI95(p_hat->drift_95[offset+k], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, NULL);

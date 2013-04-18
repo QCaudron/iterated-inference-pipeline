@@ -42,13 +42,13 @@ void rescale_covariance_mif(struct s_best *p_best, struct s_data *p_data)
         for(k=0; k< routers[p_it_mif->ind[i]]->n_gp; k++) {
             row = p_it_mif->offset[i]+k;
 
-	    for(ii=0; ii<p_it_mif->length; ii++) {
-		for(kk=0; kk< routers[p_it_mif->ind[ii]]->n_gp; kk++) {
-		    col = p_it_mif->offset[ii]+kk;
-		    
-		    gsl_matrix_set(p_best->var, row, col, gsl_matrix_get(p_best->var, row, col)*inv_n_data);
-		}
-	    }
+            for(ii=0; ii<p_it_mif->length; ii++) {
+                for(kk=0; kk< routers[p_it_mif->ind[ii]]->n_gp; kk++) {
+                    col = p_it_mif->offset[ii]+kk;
+
+                    gsl_matrix_set(p_best->var, row, col, gsl_matrix_get(p_best->var, row, col)*inv_n_data);
+                }
+            }
         }
     }
 
@@ -58,15 +58,15 @@ void rescale_covariance_mif(struct s_best *p_best, struct s_data *p_data)
         for(k=0; k< routers[p_it_mif->ind[i]]->n_gp; k++) {
             row = p_it_mif->offset[i]+k;
 
-	    for(ii=0; ii<p_it_fls->length; ii++) {
-		for(kk=0; kk< routers[p_it_fls->ind[ii]]->n_gp; kk++) {
-		    col = p_it_fls->offset[ii]+kk;
-		    
-		    gsl_matrix_set(p_best->var, row, col, gsl_matrix_get(p_best->var, row, col)*sqrt_inv_n_data);		   
-		    gsl_matrix_set(p_best->var, col, row, gsl_matrix_get(p_best->var, col, row)*sqrt_inv_n_data);
+            for(ii=0; ii<p_it_fls->length; ii++) {
+                for(kk=0; kk< routers[p_it_fls->ind[ii]]->n_gp; kk++) {
+                    col = p_it_fls->offset[ii]+kk;
 
-		}
-	    }
+                    gsl_matrix_set(p_best->var, row, col, gsl_matrix_get(p_best->var, row, col)*sqrt_inv_n_data);
+                    gsl_matrix_set(p_best->var, col, row, gsl_matrix_get(p_best->var, col, row)*sqrt_inv_n_data);
+
+                }
+            }
         }
     }
 }
@@ -77,7 +77,7 @@ void rescale_covariance_mif(struct s_best *p_best, struct s_data *p_data)
 void ran_proposal_chol(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc)
 {
     int k;
-    gsl_vector *ugaussian = (gsl_vector *) p_calc->method_specific_thread_safe_data; 
+    gsl_vector *ugaussian = (gsl_vector *) p_calc->method_specific_thread_safe_data;
     gsl_matrix *chol = (gsl_matrix *) p_calc->method_specific_shared_data;
 
     for(k=0; k<p_best->n_to_be_estimated; k++) {
@@ -89,12 +89,12 @@ void ran_proposal_chol(theta_t *proposed, struct s_best *p_best, gsl_matrix *var
     gsl_vector_memcpy(proposed, p_best->mean);
     for(k=0; k<p_best->n_to_be_estimated; k++) {
         gsl_vector_set(proposed,
-		       p_best->to_be_estimated[k],
-		       gsl_vector_get(p_best->mean, p_best->to_be_estimated[k]) + gsl_vector_get(ugaussian, k));
+                       p_best->to_be_estimated[k],
+                       gsl_vector_get(p_best->mean, p_best->to_be_estimated[k]) + gsl_vector_get(ugaussian, k));
     }
 }
 
-/** 
+/**
  *  load theta_bart and theta_Vt for t0 and all subsequent time,
  *  we do this for time>t0 so that parameters that do not vary are
  *  printed correctly...
@@ -112,7 +112,7 @@ void fill_theta_bart_and_Vt_mif(double **D_theta_bart, double **D_theta_Vt, stru
     for(n=0 ;n<=N_DATA_NONAN; n++) {
         for(i=0; i<p_it->length; i++) {
             for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-		offset = p_it->offset[i]+k;
+                offset = p_it->offset[i]+k;
                 D_theta_bart[n][offset] = gsl_vector_get(p_best->mean, offset);
                 D_theta_Vt[n][offset] = 0.0;
                 if(n == 0) {
@@ -138,9 +138,9 @@ void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gs
 
     struct s_iterator *p_it;
     if (is_printed){
-	p_it= p_data->p_it_all;
-    } else { 
-	p_it= p_data->p_it_par_proc_par_obs_no_drift; //only this one is truely needed
+        p_it= p_data->p_it_all;
+    } else {
+        p_it= p_data->p_it_par_proc_par_obs_no_drift; //only this one is truely needed
     }
 
     struct s_router **routers = p_data->routers;
@@ -151,7 +151,7 @@ void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gs
 
     for(i=0; i<p_it->length; i++) {
         for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-	    offset = p_it->offset[i]+k;
+            offset = p_it->offset[i]+k;
 
             if(p_best->is_estimated[offset]) {
 
@@ -182,8 +182,8 @@ void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gs
 
                 }
                 /*we add theoretical variance corresponding to mutation of theta
-                  to reduce Monte Carlo variability*/ 
-		//TODO check that this is valid in MVN case
+                  to reduce Monte Carlo variability*/
+                //TODO check that this is valid in MVN case
                 theta_Vt_n[offset] += delta_t*pow(FREEZE, 2)*gsl_matrix_get(p_best->var, offset, offset);
             }
         }
@@ -262,86 +262,86 @@ void resample_and_mut_theta_mif(unsigned int *select, gsl_vector **J_theta, gsl_
 
     //resample
     for(j=0; j<J; j++) {
-	gsl_vector_memcpy(J_theta_tmp[j], J_theta[select[j]]);
+        gsl_vector_memcpy(J_theta_tmp[j], J_theta[select[j]]);
     }
 
     if(is_mvn){
 
-	gsl_matrix *chol = (gsl_matrix *) calc[0]->method_specific_shared_data;
+        gsl_matrix *chol = (gsl_matrix *) calc[0]->method_specific_shared_data;
 
-	gsl_matrix_memcpy(chol, var_fitted);
-	gsl_matrix_scale(chol, sd_fac*sd_fac);
+        gsl_matrix_memcpy(chol, var_fitted);
+        gsl_matrix_scale(chol, sd_fac*sd_fac);
 
-	// eval decomposition
-	int status = gsl_linalg_cholesky_decomp(chol);
-	if(status == GSL_EDOM) {
-	    // error: matrix not positive
-	    print_err("Covariance matrix is not positive definite");
-	}
+        // eval decomposition
+        int status = gsl_linalg_cholesky_decomp(chol);
+        if(status == GSL_EDOM) {
+            // error: matrix not positive
+            print_err("Covariance matrix is not positive definite");
+        }
 
-	//resample and (possibly) mutate
+        //resample and (possibly) mutate
 #pragma omp parallel for private(thread_id, i, k, offset)
-	for(j=0; j<J; j++) {
-	    thread_id = omp_get_thread_num();
+        for(j=0; j<J; j++) {
+            thread_id = omp_get_thread_num();
 
-	    for(k=0; k<p_best->n_to_be_estimated; k++) {
-		gsl_vector_set((gsl_vector *) calc[thread_id]->method_specific_thread_safe_data, k, gsl_ran_ugaussian(calc[thread_id]->randgsl));
-	    }
-	    gsl_blas_dtrmv(CblasLower, CblasNoTrans, CblasNonUnit, chol, (gsl_vector *) calc[thread_id]->method_specific_thread_safe_data);
+            for(k=0; k<p_best->n_to_be_estimated; k++) {
+                gsl_vector_set((gsl_vector *) calc[thread_id]->method_specific_thread_safe_data, k, gsl_ran_ugaussian(calc[thread_id]->randgsl));
+            }
+            gsl_blas_dtrmv(CblasLower, CblasNoTrans, CblasNonUnit, chol, (gsl_vector *) calc[thread_id]->method_specific_thread_safe_data);
 
-	    //resample and mutate 
-	    for(k=0; k<p_best->n_to_be_estimated; k++) {
-		gsl_vector_set(J_theta[j],
-			       p_best->to_be_estimated[k], 
-			       gsl_vector_get(J_theta_tmp[j], p_best->to_be_estimated[k]) + gsl_vector_get((gsl_vector *) calc[thread_id]->method_specific_thread_safe_data, k)); 
-	    }
+            //resample and mutate
+            for(k=0; k<p_best->n_to_be_estimated; k++) {
+                gsl_vector_set(J_theta[j],
+                               p_best->to_be_estimated[k],
+                               gsl_vector_get(J_theta_tmp[j], p_best->to_be_estimated[k]) + gsl_vector_get((gsl_vector *) calc[thread_id]->method_specific_thread_safe_data, k));
+            }
 
-	    //resample non fitted component of p_it_mif //TODO: optimize
-	    for(i=0; i<p_it_mif->length; i++) {
-		for(k=0; k< routers[p_it_mif->ind[i]]->n_gp; k++) {
-		    offset = p_it_mif->offset[i]+k;
-		    if(!p_best->is_estimated[offset]){
-			gsl_vector_set(J_theta[j], offset, gsl_vector_get(J_theta_tmp[j], offset)); //resample only
-		    }
-		}
-	    }
+            //resample non fitted component of p_it_mif //TODO: optimize
+            for(i=0; i<p_it_mif->length; i++) {
+                for(k=0; k< routers[p_it_mif->ind[i]]->n_gp; k++) {
+                    offset = p_it_mif->offset[i]+k;
+                    if(!p_best->is_estimated[offset]){
+                        gsl_vector_set(J_theta[j], offset, gsl_vector_get(J_theta_tmp[j], offset)); //resample only
+                    }
+                }
+            }
 
-	    //for initial values and drift par we only resample so we cancel the effect of the mutation
-	    for(i=0; i<p_it_fls->length; i++) {
-		for(k=0; k< routers[p_it_fls->ind[i]]->n_gp; k++) {
-		    offset = p_it_fls->offset[i]+k;
-		    gsl_vector_set(J_theta[j], offset, gsl_vector_get(J_theta_tmp[j], offset)); //resample only
-		}
-	    }
-	}
+            //for initial values and drift par we only resample so we cancel the effect of the mutation
+            for(i=0; i<p_it_fls->length; i++) {
+                for(k=0; k< routers[p_it_fls->ind[i]]->n_gp; k++) {
+                    offset = p_it_fls->offset[i]+k;
+                    gsl_vector_set(J_theta[j], offset, gsl_vector_get(J_theta_tmp[j], offset)); //resample only
+                }
+            }
+        }
 
     } else { //diagonal sigma
-	    
+
 #pragma omp parallel for private(thread_id, i, k, offset)
-	for(j=0; j<J; j++) {	
-	    thread_id = omp_get_thread_num();
+        for(j=0; j<J; j++) {
+            thread_id = omp_get_thread_num();
 
-	    //resample and mutate 
-	    for(i=0; i<p_it_mif->length; i++) {
-		for(k=0; k< routers[p_it_mif->ind[i]]->n_gp; k++) {
-		    offset = p_it_mif->offset[i]+k;
+            //resample and mutate
+            for(i=0; i<p_it_mif->length; i++) {
+                for(k=0; k< routers[p_it_mif->ind[i]]->n_gp; k++) {
+                    offset = p_it_mif->offset[i]+k;
 
-		    if(p_best->is_estimated[offset]) {
-			gsl_vector_set(J_theta[j], offset, gsl_vector_get(J_theta_tmp[j], offset) + gsl_ran_gaussian(calc[thread_id]->randgsl, sd_fac*sqrt(gsl_matrix_get(p_best->var, offset, offset)))); //resample and mut
-		    } else {
-			gsl_vector_set(J_theta[j], offset, gsl_vector_get(J_theta_tmp[j], offset)); //resample only
-		    }
-		}
-	    }
+                    if(p_best->is_estimated[offset]) {
+                        gsl_vector_set(J_theta[j], offset, gsl_vector_get(J_theta_tmp[j], offset) + gsl_ran_gaussian(calc[thread_id]->randgsl, sd_fac*sqrt(gsl_matrix_get(p_best->var, offset, offset)))); //resample and mut
+                    } else {
+                        gsl_vector_set(J_theta[j], offset, gsl_vector_get(J_theta_tmp[j], offset)); //resample only
+                    }
+                }
+            }
 
-	    //resample only
-	    for(i=0; i<p_it_fls->length; i++) {
-		for(k=0; k< routers[p_it_fls->ind[i]]->n_gp; k++) {
-		    offset = p_it_fls->offset[i]+k;
-		    gsl_vector_set(J_theta[j], offset, gsl_vector_get(J_theta_tmp[j], offset)); //resample only
-		}
-	    }
-	}
+            //resample only
+            for(i=0; i<p_it_fls->length; i++) {
+                for(k=0; k< routers[p_it_fls->ind[i]]->n_gp; k++) {
+                    offset = p_it_fls->offset[i]+k;
+                    gsl_vector_set(J_theta[j], offset, gsl_vector_get(J_theta_tmp[j], offset)); //resample only
+                }
+            }
+        }
     }
 
 }
@@ -356,10 +356,10 @@ void update_fixed_lag_smoothing(struct s_best *p_best, struct s_likelihood *p_li
 
     for(i=0; i<p_it->length; i++) {
         for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-	    int offset = p_it->offset[i]+k;
-	    gsl_vector_set(p_best->mean, offset, 0.0);
+            int offset = p_it->offset[i]+k;
+            gsl_vector_set(p_best->mean, offset, 0.0);
             for(j=0; j<J; j++) {
-		gsl_vector_set(p_best->mean, offset, gsl_vector_get(p_best->mean, offset) + gsl_vector_get(J_theta[j], offset)*weights[j]);
+                gsl_vector_set(p_best->mean, offset, gsl_vector_get(p_best->mean, offset) + gsl_vector_get(J_theta[j], offset)*weights[j]);
             }
         }
     }
@@ -386,7 +386,7 @@ void update_theta_best_stable_mif(struct s_best *p_best, double **D_theta_bart, 
 
     for(i=0; i<p_it->length; i++) {
         for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-	    offset = p_it->offset[i]+k;
+            offset = p_it->offset[i]+k;
             if(p_best->is_estimated[offset]) {
                 tmp = 0.0;
                 for(n=1; n<=N_DATA_NONAN; n++){
@@ -401,7 +401,7 @@ void update_theta_best_stable_mif(struct s_best *p_best, double **D_theta_bart, 
 }
 
 /**
- * The MIF update formlulae Ionides et al 2006 PNAS 
+ * The MIF update formlulae Ionides et al 2006 PNAS
  */
 
 void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, double **D_theta_Vt, struct s_data *p_data, int m)
@@ -418,7 +418,7 @@ void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, do
 
     for(i=0; i<p_it->length; i++) {
         for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
-	    offset = p_it->offset[i]+k;
+            offset = p_it->offset[i]+k;
             if(p_best->is_estimated[offset]) {
                 tmp=0.0;
                 for(n=1; n<=N_DATA_NONAN; n++) {
@@ -426,7 +426,7 @@ void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, do
                 }
 
                 gsl_vector_set(p_best->mean,
-			       offset,
+                               offset,
                                (gsl_vector_get(p_best->mean, offset) + ((1.0+MIF_b*MIF_b)*FREEZE*FREEZE*gsl_matrix_get(p_best->var, offset, offset)*tmp) ) ); //1.0 is p_data->times[0]
             }
         }
@@ -479,7 +479,7 @@ void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, 
             p_router = routers[p_it_fls->ind[i]];
             for(k=0; k< p_router->n_gp; k++) {
                 offset = p_it_fls->offset[i]+k;
-		if(p_best->is_estimated[offset]) {
+                if(p_best->is_estimated[offset]) {
                     for(j=0; j<J; j++) {
                         back_transformed = (*(p_router->f_inv))(gsl_vector_get( J_theta[j], offset), p_router->min[k], p_router->max[k]);
                         p_tmp = (*(p_best->prior[offset]))(back_transformed, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);

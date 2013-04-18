@@ -111,7 +111,7 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
         }
 
         reset_inc(p_X, p_data);
-	f_pred(p_X, k, k+1, p_par, p_data, p_calc);
+        f_pred(p_X, k, k+1, p_par, p_data, p_calc);
         proj2obs(p_X, p_data);
 
         for (ts=0; ts<N_TS; ts++) {
@@ -131,7 +131,8 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
 }
 
 
-void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred)
+
+void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred)
 {
     int j, k, nn;
     int thread_id;
@@ -169,15 +170,15 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
             thread_id = omp_get_thread_num();
             reset_inc(J_p_X[j], p_data);
 
-	    f_pred(J_p_X[j], k, k+1, p_par, p_data, calc[thread_id]);
+            f_pred(J_p_X[j], k, k+1, J_p_par[j], p_data, calc[thread_id]);
             proj2obs(J_p_X[j], p_data);
         }
 
-        compute_hat_nn(J_p_X, p_par, p_data, calc, p_hat);
+        compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 1);
         print_p_hat(p_file_hat, NULL, p_hat, p_data, k);
 
         if (OPTION_TRAJ && FLAG_JSON==0) {
-            print_X(p_file_X, &p_par, J_p_X, p_data, calc[0], k+1, 1, 0, 0);
+            print_X(p_file_X, J_p_par, J_p_X, p_data, calc[0], k+1, 0, 0, 0);
         }
     }
 

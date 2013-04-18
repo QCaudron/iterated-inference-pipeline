@@ -148,7 +148,7 @@ void resample_X(unsigned int *select, struct s_X ***J_p_X, struct s_X ***J_p_X_t
     //#pragma omp parallel for private(k) //parallelisation is not efficient here
     for(j=0;j<J;j++) {
 
-	(*J_p_X_tmp)[j]->dt = (*J_p_X)[select[j]]->dt;
+        (*J_p_X_tmp)[j]->dt = (*J_p_X)[select[j]]->dt;
 
         for(k=0;k<size_resample_proj;k++) { //we don't need N_TS_INC_UNIQUE as they are present in obs
             (*J_p_X_tmp)[j]->proj[k] = (*J_p_X)[select[j]]->proj[k];
@@ -173,7 +173,7 @@ void replicate_J_p_X_0(struct s_X **J_p_X, struct s_data *p_data)
 
     for(j=1; j<J; j++) {
         memcpy(J_p_X[j]->proj, J_p_X[0]->proj, size_proj * sizeof(double));
-	J_p_X[j]->dt = J_p_X[0]->dt;
+        J_p_X[j]->dt = J_p_X[0]->dt;
     }
 }
 
@@ -208,7 +208,7 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
              struct s_data *p_data, struct s_calc **calc,
              plom_f_pred_t f_pred,
              int option_filter, FILE *p_file_X, FILE *p_file_hat, FILE *p_file_pred_res,
-	     const enum plom_print print_opt
+             const enum plom_print print_opt
              )
 {
     int j, n, nn, nnp1;
@@ -260,14 +260,14 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
             if (print_opt & PLOM_PRINT_X) {
                 print_X(p_file_X, &p_par, D_J_p_X[nnp1], p_data, calc[0], (double) nnp1, 1, 0, 0);
             }
-	    
-	    if(nnp1 < t1){
-		compute_hat_nn(D_J_p_X[nnp1], p_par, p_data, calc, D_p_hat[nn]);		
 
-		if (print_opt & PLOM_PRINT_HAT) {
-		    print_p_hat(p_file_hat, NULL, D_p_hat[nn], p_data, nn);
-		}
-	    }
+            if(nnp1 < t1){
+                compute_hat_nn(D_J_p_X[nnp1], &p_par, p_data, calc, D_p_hat[nn], 0);
+
+                if (print_opt & PLOM_PRINT_HAT) {
+                    print_p_hat(p_file_hat, NULL, D_p_hat[nn], p_data, nn);
+                }
+            }
 
         } /* end for on nn */
 
@@ -277,22 +277,22 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
                 systematic_sampling(p_like, calc[0], n);
             }
 
-	    //!! time indexes: D_J_p_X is [N_DATA+1], *D_p_hat->... are in [N_DATA] so we have to be carrefull!
+            //!! time indexes: D_J_p_X is [N_DATA+1], *D_p_hat->... are in [N_DATA] so we have to be carrefull!
             compute_hat(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1], p_like->weights);
 
             resample_X(p_like->select[n], &(D_J_p_X[t1]), &(D_J_p_X_tmp[t1]), p_data);
 
-	    if (print_opt & PLOM_PRINT_PRED_RES) {
+            if (print_opt & PLOM_PRINT_PRED_RES) {
                 print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[t1], p_like->Llike_best_n, p_like->ess_n, t1, 1);
             }
         } else {
             //we do not fiter. hat wil be used to get mean and 95% CI of J independant realisations
-	    compute_hat_nn(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1]);
+            compute_hat_nn(D_J_p_X[t1], &p_par, p_data, calc, D_p_hat[t1-1], 0);
         }
 
-	if (print_opt & PLOM_PRINT_HAT) {
-	    print_p_hat(p_file_hat, NULL, D_p_hat[t1-1], p_data, t1-1);
-	}
+        if (print_opt & PLOM_PRINT_HAT) {
+            print_p_hat(p_file_hat, NULL, D_p_hat[t1-1], p_data, t1-1);
+        }
 
         t0=t1;
 
@@ -344,9 +344,9 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
                 p_like->weights[the_j] = recv_double(receiver);
             }
 
-	    if( nnp1 < t1 ){
-		compute_hat_nn(D_J_p_X[nnp1], p_par, p_data, calc, D_p_hat[nn]);		
-	    }
+            if( nnp1 < t1 ){
+                compute_hat_nn(D_J_p_X[nnp1], &p_par, p_data, calc, D_p_hat[nn], 0);
+            }
 
         } /* end for on nn */
 
@@ -354,7 +354,7 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
             systematic_sampling(p_like, calc[0], n);
         }
 
-	compute_hat(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1], p_like->weights);
+        compute_hat(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1], p_like->weights);
 
         resample_X(p_like->select[n], &(D_J_p_X[t1]), &(D_J_p_X_tmp[t1]), p_data);
         t0=t1;

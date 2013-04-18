@@ -776,7 +776,7 @@ void apply_following_constraints(theta_t *proposed, struct s_best *p_best, struc
 /* hat.c */
 void get_CI95(double *hat_95, const double *to_be_sorted, size_t *index_sorted, double *weights);
 void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, double *weights);
-void compute_hat_nn(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat);
+void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, int is_p_par_cst);
 
 /* json.c */
 json_t *fast_get_json_object(const json_t *container, const char *obj_name);
