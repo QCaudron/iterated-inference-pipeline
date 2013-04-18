@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         "usage:\n"
         "pmcmc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
         "                [-s, --DT <float || 0.25 day>] [--eps_abs <float || 1e-6>] [--eps_rel <float || 1e-3>]\n"
-        "                [--full] [--traj] [--acc] [-p, --path <path>] [-i, --id <integer || 0>] [-P, --N_THREAD <integer || N_CPUs>]\n"
+        "                [--full] [--traj] [-k, --n_traj <int || 1000>] [--acc] [-p, --path <path>] [-i, --id <integer || 0>] [-P, --N_THREAD <integer || N_CPUs>]\n"
         "                [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
         "                [-C --cov] [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >] "
         "                [-E --epsilon <int || 50>] [--epsilon_max <float || 2.0>] [--smooth] [--alpha <float || 0.02>]"
@@ -54,7 +54,8 @@ int main(int argc, char *argv[])
         "--smooth           tune epsilon with the value of the acceptance rate obtained with exponential smoothing\n"
         "--alpha            smoothing factor of exponential smoothing used to compute the smoothed acceptance rate (low values increase degree of smoothing)\n"
         "\n"
-        "--traj             print the trajectories\n"
+        "--traj             print the smoothed trajectories\n"
+        "-n, --n_traj       number of trajectories stored\n"
         "--acc              print the acceptance rate\n"
         "-C, --cov          load an initial covariance from the settings\n"
         "-p, --path         path where the outputs will be stored\n"
@@ -75,6 +76,7 @@ int main(int argc, char *argv[])
     double a = 0.999;
     double epsilon_max = 2.0;
     double alpha = 0.02;
+    int n_traj = 1000;
 
     static int is_smooth = 0;
 
@@ -110,6 +112,8 @@ int main(int argc, char *argv[])
                 {"eps_abs",    required_argument, 0, 'v'},
                 {"eps_rel",    required_argument, 0, 'w'},
 
+                {"n_traj",     required_argument, 0, 'n'},
+
                 {"switch",     required_argument,   0, 'S'},
                 {"epsilon",     required_argument,   0, 'E'},
                 {"cooling",     required_argument,   0, 'a'},
@@ -134,7 +138,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "rjxyzs:v:w:Ci:J:l:M:p:c:P:ZS:E:a:f:g:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "rjxyzs:v:w:Ci:J:l:M:p:c:P:ZS:E:a:f:g:n:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -224,6 +228,10 @@ int main(int argc, char *argv[])
 	    print_opt |= PLOM_PRINT_ACC;
             break;
 
+        case 'n':
+            n_traj = atoi(optarg);
+            break;
+
         case '?':
             /* getopt_long already printed an error message. */
             return 1;
@@ -266,8 +274,10 @@ int main(int argc, char *argv[])
     gsl_vector_memcpy(p_pmcmc->p_best->proposed, p_pmcmc->p_best->mean);
 
 
-    pmcmc(p_pmcmc->p_best, p_pmcmc->D_J_p_X, p_pmcmc->D_J_p_X_tmp, p_pmcmc->p_par, &(p_pmcmc->D_p_hat_prev), &(p_pmcmc->D_p_hat_new), p_pmcmc->D_p_hat_best, p_pmcmc->p_like, p_pmcmc->p_data, p_pmcmc->calc, get_f_pred(implementation, noises_off), print_opt);
+    n_traj = GSL_MIN(M, n_traj);
+    int thin_traj = (int) ( (double) M / (double) n_traj); //the thinning interval
 
+    pmcmc(p_pmcmc->p_best, p_pmcmc->D_J_p_X, p_pmcmc->D_J_p_X_tmp, p_pmcmc->p_par, &(p_pmcmc->D_p_hat_prev), &(p_pmcmc->D_p_hat_new), p_pmcmc->D_p_hat_best, p_pmcmc->p_like, p_pmcmc->p_data, p_pmcmc->calc, get_f_pred(implementation, noises_off), print_opt, thin_traj);
 
     FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_pmcmc->p_data);
     print_hat(p_file_hat, p_pmcmc->D_p_hat_best, p_pmcmc->p_data);

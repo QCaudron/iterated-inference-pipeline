@@ -33,7 +33,7 @@ void run_propag(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *
 }
 
 
-void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_prev, struct s_hat ***D_p_hat_new, struct s_hat **D_p_hat_best, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, const enum plom_print print_opt)
+void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat ***D_p_hat_prev, struct s_hat ***D_p_hat_new, struct s_hat **D_p_hat_best, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, const enum plom_print print_opt, int thin_traj)
 {
     int m;              // iteration index
     int is_accepted;    // boolean
@@ -112,7 +112,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 
     p_like->Llike_new = p_like->Llike_best;
 
-    if (print_opt & PLOM_PRINT_X_SMOOTH) {
+    if ( print_opt & PLOM_PRINT_X_SMOOTH ) {
         sample_traj_and_print(p_file_X, D_J_p_X, p_par, p_data, p_like->select, p_like->weights, p_data->times, calc[0], 0);
     }
 
@@ -172,7 +172,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 
         if (is_accepted) {
             //we print only the accepted theta to save disk space
-	    if (print_opt & PLOM_PRINT_X_SMOOTH) {
+	    if ( (print_opt & PLOM_PRINT_X_SMOOTH) && ( (m % thin_traj) == 0) ) {
                 sample_traj_and_print(p_file_X, D_J_p_X, p_par, p_data, p_like->select, p_like->weights, p_data->times, calc[0], m);
             }
             p_like->Llike_prev = p_like->Llike_new;
