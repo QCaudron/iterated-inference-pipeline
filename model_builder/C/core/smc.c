@@ -262,7 +262,7 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
             }
 
             if(nnp1 < t1){
-                compute_hat_nn(D_J_p_X[nnp1], &p_par, p_data, calc, D_p_hat[nn], 0);
+                compute_hat_nn(D_J_p_X[nnp1], &p_par, p_data, calc, D_p_hat[nn], 1);
 
                 if (print_opt & PLOM_PRINT_HAT) {
                     print_p_hat(p_file_hat, NULL, D_p_hat[nn], p_data, nn);
@@ -286,8 +286,8 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
                 print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[t1], p_like->Llike_best_n, p_like->ess_n, t1, 1);
             }
         } else {
-            //we do not fiter. hat wil be used to get mean and 95% CI of J independant realisations
-            compute_hat_nn(D_J_p_X[t1], &p_par, p_data, calc, D_p_hat[t1-1], 0);
+            //we do not filter. hat wil be used to get mean and 95% CI of J independant realisations
+	    compute_hat_nn(D_J_p_X[t1], &p_par, p_data, calc, D_p_hat[t1-1], 1);
         }
 
         if (print_opt & PLOM_PRINT_HAT) {

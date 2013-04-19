@@ -174,7 +174,7 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
             proj2obs(J_p_X[j], p_data);
         }
 
-        compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 1);
+        compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 0);
         print_p_hat(p_file_hat, NULL, p_hat, p_data, k);
 
         if (OPTION_TRAJ && FLAG_JSON==0) {
