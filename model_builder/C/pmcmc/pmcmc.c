@@ -170,11 +170,11 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         is_accepted = metropolis_hastings(p_best, p_like, &alpha, p_data, calc[0], var, sd_fac, OPTION_FULL_UPDATE);
         compute_best_traj(D_p_hat_best, *D_p_hat_prev, *D_p_hat_new, p_data, (alpha>1.0) ? 1.0 : alpha, (double) m);
 
+	if ( (print_opt & PLOM_PRINT_X_SMOOTH) && ( (m % thin_traj) == 0) ) {
+	    sample_traj_and_print(p_file_X, D_J_p_X, p_par, p_data, p_like->select, p_like->weights, p_data->times, calc[0], m);
+	}
+
         if (is_accepted) {
-            //we print only the accepted theta to save disk space
-	    if ( (print_opt & PLOM_PRINT_X_SMOOTH) && ( (m % thin_traj) == 0) ) {
-                sample_traj_and_print(p_file_X, D_J_p_X, p_par, p_data, p_like->select, p_like->weights, p_data->times, calc[0], m);
-            }
             p_like->Llike_prev = p_like->Llike_new;
             gsl_vector_memcpy(p_best->mean, p_best->proposed);
 	    accept++;

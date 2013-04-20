@@ -422,7 +422,7 @@ int main(int argc, char *argv[])
             //print hat for continuation
             if(OPTION_CONTINUE) {
                 struct s_hat *p_hat = build_hat(p_data);
-                compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 0);
+                compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 1);
                 FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
                 print_p_hat(p_file_hat, NULL, p_hat, p_data, 0);
                 sfr_fclose(p_file_hat);
