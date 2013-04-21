@@ -49,7 +49,7 @@ class Cmodel:
 
         ##remove par_fixed from par_proc and par_obs (be sure to conserve the original order so don't use set')
         self.par_proc = [x['id'] for x in process['parameter'] if x['id'] not in self.par_fixed]
-        self.par_obs = [x['id'] for x in link['parameter'] if x['id'] not in self.par_fixed]
+        self.par_obs = [x['id'] for x in link['observation'][0]['parameter'] if x['id'] not in self.par_fixed]
 
         ##############################
         ## proc_model
@@ -74,7 +74,7 @@ class Cmodel:
         ##############################
         ## obs_model and drift
         ##############################
-        self.obs_model = copy.deepcopy(link['model'][link['model'].keys()[0]])
+        self.obs_model = copy.deepcopy(link['observation'][0]['model'])
 
         #drift
         self.drift_par_proc = []
@@ -239,11 +239,13 @@ if __name__=="__main__":
                       {"id": "Inc_out",  "definition": [{"from":"I", "to":"DU"}, {"from":"E", "to":"U", 'rate': "mu_d"}], "model_id": "common"},
                       {"id": "Inc_in",   "definition": [{"from":"S", "to":"E"}], "model_id": "common"}]
 
-    l['parameter'] = [{"id": "rep"}, {"id": "phi"}]
 
-    l['model'] = {"common":{"distribution": "discretized_normal",
-                            "mean": "prop*rep*x",
-                            "var":  "rep*(1.0-rep)*prop*x + (rep*phi*prop*x)**2"}}
+    l["observation"] = [{"id": "common", 
+                         "parameter": [{"id": "rep","comment": "reporting rate"}, 
+                                       {"id": "phi",  "comment": "over-dispertion"}],
+                         "model": {"distribution": "discretized_normal",
+                                   "mean": "rep*prop*x",
+                                   "var": "rep*(1.0-rep)*prop*x + (rep*phi*prop*x)**2"}}]
 
     test_model = Cmodel(c, m, l)
 

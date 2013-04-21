@@ -23,16 +23,19 @@
     }
   ],
 
-  "parameter": [
-    {"id": "rep", "comment": "reporting rate"},
-    {"id": "phi",  "comment": "over-dispertion"}
-  ],
-
-  "model": {
-    "common": {
-      "distribution": "discretized_normal",
-      "mean": "rep*prop*x",
-      "var": "rep*(1.0-rep)*prop*x + (rep*phi*prop*x)**2"
+  "observation": [
+    {
+      "id": "common", 
+      "parameter": [
+        {"id": "rep", "comment": "reporting rate"},
+        {"id": "phi",  "comment": "over-dispertion"}
+      ],
+      "model": {
+        "distribution": "discretized_normal",
+        "mean": "rep*prop*x",
+        "var": "rep*(1.0-rep)*prop*x + (rep*phi*prop*x)**2"
+      }
     }
-  }
+  ]
+
 }

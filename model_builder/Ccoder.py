@@ -1001,7 +1001,7 @@ if __name__=="__main__":
 
     model.eval_Q(debug=True)
 
-    print model.der2_mean_proc_obs2()
+    print model.der2_mean_proc_obs()
 
 ##    print ''.join(model.generator_C("(1.0+e*sin((a*x+(b)), ((e)) )) + r0", False))
 ##    print model.generator_C("-mu_d - r0_1*v*(e*sin(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin(d) + 1.0)*(RI + SI + iota_2)/N", False)
