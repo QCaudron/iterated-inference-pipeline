@@ -37,19 +37,19 @@ void get_CI95(double *hat_95, const double *to_be_sorted, size_t *index_sorted, 
     //get the index of to_be_sorted.
     gsl_sort_index(index_sorted, to_be_sorted, 1, J); //to_be_sorted is not modified (i.e. not sorted in place), the index of the sorting are put in index_sorted.
 
-    //cumulate sorted weight until we reach 5 % and take the corresponding value in to_be_sorted
+    //cumulate sorted weight until we reach 2.5 % and take the corresponding value in to_be_sorted
     k=0;
     weight_cum = 0.0;
-    while(weight_cum < 0.05) {
+    while(weight_cum < 0.025) {
         weight_cum += (weights) ? weights[index_sorted[k]]: invJ;
         k++;
     }
     hat_95[0] = to_be_sorted[index_sorted[((k-1) <0) ? 0 : k-1]];
 
-    //cumulate sorted weight until we reach 95 % and take the corresponding value in to_be_sorted
+    //cumulate sorted weight until we reach 97.5 % and take the corresponding value in to_be_sorted
     k=0;
     weight_cum = 0.0;
-    while(weight_cum < 0.95) {
+    while(weight_cum < 0.975) {
         weight_cum += (weights) ? weights[index_sorted[k]]: invJ;
         k++;
     }

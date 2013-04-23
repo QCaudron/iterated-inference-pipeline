@@ -75,7 +75,7 @@ enum plom_print {PLOM_PRINT_BEST = 1 << 0, PLOM_PRINT_X = 1 << 1, PLOM_PRINT_HAT
 #define FLAG_DEBUG 0
 #define FLAG_VERBOSE 1
 #define FLAG_WARNING 0
-#define FLAG_JSON 0 /**< webApp */
+#define FLAG_JSON 1 /**< webApp */
 
 #define PLOM_EPS_ABS 1e-6 /**< absolute error control for ODEs*/
 #define PLOM_EPS_REL 1e-3 /**< relative error control for ODEs*/
