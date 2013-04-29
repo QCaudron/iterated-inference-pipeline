@@ -25,16 +25,15 @@ class Cmodel:
     parse a JSON model description:
 
     -remove par_fixed from par_obs and par_proc
-    -replace N by either sum_SV, p_0 or N depending the context
+    -replace N by sum_SV depending the context
     """
 
     def __init__(self, context, process, link,  **kwargs):
 
         self.op = set(['+', '-', '*', '/', ',', '(', ')']) ##!!!CAN'T contain square bracket '[' ']'
-        self.reserved = set(['p_0', 'sum_SV', 'N', 'prop', 'x'])
+        self.reserved = set(['sum_SV', 'N', 'prop', 'x'])
         self.special_functions = set(['terms_forcing', 'step', 'step_lin', 'sin', 'cos', 'correct_rate'])
         self.universes = ['U', 'DU']
-
 
         ###########################################################################
         self.context = copy.deepcopy(context)
@@ -43,9 +42,9 @@ class Cmodel:
         ##list [{'id':'X'}, ...] => ['X', ...]
         self.par_sv = [x['id'] for x in process['state']]
 
-        self.par_fixed = []
-        if 'data' in context:
-            self.par_fixed = [x['id'] for x in context['data'] if x['id'] != 'data' and x['id'] != 'prop']
+        ##par fixed !! N **HAS** to be first if it exists
+        self.par_fixed = [x['id'] for x in context.get('metadata', []) if x['id'] == 'N'] #does N exist, if so it is first
+        self.par_fixed += [x['id'] for x in (context.get('data', []) + context.get('metadata', [])) if x['id'] != 'data' and x['id'] != 'prop' and x['id'] != 'N'] ##all the rest
 
         ##remove par_fixed from par_proc and par_obs (be sure to conserve the original order so don't use set')
         self.par_proc = [x['id'] for x in process['parameter'] if x['id'] not in self.par_fixed]
@@ -142,23 +141,21 @@ class Cmodel:
                                                                              'sd': x['sd']}
 
 
-        ##resolve the population size: (replace 'N' by either 'sum_SV', 'p_0' or 'N')
+        ##resolve the population size: (replace 'N' by 'sum_SV' if self.pop_size_eq_sum_sv)
         if self.pop_size_eq_sum_sv:
-            myN = 'N' if 'N' in self.par_fixed else 'sum_SV'
-        else:
-            myN = 'N' if 'N' in self.par_fixed else 'p_0'
 
-        for k, v in self.obs_model.iteritems():
-            if k != 'distribution':
-                self.obs_model[k] = ''.join(map(lambda x: myN if x == 'N' else x, self.change_user_input(v)))
+            for k, v in self.obs_model.iteritems():
+                if k != 'distribution':
+                    self.obs_model[k] = ''.join(map(lambda x: 'sum_SV' if x == 'N' else x, self.change_user_input(v)))
 
-        for i, m in enumerate(self.proc_model):
-            self.proc_model[i]['rate'] = ''.join(map(lambda x: myN if x == 'N' else x, self.change_user_input(m['rate'])))
+            for i, m in enumerate(self.proc_model):
+                self.proc_model[i]['rate'] = ''.join(map(lambda x: 'sum_SV' if x == 'N' else x, self.change_user_input(m['rate'])))
 
-        for x in self.obs_var_def:
-            for d in x:
-                if isinstance(d, dict):
-                    d['rate'] = ''.join(map(lambda x: myN if x == 'N' else x, self.change_user_input(d['rate'])))
+            for x in self.obs_var_def:
+                for d in x:
+                    if isinstance(d, dict):
+                        d['rate'] = ''.join(map(lambda x: 'sum_SV' if x == 'N' else x, self.change_user_input(d['rate'])))
+
 
         ##TODO other models (spate or age structure)
 
@@ -195,7 +192,7 @@ class Cmodel:
 if __name__=="__main__":
 
     """
-    test substitution of N in either p_0 sum_SV or N
+    test substitution of N in either sum_SV or N
     """
 
     m = {}
@@ -229,7 +226,9 @@ if __name__=="__main__":
     ##context elements needed for Cmodel
     c = {}
 
-    c['data'] = [{'id': 'N'}, {'id': 'mu_b'}, {'id': 'mu_d'}]
+    c['data'] = [{'id': 'data'}, {'id': 'prop'}]
+
+    c['metadata'] = [{'id': 'mu_b'}, {'id': 'mu_d'}, {'id': 'N'}]
 
     ##link elements needed for Cmodel
     l = {}
@@ -248,6 +247,9 @@ if __name__=="__main__":
                                    "var": "rep*(1.0-rep)*prop*x + (rep*phi*prop*x)**2"}}]
 
     test_model = Cmodel(c, m, l)
+
+    print "par_fixed"
+    print test_model.par_fixed
 
     print "par_proc"
     print test_model.par_proc

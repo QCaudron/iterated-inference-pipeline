@@ -82,7 +82,7 @@ int check_IC(struct s_X *p_X, struct s_data *p_data)
     /*return the number of errors (=number of cac where the intitial
       population size is not respected)*/
 
-    double *pop_size_t0 = p_data->pop_size_t0;
+    double *pop_size_t0 = p_data->par_fixed[0][0];
 
     int cac;
     double pop_IC_cac = 0;

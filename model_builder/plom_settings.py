@@ -88,7 +88,6 @@ def make_settings_json(self):
     settings['data']['obs2ts'] = get_obs2ts(self)
 
     ##data/data (be sure to have sorted the context before this part)
-    settings['data']['pop_size_t0'] = self.pop_size_t0
     settings['data']['data'] = self.data
     settings['data']['rep1'] = self.prop
     settings['data']['par_fixed_values'] = self.par_fixed_values

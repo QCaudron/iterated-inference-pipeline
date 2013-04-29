@@ -41,7 +41,6 @@ class Context:
         self.map_ts_cac = {x['id']: x['population_id'][:] for x in context['time_series']}
 
         self.cac_id = [x['id'] for x in context['population']]
-        self.pop_size_t0 = [x['size_t0'] for x in context['population']]
 
 
         _headerline = [x.split('__') for x in self.cac_id]
@@ -72,17 +71,15 @@ class Context:
         ##First we ensure that mandatory properties are represented in self
         self.data = []; self.dates = []; self.prop = []
 
-        if 'data' in context and context['data']:
-
-            for d in context['data']:
-                if d['id'] == 'data':
-                    mydata = self.handle_context_data(d['source'])
-                    self.data = mydata['values']
-                    self.dates = mydata['dates']
-                elif d['id'] == 'prop':
-                    self.prop = self.handle_context_data(d['source'])['values']
-                else:
-                    self.par_fixed_values[d['id']] = self.handle_context_data(d['source'])['values']
+        for d in (context.get('data', []) + context.get('metadata', [])):
+            if d['id'] == 'data':
+                mydata = self.handle_context_data(d['source'])
+                self.data = mydata['values']
+                self.dates = mydata['dates']
+            elif d['id'] == 'prop':
+                self.prop = self.handle_context_data(d['source'])['values']
+            else:
+                self.par_fixed_values[d['id']] = self.handle_context_data(d['source'])['values']
 
         self.N_DATA = len(self.data)
 
@@ -129,19 +126,16 @@ class Context:
         return data
 
 
-
-
 if __name__ == '__main__':
 
-    c = json.load(open(os.path.join('example','context.json')))
-    ##fix path (this is normally done by simforence)
-    for x in c['data']:
-        x['source'] = os.path.join('example', x['source'])
+    c = json.load(open(os.path.join('example', 'noise','context.json')))
+    ##fix path (this is normally done by pmbuilder(1))
+    for x in c['data'] + c['metadata']:
+        x['source'] = os.path.join('example', 'noise', x['source'])
 
     context = Context(c)
 
     print(context.prop)
     print(context.cac_id)
-    print(context.pop_size_t0)
     print(context.par_fixed_values)
     print(context.data)

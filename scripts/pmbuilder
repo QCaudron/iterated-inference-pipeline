@@ -80,7 +80,7 @@ def main():
         l = getJSON(mycli.link_file)
 
         ##sanitize path data in context: if not absolute path relative path from context file
-        for x in c.get('data', []):
+        for x in c.get('data', []) + c.get('metatada', []):
             if isinstance(x['source'], str) or isinstance(x['source'], unicode):
                 if not os.path.isabs(x['source']):
                     x['source'] = os.path.join(os.path.dirname(os.path.abspath(mycli.context_file)), x['source'])

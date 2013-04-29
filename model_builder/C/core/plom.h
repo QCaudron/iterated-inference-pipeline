@@ -249,8 +249,6 @@ struct s_data{
     double **data;           /**< [N_DATA][N_TS] the data */
     unsigned int *times;     /**< [N_DATA_NONAN] times of the data points when there is at least one value @c != NaN */
 
-    double *pop_size_t0;     /**< [N_CAC] population sizez of the cities and age classes at time 0 */
-
     struct s_data_ind **data_ind; /**< [N_DATA_NONAN] an array of pointers to s_data_ind*/
     struct s_obs2ts **obs2ts;     /**< [N_OBS_ALL] an array of pointers to s_obs2ts*/
 

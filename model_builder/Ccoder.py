@@ -993,8 +993,8 @@ if __name__=="__main__":
     
     #l["model"]["common"]["mean"] = "rep*prop*x +x**2*rep"
 
-    ##fix path (this is normally done by plom(1))
-    for x in c['data']:
+    ##fix path (this is normally done by pmbuilder(1))
+    for x in c['data'] + c['metadata']:
         x['source'] = os.path.join('example', 'noise', x['source'])
 
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)

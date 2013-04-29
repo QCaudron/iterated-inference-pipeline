@@ -102,7 +102,7 @@ void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data)
 {
 
     double *Xpop_size = p_X->proj;
-    double *pop_size_t0 = p_data->pop_size_t0;
+    double *pop_size_t0 = p_data->par_fixed[0][0];
     int i, cac;
 
     for (i=0; i< N_PAR_SV ; i++) {
