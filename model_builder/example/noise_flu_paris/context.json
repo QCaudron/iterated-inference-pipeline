@@ -1,0 +1,37 @@
+{
+ "name": "Paris, France",
+ "description": "Flu in Paris",
+
+ "disease": ["Influenza"],
+
+ "population": [{"id": "Paris__all",
+                 "comment": "Paris, all age classes"}],
+
+ "time_series": [{"id": "Paris__Sentinelles__inc",
+                  "population_id": ["Paris__all"],
+                  "comment": "Estimates of total number of cases over all Ile-de-France, from Sentinelles network, INSERM/UPMC, http://www.sentiweb.fr"}],
+
+ "frequency": "W",
+
+ "data": [
+   {"id": "data",
+    "source": "data/data.csv",
+    "comment": ""},
+   
+   {"id": "prop",
+    "source": "data/prop.csv",
+    "comment": "proportion of the population under surveillance"}
+ ],
+
+  "metadata": [
+    {"id": "N",
+     "source": "data/N.csv",
+     "comment": "population size"},
+    {"id": "mu_b",
+     "source": "data/mu_b.csv",
+     "comment": "birth rates"},
+    {"id": "mu_d",
+     "source": "data/mu_d.csv",
+     "comment": "death rates"}
+  ]
+}

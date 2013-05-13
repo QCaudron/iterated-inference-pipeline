@@ -80,7 +80,6 @@
       "min": 5,
       "guess": 11,
       "max": 20,
-      "prior": "normal",
       "sd_transf": 0.02
     },
 
