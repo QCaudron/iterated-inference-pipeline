@@ -1,0 +1,14 @@
+{
+  "name": "design",
+  "description": "replicate design",
+  "id": "replicate",
+  "H": 4,
+  "seed": "any string you like",
+  "cmd": [
+    {
+      "fit": "",
+      "algorithm": "kmcmc -M 10000 --full --traj",
+      "repeat": 1
+    }
+  ]
+}

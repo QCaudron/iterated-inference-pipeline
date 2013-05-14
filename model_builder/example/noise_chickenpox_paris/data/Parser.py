@@ -26,7 +26,7 @@ with open('data_wrongformat.csv','rU') as csvfile:
                    month = '0' + month
 
                 year = tmp[2]
-                if year < 20:
+                if int(year) < 20:
                      year = '20'+year
                 else:
                      year = '19'+year

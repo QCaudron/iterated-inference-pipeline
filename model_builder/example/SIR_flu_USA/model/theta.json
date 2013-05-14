@@ -1,0 +1,212 @@
+{
+  "name": "my_name",
+  "description": "my comment",
+  "parameter": {
+    "S": {
+      "partition_id": "identical_population",
+      "transformation": "logit",
+      "group": {
+        "all": {
+          "min": {
+            "value": 0.07
+          },
+          "guess": {
+            "value": 0.07
+          },
+          "max": {
+            "value": 0.07
+          },
+          "sd_transf": {
+            "value": 0
+          },
+          "prior": {
+            "value": "uniform"
+          }
+        }
+      }
+    },
+    "I": {
+      "partition_id": "identical_population",
+      "transformation": "logit",
+      "group": {
+        "all": {
+          "min": {
+            "value": 0.000001
+          },
+          "guess": {
+            "value": 0.00001
+          },
+          "max": {
+            "value": 0.0001
+          },
+          "sd_transf": {
+            "value": 0.01
+          },
+          "prior": {
+            "value": "uniform"
+          }
+        }
+      }
+    },
+    "r0": {
+      "partition_id": "identical_population",
+      "transformation": "log",
+      "group": {
+        "all": {
+          "min": {
+            "value": 15
+          },
+          "guess": {
+            "value": 20
+          },
+          "max": {
+            "value": 35
+          },
+          "sd_transf": {
+            "value": 0.02
+          },
+          "prior": {
+            "value": "uniform"
+          }
+        }
+      }
+    },
+    "v": {
+      "partition_id": "identical_population",
+      "transformation": "log",
+      "unit": "D",
+      "type": "rate_as_duration",
+      "group": {
+        "all": {
+          "min": {
+            "value": 5
+          },
+          "guess": {
+            "value": 11
+          },
+          "max": {
+            "value": 20
+          },
+          "sd_transf": {
+            "value": 0.02
+          },
+          "prior": {
+            "value": "normal"
+          }
+        }
+      }
+    },
+    "sto": {
+      "partition_id": "identical_population",
+      "transformation": "log",
+      "group": {
+        "all": {
+          "min": {
+            "value": 0.1
+          },
+          "guess": {
+            "value": 0.1
+          },
+          "max": {
+            "value": 0.1
+          },
+          "sd_transf": {
+            "value": 0
+          },
+          "prior": {
+            "value": "uniform"
+          }
+        }
+      }
+    },
+    "rep": {
+      "partition_id": "identical_time_series",
+      "transformation": "logit",
+      "group": {
+        "all": {
+          "min": {
+            "value": 0.5
+          },
+          "guess": {
+            "value": 0.6
+          },
+          "max": {
+            "value": 0.8
+          },
+          "sd_transf": {
+            "value": 0.01
+          },
+          "prior": {
+            "value": "uniform"
+          }
+        }
+      }
+    },
+    "phi": {
+      "partition_id": "identical_time_series",
+      "transformation": "log",
+      "group": {
+        "all": {
+          "min": {
+            "value": 0.1
+          },
+          "guess": {
+            "value": 0.1
+          },
+          "max": {
+            "value": 0.1
+          },
+          "sd_transf": {
+            "value": 0
+          },
+          "prior": {
+            "value": "uniform"
+          }
+        }
+      }
+    }
+  },
+  "type": "theta",
+  "partition": {
+    "variable_population": {
+      "group": [
+        {
+          "id": "NJ__all",
+          "population_id": [
+            "NJ__all"
+          ]
+        }
+      ]
+    },
+    "variable_time_series": {
+      "group": [
+        {
+          "id": "NJ__FluTrends__inc",
+          "time_series_id": [
+            "NJ__FluTrends__inc"
+          ]
+        }
+      ]
+    },
+    "identical_population": {
+      "group": [
+        {
+          "id": "all",
+          "population_id": [
+            "NJ__all"
+          ]
+        }
+      ]
+    },
+    "identical_time_series": {
+      "group": [
+        {
+          "id": "all",
+          "time_series_id": [
+            "NJ__FluTrends__inc"
+          ]
+        }
+      ]
+    }
+  }
+}

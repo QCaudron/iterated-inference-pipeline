@@ -21,7 +21,7 @@ with open('data.csv','rU') as csvfile:
                     csvfile2.write('\n')
 
                else:
-                    row[1] = '"Paris__all__inc"'
+                    row[1] = '"Paris__Sentinelles__inc"'
 
                     i = 0
                     for x in row:

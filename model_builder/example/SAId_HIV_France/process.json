@@ -1,0 +1,35 @@
+{
+ "name": "SAId",
+ "description": "SI model with accute phase and diagnosed cases during Pre-AIDS phase",
+
+ "state": [{"id": "S", "comment": "Susceptible"},
+ 	   {"id": "A", "comment": "Accute phase"},
+           {"id": "I", "comment": "Pre-AIDS phase"}],
+
+ "parameter": [{"id": "betaA",   "comment": "transmission rate for accutePre-AIDS phase"},
+ 	       {"id": "betaI",   "comment": "transmission rate for non-accutePre-AIDS phase"},
+	       {"id": "kA",    "comment": "leaving Accute phase rate"},
+	       {"id": "kI",    "comment": "symptoms appearance rate"},
+               {"id": "sto",  "comment": "noise intensity"},
+	       {"id": "d",  "comment": "diagnostic rate"},
+               {"id": "mu_b", "comment": "birth rate"},
+               {"id": "mu_d", "comment": "death rate"}],
+
+ "model": [{"from": "U", "to": "S",  "rate": "mu_b*N", "comment":"birth"},
+           {"from": "S", "to": "A",  "rate": "betaA*A/N+betaI*I/N", "tag": {"transmission": {"by":["I","A"]}}, "comment":"infection"},
+           {"from": "A", "to": "I", "rate":  "correct_rate(kA)", "comment":"leaving accute phase"},
+           {"from": "I", "to": "DU", "rate": "correct_rate(kI)+correct_rate(d)", "comment":"entering AIDS phase + diagnosis"},
+	   {"from": "A", "to": "DU", "rate": "correct_rate(d)", "comment":"diagnosis"},
+	   {"from": "S", "to": "U",  "rate": "mu_d", "comment":"death"},
+           {"from": "A", "to": "U",  "rate": "mu_d", "comment":"death"},
+           {"from": "I", "to": "U",  "rate": "mu_d", "comment":"death"}],
+
+ "white_noise": [
+   {
+     "reaction": [{"from":"S", "to": "A"}],
+     "sd": "sto"
+   }
+ ],
+
+ "pop_size_eq_sum_sv": false
+}
