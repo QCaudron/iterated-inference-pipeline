@@ -1,0 +1,14 @@
+{
+  "name": "design",
+  "description": "replicate design",
+  "id": "replicate",
+  "H": 4,
+  "seed": "any string you like",
+  "cmd": [
+    {
+      "fit": "",
+      "algorithm": "pmcmc ode -M 10000 --traj",
+      "repeat": 1
+    }
+  ]
+}
