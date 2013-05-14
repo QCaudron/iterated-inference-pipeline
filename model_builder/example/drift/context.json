@@ -46,6 +46,4 @@
      "comment": "death rates"}
   ]
 
- "model": {"space": {"type": ["external"]},
-           "age": {}}
 }
