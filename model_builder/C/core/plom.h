@@ -75,7 +75,7 @@ enum plom_print {PLOM_PRINT_BEST = 1 << 0, PLOM_PRINT_X = 1 << 1, PLOM_PRINT_HAT
 #define FLAG_DEBUG 0
 #define FLAG_VERBOSE 1
 #define FLAG_WARNING 0
-#define FLAG_JSON 1 /**< webApp */
+#define FLAG_JSON 0 /**< webApp */
 
 #define PLOM_EPS_ABS 1e-6 /**< absolute error control for ODEs*/
 #define PLOM_EPS_REL 1e-3 /**< relative error control for ODEs*/
@@ -106,6 +106,7 @@ int N_TS_INC_UNIQUE;   /**< size of subset of @c N_TS containing only non-repeat
 int N_DATA;            /**< length of the data set (including @c NaN) */
 int N_DATA_NONAN;      /**< length of the data set (discarding lines where all ts are NaN) */
 int N_DATA_PAR_FIXED;  /**< length of the data for the covariates (@c PAR_FIXED) usefull mostly for simulation model where @c N_DATA =0 but @c  N_DATA_PAR_FIXED could be >0  or if@c  N_DATA_PAR_FIXED > N_DATA */
+int N_DATA_FORCED;      /**< length of the data to be used for inference, potentially subset of total available data for tempering purposes */
 int N_OBS_ALL;         /**< number of type of observed variables (e.g incidence_strain1, incidence_strain_2, prevalence S + prevalence I, ...) */
 int N_OBS_INC;         /**< number of incidences */
 int N_OBS_PREV;        /**< number of prevalences */

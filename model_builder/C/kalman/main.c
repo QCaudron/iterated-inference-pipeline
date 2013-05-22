@@ -59,6 +59,7 @@ int main(int argc, char *argv[])
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(LIKE_MIN);
+    N_DATA_FORCED = -1;
     enum plom_print print_opt = PLOM_PRINT_BEST | PLOM_PRINT_HAT | PLOM_PRINT_PRED_RES;
 
     // options

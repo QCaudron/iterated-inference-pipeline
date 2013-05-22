@@ -183,7 +183,7 @@ p_calc->prob[ORDER_I][2] = 1.0;
             /*4-update state variables (automaticaly generated code)*/
             //use inc to cache the Poisson draw as thew might be re-used for the incidence computation
             
-            p_calc->inc[ORDER_U][cac][0] = gsl_ran_poisson(p_calc->randgsl, (covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac])*dt);
+            p_calc->inc[ORDER_U][cac][0] = gsl_ran_poisson(p_calc->randgsl, (covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac]+1.0e-6)*dt);
 
             X[ORDER_S*N_CAC+cac] = p_calc->inc[ORDER_S][cac][2] + p_calc->inc[ORDER_U][cac][0];
 X[ORDER_I*N_CAC+cac] = p_calc->inc[ORDER_I][cac][2] + p_calc->inc[ORDER_S][cac][0];
@@ -259,8 +259,8 @@ int step_ode(double t, const double X[], double f[], void *params)
 
         
         _r[cac][0] = X[ORDER_I*N_CAC+cac]*par[ORDER_beta][routers[ORDER_beta]->map[cac]]/covar[ORDER_N][nn][cac];
-        _r[cac][1] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac];
-        _r[cac][2] = covar[ORDER_mu_d][nn][cac];
+        _r[cac][1] = covar[ORDER_mu_d][nn][cac];
+        _r[cac][2] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac]+1.0e-6;
         _r[cac][3] = (par[ORDER_k][routers[ORDER_k]->map[cac]]);
 
         
@@ -273,8 +273,8 @@ int step_ode(double t, const double X[], double f[], void *params)
             /*automaticaly generated code:*/
             /*ODE system*/
             
-            f[0*N_CAC+cac] =  - (_r[cac][0]*X[ORDER_S*N_CAC+cac]) - (_r[cac][2]*X[ORDER_S*N_CAC+cac]) + (_r[cac][1]);
-            f[1*N_CAC+cac] =  - (_r[cac][3]*X[ORDER_I*N_CAC+cac]) - (_r[cac][2]*X[ORDER_I*N_CAC+cac]) + (_r[cac][0]*X[ORDER_S*N_CAC+cac]);
+            f[0*N_CAC+cac] =  - (_r[cac][0]*X[ORDER_S*N_CAC+cac]) - (_r[cac][1]*X[ORDER_S*N_CAC+cac]) + (_r[cac][2]);
+            f[1*N_CAC+cac] =  - (_r[cac][3]*X[ORDER_I*N_CAC+cac]) - (_r[cac][1]*X[ORDER_I*N_CAC+cac]) + (_r[cac][0]*X[ORDER_S*N_CAC+cac]);
         }
     }
 
@@ -358,8 +358,8 @@ void step_sde_no_env_sto(struct s_X *p_X, double t, struct s_par *p_par, struct 
 
         
         _r[cac][0] = X[ORDER_I*N_CAC+cac]*par[ORDER_beta][routers[ORDER_beta]->map[cac]]/covar[ORDER_N][nn][cac];
-        _r[cac][1] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac];
-        _r[cac][2] = covar[ORDER_mu_d][nn][cac];
+        _r[cac][1] = covar[ORDER_mu_d][nn][cac];
+        _r[cac][2] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac]+1.0e-6;
         _r[cac][3] = (par[ORDER_k][routers[ORDER_k]->map[cac]]);
 
         
@@ -377,8 +377,8 @@ void step_sde_no_env_sto(struct s_X *p_X, double t, struct s_par *p_par, struct 
             /*automaticaly generated code:*/
             /*ODE system*/
             
-            f[0*N_CAC+cac] = X[0*N_CAC+cac] +  ( - (_r[cac][0]*X[ORDER_S*N_CAC+cac]) - (_r[cac][2]*X[ORDER_S*N_CAC+cac]) + (_r[cac][1]))*dt + - sqrt((_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dem_sto__1[cac]- sqrt((_r[cac][2]*X[ORDER_S*N_CAC+cac]))*dem_sto__3[cac]+ sqrt((_r[cac][1]))*dem_sto__0[cac];
-            f[1*N_CAC+cac] = X[1*N_CAC+cac] +  ( - (_r[cac][3]*X[ORDER_I*N_CAC+cac]) - (_r[cac][2]*X[ORDER_I*N_CAC+cac]) + (_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dt + - sqrt((_r[cac][3]*X[ORDER_I*N_CAC+cac]))*dem_sto__2[cac]- sqrt((_r[cac][2]*X[ORDER_I*N_CAC+cac]))*dem_sto__4[cac]+ sqrt((_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dem_sto__1[cac];
+            f[0*N_CAC+cac] = X[0*N_CAC+cac] +  ( - (_r[cac][0]*X[ORDER_S*N_CAC+cac]) - (_r[cac][1]*X[ORDER_S*N_CAC+cac]) + (_r[cac][2]))*dt + - sqrt((_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dem_sto__1[cac]- sqrt((_r[cac][1]*X[ORDER_S*N_CAC+cac]))*dem_sto__3[cac]+ sqrt((_r[cac][2]))*dem_sto__0[cac];
+            f[1*N_CAC+cac] = X[1*N_CAC+cac] +  ( - (_r[cac][3]*X[ORDER_I*N_CAC+cac]) - (_r[cac][1]*X[ORDER_I*N_CAC+cac]) + (_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dt + - sqrt((_r[cac][3]*X[ORDER_I*N_CAC+cac]))*dem_sto__2[cac]- sqrt((_r[cac][1]*X[ORDER_I*N_CAC+cac]))*dem_sto__4[cac]+ sqrt((_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dem_sto__1[cac];
         }
     }
 
@@ -470,8 +470,8 @@ void step_sde_full(struct s_X *p_X, double t, struct s_par *p_par, struct s_data
 
         
         _r[cac][0] = X[ORDER_I*N_CAC+cac]*par[ORDER_beta][routers[ORDER_beta]->map[cac]]/covar[ORDER_N][nn][cac];
-        _r[cac][1] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac];
-        _r[cac][2] = covar[ORDER_mu_d][nn][cac];
+        _r[cac][1] = covar[ORDER_mu_d][nn][cac];
+        _r[cac][2] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac]+1.0e-6;
         _r[cac][3] = (par[ORDER_k][routers[ORDER_k]->map[cac]]);
 
         
@@ -490,8 +490,8 @@ void step_sde_full(struct s_X *p_X, double t, struct s_par *p_par, struct s_data
             /*automaticaly generated code:*/
             /*ODE system*/
             
-            f[0*N_CAC+cac] = X[0*N_CAC+cac] +  ( - (_r[cac][0]*X[ORDER_S*N_CAC+cac]) - (_r[cac][2]*X[ORDER_S*N_CAC+cac]) + (_r[cac][1]))*dt + - sqrt((_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dem_sto__1[cac]- sqrt((_r[cac][2]*X[ORDER_S*N_CAC+cac]))*dem_sto__3[cac]+ sqrt((_r[cac][1]))*dem_sto__0[cac] + - (_r[cac][0]*X[ORDER_S*N_CAC+cac])*par[ORDER_sto][routers[ORDER_sto]->map[cac]]*white_noise__0[cac];
-            f[1*N_CAC+cac] = X[1*N_CAC+cac] +  ( - (_r[cac][3]*X[ORDER_I*N_CAC+cac]) - (_r[cac][2]*X[ORDER_I*N_CAC+cac]) + (_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dt + - sqrt((_r[cac][3]*X[ORDER_I*N_CAC+cac]))*dem_sto__2[cac]- sqrt((_r[cac][2]*X[ORDER_I*N_CAC+cac]))*dem_sto__4[cac]+ sqrt((_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dem_sto__1[cac] + + (_r[cac][0]*X[ORDER_S*N_CAC+cac])*par[ORDER_sto][routers[ORDER_sto]->map[cac]]*white_noise__0[cac];
+            f[0*N_CAC+cac] = X[0*N_CAC+cac] +  ( - (_r[cac][0]*X[ORDER_S*N_CAC+cac]) - (_r[cac][1]*X[ORDER_S*N_CAC+cac]) + (_r[cac][2]))*dt + - sqrt((_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dem_sto__1[cac]- sqrt((_r[cac][1]*X[ORDER_S*N_CAC+cac]))*dem_sto__3[cac]+ sqrt((_r[cac][2]))*dem_sto__0[cac] + - (_r[cac][0]*X[ORDER_S*N_CAC+cac])*par[ORDER_sto][routers[ORDER_sto]->map[cac]]*white_noise__0[cac];
+            f[1*N_CAC+cac] = X[1*N_CAC+cac] +  ( - (_r[cac][3]*X[ORDER_I*N_CAC+cac]) - (_r[cac][1]*X[ORDER_I*N_CAC+cac]) + (_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dt + - sqrt((_r[cac][3]*X[ORDER_I*N_CAC+cac]))*dem_sto__2[cac]- sqrt((_r[cac][1]*X[ORDER_I*N_CAC+cac]))*dem_sto__4[cac]+ sqrt((_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dem_sto__1[cac] + + (_r[cac][0]*X[ORDER_S*N_CAC+cac])*par[ORDER_sto][routers[ORDER_sto]->map[cac]]*white_noise__0[cac];
         }
     }
 
@@ -578,8 +578,8 @@ void step_sde_no_dem_sto(struct s_X *p_X, double t, struct s_par *p_par, struct 
 
         
         _r[cac][0] = X[ORDER_I*N_CAC+cac]*par[ORDER_beta][routers[ORDER_beta]->map[cac]]/covar[ORDER_N][nn][cac];
-        _r[cac][1] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac];
-        _r[cac][2] = covar[ORDER_mu_d][nn][cac];
+        _r[cac][1] = covar[ORDER_mu_d][nn][cac];
+        _r[cac][2] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac]+1.0e-6;
         _r[cac][3] = (par[ORDER_k][routers[ORDER_k]->map[cac]]);
 
         
@@ -593,8 +593,8 @@ void step_sde_no_dem_sto(struct s_X *p_X, double t, struct s_par *p_par, struct 
             /*automaticaly generated code:*/
             /*ODE system*/
             
-            f[0*N_CAC+cac] = X[0*N_CAC+cac] +  ( - (_r[cac][0]*X[ORDER_S*N_CAC+cac]) - (_r[cac][2]*X[ORDER_S*N_CAC+cac]) + (_r[cac][1]))*dt + - (_r[cac][0]*X[ORDER_S*N_CAC+cac])*par[ORDER_sto][routers[ORDER_sto]->map[cac]]*white_noise__0[cac];
-            f[1*N_CAC+cac] = X[1*N_CAC+cac] +  ( - (_r[cac][3]*X[ORDER_I*N_CAC+cac]) - (_r[cac][2]*X[ORDER_I*N_CAC+cac]) + (_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dt + + (_r[cac][0]*X[ORDER_S*N_CAC+cac])*par[ORDER_sto][routers[ORDER_sto]->map[cac]]*white_noise__0[cac];
+            f[0*N_CAC+cac] = X[0*N_CAC+cac] +  ( - (_r[cac][0]*X[ORDER_S*N_CAC+cac]) - (_r[cac][1]*X[ORDER_S*N_CAC+cac]) + (_r[cac][2]))*dt + - (_r[cac][0]*X[ORDER_S*N_CAC+cac])*par[ORDER_sto][routers[ORDER_sto]->map[cac]]*white_noise__0[cac];
+            f[1*N_CAC+cac] = X[1*N_CAC+cac] +  ( - (_r[cac][3]*X[ORDER_I*N_CAC+cac]) - (_r[cac][1]*X[ORDER_I*N_CAC+cac]) + (_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dt + + (_r[cac][0]*X[ORDER_S*N_CAC+cac])*par[ORDER_sto][routers[ORDER_sto]->map[cac]]*white_noise__0[cac];
         }
     }
 
@@ -680,8 +680,8 @@ void step_sde_no_dem_sto_no_env_sto(struct s_X *p_X, double t, struct s_par *p_p
 
         
         _r[cac][0] = X[ORDER_I*N_CAC+cac]*par[ORDER_beta][routers[ORDER_beta]->map[cac]]/covar[ORDER_N][nn][cac];
-        _r[cac][1] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac];
-        _r[cac][2] = covar[ORDER_mu_d][nn][cac];
+        _r[cac][1] = covar[ORDER_mu_d][nn][cac];
+        _r[cac][2] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac]+1.0e-6;
         _r[cac][3] = (par[ORDER_k][routers[ORDER_k]->map[cac]]);
 
         
@@ -694,8 +694,8 @@ void step_sde_no_dem_sto_no_env_sto(struct s_X *p_X, double t, struct s_par *p_p
             /*automaticaly generated code:*/
             /*ODE system*/
             
-            f[0*N_CAC+cac] = X[0*N_CAC+cac] +  ( - (_r[cac][0]*X[ORDER_S*N_CAC+cac]) - (_r[cac][2]*X[ORDER_S*N_CAC+cac]) + (_r[cac][1]))*dt;
-            f[1*N_CAC+cac] = X[1*N_CAC+cac] +  ( - (_r[cac][3]*X[ORDER_I*N_CAC+cac]) - (_r[cac][2]*X[ORDER_I*N_CAC+cac]) + (_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dt;
+            f[0*N_CAC+cac] = X[0*N_CAC+cac] +  ( - (_r[cac][0]*X[ORDER_S*N_CAC+cac]) - (_r[cac][1]*X[ORDER_S*N_CAC+cac]) + (_r[cac][2]))*dt;
+            f[1*N_CAC+cac] = X[1*N_CAC+cac] +  ( - (_r[cac][3]*X[ORDER_I*N_CAC+cac]) - (_r[cac][1]*X[ORDER_I*N_CAC+cac]) + (_r[cac][0]*X[ORDER_S*N_CAC+cac]))*dt;
         }
     }
 

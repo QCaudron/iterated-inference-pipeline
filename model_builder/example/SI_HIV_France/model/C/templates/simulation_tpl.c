@@ -81,8 +81,8 @@ int step_lyap (double t, const double X[], double f[], void *params)
 
         
         _r[cac][0] = X[ORDER_I*N_CAC+cac]*par[ORDER_beta][routers[ORDER_beta]->map[cac]]/covar[ORDER_N][nn][cac];
-        _r[cac][1] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac];
-        _r[cac][2] = covar[ORDER_mu_d][nn][cac];
+        _r[cac][1] = covar[ORDER_mu_d][nn][cac];
+        _r[cac][2] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac]+1.0e-6;
         _r[cac][3] = (par[ORDER_k][routers[ORDER_k]->map[cac]]);
     }
 
@@ -91,8 +91,8 @@ int step_lyap (double t, const double X[], double f[], void *params)
             cac = c*N_AC+ac;
 
 	    
-	    f[0*N_CAC+cac] =  - (_r[cac][0]*X[ORDER_S*N_CAC+cac]) - (_r[cac][2]*X[ORDER_S*N_CAC+cac]) + (_r[cac][1]);
-	    f[1*N_CAC+cac] =  - (_r[cac][3]*X[ORDER_I*N_CAC+cac]) - (_r[cac][2]*X[ORDER_I*N_CAC+cac]) + (_r[cac][0]*X[ORDER_S*N_CAC+cac]);
+	    f[0*N_CAC+cac] =  - (_r[cac][0]*X[ORDER_S*N_CAC+cac]) - (_r[cac][1]*X[ORDER_S*N_CAC+cac]) + (_r[cac][2]);
+	    f[1*N_CAC+cac] =  - (_r[cac][3]*X[ORDER_I*N_CAC+cac]) - (_r[cac][1]*X[ORDER_I*N_CAC+cac]) + (_r[cac][0]*X[ORDER_S*N_CAC+cac]);
         }
     }
 

@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
         "usage:\n"
         "simplex [implementation] [-p, --path <path>] [-i, --id <integer>] [-q, --least_square]\n"
         "                         [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
-        "                         [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>] [--prior]\n"
+        "                         [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>]  [-o, --nb_obs <integer>] [--prior]\n"
         "                         [--help]\n"
         "where implementation is 'ode' (default)\n"
         "options:\n"
@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
         "-M, --iter           maximum number of iterations\n"
         "-S, --size           simplex size used as a stopping criteria\n"
         "-b, --no_traces      do not write the traces\n"
+        "-o, --nb_obs         number of observations to be fitted (for tempering)"
         "--prior              add log(prior) to the estimated log likelihood\n"
         "--help               print the usage on stdout\n";
 
@@ -65,6 +66,7 @@ int main(int argc, char *argv[])
     LOG_LIKE_MIN = log(1e-17);
     OPTION_LEAST_SQUARE = 0;
     OPTION_PRIOR = 0;
+    N_DATA_FORCED = -1;
     int option_no_trace = 0;
 
     while (1) {
@@ -85,14 +87,15 @@ int main(int argc, char *argv[])
                 {"LIKE_MIN",     required_argument,   0, 'l'},
                 {"iter",     required_argument,   0, 'M'},
                 {"size",     required_argument,   0, 'S'},
+		{"nb_obs", required_argument,  0, 'o'},
 
                 {0, 0, 0, 0}
             };
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "s:v:w:qi:l:M:S:p:b", long_options, &option_index);
-
+        ch = getopt_long (argc, argv, "s:v:w:qi:l:M:S:p:o:b", long_options, &option_index);
+	
         /* Detect the end of the options. */
         if (ch == -1)
             break;
@@ -114,19 +117,18 @@ int main(int argc, char *argv[])
         case 'w':
             eps_rel = atof(optarg);
             break;
-
-
         case 'e':
             print_log(sfr_help_string);
             return 1;
-
         case 'b':
             option_no_trace = 1;
             break;
-        case 'q':
-            OPTION_LEAST_SQUARE = 1;
+	case 'o':
+	    N_DATA_FORCED = atoi(optarg);
             break;
-
+        case 'q':
+	    OPTION_LEAST_SQUARE = 1;
+            break;
         case 'p':
             snprintf(SFR_PATH, STR_BUFFSIZE, "%s", optarg);
             break;

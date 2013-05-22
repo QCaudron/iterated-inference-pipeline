@@ -7,7 +7,7 @@
   "cmd": [
     {
       "fit": "",
-      "algorithm": "pmcmc ode -M 10000 --traj",
+      "algorithm": "pmcmc ode -M 10000 -n 100 --traj --full",
       "repeat": 1
     }
   ]

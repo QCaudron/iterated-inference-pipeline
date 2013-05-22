@@ -86,8 +86,8 @@ int step_ode_ekf(double t, const double X[], double f[], void *params)
         
 
         
-        _r[cac][0] = (par[ORDER_v][routers[ORDER_v]->map[cac]]);
-        _r[cac][1] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac];
+        _r[cac][0] = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac]+0.01;
+        _r[cac][1] = (par[ORDER_v][routers[ORDER_v]->map[cac]]);
         _r[cac][2] = covar[ORDER_mu_d][nn][cac];
         _r[cac][3] = X[ORDER_I*N_CAC+cac]*par[ORDER_r0][routers[ORDER_r0]->map[cac]]*par[ORDER_v][routers[ORDER_v]->map[cac]]/covar[ORDER_N][nn][cac];
     }
@@ -97,8 +97,8 @@ int step_ode_ekf(double t, const double X[], double f[], void *params)
             cac = c*N_AC+ac;
 
 	    
-	    f[0*N_CAC+cac] =  - (_r[cac][3]*X[ORDER_S*N_CAC+cac]) - (_r[cac][2]*X[ORDER_S*N_CAC+cac]) + (_r[cac][1]);
-	    f[1*N_CAC+cac] =  - (_r[cac][0]*X[ORDER_I*N_CAC+cac]) - (_r[cac][2]*X[ORDER_I*N_CAC+cac]) + (_r[cac][3]*X[ORDER_S*N_CAC+cac]);
+	    f[0*N_CAC+cac] =  - (_r[cac][3]*X[ORDER_S*N_CAC+cac]) - (_r[cac][2]*X[ORDER_S*N_CAC+cac]) + (_r[cac][0]);
+	    f[1*N_CAC+cac] =  - (_r[cac][1]*X[ORDER_I*N_CAC+cac]) - (_r[cac][2]*X[ORDER_I*N_CAC+cac]) + (_r[cac][3]*X[ORDER_S*N_CAC+cac]);
         }
     }
 
@@ -357,7 +357,7 @@ void eval_Q_no_env_sto(gsl_matrix *Q, const double *X, struct s_par *p_par, stru
         
         i = 0 * N_CAC + cac;
         j = 0 * N_CAC + cac;
-        term = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac]+covar[ORDER_mu_d][nn][cac]*X[ORDER_S*N_CAC+cac]+X[ORDER_I*N_CAC+cac]*X[ORDER_S*N_CAC+cac]*par[ORDER_r0][routers[ORDER_r0]->map[cac]]*par[ORDER_v][routers[ORDER_v]->map[cac]]/covar[ORDER_N][nn][cac];
+        term = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac]+covar[ORDER_mu_d][nn][cac]*X[ORDER_S*N_CAC+cac]+X[ORDER_I*N_CAC+cac]*X[ORDER_S*N_CAC+cac]*par[ORDER_r0][routers[ORDER_r0]->map[cac]]*par[ORDER_v][routers[ORDER_v]->map[cac]]/covar[ORDER_N][nn][cac]+0.01;
 
         gsl_matrix_set(Q, i, j, term);
 
@@ -572,7 +572,7 @@ void eval_Q_full(gsl_matrix *Q, const double *X, struct s_par *p_par, struct s_d
         
         i = 0 * N_CAC + cac;
         j = 0 * N_CAC + cac;
-        term = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac]+covar[ORDER_mu_d][nn][cac]*X[ORDER_S*N_CAC+cac]+pow(X[ORDER_I*N_CAC+cac],2)*pow(X[ORDER_S*N_CAC+cac],2)*pow(par[ORDER_r0][routers[ORDER_r0]->map[cac]],2)*pow(par[ORDER_sto][routers[ORDER_sto]->map[cac]],2)*pow(par[ORDER_v][routers[ORDER_v]->map[cac]],2)/pow(covar[ORDER_N][nn][cac],2)+X[ORDER_I*N_CAC+cac]*X[ORDER_S*N_CAC+cac]*par[ORDER_r0][routers[ORDER_r0]->map[cac]]*par[ORDER_v][routers[ORDER_v]->map[cac]]/covar[ORDER_N][nn][cac];
+        term = covar[ORDER_mu_b][nn][cac]*covar[ORDER_N][nn][cac]+covar[ORDER_mu_d][nn][cac]*X[ORDER_S*N_CAC+cac]+pow(X[ORDER_I*N_CAC+cac],2)*pow(X[ORDER_S*N_CAC+cac],2)*pow(par[ORDER_r0][routers[ORDER_r0]->map[cac]],2)*pow(par[ORDER_sto][routers[ORDER_sto]->map[cac]],2)*pow(par[ORDER_v][routers[ORDER_v]->map[cac]],2)/pow(covar[ORDER_N][nn][cac],2)+X[ORDER_I*N_CAC+cac]*X[ORDER_S*N_CAC+cac]*par[ORDER_r0][routers[ORDER_r0]->map[cac]]*par[ORDER_v][routers[ORDER_v]->map[cac]]/covar[ORDER_N][nn][cac]+0.01;
 
         gsl_matrix_set(Q, i, j, term);
 

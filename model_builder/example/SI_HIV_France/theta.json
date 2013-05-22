@@ -11,7 +11,8 @@
       "min": 0,
       "max": 0.97,
       "guess": 0.7,
-      "sd_transf": 0.02
+      "sd_transf": 0.02,
+      "prior":"uniform"
     },
     
     "I": {

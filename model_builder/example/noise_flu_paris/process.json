@@ -11,7 +11,7 @@
                {"id": "mu_b", "comment": "birth rate"},
                {"id": "mu_d", "comment": "death rate"}],
 
- "model": [{"from": "U", "to": "S",  "rate": "mu_b*N", "comment":"birth"},
+ "model": [{"from": "U", "to": "S",  "rate": "mu_b*N+0.01", "comment":"birth"},
            {"from": "S", "to": "I",  "rate": "r0/N*v*I", "tag": {"transmission": {"by":["I"]}}, "comment":"infection"},
            {"from": "I", "to": "DU", "rate": "correct_rate(v)", "comment":"recovery"},
            {"from": "S", "to": "U",  "rate": "mu_d", "comment":"death"},
