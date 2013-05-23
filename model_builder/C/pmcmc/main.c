@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         "usage:\n"
         "pmcmc [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                [-s, --DT <float || 0.25 day>] [--eps_abs <float || 1e-6>] [--eps_rel <float || 1e-3>]\n"
-        "                [--full] [--traj] [-k, --n_traj <int || 1000>] [--acc] [-p, --path <path>] [-i, --id <integer || 0>] [-P, --N_THREAD <integer || N_CPUs>]\n"
+        "                [--full] [-k, --n_traj <int || 1000>] [--acc] [-p, --path <path>] [-i, --id <integer || 0>] [-P, --N_THREAD <integer || N_CPUs>]\n"
         "                [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
         "                [-C --cov] [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >] "
         "                [-E --epsilon <int || 50>] [--epsilon_max <float || 2.0>] [--smooth] [--alpha <float || 0.02>]"
@@ -104,7 +104,6 @@ int main(int argc, char *argv[])
                 {"full", no_argument, &OPTION_FULL_UPDATE, 1},
 
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
-                {"traj",       no_argument,       0, 'j'},
                 {"acc",        no_argument,       0, 'r'},
                 {"no_dem_sto", no_argument,       0, 'x'},
                 {"no_white_noise", no_argument,       0, 'y'},
@@ -141,7 +140,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "rjxyzs:v:w:Ci:J:l:M:p:c:P:ZS:E:a:f:g:n:o:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "rxyzs:v:w:Ci:J:l:M:p:c:P:ZS:E:a:f:g:n:o:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -222,9 +221,6 @@ int main(int argc, char *argv[])
         case 'M':
             M = atoi(optarg);
             break;
-        case 'j':
-	    print_opt |= PLOM_PRINT_X_SMOOTH;
-            break;
         case 'r':
 	    print_opt |= PLOM_PRINT_ACC;
             break;
@@ -275,6 +271,10 @@ int main(int argc, char *argv[])
 
     n_traj = GSL_MIN(M, n_traj);
     int thin_traj = (int) ( (double) M / (double) n_traj); //the thinning interval
+
+    if(n_traj>0){       
+	print_opt |= PLOM_PRINT_X_SMOOTH;
+    }
 
     pmcmc(p_pmcmc->p_best, p_pmcmc->D_J_p_X, p_pmcmc->D_J_p_X_tmp, p_pmcmc->p_par, &(p_pmcmc->D_p_hat_prev), &(p_pmcmc->D_p_hat_new), p_pmcmc->D_p_hat_best, p_pmcmc->p_like, p_pmcmc->p_data, p_pmcmc->calc, get_f_pred(implementation, noises_off), print_opt, thin_traj);
 
