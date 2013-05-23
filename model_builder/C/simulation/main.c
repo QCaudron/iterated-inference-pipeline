@@ -87,6 +87,7 @@ int main(int argc, char *argv[])
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
     J=1;
+    N_DATA_FORCED = -1;
 
     int n_threads=omp_get_max_threads();
 

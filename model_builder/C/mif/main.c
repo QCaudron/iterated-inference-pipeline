@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
 
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(LIKE_MIN);
+    N_DATA_FORCED = -1;
 
     M = 1;
     MIF_a= 0.975;

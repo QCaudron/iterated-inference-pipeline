@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
     int n_threads=omp_get_max_threads();
-    
+    N_DATA_FORCED = -1;
 
     while (1) {
         static struct option long_options[] =
