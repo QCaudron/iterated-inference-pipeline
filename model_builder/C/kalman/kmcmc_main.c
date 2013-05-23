@@ -59,6 +59,7 @@ int main(int argc, char *argv[])
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-M, --iter         number of pMCMC iterations\n"
+	"-o, --nb_obs       number of observations to be fitted (for tempering)"
         "--help             print the usage on stdout\n";
 
     int load_cov = 0;
@@ -78,6 +79,7 @@ int main(int argc, char *argv[])
     OPTION_FULL_UPDATE = 0;
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
+    N_DATA_FORCED = -1;
 
     enum plom_print print_opt = 0;
 
@@ -115,6 +117,7 @@ int main(int argc, char *argv[])
                 {"alpha",    required_argument, 0, 'g'},
 
 
+
                 {"cov",         no_argument, 0, 'c'},
 
                 {"help",        no_argument,        0, 'e'},
@@ -122,13 +125,14 @@ int main(int argc, char *argv[])
                 {"id",          required_argument,  0, 'i'},
                 {"LIKE_MIN",    required_argument,   0, 'l'},
                 {"iter",        required_argument,   0, 'M'},
+		{"nb_obs", required_argument,  0, 'o'},
 
                 {0, 0, 0, 0}
             };
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "jrxyzs:v:w:Ci:l:M:p:S:E:a:f:g:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "jrxyzs:v:w:Ci:l:M:p:S:E:a:f:g:o:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -151,7 +155,6 @@ int main(int argc, char *argv[])
         case 'z':
             noises_off = noises_off | PLOM_NO_DRIFT;
             break;
-
         case 's':
             dt = atof(optarg);
             break;
@@ -161,9 +164,9 @@ int main(int argc, char *argv[])
         case 'w':
             eps_rel = atof(optarg);
             break;
-
-
-
+	case 'o':
+	    N_DATA_FORCED = atoi(optarg);
+            break;
         case 'a':
             a = atof(optarg);
             break;
@@ -179,12 +182,9 @@ int main(int argc, char *argv[])
         case 'g':
             alpha = atof(optarg);
             break;
-
-
         case 'e':
             print_log(sfr_help_string);
             return 1;
-
         case 'C':
             load_cov = 1;
             break;

@@ -661,7 +661,11 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
                 p_data->times[tmp_n_data_nonan-1] = n+1;
             }
         }
-        N_DATA_NONAN = tmp_n_data_nonan;
+        if (N_DATA_FORCED < 0){
+	    N_DATA_NONAN = tmp_n_data_nonan;
+	} else {
+	    N_DATA_NONAN = (tmp_n_data_nonan<N_DATA_FORCED)?tmp_n_data_nonan:N_DATA_FORCED;
+	}   
 
         /*data_ind*/
         struct s_data_ind **data_ind;

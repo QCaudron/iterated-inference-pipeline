@@ -67,6 +67,7 @@ int main(int argc, char *argv[])
         "-M, --iter         number of pMCMC iterations\n"
         "-Z, --zmq          dispatch particles across machines using a zeromq pipeline\n"
         "-c, --chunk        number of particles send to each machine\n"
+	"-o, --nb_obs         number of observations to be fitted (for tempering)"
         "--help             print the usage on stdout\n";
 
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
@@ -90,6 +91,7 @@ int main(int argc, char *argv[])
     int n_threads = omp_get_max_threads();
     OPTION_PIPELINE = 0;
     OPTION_FULL_UPDATE = 0;
+    N_DATA_FORCED = -1;
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
@@ -132,13 +134,14 @@ int main(int argc, char *argv[])
                 {"iter",     required_argument,   0, 'M'},
                 {"zmq",     no_argument,   0, 'Z'},
                 {"chunk",     required_argument,   0, 'c'},
+		{"nb_obs", required_argument,  0, 'o'},
 
                 {0, 0, 0, 0}
             };
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "rjxyzs:v:w:Ci:J:l:M:p:c:P:ZS:E:a:f:g:n:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "rjxyzs:v:w:Ci:J:l:M:p:c:P:ZS:E:a:f:g:n:o:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -161,7 +164,6 @@ int main(int argc, char *argv[])
         case 'z':
             noises_off = noises_off | PLOM_NO_DRIFT;
             break;
-
         case 's':
             dt = atof(optarg);
             break;
@@ -171,8 +173,9 @@ int main(int argc, char *argv[])
         case 'w':
             eps_rel = atof(optarg);
             break;
-
-
+	case 'o':
+	    N_DATA_FORCED = atoi(optarg);
+            break;
         case 'a':
             a = atof(optarg);
             break;
@@ -188,11 +191,9 @@ int main(int argc, char *argv[])
         case 'g':
             alpha = atof(optarg);
             break;
-
         case 'e':
             print_log(sfr_help_string);
             return 1;
-
         case 'C':
             load_cov = 1;
             break;
@@ -227,11 +228,9 @@ int main(int argc, char *argv[])
         case 'r':
 	    print_opt |= PLOM_PRINT_ACC;
             break;
-
         case 'n':
             n_traj = atoi(optarg);
             break;
-
         case '?':
             /* getopt_long already printed an error message. */
             return 1;

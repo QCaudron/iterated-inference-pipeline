@@ -26,12 +26,17 @@ int metropolis_hastings(struct s_best *p_best, struct s_likelihood *p_like, doub
     double Lproposal_new = log_prob_proposal(p_best, p_best->proposed, p_best->mean, var, sd_fac, p_data,  is_mvn); /* q{ theta* | theta(i-1) }*/
     double Lproposal_prev = log_prob_proposal(p_best, p_best->mean, p_best->proposed, var, sd_fac, p_data, is_mvn); /* q{ theta(i-1) | theta* }*/
 
-    if(check_prior(p_best, p_best->mean, var, p_data) && (Lproposal_new >0.0) && (Lproposal_prev >0.0) ) {
+
+    if( (Lproposal_new >0.0) && (Lproposal_prev >0.0) ) {
+	//    if(check_prior(p_best, p_best->mean, var, p_data) && (Lproposal_new >0.0) && (Lproposal_prev >0.0) ) {
         double Lprior_new = log_prob_prior(p_best, p_best->proposed, var, p_data); /* p{theta*} */
         double Lprior_prev = log_prob_prior(p_best, p_best->mean, var, p_data);  /* p{theta(i-1)} */
 
+
+
         // ( p{theta*}(y)  p{theta*} ) / ( p{theta(i-1)}(y) p{theta(i-1)} )  *  q{ theta(i-1) | theta* } / q{ theta* | theta(i-1) }
         *alpha = exp( (p_like->Llike_new - p_like->Llike_prev + Lproposal_prev - Lproposal_new + Lprior_new - Lprior_prev) );
+
 
         ran = gsl_ran_flat(p_calc->randgsl, 0.0, 1.0);
 

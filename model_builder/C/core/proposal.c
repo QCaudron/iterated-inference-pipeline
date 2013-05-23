@@ -148,9 +148,10 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
 
                 p_tmp /= (*(routers[i]->f_inv_derivative))(gsl_vector_get(proposed, offset), routers[i]->min[k], routers[i]->max[k]);
 
+		p_tmp = isinf(p_tmp) ? LIKE_MIN : p_tmp; 
 
                 //check for numerical issues
-                if((isinf(p_tmp)==1) || (isnan(p_tmp)==1)) {
+                if((isnan(p_tmp)==1)) {
 #if FLAG_VERBOSE
                     snprintf(str, STR_BUFFSIZE, "error log_prob_proposal computation (p=%g) => theta will be rejected", p_tmp);
                     print_err(str);

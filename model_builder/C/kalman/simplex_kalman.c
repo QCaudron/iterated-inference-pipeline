@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
         "-M, --iter         maximum number of iterations\n"
         "-S, --size         simplex size used as a stopping criteria\n"
         "-b, --no_traces    do not write the traces\n"
+	"-o, --nb_obs       number of observations to be fitted (for tempering)"
         "--help             print the usage on stdout\n";
 
     // simplex options
@@ -92,6 +93,7 @@ int main(int argc, char *argv[])
     J=1;
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
+    N_DATA_FORCED = -1;
 
     // options
     OPTION_TRAJ = 0;
@@ -129,12 +131,13 @@ int main(int argc, char *argv[])
         {"LIKE_MIN", required_argument, 0, 'l'},
         {"iter",     required_argument,   0, 'M'},
         {"size",     required_argument,   0, 'S'},
+	{"nb_obs", required_argument,  0, 'o'},
 
         {0, 0, 0, 0}
     };
 
     int option_index = 0;
-    while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:S:M:b", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:S:M:o:b", long_options, &option_index)) != -1) {
         switch (ch) {
         case 0:
             break;
@@ -148,8 +151,6 @@ int main(int argc, char *argv[])
         case 'z':
             noises_off = noises_off | PLOM_NO_DRIFT;
             break;
-
-
         case 's':
             dt = atof(optarg);
             break;
@@ -159,23 +160,21 @@ int main(int argc, char *argv[])
         case 'w':
             eps_rel = atof(optarg);
             break;
-
-
         case 'e':
             print_log(sfr_help_string);
             return 1;
-
         case 'b':
             option_no_trace = 1;
             break;
-
         case 'p':
             snprintf(SFR_PATH, STR_BUFFSIZE, "%s", optarg);
             break;
         case 'i':
             GENERAL_ID = atoi(optarg);
             break;
-
+	case 'o':
+	    N_DATA_FORCED = atoi(optarg);
+            break;
         case 'l':
             LIKE_MIN = atof(optarg);
             LOG_LIKE_MIN = log(LIKE_MIN);
