@@ -25,9 +25,9 @@ int main(int argc, char *argv[])
 
     /* set default values for the options */
     char sfr_help_string[] =
-        "PLoM pMCMC\n"
+        "PLOM pMCMC\n"
         "usage:\n"
-        "pmcmc [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "pmcmc [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                [-s, --DT <float || 0.25 day>] [--eps_abs <float || 1e-6>] [--eps_rel <float || 1e-3>]\n"
         "                [--full] [--traj] [-k, --n_traj <int || 1000>] [--acc] [-p, --path <path>] [-i, --id <integer || 0>] [-P, --N_THREAD <integer || N_CPUs>]\n"
         "                [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
@@ -39,8 +39,8 @@ int main(int argc, char *argv[])
         "options:\n"
         "\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
-        "--no_env_sto       turn off environmental stochasticity (if any)\n"
-        "--no_drift         turn off drift (if any)\n"
+        "--no_white_noise       turn off environmental stochasticity (if any)\n"
+        "--no_diff         turn off drift (if any)\n"
         "\n"
         "-s, --DT           Initial integration time step\n"
         "--eps_abs          Absolute error for adaptive step-size contro\n"
@@ -107,8 +107,8 @@ int main(int argc, char *argv[])
                 {"traj",       no_argument,       0, 'j'},
                 {"acc",        no_argument,       0, 'r'},
                 {"no_dem_sto", no_argument,       0, 'x'},
-                {"no_env_sto", no_argument,       0, 'y'},
-                {"no_drift",   no_argument,       0, 'z'},
+                {"no_white_noise", no_argument,       0, 'y'},
+                {"no_diff",   no_argument,       0, 'z'},
 
                 {"DT",         required_argument, 0, 's'},
                 {"eps_abs",    required_argument, 0, 'v'},

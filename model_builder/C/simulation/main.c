@@ -27,9 +27,9 @@ int main(int argc, char *argv[])
 
     /* set default values for the options */
     char sfr_help_string[] =
-        "PloM Simulation\n"
+        "PLOM Simulation\n"
         "usage:\n"
-        "simul [implementation] [--no_dem_sto] [--no_env_sto] [--no_drift]\n"
+        "simul [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                       [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                       [--traj] [--predict] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
         "                       [-b, --bif] [--continue] [-l, --lyap]\n"
@@ -40,8 +40,8 @@ int main(int argc, char *argv[])
         "options:\n"
         "\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
-        "--no_env_sto       turn off environmental stochasticity (if any)\n"
-        "--no_drift         turn off drift (if any)\n"
+        "--no_white_noise       turn off environmental stochasticity (if any)\n"
+        "--no_diff         turn off drift (if any)\n"
         "\n"
         "-s, --DT           Initial integration time step\n"
         "--eps_abs          Absolute error for adaptive step-size contro\n"
@@ -100,8 +100,8 @@ int main(int argc, char *argv[])
                 {"predict", no_argument,   &OPTION_PREDICT, 1},
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
                 {"no_dem_sto", no_argument,       0, 'x'},
-                {"no_env_sto", no_argument,       0, 'y'},
-                {"no_drift",   no_argument,       0, 'z'},
+                {"no_white_noise", no_argument,       0, 'y'},
+                {"no_diff",   no_argument,       0, 'z'},
 
                 {"DT",         required_argument, 0, 's'},
                 {"eps_abs",    required_argument, 0, 'v'},

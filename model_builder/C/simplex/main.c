@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
     /* set default values for the options */
 
     char sfr_help_string[] =
-        "Plom Simplex\n"
+        "PLOM Simplex\n"
         "usage:\n"
         "simplex [implementation] [-p, --path <path>] [-i, --id <integer>] [-q, --least_square]\n"
         "                         [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
