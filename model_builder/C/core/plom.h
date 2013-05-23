@@ -64,6 +64,8 @@ enum plom_noises_off {PLOM_NO_DEM_STO = 1 << 0, PLOM_NO_ENV_STO = 1 << 1, PLOM_N
 
 enum plom_print {PLOM_PRINT_BEST = 1 << 0, PLOM_PRINT_X = 1 << 1, PLOM_PRINT_HAT = 1 << 2, PLOM_PRINT_PRED_RES = 1 << 3, PLOM_PRINT_X_SMOOTH = 1 << 4, PLOM_PRINT_ACC = 1 << 5 };
 
+typedef enum {PLOM_SUCCESS=0, PLOM_ERR_LIKE=-1} plom_err_code;
+
 
 #define BUFFER_SIZE (5000 * 1024)  /**< 5000 KB buffer size for settings.json inputs */
 #define STR_BUFFSIZE 255 /**< buffer for log and error strings */
@@ -758,8 +760,8 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
 
 /* metropolis_hastings_prior.c */
 int metropolis_hastings(struct s_best *p_best, struct s_likelihood *p_like, double *alpha, struct s_data *p_data, struct s_calc *p_calc, gsl_matrix *var, double sd_fac, int is_mvn);
-int check_prior(struct s_best *p_best, gsl_vector *mean, gsl_matrix *var, struct s_data *p_data);
-double log_prob_prior(struct s_best *p_best, gsl_vector *mean, gsl_matrix *var, struct s_data *p_data);
+
+plom_err_code log_prob_prior(double *log_like, struct s_best *p_best, gsl_vector *mean, gsl_matrix *var, struct s_data *p_data);
 double normal_prior(double x, double min, double max);
 double pseudo_unif_prior(double x, double min, double max);
 
@@ -769,7 +771,7 @@ void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, gs
 void ran_proposal(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc);
 
 int check_IC(struct s_X *p_X, struct s_data *p_data);
-double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean, gsl_matrix *var, double sd_fac, struct s_data *p_data, int is_mvn);
+plom_err_code log_prob_proposal(double *log_like, struct s_best *p_best, theta_t *proposed, theta_t *mean, gsl_matrix *var, double sd_fac, struct s_data *p_data, int is_mvn);
 void apply_following_constraints(theta_t *proposed, struct s_best *p_best, struct s_data *p_data);
 
 /* hat.c */

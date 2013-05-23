@@ -100,14 +100,13 @@ int check_IC(struct s_X *p_X, struct s_data *p_data)
 
 
 /**
- * return the log of the prob of the proposal **or** -1.0 if error
+ * compute the log of the prob of the proposal
  */
 
-double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean, gsl_matrix *var, double sd_fac, struct s_data *p_data, int is_mvn)
+plom_err_code log_prob_proposal(double *log_like, struct s_best *p_best, theta_t *proposed, theta_t *mean, gsl_matrix *var, double sd_fac, struct s_data *p_data, int is_mvn)
 {
     struct s_router **routers = p_data->routers;
 
-    char str[STR_BUFFSIZE];
     int i, k;
 
     double p_tmp, Lp;
@@ -148,15 +147,9 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
 
                 p_tmp /= (*(routers[i]->f_inv_derivative))(gsl_vector_get(proposed, offset), routers[i]->min[k], routers[i]->max[k]);
 
-		p_tmp = isinf(p_tmp) ? LIKE_MIN : p_tmp; 
-
                 //check for numerical issues
-                if((isnan(p_tmp)==1)) {
-#if FLAG_VERBOSE
-                    snprintf(str, STR_BUFFSIZE, "error log_prob_proposal computation (p=%g) => theta will be rejected", p_tmp);
-                    print_err(str);
-#endif
-		    return -1.0;
+                if( (isnan(p_tmp)==1) || (isinf(p_tmp)==1) || (p_tmp<0.0) ) {
+		    return PLOM_ERR_LIKE;
                 }
 
 		if (!is_mvn) {
@@ -172,14 +165,12 @@ double log_prob_proposal(struct s_best *p_best, theta_t *proposed, theta_t *mean
 	Lp = log(p_tmp);
     }
 
-    //check for numerical issues log could have created issues
+    //check AGAIN for numerical issues (taking log could have created issues)
     if((isinf(Lp)==1) || (isnan(Lp)==1)) {
-#if FLAG_VERBOSE
-	snprintf(str, STR_BUFFSIZE, "error log_prob_proposal computation (p=%g) => theta will be rejected", p_tmp);
-	print_err(str);
-#endif
-	return -1.0;
+	return PLOM_ERR_LIKE;
     }
+    
+    *log_like = Lp;
 
-    return(Lp);
+    return PLOM_SUCCESS;
 }

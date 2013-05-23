@@ -305,8 +305,16 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
     } // end of for loop on n
 
     if (OPTION_PRIOR) {
-        log_lik += log_prob_prior(p_best, p_best->mean, p_best->var, p_data);
+	double log_prob_prior_value;
+	plom_err_code rc = log_prob_prior(&log_prob_prior_value, p_best, p_best->mean, p_best->var, p_data);
+#if FLAG_VERBOSE
+	if(rc != PLOM_SUCCESS){
+	    print_err("error log_prob_prior computation");
+	}
+#endif
+        log_lik += log_prob_prior_value;
     }
+
 
     if (OPTION_TRANSF) {
         log_lik += log_transf_correc(p_best->mean, p_best->var, p_data->routers);

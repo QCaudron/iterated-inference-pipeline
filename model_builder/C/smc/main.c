@@ -250,7 +250,15 @@ int main(int argc, char *argv[])
     run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, get_f_pred(implementation, noises_off), filter, p_file_X, p_file_hat, p_file_pred_res, print_opt);
 
     if (OPTION_PRIOR) {
-        p_like->Llike_best += log_prob_prior(p_best, p_best->mean, p_best->var, p_data);
+	double log_prob_prior_value;
+	plom_err_code rc = log_prob_prior(&log_prob_prior_value, p_best, p_best->mean, p_best->var, p_data);
+#if FLAG_VERBOSE
+	if(rc != PLOM_SUCCESS){
+	    print_err("error log_prob_prior computation");
+	}
+#endif
+
+        p_like->Llike_best += log_prob_prior_value;
     }
 
 #if FLAG_VERBOSE

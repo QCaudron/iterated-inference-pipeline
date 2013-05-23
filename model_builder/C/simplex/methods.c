@@ -74,8 +74,17 @@ double f_simplex(const gsl_vector *x, void *params)
         } /*end of for loop on n*/
 	
 	if (OPTION_PRIOR) {
-	    fitness += log_prob_prior(p_best, p_best->mean, p_best->var, p_data);
+	    double log_prob_prior_value;
+	    plom_err_code rc = log_prob_prior(&log_prob_prior_value, p_best, p_best->mean, p_best->var, p_data);
+#if FLAG_VERBOSE
+	    if(rc != PLOM_SUCCESS){
+		print_err("error log_prob_prior computation");
+	    }
+#endif
+
+	    fitness += log_prob_prior_value;
 	}
+
 
     } else { //new IC do not respect the constraint:
 #if FLAG_VERBOSE
