@@ -35,7 +35,7 @@ struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noi
         exit(EXIT_FAILURE);
     }
 
-    p->p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR); //also build obs2ts
+    p->p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR, -1); //also build obs2ts
     json_decref(settings);
     int size_proj = N_PAR_SV*N_CAC + p->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 

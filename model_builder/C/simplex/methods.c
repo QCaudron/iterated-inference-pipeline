@@ -51,7 +51,7 @@ double f_simplex(const gsl_vector *x, void *params)
     fitness=0.0;
 
     if (check_IC(p_X, p_data) == 0) {
-        for(n=0; n<N_DATA_NONAN; n++) {
+        for(n=0; n< p_data->nb_obs; n++) {
 
             t1=p_data->times[n];
 
@@ -92,7 +92,7 @@ double f_simplex(const gsl_vector *x, void *params)
 #endif
 //	sanitize_IC(p_X->proj, p_data->pop_size_t0);
         if(OPTION_LEAST_SQUARE) {
-            fitness = BIG_NUMBER*N_DATA_NONAN;
+            fitness = BIG_NUMBER*p_data->nb_obs;
         } else {
             fitness = p_params_simplex->smallest_log_like;
         }

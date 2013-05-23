@@ -76,7 +76,6 @@ int main(int argc, char *argv[])
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
     int n_threads=omp_get_max_threads();
-    N_DATA_FORCED = -1;
 
     while (1) {
         static struct option long_options[] =
@@ -211,7 +210,7 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
 
     json_t *theta = load_json();
-    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR);
+    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR, -1);
     json_decref(settings);
 
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;

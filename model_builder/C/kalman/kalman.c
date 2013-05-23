@@ -211,7 +211,7 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
     //////////////////
     // for all data //
     //////////////////
-    for(n=0; n<N_DATA_NONAN; n++) {
+    for(n=0; n < p_data->nb_obs; n++) {
 
 #if FLAG_JSON //for the webApp, we block at every iterations to prevent the client to be saturated with msg
         if (OPTION_TRAJ) {

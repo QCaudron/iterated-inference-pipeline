@@ -59,7 +59,6 @@ int main(int argc, char *argv[])
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(LIKE_MIN);
-    N_DATA_FORCED = -1;
     enum plom_print print_opt = PLOM_PRINT_BEST | PLOM_PRINT_HAT | PLOM_PRINT_PRED_RES;
 
     // options
@@ -188,7 +187,7 @@ int main(int argc, char *argv[])
     print_log(str);
 #endif
 
-    struct s_kalman *p_kalman = build_kalman(settings, implementation, noises_off, OPTION_PRIOR, 0, dt, eps_abs, eps_rel);
+    struct s_kalman *p_kalman = build_kalman(settings, implementation, noises_off, OPTION_PRIOR, 0, dt, eps_abs, eps_rel, -1);
     json_decref(settings);
 
     transform_theta(p_kalman->p_best, p_kalman->p_data, 1);

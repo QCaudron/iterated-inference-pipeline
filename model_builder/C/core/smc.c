@@ -220,7 +220,7 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
 
     p_like->Llike_best = 0.0;
 
-    for(n=0; n<N_DATA_NONAN; n++) {
+    for(n=0; n<p_data->nb_obs; n++) {
 
 #if FLAG_JSON //for the webApp, we block at every iterations to prevent the client to be saturated with msg
         if (print_opt & PLOM_PRINT_HAT) {
@@ -314,7 +314,7 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
 
     p_like->Llike_best = 0.0; p_like->n_all_fail = 0;
 
-    for (n=0; n<N_DATA_NONAN; n++) {
+    for (n=0; n < p_data->nb_obs; n++) {
         t1=p_data->times[n];
 
         /*we have to use this subloop to mimate equaly spaced time step and hence set the incidence to 0 every time unit...*/

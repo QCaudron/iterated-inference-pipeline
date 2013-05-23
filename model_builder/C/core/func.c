@@ -243,3 +243,16 @@ int in_drift(int i, struct s_drift **drift){
 
     return 0;
 }
+
+
+/**
+ * sanitize nb_obs.
+ */
+int plom_sanitize_nb_obs(int nb_obs, int n_data_nonan){
+    
+    if(nb_obs >= 0){
+	return (nb_obs < n_data_nonan) ? nb_obs : n_data_nonan;
+    }
+
+    return n_data_nonan;
+}

@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     J=1;
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
-    N_DATA_FORCED = -1;
+    int nb_obs = -1;
 
     // options
     OPTION_TRAJ = 0;
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
             GENERAL_ID = atoi(optarg);
             break;
 	case 'o':
-	    N_DATA_FORCED = atoi(optarg);
+	    nb_obs = atoi(optarg);
             break;
         case 'l':
             LIKE_MIN = atof(optarg);
@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
     print_log(str);
 #endif
 
-    struct s_kalman *p_kalman = build_kalman(settings, implementation, noises_off, OPTION_PRIOR, 0, dt, eps_abs, eps_rel);
+    struct s_kalman *p_kalman = build_kalman(settings, implementation, noises_off, OPTION_PRIOR, 0, dt, eps_abs, eps_rel, nb_obs);
     json_decref(settings);
 
     transform_theta(p_kalman->p_best, p_kalman->p_data, 1);

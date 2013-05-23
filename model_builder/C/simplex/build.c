@@ -18,7 +18,7 @@
 
 #include "simplex.h"
 
-struct s_simplex *build_simplex(enum plom_implementations implementation,  enum plom_noises_off noises_off, int general_id, int is_bayesian, double dt, double eps_abs, double eps_rel)
+struct s_simplex *build_simplex(enum plom_implementations implementation,  enum plom_noises_off noises_off, int general_id, int is_bayesian, double dt, double eps_abs, double eps_rel, int nb_obs)
 {
   struct s_simplex *p_simplex;
   p_simplex = malloc(sizeof(struct s_simplex));
@@ -31,7 +31,7 @@ struct s_simplex *build_simplex(enum plom_implementations implementation,  enum 
 
   json_t *settings = load_settings(PATH_SETTINGS);
   json_t *theta = load_json();
-  p_simplex->p_data = build_data(settings, theta, implementation, noises_off, is_bayesian); //also build obs2ts
+  p_simplex->p_data = build_data(settings, theta, implementation, noises_off, is_bayesian, nb_obs); //also build obs2ts
   json_decref(settings);
 
   int size_proj = N_PAR_SV*N_CAC + p_simplex->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;

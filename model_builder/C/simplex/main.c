@@ -66,8 +66,8 @@ int main(int argc, char *argv[])
     LOG_LIKE_MIN = log(1e-17);
     OPTION_LEAST_SQUARE = 0;
     OPTION_PRIOR = 0;
-    N_DATA_FORCED = -1;
     int option_no_trace = 0;
+    int nb_obs = -1;
 
     while (1) {
         static struct option long_options[] =
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
             option_no_trace = 1;
             break;
 	case 'o':
-	    N_DATA_FORCED = atoi(optarg);
+	    nb_obs = atoi(optarg);
             break;
         case 'q':
 	    OPTION_LEAST_SQUARE = 1;
@@ -174,10 +174,9 @@ int main(int argc, char *argv[])
     sprintf(str, "Starting Plom-simplex with the following options: i = %d, LIKE_MIN = %g, M = %d, CONVERGENCE_STOP_SIMPLEX = %g", GENERAL_ID, LIKE_MIN, M, CONVERGENCE_STOP_SIMPLEX);
     print_log(str);
 
-    struct s_simplex *p_simplex = build_simplex(implementation, noises_off, GENERAL_ID, OPTION_PRIOR, dt, eps_abs, eps_rel);
+    struct s_simplex *p_simplex = build_simplex(implementation, noises_off, GENERAL_ID, OPTION_PRIOR, dt, eps_abs, eps_rel, nb_obs);
 
     transform_theta(p_simplex->p_best, p_simplex->p_data, 1);
-
 
     if (M == 0) {
         //simply return the sum of square or the log likelihood (can be used to do slices especially with least square where smc can't be used'...)

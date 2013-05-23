@@ -162,6 +162,7 @@ int main(int argc, char *argv[])
         "-P, --N_THREAD     number of threads to be used (defaults to the number of cores)\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-J  -Jchunk        size of the chunk of particles\n"
+	"-o, --nb_obs       number of observations to be fitted (for tempering)"
         "--help             print the usage on stdout\n";
 
 
@@ -172,6 +173,7 @@ int main(int argc, char *argv[])
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
     OPTION_TRAJ = 0;
+    int nb_obs = -1;
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
@@ -193,6 +195,7 @@ int main(int argc, char *argv[])
                 {"N_THREAD",   required_argument, 0, 'P'},
                 {"IPv4",       required_argument, 0, 'I'},
                 {"Jchunk",     required_argument, 0, 'J'},
+		{"nb_obs", required_argument,  0, 'o'},
 
                 {"LIKE_MIN",   required_argument, 0, 'l'},
 
@@ -201,7 +204,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:i:P:J:I:l:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:i:P:J:I:l:o:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -261,6 +264,10 @@ int main(int argc, char *argv[])
             LOG_LIKE_MIN = log(LIKE_MIN);
             break;
 
+	case 'o':
+	    nb_obs = atoi(optarg);
+            break;
+
         case '?':
             /* getopt_long already printed an error message. */
             break;
@@ -301,7 +308,7 @@ int main(int argc, char *argv[])
     print_log(str);
 #endif
 
-    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 1);
+    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 1, nb_obs);
     json_decref(settings);
     json_decref(theta);
 

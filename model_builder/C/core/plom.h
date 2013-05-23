@@ -108,7 +108,6 @@ int N_TS_INC_UNIQUE;   /**< size of subset of @c N_TS containing only non-repeat
 int N_DATA;            /**< length of the data set (including @c NaN) */
 int N_DATA_NONAN;      /**< length of the data set (discarding lines where all ts are NaN) */
 int N_DATA_PAR_FIXED;  /**< length of the data for the covariates (@c PAR_FIXED) usefull mostly for simulation model where @c N_DATA =0 but @c  N_DATA_PAR_FIXED could be >0  or if@c  N_DATA_PAR_FIXED > N_DATA */
-int N_DATA_FORCED;      /**< length of the data to be used for inference, potentially subset of total available data for tempering purposes */
 int N_OBS_ALL;         /**< number of type of observed variables (e.g incidence_strain1, incidence_strain_2, prevalence S + prevalence I, ...) */
 int N_OBS_INC;         /**< number of incidences */
 int N_OBS_PREV;        /**< number of prevalences */
@@ -266,6 +265,8 @@ struct s_data{
     struct s_iterator *p_it_par_proc_par_obs_no_drift;   /**< to iterate on the parameter of the process and observation models *not* following a diffusion */
     struct s_iterator *p_it_par_sv_and_drift;            /**< to iterate on the initial conditions of the state variable *and* the parameters following a diffusion */
     struct s_iterator *p_it_noise;                       /**< to iterate on environmental stochasticity noises *only* */
+
+    int nb_obs; /*length of the data to be used for inference */
 
     /* fixed params */
     double ***par_fixed;     /**< [N_PAR_FIXED][N_DATA_PAR_FIXED][N_CAC] an array of covariates (each covariate is a 2D array) */
@@ -590,7 +591,7 @@ struct s_obs2ts **build_obs2ts(json_t *json_obs2ts);
 void clean_obs2ts(struct s_obs2ts **obs2ts);
 struct s_drift **build_drift(json_t *json_drift, struct s_router **routers);
 void clean_drift(struct s_drift **drift);
-struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian);
+struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int nb_obs);
 void clean_data(struct s_data *p_data);
 
 struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
@@ -694,6 +695,7 @@ int get_min_u(unsigned int *tab, int length_tab);
 int get_max_u(unsigned int *tab, int length_tab);
 void update_to_be_estimated(struct s_best *p_best);
 int sanitize_n_threads(int n_threads, int J);
+int plom_sanitize_nb_obs(int nb_obs, int n_data_nonan);
 void store_state_current_n_nn(struct s_calc **calc, int n, int nn);
 //void store_state_current_m(struct s_calc **calc, int m);
 int in_u(int i, unsigned int *tab, int length);

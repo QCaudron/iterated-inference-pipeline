@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
     OPTION_FULL_UPDATE = 0;
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
-    N_DATA_FORCED = -1;
+    int nb_obs = -1;
 
     enum plom_print print_opt = 0;
 
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
             eps_rel = atof(optarg);
             break;
 	case 'o':
-	    N_DATA_FORCED = atoi(optarg);
+	    nb_obs = atoi(optarg);
             break;
         case 'a':
             a = atof(optarg);
@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
 
     int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?
-    struct s_kalman *p_kalman = build_kalman(settings, implementation,  noises_off, 1, update_covariance, dt, eps_abs, eps_rel);
+    struct s_kalman *p_kalman = build_kalman(settings, implementation,  noises_off, 1, update_covariance, dt, eps_abs, eps_rel, nb_obs);
     json_decref(settings);
 
     transform_theta(p_kalman->p_best, p_kalman->p_data, !update_covariance);

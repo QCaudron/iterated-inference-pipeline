@@ -87,7 +87,6 @@ int main(int argc, char *argv[])
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
     J=1;
-    N_DATA_FORCED = -1;
 
     int n_threads=omp_get_max_threads();
 
@@ -264,7 +263,7 @@ int main(int argc, char *argv[])
     }
 
 
-    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 0);
+    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 0, -1);
     json_decref(settings);
 
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;

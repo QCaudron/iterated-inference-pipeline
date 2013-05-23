@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
         "-M, --iter         number of pMCMC iterations\n"
         "-Z, --zmq          dispatch particles across machines using a zeromq pipeline\n"
         "-c, --chunk        number of particles send to each machine\n"
-	"-o, --nb_obs         number of observations to be fitted (for tempering)"
+	"-o, --nb_obs       number of observations to be fitted (for tempering)"
         "--help             print the usage on stdout\n";
 
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
     int n_threads = omp_get_max_threads();
     OPTION_PIPELINE = 0;
     OPTION_FULL_UPDATE = 0;
-    N_DATA_FORCED = -1;
+    int nb_obs = -1;
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
             eps_rel = atof(optarg);
             break;
 	case 'o':
-	    N_DATA_FORCED = atoi(optarg);
+	    nb_obs = atoi(optarg);
             break;
         case 'a':
             a = atof(optarg);
@@ -266,7 +266,7 @@ int main(int argc, char *argv[])
     struct s_pmcmc *p_pmcmc = build_pmcmc(implementation, noises_off, settings,
                                           dt, eps_abs, eps_rel,
                                           a, m_switch, m_eps, epsilon_max, is_smooth, alpha,
-                                          update_covariance, J, &n_threads);
+                                          update_covariance, J, &n_threads, nb_obs);
     json_decref(settings);
 
     transform_theta(p_pmcmc->p_best, p_pmcmc->p_data, !update_covariance);

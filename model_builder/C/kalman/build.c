@@ -144,7 +144,7 @@ void clean_kalman_update(struct s_kalman_update *p)
 }
 
 
-struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int update_covariance, double dt, double eps_abs, double eps_rel)
+struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int update_covariance, double dt, double eps_abs, double eps_rel, int nb_obs)
 {
     char str[STR_BUFFSIZE];
 
@@ -157,7 +157,7 @@ struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implem
     }
     json_t *theta = load_json();
 
-    p_kalman->p_data = build_data(settings, theta, implementation, noises_off, is_bayesian);
+    p_kalman->p_data = build_data(settings, theta, implementation, noises_off, is_bayesian, nb_obs);
 
     N_KAL = N_PAR_SV*N_CAC + N_TS + p_kalman->p_data->p_it_only_drift->nbtot;
     int size_proj = N_PAR_SV*N_CAC + p_kalman->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE + (N_KAL*N_KAL);

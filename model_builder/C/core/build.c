@@ -561,7 +561,7 @@ void clean_drift(struct s_drift **drift)
     FREE(drift);
 }
 
-struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian)
+struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int nb_obs)
 {
     int n, ts, cac, k;
     int tmp_n_data_nonan, count_n_nan;
@@ -661,11 +661,9 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
                 p_data->times[tmp_n_data_nonan-1] = n+1;
             }
         }
-        if (N_DATA_FORCED < 0){
-	    N_DATA_NONAN = tmp_n_data_nonan;
-	} else {
-	    N_DATA_NONAN = (tmp_n_data_nonan<N_DATA_FORCED)?tmp_n_data_nonan:N_DATA_FORCED;
-	}   
+	N_DATA_NONAN = tmp_n_data_nonan;
+
+	p_data->nb_obs = plom_sanitize_nb_obs(nb_obs, N_DATA_NONAN);
 
         /*data_ind*/
         struct s_data_ind **data_ind;
