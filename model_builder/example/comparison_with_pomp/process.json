@@ -14,7 +14,5 @@
            {"from": "S", "to": "I",  "rate": "r0/N*v*I", "tag":{"transmission": {"by":["I"]}}, "comment":"infection"},
            {"from": "I", "to": "DU", "rate": "v", "comment":"recovery"},
            {"from": "S", "to": "U",  "rate": "mu_d", "comment":"death"},
-           {"from": "I", "to": "U",  "rate": "mu_d", "comment":"death"}],
-
- "pop_size_eq_sum_sv": false
+           {"from": "I", "to": "U",  "rate": "mu_d", "comment":"death"}]
 }

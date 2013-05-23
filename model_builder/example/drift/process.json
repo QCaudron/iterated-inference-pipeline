@@ -21,7 +21,5 @@
    {"parameter":"r0",
     "volatility": "vol",
     "drift": 0.0}
- ],
-
- "pop_size_eq_sum_sv": false
+ ]
 }

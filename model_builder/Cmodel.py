@@ -37,7 +37,11 @@ class Cmodel:
 
         ###########################################################################
         self.context = copy.deepcopy(context)
-        self.pop_size_eq_sum_sv = process['pop_size_eq_sum_sv']
+        self.pop_size_eq_sum_sv = True
+        for x in process['model']:
+            if x['from'] == 'DU' or x['to'] == 'DU':
+                self.pop_size_eq_sum_sv = False
+                break
 
         ##list [{'id':'X'}, ...] => ['X', ...]
         self.par_sv = [x['id'] for x in process['state']]
@@ -220,9 +224,6 @@ if __name__=="__main__":
     m['white_noise'] = [{'reaction': [{'from':'S', 'to': 'E'}],
                          'sd': 'sto'}]
 
-    m['pop_size_eq_sum_sv'] = False
-
-
     ##context elements needed for Cmodel
     c = {}
 
@@ -277,3 +278,6 @@ if __name__=="__main__":
 
     print "\ntest_model.obs_model"
     print test_model.obs_model
+
+    print "\ntest_model.pop_size_eq_sum_sv"
+    print test_model.pop_size_eq_sum_sv
