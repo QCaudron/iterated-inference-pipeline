@@ -52,7 +52,10 @@ int metropolis_hastings(struct s_best *p_best, struct s_likelihood *p_like, doub
 
 
 /**
- * log_prob_prior always compute a log_like value (in the same way as sanitize likelihood would have done even if it fails...
+ * log_prob_prior always compute a logged value (in the same way as
+ * sanitize likelihood would have done) even if it fails (by that I
+ * means it doesn't immediatly return on failure). This is usefull for
+ * the --prior option.
  */
 plom_err_code log_prob_prior(double *log_like, struct s_best *p_best, gsl_vector *mean, gsl_matrix *var, struct s_data *p_data)
 {
