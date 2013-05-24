@@ -49,8 +49,13 @@ double f_logit(double x, double a, double b)
 
 double f_inv_logit(double x, double a, double b)
 {
-    return (1.0/(1.0+exp(-x)));
+    if (x > 0) {
+	return (1.0/(1.0+exp(-x)));
+    } else {
+	return (exp(x)/(1.0+exp(x)));
+    }
 }
+
 
 
 double f_logit_ab(double x, double a, double b)
@@ -74,8 +79,12 @@ double f_inv_logit_ab(double x, double a, double b)
     if (a == b) {
         return x ;
     } else {
-        return (b*exp(x)+a)/(1.0+exp(x));
-    }
+	if (x < 0) {
+	    return (b*exp(x)+a)/(1.0+exp(x));
+	} else {
+	    return (b+a*exp(-x))/(1.0+exp(-x));
+	};
+    } 
 }
 
 double f_scale_id(double x)
@@ -130,7 +139,11 @@ double f_der_logit(double x, double a, double b)
  */
 double f_der_inv_logit(double x, double a, double b)
 {
-    return exp(-x)/pow(1.0 + exp(-x), 2.0);
+    if (x > 0) {
+	return exp(-x)/pow(1.0 + exp(-x), 2.0);
+    } else {
+	return exp(x)/pow(1.0 + exp(x), 2.0);
+    }
 }
 
 /**
@@ -153,7 +166,11 @@ double f_der_inv_logit_ab(double x, double a, double b)
     if (a == b) {
         return x ;
     } else {
-        return b*exp(x)/(exp(x) + 1.0) - (a + b*exp(x))*exp(x)/pow(exp(x) + 1.0, 2.0);
+	if (x > 0) {
+	    return (b-a)*exp(-x)/pow(exp(-x) + 1.0, 2.0);
+	} else {
+	    return (b-a)*exp(x)/pow(exp(x) + 1.0, 2.0);
+	}
     }
 }
 

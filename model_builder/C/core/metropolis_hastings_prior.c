@@ -78,7 +78,7 @@ plom_err_code log_prob_prior(double *log_like, struct s_best *p_best, gsl_vector
 
                 //check for numerical issues
                 if( (isnan(p_tmp)==1) || (isinf(p_tmp)==1) || (p_tmp<0.0) ) {
-		    is_err =1;
+		    is_err =1;    
 		    p_tmp = LIKE_MIN;
 		} else {
 		    p_tmp = (p_tmp <= LIKE_MIN) ? LIKE_MIN : p_tmp;
