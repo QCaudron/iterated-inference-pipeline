@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
         "                [--full] [-k, --n_traj <int || 1000>] [--acc] [-p, --path <path>] [-i, --id <integer || 0>] [-P, --N_THREAD <integer || N_CPUs>]\n"
         "                [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
         "                [-C --cov] [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >] "
-        "                [-E --epsilon <int || 50>] [--epsilon_max <float || 2.0>] [--smooth] [--alpha <float || 0.02>]"
+        "                [-E --epsilon <int || 50>] [--epsilon_max <float || 50.0>] [--smooth] [--alpha <float || 0.02>]"
         "                [-Z, --zmq] [-c, --chunk <integer>]\n"
         "                [--help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
     int m_switch = -1;
     int m_eps = 50;
     double a = 0.999;
-    double epsilon_max = 2.0;
+    double epsilon_max = 50.0;
     double alpha = 0.02;
     int n_traj = 1000;
 
