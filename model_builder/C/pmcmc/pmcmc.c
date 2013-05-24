@@ -112,7 +112,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 
     p_like->Llike_new = p_like->Llike_best;
 
-    if ( print_opt & PLOM_PRINT_X_SMOOTH ) {
+    if ( ( print_opt & PLOM_PRINT_X_SMOOTH ) && p_data->nb_obs ) {
         sample_traj_and_print(p_file_X, D_J_p_X, p_par, p_data, p_like->select, p_like->weights, p_data->times, calc[0], 0);
     }
 
@@ -198,7 +198,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
             eval_var_emp(p_best, (double) p_mcmc_calc_data->m_full_iteration);
 
 
-	    if ( (print_opt & PLOM_PRINT_X_SMOOTH) && ( (p_mcmc_calc_data->m_full_iteration % thin_traj) == 0) ) {
+	    if ( (print_opt & PLOM_PRINT_X_SMOOTH) && ( (p_mcmc_calc_data->m_full_iteration % thin_traj) == 0)  && p_data->nb_obs ) {
 		sample_traj_and_print(p_file_X, D_J_p_X, p_par, p_data, p_like->select, p_like->weights, p_data->times, calc[0], p_mcmc_calc_data->m_full_iteration);
 	    }
 
