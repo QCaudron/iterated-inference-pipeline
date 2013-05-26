@@ -1,0 +1,46 @@
+
+R version 3.0.0 (2013-04-03) -- "Masked Marvel"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin10.8.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> 
+> require(coda)
+> require(R.oo)
+> 
+> d<-read.csv("best_0.csv",header=TRUE)
+> 
+> ess = round(effectiveSize(d$r0.city1__all))
+> 
+> n = 4
+> tests = rep(0,n)
+> for(i in 1:n) {
++ 	 x = d$r0.city1__all[sample(length(d$r0.city1__all), ess)]
++  	 x2 = hist(x,150+4*qunif(seq(0,1,0.1)), plot=FALSE)$counts
++ 	t=chisq.test(x2)
++      if (t$p.value <0.05){
++      	tests[i]=1	
++      } 
++ }
+> 
+> 
+> if(mean(tests)<1){
++ 	cat("1",file="outfile.txt")
++ 
++ } else {
++ 	cat("0",file="outfile.txt")
++ }
+> 

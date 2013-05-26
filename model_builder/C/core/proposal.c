@@ -170,6 +170,7 @@ plom_err_code log_prob_proposal(double *log_like, struct s_best *p_best, theta_t
 	return PLOM_ERR_LIKE;
     }
     
+
     *log_like = Lp;
 
     return PLOM_SUCCESS;
