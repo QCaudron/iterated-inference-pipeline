@@ -18,8 +18,10 @@
            {"from": "I", "to": "U",  "rate": "mu_d", "comment":"death"}],
 
  "diffusion": [
-   {"parameter":"r0",
-    "volatility": "vol",
-    "drift": 0.0}
+   {
+     "parameter":"r0",
+     "volatility": "vol",
+     "drift": 0.0
+   }
  ]
 }
