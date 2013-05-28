@@ -120,7 +120,7 @@ char SFR_PATH[STR_BUFFSIZE]; /**< path where the output files will be written */
 int GENERAL_ID;              /**< general identifiant to make the output files unique */
 
 /* numerical integration parameters (read from JSON) */
-double ONE_YEAR_IN_DATA_UNIT;
+double ONE_YEAR;
 
 /* option and commands */
 int OPTION_TRAJ;   /**< print the trajectories */
@@ -711,7 +711,7 @@ double f_logit_ab(double x, double a, double b);
 double f_inv_logit_ab(double x, double a, double b);
 
 double f_scale_pow10(double x);
-double f_scale_pow10_pos(double x);
+double f_scale_pow10_neg(double x);
 double f_scale_id(double x);
 
 double f_der_log(double x, double a, double b);

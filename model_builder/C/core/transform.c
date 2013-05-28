@@ -101,7 +101,7 @@ double f_scale_pow10(double x)
 /**
  * 10^-x with x positive (thanks to a log transfo)
  */
-double f_scale_pow10_pos(double x)
+double f_scale_pow10_neg(double x)
 {
     return pow(10.0, -x);
 }
@@ -315,8 +315,8 @@ void set_f_trans(struct s_router *p_router, const char *transf, const char *prio
 
         if ( (strcmp(transf, "scale_pow10") == 0) || (strcmp(transf, "scale_pow10_bounded") == 0) )  {
             p_router->f_scale[g] = &f_scale_pow10;
-        } else if (strcmp(transf, "scale_pow10_pos") == 0) {
-            p_router->f_scale[g] = &f_scale_pow10_pos;
+        } else if (strcmp(transf, "scale_pow10_neg") == 0) {
+            p_router->f_scale[g] = &f_scale_pow10_neg;
         } else {
             p_router->f_scale[g] = &f_scale_id;
         }
@@ -374,13 +374,13 @@ void set_f_trans(struct s_router *p_router, const char *transf, const char *prio
             p_router->f_inv_derivative[g] = &f_der_inv_logit_ab;
             p_router->f_scale[g] = &f_scale_pow10;
 
-        } else if (strcmp(transf, "scale_pow10_pos")==0) {
+        } else if (strcmp(transf, "scale_pow10_neg")==0) {
 
             p_router->f[g] =  &f_log;
             p_router->f_inv[g] = &f_inv_log;
             p_router->f_derivative[g] = &f_der_log;
             p_router->f_inv_derivative[g] = &f_der_inv_log;
-            p_router->f_scale[g] = &f_scale_pow10_pos;
+            p_router->f_scale[g] = &f_scale_pow10_neg;
 
         } else {
 

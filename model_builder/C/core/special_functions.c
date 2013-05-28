@@ -26,7 +26,7 @@ double terms_forcing(double amplitude, double time, struct s_data *p_data, int c
   int k;
 
   int isholliday=0;
-  double time_in_year = time / ONE_YEAR_IN_DATA_UNIT;
+  double time_in_year = time / ONE_YEAR;
   double part_year = time_in_year - floor(time_in_year);
 
   for(k=0; k< p_data->n_terms[cac] ; k++) {

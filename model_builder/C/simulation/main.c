@@ -342,7 +342,7 @@ int main(int argc, char *argv[])
     /* SKIP TRANSIANT (not possible with prediction)  */
     /**************************************************/
     if ( (!OPTION_PREDICT) && (t_transiant > 0.0) ) {
-        t_transiant = floor(t_transiant/ONE_YEAR_IN_DATA_UNIT)*ONE_YEAR_IN_DATA_UNIT + t0;
+        t_transiant = floor(t_transiant/ONE_YEAR)*ONE_YEAR + t0;
 #if FLAG_VERBOSE
         snprintf(str, STR_BUFFSIZE,  "skipping transiant... (Note that t_transiant has been ajusted to %g to respect seasonality and t0)", t_transiant );
         print_warning(str);

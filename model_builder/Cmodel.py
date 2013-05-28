@@ -31,20 +31,28 @@ class Cmodel:
     def __init__(self, context, process, link,  **kwargs):
 
         self.op = set(['+', '-', '*', '/', ',', '(', ')']) ##!!!CAN'T contain square bracket '[' ']'
-        self.reserved = set(['sum_SV', 'N', 'prop', 'x'])
+        self.reserved = set(['sum_SV', 'N', 'prop', 'x', 'U'])
         self.special_functions = set(['terms_forcing', 'step', 'step_lin', 'sin', 'cos', 'correct_rate'])
-        self.universes = ['U', 'DU']
 
         ###########################################################################
         self.context = copy.deepcopy(context)
-        self.pop_size_eq_sum_sv = True
-        for x in process['model']:
-            if x['from'] == 'DU' or x['to'] == 'DU':
-                self.pop_size_eq_sum_sv = False
-                break
+
 
         ##list [{'id':'X'}, ...] => ['X', ...]
-        self.par_sv = [x['id'] for x in process['state']]
+
+        self.remainder = {}
+        remainder_key = None
+        self.par_sv = []
+        for x in process['state']:
+            if x.get('tag') == 'remainder':
+                remainder_key = x['id']
+            else:
+                self.par_sv.append(x['id'])
+
+        if remainder_key:
+            self.remainder[remainder_key] = '(N -' + '-'.join(self.par_sv) + ')'
+
+        self.universes = ['U'] + self.remainder.keys()
 
         ##par fixed !! N **HAS** to be first if it exists
         self.par_fixed = [x['id'] for x in context.get('metadata', []) if x['id'] == 'N'] #does N exist, if so it is first
@@ -145,20 +153,41 @@ class Cmodel:
                                                                              'sd': x['sd']}
 
 
-        ##resolve the population size: (replace 'N' by 'sum_SV' if self.pop_size_eq_sum_sv)
-        if self.pop_size_eq_sum_sv:
+                                    
+        ##resolve remainder (e.g R -> (N-S-I))        
+        ## treat reaction starting from remainder as reaction starting from U that is rate -? rate * from size (simpler code in Ccoder)
+        ## e.g, R is remainder and  R -> S, g | R - > s, g*(N-S-I)
+
+        ##OR resolve the population size: (replace 'N' by 'sum_SV' if no remainder)
+        if self.remainder:
+
+            resolve_remainder = lambda x: self.remainder[x] if x in self.remainder else x
+            resolve_N = lambda x: 'sum_SV' if x == 'N' else x
 
             for k, v in self.obs_model.iteritems():
                 if k != 'distribution':
-                    self.obs_model[k] = ''.join(map(lambda x: 'sum_SV' if x == 'N' else x, self.change_user_input(v)))
+                    self.obs_model[k] = ''.join(map(resolve_N, self.change_user_input(v)))
 
             for i, m in enumerate(self.proc_model):
-                self.proc_model[i]['rate'] = ''.join(map(lambda x: 'sum_SV' if x == 'N' else x, self.change_user_input(m['rate'])))
+                if self.remainder:
+                    self.proc_model[i]['rate'] = ''.join(map(resolve_remainder, self.change_user_input(m['rate'])))
+                    if self.proc_model[i]['from'] in self.remainder:
+                        self.proc_model[i]['rate'] = '({0})*{1}'.format(self.proc_model[i]['rate'], self.remainder[ self.proc_model[i]['from'] ])
+
+                else:
+                    self.proc_model[i]['rate'] = ''.join(map(resolve_N, self.change_user_input(m['rate'])))
 
             for x in self.obs_var_def:
                 for d in x:
                     if isinstance(d, dict):
-                        d['rate'] = ''.join(map(lambda x: 'sum_SV' if x == 'N' else x, self.change_user_input(d['rate'])))
+                        if self.remainder:
+                            d['rate'] = ''.join(map(resolve_remainder, self.change_user_input(d['rate'])))
+                            if d['from'] in self.remainder:
+                                d['rate'] = '({0})*{1}'.format(d['rate'], self.remainder[ d['from'] ])
+
+                        else:
+                            d['rate'] = ''.join(map(resolve_N, self.change_user_input(d['rate'])))
+
 
 
         ##TODO other models (spate or age structure)
@@ -200,12 +229,12 @@ if __name__=="__main__":
     """
 
     m = {}
-    m['state'] = [{'id':'S'}, {'id':'I'}]
+    m['state'] = [{'id':'S'}, {'id':'I'}, {'id': 'R', 'tag': 'remainder'}]
     m['parameter'] = [{'id':'r0'}, {'id':'v'}, {'id':'l'}, {'id':'e'}, {'id':'d'}, {'id':'sto'}, {'id':'alpha'}, {'id':'mu_b'}, {'id':'mu_d'}, {'id':'vol'}, {'id':'g'}]
 
 
     m['model'] = [ {'from': 'U', 'to': 'S',  'rate': 'mu_b*N'},
-                   {'from': 'S', 'to': 'E',  'rate': 'r0/N*v*(1.0+e*sin_t(d))*I', "tag": {"transmission":{"by":["I"]}} },
+                   {'from': 'S', 'to': 'E',  'rate': 'r0/N*v*(1.0+e*sin_t(d))*I', "tag": 'transmission'},
 
                    {'from': 'E', 'to': 'I', 'rate': '(1-alpha)*correct_rate(l)'},
                     ##Here we split the reaction from E->U as we only observe a subpart
@@ -213,8 +242,8 @@ if __name__=="__main__":
                    {'from': 'E', 'to': 'U',  'rate': 'mu_d'},
 
                    {'from': 'S', 'to': 'U',  'rate': 'mu_d'},
-                   {'from': 'DU', 'to': 'S',  'rate': 'g*(N-S-I)'},
-                   {'from': 'I', 'to': 'DU', 'rate': '(1-alpha)*correct_rate(v)'},
+                   {'from': 'R', 'to': 'S',  'rate': 'g'},
+                   {'from': 'I', 'to': 'R', 'rate': '(1-alpha)*correct_rate(v)'},
                    {'from': 'I', 'to': 'U',  'rate': 'alpha*correct_rate(v) + mu_d'} ]
 
     m['diffusion'] = [{'parameter':'r0',
@@ -236,8 +265,9 @@ if __name__=="__main__":
     l['observed'] =  [{"id": "Prev",     "definition": ["I"], "model_id": "common"},
                       {"id": "SI",       "definition": ["S", "I"], "model_id": "common"},
                       ##we have to specify a rate to the incidence E->U as we only observed a subpart of this reaction
-                      {"id": "Inc_out",  "definition": [{"from":"I", "to":"DU"}, {"from":"E", "to":"U", 'rate': "mu_d"}], "model_id": "common"},
-                      {"id": "Inc_in",   "definition": [{"from":"S", "to":"E"}], "model_id": "common"}]
+                      {"id": "Inc_out",  "definition": [{"from":"I", "to":"R"}, {"from":"E", "to":"U", 'rate': "mu_d"}], "model_id": "common"},
+                      {"id": "Inc_in",   "definition": [{"from":"S", "to":"E"}], "model_id": "common"},
+                      {"id": "Inc_x",   "definition": [{"from":"R", "to":"S"}], "model_id": "common"}]
 
 
     l["observation"] = [{"id": "common", 
@@ -279,5 +309,5 @@ if __name__=="__main__":
     print "\ntest_model.obs_model"
     print test_model.obs_model
 
-    print "\ntest_model.pop_size_eq_sum_sv"
-    print test_model.pop_size_eq_sum_sv
+    print "\ntest_remainder"
+    print test_model.remainder

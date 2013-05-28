@@ -298,7 +298,7 @@ class Ccoder(Cmodel):
         for s in self.par_sv: #come in from other compartments
             myinput = [r for r in self.proc_model if r['from'] == s]
             for nbreac in range(len(myinput)):
-                if myinput[nbreac]['to'] not in self.universes: ##we exclude deaths or transitions to DU in the update
+                if myinput[nbreac]['to'] not in self.universes: ##we exclude deaths or transitions to remainder in the update
                     incDict[myinput[nbreac]['to']] += ' + p_calc->inc[ORDER_{0}][cac][{1}]'.format(myinput[nbreac]['from'], nbreac)
 
 

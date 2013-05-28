@@ -1009,7 +1009,7 @@ void clean_calc(struct s_calc **calc, struct s_data *p_data)
 
 
 /**
- * dt: integration time step. If <=0.0, default to 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT
+ * dt: integration time step. If <=0.0, default to 0.25/365.0 * ONE_YEAR
  */
 
 struct s_X *build_X(int size_proj, int size_obs, struct s_data *p_data, double dt)
@@ -1024,8 +1024,8 @@ struct s_X *build_X(int size_proj, int size_obs, struct s_data *p_data, double d
     }
 
     //integration time step
-    if (dt <= 0.0){ //default to 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT
-	dt = 0.25/365.0 * ONE_YEAR_IN_DATA_UNIT;
+    if (dt <= 0.0){ //default to 0.25/365.0 * ONE_YEAR
+	dt = 0.25/365.0 * ONE_YEAR;
     }
     //IMPORTANT: for non adaptive time step methods, we ensure an integer multiple of dt in between 2 data points    
     p_X->dt = 1.0/ ((double) round(1.0/dt));

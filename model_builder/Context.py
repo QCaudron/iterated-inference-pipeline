@@ -22,7 +22,7 @@ import json
 import sys
 import os
 #from dateutil import rrule
-#from datetime import datetime
+import datetime
 
 class PlomContextError(Exception):
     pass
@@ -34,8 +34,6 @@ class Context:
     def __init__(self, context, **kwargs):
         """Create a Context object
         """
-
-        self.frequency = context['frequency']
 
         self.ts_id = [x['id'] for x in context['time_series']] ##NOTE: we can't guarantee an order on ts_id until it is linked with a model
         self.map_ts_cac = {x['id']: x['population_id'][:] for x in context['time_series']}
@@ -92,6 +90,12 @@ class Context:
         ##self.school_terms = copy.deepcopy(school_terms)
 
 
+        self.frequency = context.get('frequency', None) ##determined by plom(1) (recommended way)
+        if not self.frequency: ##quick and dirty
+            delta = datetime.datetime.strptime(self.dates[1], "%Y-%m-%d").date() - datetime.datetime.strptime(self.dates[0], "%Y-%m-%d").date()
+            self.frequency = {1: 'D', 7: 'W', 30: 'M', 365: 'Y'}[delta.days]
+
+
     def handle_context_data(self, source):
         """
         Takes into account that source can be a path to a csv or a native array and check that the header match the context header.
@@ -135,7 +139,7 @@ if __name__ == '__main__':
 
     context = Context(c)
 
-    print(context.prop)
-    print(context.cac_id)
-    print(context.par_fixed_values)
-    print(context.data)
+##    print(context.prop)
+##    print(context.cac_id)
+##    print(context.par_fixed_values)
+##    print(context.data)

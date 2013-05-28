@@ -82,7 +82,7 @@ void period_dynamical_system(double *traj_obs_ts, int length_traj_obs_ts, int ts
     FILE *fperiod = sfr_fopen(SFR_PATH, GENERAL_ID, filename, "w", NULL, NULL);
 
     for(i=0; i<10; i++) {
-        period_in_time_step = (int) round(ONE_YEAR_IN_DATA_UNIT*(i+1));
+        period_in_time_step = (int) round(ONE_YEAR*(i+1));
         err = period(traj_obs_ts, period_in_time_step, length_traj_obs_ts);
         fprintf(fperiod, "%g\n", err);
     }

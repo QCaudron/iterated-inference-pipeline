@@ -484,7 +484,7 @@ json_t *load_settings(const char *path)
     IS_SCHOOL_TERMS = fast_get_json_integer(cst, "IS_SCHOOL_TERMS");
 
     /* unit */
-    ONE_YEAR_IN_DATA_UNIT = fast_get_json_real(cst, "ONE_YEAR_IN_DATA_UNIT");
+    ONE_YEAR = fast_get_json_real(cst, "ONE_YEAR");
 
     return settings;
 }
