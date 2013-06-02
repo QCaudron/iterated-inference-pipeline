@@ -114,9 +114,7 @@ class PlomModelBuilder(Context, Ccoder):
         self._repeated_name_stream = [self._repeated_name_stream[x] for x in ind_sorted]
         self._repeated_obs_type = [self._repeated_obs_type[x] for x in ind_sorted]
 
-        #data and prop
-        if self.prop:
-            self.prop = [ [ y[x] for x in ind_sorted ] for y in self.prop ]
+        #data
         if self.data:
             self.data = [ [ y[x] for x in ind_sorted ] for y in self.data ]
 

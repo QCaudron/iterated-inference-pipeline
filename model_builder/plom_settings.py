@@ -79,7 +79,7 @@ def make_settings_json(self):
 
     settings = {}
 
-    settings['POP_SIZE_EQ_SUM_SV'] = (self.remainder == {})
+    settings['POP_SIZE_EQ_SUM_SV'] = (self.remainder == None)
 
     #######data
     settings['data'] = {}
@@ -89,7 +89,6 @@ def make_settings_json(self):
 
     ##data/data (be sure to have sorted the context before this part)
     settings['data']['data'] = self.data
-    settings['data']['rep1'] = self.prop
     settings['data']['par_fixed_values'] = self.par_fixed_values
 
     ##TODO

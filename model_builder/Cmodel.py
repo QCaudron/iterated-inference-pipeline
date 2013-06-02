@@ -31,7 +31,7 @@ class Cmodel:
     def __init__(self, context, process, link,  **kwargs):
 
         self.op = set(['+', '-', '*', '/', ',', '(', ')']) ##!!!CAN'T contain square bracket '[' ']'
-        self.reserved = set(['sum_SV', 'N', 'prop', 'x', 'U'])
+        self.reserved = set(['N', 'x', 'U'])
         self.special_functions = set(['terms_forcing', 'step', 'step_lin', 'sin', 'cos', 'correct_rate'])
 
         ###########################################################################
@@ -40,23 +40,20 @@ class Cmodel:
 
         ##list [{'id':'X'}, ...] => ['X', ...]
 
-        self.remainder = {}
-        remainder_key = None
+        self.remainder = None
         self.par_sv = []
         for x in process['state']:
             if x.get('tag') == 'remainder':
-                remainder_key = x['id']
+                self.remainder = x['id']
             else:
                 self.par_sv.append(x['id'])
 
-        if remainder_key:
-            self.remainder[remainder_key] = '(N -' + '-'.join(self.par_sv) + ')'
 
-        self.universes = ['U'] + self.remainder.keys()
+        self.universes = ['U', self.remainder]
 
         ##par fixed !! N **HAS** to be first if it exists
         self.par_fixed = [x['id'] for x in context.get('metadata', []) if x['id'] == 'N'] #does N exist, if so it is first
-        self.par_fixed += [x['id'] for x in (context.get('data', []) + context.get('metadata', [])) if x['id'] != 'data' and x['id'] != 'prop' and x['id'] != 'N'] ##all the rest
+        self.par_fixed += [x['id'] for x in (context.get('data', []) + context.get('metadata', [])) if x['id'] != 'data' and x['id'] != 'N'] ##all the rest
 
         ##remove par_fixed from par_proc and par_obs (be sure to conserve the original order so don't use set')
         self.par_proc = [x['id'] for x in process['parameter'] if x['id'] not in self.par_fixed]
@@ -152,42 +149,26 @@ class Cmodel:
                                     self.obs_var_def[i][k]['white_noise'] = {'name': 'white_noise__' + str(j),
                                                                              'sd': x['sd']}
 
-
                                     
-        ##resolve remainder (e.g R -> (N-S-I))        
-        ## treat reaction starting from remainder as reaction starting from U that is rate -? rate * from size (simpler code in Ccoder)
-        ## e.g, R is remainder and  R -> S, g | R - > s, g*(N-S-I)
+        ##We treat reaction starting from remainder as reaction starting from U that is rate -> rate * from size. It results in simpler code in Ccoder.py
+        ##we resolve the population size 'N': replace 'N' by sum of par_sv
+        resolve_N = lambda x: '({0})'.format('+'.join((self.par_sv + [self.remainder]) if self.remainder else self.par_sv)) if x == 'N' else x
 
-        ##OR resolve the population size: (replace 'N' by 'sum_SV' if no remainder)
-        if self.remainder:
+        for k, v in self.obs_model.iteritems():
+            if k != 'distribution':
+                self.obs_model[k] = ''.join(map(resolve_N, self.change_user_input(v)))
 
-            resolve_remainder = lambda x: self.remainder[x] if x in self.remainder else x
-            resolve_N = lambda x: 'sum_SV' if x == 'N' else x
+        for i, m in enumerate(self.proc_model):
+            self.proc_model[i]['rate'] = ''.join(map(resolve_N, self.change_user_input(m['rate'])))
+            if self.remainder and self.proc_model[i]['from'] == self.remainder:
+                self.proc_model[i]['rate'] = '({0})*{1}'.format(self.proc_model[i]['rate'], self.remainder)
 
-            for k, v in self.obs_model.iteritems():
-                if k != 'distribution':
-                    self.obs_model[k] = ''.join(map(resolve_N, self.change_user_input(v)))
-
-            for i, m in enumerate(self.proc_model):
-                if self.remainder:
-                    self.proc_model[i]['rate'] = ''.join(map(resolve_remainder, self.change_user_input(m['rate'])))
-                    if self.proc_model[i]['from'] in self.remainder:
-                        self.proc_model[i]['rate'] = '({0})*{1}'.format(self.proc_model[i]['rate'], self.remainder[ self.proc_model[i]['from'] ])
-
-                else:
-                    self.proc_model[i]['rate'] = ''.join(map(resolve_N, self.change_user_input(m['rate'])))
-
-            for x in self.obs_var_def:
-                for d in x:
-                    if isinstance(d, dict):
-                        if self.remainder:
-                            d['rate'] = ''.join(map(resolve_remainder, self.change_user_input(d['rate'])))
-                            if d['from'] in self.remainder:
-                                d['rate'] = '({0})*{1}'.format(d['rate'], self.remainder[ d['from'] ])
-
-                        else:
-                            d['rate'] = ''.join(map(resolve_N, self.change_user_input(d['rate'])))
-
+        for x in self.obs_var_def:
+            for d in x:
+                if isinstance(d, dict): #incidence
+                    d['rate'] = ''.join(map(resolve_N, self.change_user_input(d['rate'])))
+                    if self.remainder and  d['from'] == self.remainder:
+                        d['rate'] = '({0})*{1}'.format(d['rate'], self.remainder)
 
 
         ##TODO other models (spate or age structure)
@@ -224,12 +205,9 @@ class Cmodel:
 
 if __name__=="__main__":
 
-    """
-    test substitution of N in either sum_SV or N
-    """
 
     m = {}
-    m['state'] = [{'id':'S'}, {'id':'I'}, {'id': 'R', 'tag': 'remainder'}]
+    m['state'] = [{'id':'S'}, {'id':'I', 'tag': 'remainder'}, {'id': 'R'}]
     m['parameter'] = [{'id':'r0'}, {'id':'v'}, {'id':'l'}, {'id':'e'}, {'id':'d'}, {'id':'sto'}, {'id':'alpha'}, {'id':'mu_b'}, {'id':'mu_d'}, {'id':'vol'}, {'id':'g'}]
 
 

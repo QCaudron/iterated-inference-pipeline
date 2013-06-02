@@ -67,24 +67,19 @@ class Context:
         self.par_fixed_values = {}
 
         ##First we ensure that mandatory properties are represented in self
-        self.data = []; self.dates = []; self.prop = []
+        self.data = []; self.dates = []
 
         for d in (context.get('data', []) + context.get('metadata', [])):
             if d['id'] == 'data':
                 mydata = self.handle_context_data(d['source'])
                 self.data = mydata['values']
                 self.dates = mydata['dates']
-            elif d['id'] == 'prop':
-                self.prop = self.handle_context_data(d['source'])['values']
             else:
                 self.par_fixed_values[d['id']] = self.handle_context_data(d['source'])['values']
 
         self.N_DATA = len(self.data)
 
         self.N_DATA_PAR_FIXED = len(self.par_fixed_values[self.par_fixed_values.keys()[0]]) if self.par_fixed_values else 1
-        if not self.prop:
-            print('\033[93m' + "WARNING: " + '\033[0m' + 'property "prop" (proportion under surveillance) is not present in context.data, default to 1.0')
-            self.prop = [[1.0]*self.N_TS]*self.N_DATA_PAR_FIXED
 
         ##TO DO:
         ##self.school_terms = copy.deepcopy(school_terms)
@@ -139,7 +134,6 @@ if __name__ == '__main__':
 
     context = Context(c)
 
-##    print(context.prop)
 ##    print(context.cac_id)
 ##    print(context.par_fixed_values)
 ##    print(context.data)

@@ -18,9 +18,10 @@
 
 import copy
 from Cmodel import Cmodel
-from sympy import diff, Symbol, sympify
+from sympy import diff, Symbol, sympify, simplify
 from sympy.printing import ccode
 import copy
+
 
 class Ccoder(Cmodel):
     """write the C code from the user input coming from the web interface..."""
@@ -28,9 +29,8 @@ class Ccoder(Cmodel):
     def __init__(self, context, process, link,  **kwargs):
         Cmodel.__init__(self, context, process, link,  **kwargs)
 
-        self.set_par_fixed = set(self.par_fixed).union(set(['p_0', 'sum_SV', 'prop']))
-        self.all_par = self.par_sv + self.drift_par_proc + self.par_proc +  self.par_obs + ['x'] + ['N'] + ['t']
-
+        self.set_par_fixed = set(self.par_fixed)
+        self.all_par = self.par_sv + [self.remainder] + self.drift_par_proc + self.par_proc +  self.par_obs + ['x'] + ['N'] + ['t']
 
     def toC(self, term, no_correct_rate):
 
@@ -38,13 +38,7 @@ class Ccoder(Cmodel):
             return 'X[ORDER_{0}*N_CAC+cac]'.format(term)
 
         elif term in self.set_par_fixed:
-            if term == 'p_0':
-                return 'p_data->pop_size_t0[cac]'
-            elif term == 'sum_SV':
-                return  'sum_SV(X, cac)'
-            elif term == 'prop':
-                return 'p_data->rep1[nn][ts]'
-            elif term in self.par_fixed_obs:
+            if term in self.par_fixed_obs:
                 return 'covar[ORDER_{0}][nn][ts]'.format(term)
             else:
                 return 'covar[ORDER_{0}][nn][cac]'.format(term)
@@ -61,7 +55,6 @@ class Ccoder(Cmodel):
 
         elif term == 'correct_rate' and no_correct_rate:
             return ''
-
 
         else: ##r is an operator or x
             return term
@@ -136,12 +129,29 @@ class Ccoder(Cmodel):
 
         if derivate:
             sy = Symbol(str('plom___'+derivate))
-            cterm = ccode(diff(sympify(safe), sy))
+            pterm = diff(sympify(safe), sy)
         else:
-            cterm = ccode(sympify(safe))
+            pterm = sympify(safe)
 
-        #remove the plom___ prefix
-        term = cterm.replace('plom___', '')
+        #remove the plom___ prefix        
+        term = ccode(pterm).replace('plom___', '')
+
+        ##resolve remainder and simplify (we do that here so that if R is remainder, S+I+R is replaced by N and not S+I+(N-S-I)
+        if self.remainder:
+            myterm = self.change_user_input(term)
+            safe = ''
+            
+            for r in myterm:
+                if r in self.all_par:
+                    if r == self.remainder:
+                        safe += '(plom___N-{0})'.format('-'.join(map(lambda x: 'plom___' + x, self.par_sv)))
+                    else:
+                        safe += 'plom___' + r
+                else:
+                    safe += r
+            
+            pterm = simplify(sympify(safe))
+            term = ccode(pterm).replace('plom___', '')
 
         #make the plom C expression
         if human:
@@ -156,12 +166,8 @@ class Ccoder(Cmodel):
         Clist = []
 
         for i in range(len(self.obs_var_def)):
-            if not isinstance(self.obs_var_def[i][0], dict): ##prevalence
-                prev = ''
-                for j in range(len(self.obs_var_def[i])):
-                    prev += ' + p_X->proj[ORDER_{0}*N_CAC+c*N_AC+ac]'.format(self.obs_var_def[i][j])
-
-                Clist.append(prev)
+            if not isinstance(self.obs_var_def[i][0], dict): ##prevalence                
+                Clist.append(self.make_C_term('+'.join(self.obs_var_def[i]), False))
 
         return Clist
 
@@ -553,7 +559,6 @@ class Ccoder(Cmodel):
         my_model = copy.deepcopy(self.proc_model)
         odeDict = dict([(x,'') for x in self.par_sv])
 
-
         ##outputs
         for r in my_model:
             if r['from'] not in self.universes:
@@ -570,6 +575,7 @@ class Ccoder(Cmodel):
                     rate= ' + ({0})'.format(r['rate'])
                     odeDict[r['to']] += rate
 
+
         ##observed equations
         obsList = []
 
@@ -578,7 +584,11 @@ class Ccoder(Cmodel):
 
             if not isinstance(self.obs_var_def[i][0], dict): ##prevalence: we potentialy sum the prevalence eq. stored in odeDict
                 for j in range(len(self.obs_var_def[i])):
-                    eq += odeDict[self.obs_var_def[i][j]]
+                    if self.obs_var_def[i][j] == self.remainder:
+                        for s in self.par_sv:
+                            eq += '- ( ' + odeDict[s] + ' )'
+                    else:
+                        eq += odeDict[self.obs_var_def[i][j]]
 
             else: ##incidence
                 for j in range(len(self.obs_var_def[i])):
@@ -638,6 +648,7 @@ class Ccoder(Cmodel):
 
             for sy in self.par_sv:
                 Cterm = self.make_C_term(obsList[o], True, derivate=sy)
+
                 jac_obs[o].append(Cterm)
                 caches.append(Cterm)
 
@@ -700,7 +711,6 @@ class Ccoder(Cmodel):
         return self.make_C_term(first, True, derivate='x')
 
 
-
     def eval_Q(self, debug = False):
         """create Ls and Qc
 
@@ -731,7 +741,6 @@ class Ccoder(Cmodel):
         with diagonal terms equal to sto^2.
 
         - Qc_env is then simply given by Lc Qn Lc'
-
 
         Note: we assume only one environmental noise term per reaction
 
@@ -992,16 +1001,19 @@ if __name__=="__main__":
     l = json.load(open(os.path.join('example', 'noise', 'link.json')))
     
     #l["model"]["common"]["mean"] = "rep*prop*x +x**2*rep"
-
+    
     ##fix path (this is normally done by pmbuilder(1))
     for x in c['data'] + c['metadata']:
         x['source'] = os.path.join('example', 'noise', x['source'])
 
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
+    model.jac(False)
 
-    model.eval_Q(debug=True)
+    print model.print_obs_prev()
+    
+##    model.eval_Q(debug=True)
 
-    print model.der2_mean_proc_obs()
+##    print model.der2_mean_proc_obs()
 
 ##    print ''.join(model.generator_C("(1.0+e*sin((a*x+(b)), ((e)) )) + r0", False))
 ##    print model.generator_C("-mu_d - r0_1*v*(e*sin(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin(d) + 1.0)*(RI + SI + iota_2)/N", False)
@@ -1015,5 +1027,5 @@ if __name__=="__main__":
 
 ##    model.prepare()
 ##    model.write_settings()
-##    model.code()
+##    model.render()
 ##    model.compile()

@@ -628,7 +628,6 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
     p_data->p_it_only_drift = build_iterator(settings, p_data->routers, p_data->drift, "only_drift", p_data->noises_off);
     p_data->p_it_noise = build_iterator(settings, p_data->routers, p_data->drift, "noise", p_data->noises_off);
 
-    p_data->rep1 = fast_load_fill_json_2d(fast_get_json_array(json_data, "rep1"), "rep1");
 
     //the following is optional (for instance it is non needed for simulation models)
     if (N_DATA) {
@@ -802,7 +801,6 @@ void clean_data(struct s_data *p_data)
     clean_routers(p_data->routers);
     clean_drift(p_data->drift);
 
-    clean2d(p_data->rep1, (N_DATA == 0) ? 1 : N_DATA); //for simulation models
 
     if (N_DATA) {
         clean2d(p_data->data, N_DATA);

@@ -57,8 +57,9 @@ void proj2obs(struct s_X *p_X, struct s_data *p_data)
     struct s_obs2ts **obs2ts = p_data->obs2ts;
 
     {%if list_obs_prev %}
-    int c, ac, n_cac_o_ts;
+    int c, ac, cac, n_cac_o_ts;
     double sum_prev;
+    double *X = p_X->proj;
     {% endif %}
 
     ind_obs = 0;
@@ -86,6 +87,7 @@ void proj2obs(struct s_X *p_X, struct s_data *p_data)
         for(n_cac_o_ts=0; n_cac_o_ts< (obs2ts[o])->n_cac[n_ts_unique_o]; n_cac_o_ts++) { //how many cities and age classes in this time serie
             c = (obs2ts[o])->cac[n_ts_unique_o][n_cac_o_ts][0];
             ac = (obs2ts[o])->cac[n_ts_unique_o][n_cac_o_ts][1];
+	    cac = c*N_AC+ac;
 
             sum_prev += {{ prev|safe }};
         }

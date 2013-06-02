@@ -247,7 +247,6 @@ struct s_data{
     enum plom_noises_off noises_off;
 
     /*non fitted parameters*/
-    double **rep1;           /**< [N_DATA][N_TS] proportion of the population under surveillance */
     double **data;           /**< [N_DATA][N_TS] the data */
     unsigned int *times;     /**< [N_DATA_NONAN] times of the data points when there is at least one value @c != NaN */
 
@@ -269,7 +268,7 @@ struct s_data{
     int nb_obs; /*length of the data to be used for inference */
 
     /* fixed params */
-    double ***par_fixed;     /**< [N_PAR_FIXED][N_DATA_PAR_FIXED][N_CAC] an array of covariates (each covariate is a 2D array) */
+    double ***par_fixed;     /**< [N_PAR_FIXED][N_DATA_PAR_FIXED][N_CAC || T_TS] an array of covariates (each covariate is a 2D array) */
 
     /* if school terms */
     unsigned int *n_terms;   /**< [N_CAC] number of terms for cac */
