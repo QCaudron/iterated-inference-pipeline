@@ -86,6 +86,13 @@ After having learned the basic structures involved in ```core```, we
 recommend to use call and caller graphs as an entry point to the
 sources.
 
+##Tests
+
+In model_builder:
+
+    python -m unittest discover
+
+
 License
 =======
 
