@@ -6,6 +6,8 @@ model_builder/Cmodel.py
 model_builder/Context.py
 model_builder/__init__.py
 model_builder/plom_settings.py
+model_builder/test_Ccoder.py
+model_builder/test_Cmodel.py
 model_builder/C/templates/Makefile
 model_builder/C/templates/Makefile_web
 model_builder/C/templates/core_template.c
