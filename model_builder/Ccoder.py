@@ -133,25 +133,8 @@ class Ccoder(Cmodel):
         else:
             pterm = sympify(safe)
 
-        #remove the plom___ prefix        
-        term = ccode(pterm).replace('plom___', '')
-
-        ##resolve remainder and simplify (we do that here so that if R is remainder, S+I+R is replaced by N and not S+I+(N-S-I)
-        if self.remainder:
-            myterm = self.change_user_input(term)
-            safe = ''
-            
-            for r in myterm:
-                if r in self.all_par:
-                    if r == self.remainder:
-                        safe += '(plom___N-{0})'.format('-'.join(map(lambda x: 'plom___' + x, self.par_sv)))
-                    else:
-                        safe += 'plom___' + r
-                else:
-                    safe += r
-            
-            pterm = simplify(sympify(safe))
-            term = ccode(pterm).replace('plom___', '')
+        #remove the plom___ prefix            
+        term = ccode(simplify(pterm)).replace('plom___', '')
 
         #make the plom C expression
         if human:
@@ -167,7 +150,8 @@ class Ccoder(Cmodel):
 
         for i in range(len(self.obs_var_def)):
             if not isinstance(self.obs_var_def[i][0], dict): ##prevalence                
-                Clist.append(self.make_C_term('+'.join(self.obs_var_def[i]), False))
+                prev = '+'.join(map(lambda x: '(N-{0})'.format('-'.join(self.par_sv)) if x == self.remainder else x, self.obs_var_def[i]))
+                Clist.append(self.make_C_term(prev, False))
 
         return Clist
 
@@ -674,6 +658,7 @@ class Ccoder(Cmodel):
 
             for i in range(len(self.drift_par_proc)):
                 jac_drift[s][i]['value'] = caches.index(jac_drift[s][i]['value'])
+
 
         for o in range(len(obsList)):
             for i in range(len(self.par_sv)):

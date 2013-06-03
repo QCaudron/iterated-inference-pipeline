@@ -151,25 +151,38 @@ class Cmodel:
 
                                     
         ##We treat reaction starting from remainder as reaction starting from U that is rate -> rate * from size. It results in simpler code in Ccoder.py
-        ##we resolve the population size 'N': replace 'N' by sum of par_sv
-        resolve_N = lambda x: '({0})'.format('+'.join((self.par_sv + [self.remainder]) if self.remainder else self.par_sv)) if x == 'N' else x
+        ##if no remainder, we replace 'N' by sum of par_sv
+        ##else, we replace remainder by N - sum(par_sv) in the rates (and in the rates ONLY)
 
-        for k, v in self.obs_model.iteritems():
-            if k != 'distribution':
-                self.obs_model[k] = ''.join(map(resolve_N, self.change_user_input(v)))
+        resolve_N = lambda x: '({0})'.format('+'.join(self.par_sv)) if x == 'N' else x
+        resolve_remainder = lambda x: '(N-{0})'.format('-'.join(self.par_sv)) if x == self.remainder else x
+
+        if not self.remainder:
+            for k, v in self.obs_model.iteritems():
+                if k != 'distribution':
+                    self.obs_model[k] = ''.join(map(resolve_N, self.change_user_input(v)))
 
         for i, m in enumerate(self.proc_model):
-            self.proc_model[i]['rate'] = ''.join(map(resolve_N, self.change_user_input(m['rate'])))
-            if self.remainder and self.proc_model[i]['from'] == self.remainder:
-                self.proc_model[i]['rate'] = '({0})*{1}'.format(self.proc_model[i]['rate'], self.remainder)
+            if self.remainder:
+                if self.proc_model[i]['from'] == self.remainder:
+                    self.proc_model[i]['rate'] = '({0})*{1}'.format(self.proc_model[i]['rate'], self.remainder)
+
+                self.proc_model[i]['rate'] = ''.join(map(resolve_remainder, self.change_user_input(m['rate'])))
+
+            else:
+                self.proc_model[i]['rate'] = ''.join(map(resolve_N, self.change_user_input(m['rate'])))
 
         for x in self.obs_var_def:
             for d in x:
                 if isinstance(d, dict): #incidence
-                    d['rate'] = ''.join(map(resolve_N, self.change_user_input(d['rate'])))
-                    if self.remainder and  d['from'] == self.remainder:
-                        d['rate'] = '({0})*{1}'.format(d['rate'], self.remainder)
+                    if self.remainder:
+                        if d['from'] == self.remainder:
+                            d['rate'] = '({0})*{1}'.format(d['rate'], self.remainder)
 
+                        d['rate'] = ''.join(map(resolve_remainder, self.change_user_input(d['rate'])))
+
+                    else:
+                        d['rate'] = ''.join(map(resolve_N, self.change_user_input(d['rate'])))                        
 
         ##TODO other models (spate or age structure)
 
