@@ -22,8 +22,6 @@
                   "population_id": ["city1__all"],
                   "comment": ""}],
 
- "frequency": "W",
-
   "data": [
     {"id": "data",
      "source": "data/data.csv",

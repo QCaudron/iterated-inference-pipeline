@@ -4,7 +4,7 @@
 
   "state": [
     {"id": "S", "comment": "Susceptible"},
-    {"id": "I", "comment": "Infectious"},
+    {"id": "I", "comment": "Infectious", "tag": "infectious"},
     {"id": "R", "comment": "Recovered", "tag": "remainder"}
   ],
 

@@ -6,7 +6,7 @@ class TestCmodel(unittest.TestCase):
 
     def setUp(self):
         m = {
-            'state': [{'id':'S'}, {'id':'I', 'tag': 'remainder'}, {'id': 'R'}],
+            'state': [{'id':'S'}, {'id':'I', 'tag': ['remainder', 'infectious']}, {'id': 'R'}],
             'parameter': [{'id':'r0'}, {'id':'v'}, {'id':'l'}, {'id':'e'}, {'id':'d'}, {'id':'sto'}, {'id':'alpha'}, {'id':'mu_b'}, {'id':'mu_d'}, {'id':'vol'}, {'id':'g'}],
             'model': [ 
                 {'from': 'U', 'to': 'S',  'rate': 'mu_b*N'},

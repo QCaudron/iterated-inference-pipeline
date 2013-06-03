@@ -22,7 +22,6 @@ from sympy import diff, Symbol, sympify, simplify
 from sympy.printing import ccode
 import copy
 
-
 class Ccoder(Cmodel):
     """write the C code from the user input coming from the web interface..."""
 
@@ -979,7 +978,6 @@ if __name__=="__main__":
 
     import json
     import os
-    from Builder import PlomModelBuilder
 
     c = json.load(open(os.path.join('example', 'noise', 'context.json')))
     p = json.load(open(os.path.join('example', 'noise', 'process.json')))
@@ -991,26 +989,7 @@ if __name__=="__main__":
     for x in c['data'] + c['metadata']:
         x['source'] = os.path.join('example', 'noise', x['source'])
 
-    model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
-    model.jac(False)
-
-    print model.print_obs_prev()
+    model = Ccoder(c, p, l)
     
-##    model.eval_Q(debug=True)
+    model.eval_Q(debug=True)
 
-##    print model.der2_mean_proc_obs()
-
-##    print ''.join(model.generator_C("(1.0+e*sin((a*x+(b)), ((e)) )) + r0", False))
-##    print model.generator_C("-mu_d - r0_1*v*(e*sin(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin(d) + 1.0)*(RI + SI + iota_2)/N", False)
-##
-##    print 'cache'
-##    print model.cache_special_function_C(['sin((a*x+(b)), ((e)) ) + r0'])
-##    print model.cache_special_function_C(["-mu_d - r0_1*v*(e*sin(d) + 1.0)*(IR + IS + iota_1)/N - r0_2*v*(e*sin(d) + 1.0)*(RI + SI + iota_2)/N"])
-##
-##
-##    print 'sd', model.make_C_term('sin(2*M_PI*(t/ONE_YEAR_IN_DATA_UNIT +r0))', False, derivate='r0')
-
-##    model.prepare()
-##    model.write_settings()
-##    model.render()
-##    model.compile()

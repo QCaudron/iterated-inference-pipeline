@@ -43,7 +43,7 @@ class Cmodel:
         self.remainder = None
         self.par_sv = []
         for x in process['state']:
-            if x.get('tag') == 'remainder':
+            if 'remainder' in x.get('tag', []):
                 self.remainder = x['id']
             else:
                 self.par_sv.append(x['id'])
