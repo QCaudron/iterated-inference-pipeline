@@ -53,10 +53,15 @@ class TestCmodel(unittest.TestCase):
 
         #other model with different remainder
         m2 = copy.deepcopy(m)
-        m2['state'] = [{'id':'S'}, {'id':'I'}, {'id': 'R', 'tag': 'remainder'}]
+        m2['state'] = [{'id':'S'}, {'id':'I', 'tag': 'infectious'}, {'id': 'R', 'tag': 'remainder'}]
+
+        #no remainder
+        m3 = copy.deepcopy(m)
+        m3['state'] = [{'id':'S'}, {'id':'I', 'tag': 'infectious'}, {'id': 'R'}]
 
         self.m = Cmodel(c, m, l) 
         self.m2 = Cmodel(c, m2, l) 
+        self.m3 = Cmodel(c, m3, l) 
 
 
     def test_change_user_input(self):
@@ -67,15 +72,15 @@ class TestCmodel(unittest.TestCase):
     def test_par_sv(self):
         self.assertEqual(set(self.m.par_sv), set(['S','R']))
         self.assertEqual(set(self.m2.par_sv), set(['S','I']))
+        self.assertEqual(set(self.m3.par_sv), set(['S','I', 'R']))
 
     def test_remaider(self):
         self.assertEqual(self.m.remainder, 'I')
         self.assertEqual(self.m2.remainder, 'R')
+        self.assertEqual(self.m3.remainder, None)
 
     def test_par_proc(self):
-        e = ['r0', 'v', 'l', 'e', 'd', 'sto', 'alpha', 'vol', 'g']
-        self.assertEqual(set(self.m.par_proc), set(e))
-        self.assertEqual(set(self.m2.par_proc), set(e))
+        self.assertEqual(set(self.m.par_proc), set(['r0', 'v', 'l', 'e', 'd', 'sto', 'alpha', 'vol', 'g']))
 
     def test_par_obs(self):
         self.assertEqual(set(self.m.par_obs), set(['rep','phi']))
@@ -127,8 +132,24 @@ class TestCmodel(unittest.TestCase):
             {'from': 'I', 'to': 'U',  'rate': 'alpha*correct_rate(v)+mu_d'}
         ]
 
+
+        expected3 = [
+            {'from': 'U', 'to': 'S',  'rate': 'mu_b*(S+I+R)'}, #change  
+            {'from': 'S', 'to': 'E',  'rate': 'r0/(S+I+R)*v*(1.0+e*sin_t(d))*I', "tag": 'transmission', 'white_noise': {'name': 'white_noise__0', 'sd': 'sto'}}, #change  
+            {'from': 'E', 'to': 'I', 'rate': '(1-alpha)*correct_rate(l)'},
+            {'from': 'E', 'to': 'U',  'rate': 'alpha*correct_rate(l)'},
+            {'from': 'E', 'to': 'U',  'rate': 'mu_d'},            
+            {'from': 'S', 'to': 'U',  'rate': 'mu_d'},
+            {'from': 'R', 'to': 'S',  'rate': 'g'},
+            {'from': 'I', 'to': 'R', 'rate': '(1-alpha)*correct_rate(v)'},
+            {'from': 'I', 'to': 'U',  'rate': 'alpha*correct_rate(v)+mu_d'}
+        ]
+
+
+
         self.assertEqual(self.m.proc_model, expected)
         self.assertEqual(self.m2.proc_model, expected2)
+        self.assertEqual(self.m3.proc_model, expected3)
 
 
     def test_obs_var(self):
@@ -151,8 +172,17 @@ class TestCmodel(unittest.TestCase):
             ['S', 'I']
         ]
 
+        expected3 = [
+            [{'from': 'I', 'to': 'R', 'rate': '(1-alpha)*correct_rate(v)'}, {'from': 'E', 'to': 'U', 'rate': 'mu_d'}],
+            [{'from': 'S', 'to': 'E', 'rate': 'r0/(S+I+R)*v*(1.0+e*sin_t(d))*I', 'white_noise': {'name': 'white_noise__0', 'sd': 'sto'}}],
+            [{'from': 'R', 'to': 'S', 'rate': 'g'}],
+            ['I'],
+            ['S', 'I']
+        ]
+
         self.assertEqual(self.m.obs_var_def, expected)
         self.assertEqual(self.m2.obs_var_def, expected2)
+        self.assertEqual(self.m3.obs_var_def, expected3)
 
 
 if __name__ == '__main__':
