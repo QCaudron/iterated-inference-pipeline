@@ -190,7 +190,7 @@ class Cmodel:
 
     def change_user_input(self, reaction):
         """transform the reaction in smtg that we can parse in a programming language:
-        example: change_user_input('r0*2*correct_rate(v)') -> ['r0', '*', '2', 'correct_rate', '(', 'v', ')']"""
+        example: change_user_input('r0*2*correct_rate(v)') -> ['r0', '*', '2', '*', 'correct_rate', '(', 'v', ')']"""
 
         myreaction=reaction.replace(' ','') ##get rid of whitespaces
         mylist=[]
@@ -219,86 +219,4 @@ class Cmodel:
 if __name__=="__main__":
 
 
-    m = {}
-    m['state'] = [{'id':'S'}, {'id':'I', 'tag': 'remainder'}, {'id': 'R'}]
-    m['parameter'] = [{'id':'r0'}, {'id':'v'}, {'id':'l'}, {'id':'e'}, {'id':'d'}, {'id':'sto'}, {'id':'alpha'}, {'id':'mu_b'}, {'id':'mu_d'}, {'id':'vol'}, {'id':'g'}]
-
-
-    m['model'] = [ {'from': 'U', 'to': 'S',  'rate': 'mu_b*N'},
-                   {'from': 'S', 'to': 'E',  'rate': 'r0/N*v*(1.0+e*sin_t(d))*I', "tag": 'transmission'},
-
-                   {'from': 'E', 'to': 'I', 'rate': '(1-alpha)*correct_rate(l)'},
-                    ##Here we split the reaction from E->U as we only observe a subpart
-                   {'from': 'E', 'to': 'U',  'rate': 'alpha*correct_rate(l)'},
-                   {'from': 'E', 'to': 'U',  'rate': 'mu_d'},
-
-                   {'from': 'S', 'to': 'U',  'rate': 'mu_d'},
-                   {'from': 'R', 'to': 'S',  'rate': 'g'},
-                   {'from': 'I', 'to': 'R', 'rate': '(1-alpha)*correct_rate(v)'},
-                   {'from': 'I', 'to': 'U',  'rate': 'alpha*correct_rate(v) + mu_d'} ]
-
-    m['diffusion'] = [{'parameter':'r0',
-                       'volatility': 'vol',
-                       'drift': 0.0}]
-
-    m['white_noise'] = [{'reaction': [{'from':'S', 'to': 'E'}],
-                         'sd': 'sto'}]
-
-    ##context elements needed for Cmodel
-    c = {}
-
-    c['data'] = [{'id': 'data'}, {'id': 'prop'}]
-
-    c['metadata'] = [{'id': 'mu_b'}, {'id': 'mu_d'}, {'id': 'N'}]
-
-    ##link elements needed for Cmodel
-    l = {}
-    l['observed'] =  [{"id": "Prev",     "definition": ["I"], "model_id": "common"},
-                      {"id": "SI",       "definition": ["S", "I"], "model_id": "common"},
-                      ##we have to specify a rate to the incidence E->U as we only observed a subpart of this reaction
-                      {"id": "Inc_out",  "definition": [{"from":"I", "to":"R"}, {"from":"E", "to":"U", 'rate': "mu_d"}], "model_id": "common"},
-                      {"id": "Inc_in",   "definition": [{"from":"S", "to":"E"}], "model_id": "common"},
-                      {"id": "Inc_x",   "definition": [{"from":"R", "to":"S"}], "model_id": "common"}]
-
-
-    l["observation"] = [{"id": "common", 
-                         "parameter": [{"id": "rep","comment": "reporting rate"}, 
-                                       {"id": "phi",  "comment": "over-dispertion"}],
-                         "model": {"distribution": "discretized_normal",
-                                   "mean": "rep*prop*x",
-                                   "var": "rep*(1.0-rep)*prop*x + (rep*phi*prop*x)**2"}}]
-
-    test_model = Cmodel(c, m, l)
-
-    print "par_fixed"
-    print test_model.par_fixed
-
-    print "par_proc"
-    print test_model.par_proc
-
-    print "state variables"
-    print test_model.par_sv
-
-    print "drift var"
-    print test_model.drift_par_proc
-    print test_model.vol_par_proc
-    print test_model.drift_par_obs
-    print test_model.vol_par_obs
-    print test_model.drift_var
-
-    print "\nprocess model"
-    tmp_print = test_model.proc_model
-    for line in tmp_print:
-        wn = line['white_noise'] if 'white_noise' in line else ''
-        print line['from'], line['to'], line['rate'], wn
-
-    print "\nobserved variable definition"
-    tmp_print = test_model.obs_var_def
-    for line in tmp_print:
-        print line
-
-    print "\ntest_model.obs_model"
-    print test_model.obs_model
-
-    print "\ntest_remainder"
-    print test_model.remainder
+    print 'Cf test_Cmodel.py for tests'
