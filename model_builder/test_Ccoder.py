@@ -59,7 +59,33 @@ class TestCcoder(unittest.TestCase):
         self.assertEqual(self.m.make_C_term(x, True, human=False), c)
 
 
-    
+    def test_make_C_term_extra_terms(self):
+        terms = [
+            {'x': 'terms_forcing(v)', 
+             'c': 'terms_forcing(par[ORDER_v][routers[ORDER_v]->map[cac]],t,p_data,cac)'}, 
+
+            {'x': 'step(v, r0)', 
+             'c': 'step(par[ORDER_v][routers[ORDER_v]->map[cac]],drifted[ORDER_drift__par_proc__r0][cac],t)'}, 
+
+            {'x': 'step_lin(v, r0)', 
+             'c': 'step_lin(par[ORDER_v][routers[ORDER_v]->map[cac]],drifted[ORDER_drift__par_proc__r0][cac],t)'}, 
+
+            {'x': 'correct_rate(v)', 
+             'c': 'correct_rate(par[ORDER_v][routers[ORDER_v]->map[cac]],dt)'}, 
+        ]
+            
+        for t in terms:
+            self.assertEqual(self.m.make_C_term(t['x'], False, human=False), t['c'])
+
+
+    def test_cache_special_function_C(self):
+
+        caches = map(lambda x: self.m.make_C_term(x, True), ['sin(2*M_PI*(t/ONE_YEAR +r0))', 'sin(2*M_PI*(t/ONE_YEAR +r0))', 'terms_forcing(v)*sin(2*M_PI*(t/ONE_YEAR +r0))*terms_forcing(v)'])
+        sf = self.m.cache_special_function_C(caches, prefix='_sf[cac]')
+
+        self.assertEqual(sf, ['sin(2*M_PI*(drifted[ORDER_drift__par_proc__r0][cac]+t/ONE_YEAR))', 'terms_forcing(par[ORDER_v][routers[ORDER_v]->map[cac]],t,p_data,cac)'])
+        self.assertEqual(caches, ['_sf[cac][0]', '_sf[cac][0]', 'pow(_sf[cac][1],2)*_sf[cac][0]'])
+        
 
 
 if __name__ == '__main__':

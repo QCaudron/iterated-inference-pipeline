@@ -991,5 +991,9 @@ if __name__=="__main__":
 
     model = Ccoder(c, p, l)
     
-    model.eval_Q(debug=True)
+#    model.eval_Q(debug=True)
+
+    caches = map(lambda x: model.make_C_term(x, True), ['sin(2*M_PI*(t/ONE_YEAR +r0))', 'sin(2*M_PI*(t/ONE_YEAR +r0))'])
+    print model.cache_special_function_C(caches, prefix='_sf[cac]')
+    print caches
 
