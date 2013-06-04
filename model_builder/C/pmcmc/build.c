@@ -18,7 +18,7 @@
 
 #include "pmcmc.h"
 
-struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_noises_off noises_off, json_t *settings, double dt, double eps_abs, double eps_rel, double a, int m_switch, int m_epsilon, double epsilon_max, int is_smooth, double alpha, int update_covariance, int J, int *n_threads, int nb_obs)
+struct s_pmcmc *build_pmcmc(json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, json_t *settings, double dt, double eps_abs, double eps_rel, double a, int m_switch, int m_epsilon, double epsilon_max, int is_smooth, double alpha, int J, int *n_threads, int nb_obs)
 {
     char str[STR_BUFFSIZE];
 
@@ -42,10 +42,9 @@ struct s_pmcmc *build_pmcmc(enum plom_implementations implementation, enum plom_
         exit(EXIT_FAILURE);
     }
 
-    json_t *theta = load_json();
+
     p->p_data = build_data(settings, theta, implementation, noises_off, 1, nb_obs); //also build obs2ts
-    p->p_best = build_best(p->p_data, theta, update_covariance);
-    json_decref(theta);
+    p->p_best = build_best(p->p_data, theta);
 
     int size_proj = N_PAR_SV*N_CAC + p->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 

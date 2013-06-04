@@ -33,20 +33,19 @@ int main(int argc, char *argv[])
 	"                     [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
         "                     [-l, --LIKE_MIN <float>] [-J <integer>] [-M, --iter <integer>]\n"
         "                     [-a, --cooling <float>] [-b, --heat <float>] [-L, --lag <float>] [-S, --switch <integer>]\n"
-        "                     [-C --cov] [-f --ic_only]\n"
+        "                     [-f --ic_only]\n"
         "                     [--help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
 	"\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
-        "--no_white_noise       turn off environmental stochasticity (if any)\n"
-        "--no_diff         turn off drift (if any)\n"
+        "--no_white_noise   turn off environmental stochasticity (if any)\n"
+        "--no_diff          turn off drift (if any)\n"
 	"\n"
         "-s, --DT           Initial integration time step\n"
 	"--eps_abs          Absolute error for adaptive step-size contro\n"
 	"--eps_rel          Relative error for adaptive step-size contro\n"
 	"\n"
-        "-C, --cov          load an initial covariance from the settings\n"
         "--prior            to maximize posterior density in natural space\n"
         "--traj             print the trajectories\n"
         "-p, --path         path where the outputs will be stored\n"
@@ -68,8 +67,6 @@ int main(int argc, char *argv[])
 
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
     double prop_L_option = 0.75;
-    
-    int is_covariance = 0;
 
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
@@ -104,8 +101,6 @@ int main(int argc, char *argv[])
 		{"eps_abs",    required_argument, 0, 'v'},
 		{"eps_rel",    required_argument, 0, 'w'},
 
-                {"cov", no_argument, 0, 'C'},
-
                 {"help", no_argument,  0, 'e'},
                 {"path",    required_argument, 0, 'p'},
                 {"id",    required_argument, 0, 'i'},
@@ -124,7 +119,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:Ci:J:l:M:a:b:L:S:fp:P:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:i:J:l:M:a:b:L:S:fp:P:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -156,10 +151,6 @@ int main(int argc, char *argv[])
             break;
         case 'w':
             eps_rel = atof(optarg);
-            break;
-
-        case 'C':
-            is_covariance = 1;
             break;
 
         case 'e':
@@ -234,7 +225,10 @@ int main(int argc, char *argv[])
     }
 
 
-    struct s_mif *p_mif = build_mif(implementation, noises_off, dt, eps_abs, eps_rel, prop_L_option, J, is_covariance,  &n_threads);
+    json_t *theta = load_json();
+    struct s_mif *p_mif = build_mif(theta, implementation, noises_off, dt, eps_abs, eps_rel, prop_L_option, J,  &n_threads);
+    int is_covariance = (json_object_get(theta, "covariance") != NULL);
+    json_decref(theta);
 
 #if FLAG_VERBOSE
     snprintf(str, STR_BUFFSIZE, "Starting Simforence-MIF with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, a = %g, b = %g, L = %g, SWITCH = %d, N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, M, MIF_a, MIF_b, prop_L_option, SWITCH, n_threads);

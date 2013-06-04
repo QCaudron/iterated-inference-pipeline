@@ -144,7 +144,7 @@ void clean_kalman_update(struct s_kalman_update *p)
 }
 
 
-struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int update_covariance, double dt, double eps_abs, double eps_rel, int nb_obs)
+struct s_kalman *build_kalman(json_t *theta, json_t *settings, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, double dt, double eps_abs, double eps_rel, int nb_obs)
 {
     char str[STR_BUFFSIZE];
 
@@ -155,7 +155,7 @@ struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implem
         print_err(str);
         exit(EXIT_FAILURE);
     }
-    json_t *theta = load_json();
+
 
     p_kalman->p_data = build_data(settings, theta, implementation, noises_off, is_bayesian, nb_obs);
 
@@ -163,8 +163,7 @@ struct s_kalman *build_kalman(json_t *settings, enum plom_implementations implem
     int size_proj = N_PAR_SV*N_CAC + p_kalman->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE + (N_KAL*N_KAL);
 
     p_kalman->p_X = build_X(size_proj, N_TS, p_kalman->p_data, dt); //proj contains Ct.
-    p_kalman->p_best = build_best(p_kalman->p_data, theta, update_covariance);
-    json_decref(theta);
+    p_kalman->p_best = build_best(p_kalman->p_data, theta);
 
     int n_threads =1;
     p_kalman->calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, 1, size_proj, step_ode_ekf, p_kalman->p_data);

@@ -1217,7 +1217,7 @@ void clean_likelihood(struct s_likelihood *p_like)
     FREE(p_like);
 }
 
-struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covariance)
+struct s_best *build_best(struct s_data *p_data, json_t *theta)
 {
     int i,j,k;
     struct s_router **routers = p_data->routers;
@@ -1304,7 +1304,7 @@ struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covar
         }
     }
 
-    load_best(p_best, p_data, theta, 1, update_covariance);
+    load_best(p_best, p_data, theta, 1);
 
     gsl_vector_memcpy(p_best->proposed, p_best->mean);
 

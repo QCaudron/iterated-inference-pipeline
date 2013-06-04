@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         "                [-s, --DT <float || 0.25 day>] [--eps_abs <float || 1e-6>] [--eps_rel <float || 1e-3>]\n"
         "                [--full] [-k, --n_traj <int || 1000>] [--acc] [-p, --path <path>] [-i, --id <integer || 0>] [-P, --N_THREAD <integer || N_CPUs>]\n"
         "                [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
-        "                [-C --cov] [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >] "
+        "                [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >] "
         "                [-E --epsilon <int || 50>] [--epsilon_max <float || 50.0>] [--smooth] [--alpha <float || 0.02>]"
         "                [-Z, --zmq] [-c, --chunk <integer>]\n"
         "                [--help]\n"
@@ -57,7 +57,6 @@ int main(int argc, char *argv[])
         "--traj             print the smoothed trajectories\n"
         "-n, --n_traj       number of trajectories stored\n"
         "--acc              print the acceptance rate\n"
-        "-C, --cov          load an initial covariance from the settings\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-P, --N_THREAD     number of threads to be used (default to the number of cores)\n"
@@ -71,7 +70,6 @@ int main(int argc, char *argv[])
         "--help             print the usage on stdout\n";
 
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
-    int load_cov = 0;
     int m_switch = -1;
     int m_eps = 50;
     double a = 0.999;
@@ -122,8 +120,6 @@ int main(int argc, char *argv[])
                 {"epsilon_max", required_argument, 0, 'f'},
                 {"alpha",    required_argument, 0, 'g'},
 
-                {"cov", no_argument, 0, 'C'},
-
                 {"help", no_argument,  0, 'e'},
                 {"path",    required_argument, 0, 'p'},
                 {"id",    required_argument, 0, 'i'},
@@ -140,7 +136,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "rxyzs:v:w:Ci:J:l:M:p:c:P:ZS:E:a:f:g:n:o:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "rxyzs:v:w:i:J:l:M:p:c:P:ZS:E:a:f:g:n:o:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -193,9 +189,6 @@ int main(int argc, char *argv[])
         case 'e':
             print_log(sfr_help_string);
             return 1;
-        case 'C':
-            load_cov = 1;
-            break;
         case 'Z':
             OPTION_PIPELINE = 1;
             break;
@@ -258,14 +251,16 @@ int main(int argc, char *argv[])
 
     json_t *settings = load_settings(PATH_SETTINGS);
 
-    int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?
-    struct s_pmcmc *p_pmcmc = build_pmcmc(implementation, noises_off, settings,
+    json_t *theta = load_json();
+    int is_covariance = (json_object_get(theta, "covariance") != NULL);
+    struct s_pmcmc *p_pmcmc = build_pmcmc(theta, implementation, noises_off, settings,
                                           dt, eps_abs, eps_rel,
                                           a, m_switch, m_eps, epsilon_max, is_smooth, alpha,
-                                          update_covariance, J, &n_threads, nb_obs);
+                                          J, &n_threads, nb_obs);
     json_decref(settings);
+    json_decref(theta);
 
-    transform_theta(p_pmcmc->p_best, p_pmcmc->p_data, !update_covariance);
+    transform_theta(p_pmcmc->p_best, p_pmcmc->p_data, !is_covariance);
     gsl_vector_memcpy(p_pmcmc->p_best->proposed, p_pmcmc->p_best->mean);
 
 

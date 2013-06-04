@@ -18,7 +18,7 @@
 
 #include "simplex.h"
 
-struct s_simplex *build_simplex(enum plom_implementations implementation,  enum plom_noises_off noises_off, int general_id, int is_bayesian, double dt, double eps_abs, double eps_rel, int nb_obs)
+struct s_simplex *build_simplex(json_t *theta, enum plom_implementations implementation,  enum plom_noises_off noises_off, int general_id, int is_bayesian, double dt, double eps_abs, double eps_rel, int nb_obs)
 {
   struct s_simplex *p_simplex;
   p_simplex = malloc(sizeof(struct s_simplex));
@@ -30,7 +30,6 @@ struct s_simplex *build_simplex(enum plom_implementations implementation,  enum 
   }
 
   json_t *settings = load_settings(PATH_SETTINGS);
-  json_t *theta = load_json();
   p_simplex->p_data = build_data(settings, theta, implementation, noises_off, is_bayesian, nb_obs); //also build obs2ts
   json_decref(settings);
 
@@ -38,8 +37,7 @@ struct s_simplex *build_simplex(enum plom_implementations implementation,  enum 
 
   p_simplex->p_par = build_par(p_simplex->p_data);
   p_simplex->p_X = build_X(size_proj, N_TS, p_simplex->p_data, dt);
-  p_simplex->p_best = build_best(p_simplex->p_data, theta, 0);
-  json_decref(theta);
+  p_simplex->p_best = build_best(p_simplex->p_data, theta);
 
   int n_threads = omp_get_max_threads();
   p_simplex->calc = build_calc(&n_threads, general_id, eps_abs, eps_rel, 1, size_proj, step_ode, p_simplex->p_data);

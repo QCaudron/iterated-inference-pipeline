@@ -187,10 +187,13 @@ int main(int argc, char *argv[])
     print_log(str);
 #endif
 
-    struct s_kalman *p_kalman = build_kalman(settings, implementation, noises_off, OPTION_PRIOR, 0, dt, eps_abs, eps_rel, -1);
+    json_t *theta = load_json();
+    int is_covariance = (json_object_get(theta, "covariance") != NULL);
+    struct s_kalman *p_kalman = build_kalman(theta, settings, implementation, noises_off, OPTION_PRIOR, dt, eps_abs, eps_rel, -1);
     json_decref(settings);
+    json_decref(theta);
 
-    transform_theta(p_kalman->p_best, p_kalman->p_data, 1);
+    transform_theta(p_kalman->p_best, p_kalman->p_data, !is_covariance);
 
 #if FLAG_VERBOSE
     int64_t time_begin, time_end;

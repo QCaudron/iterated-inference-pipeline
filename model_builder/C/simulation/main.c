@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
 
     struct s_par **J_p_par = build_J_p_par(p_data);
     struct s_X **J_p_X = build_J_p_X(size_proj, N_TS, p_data, dt);
-    struct s_best *p_best = build_best(p_data, theta, 0);
+    struct s_best *p_best = build_best(p_data, theta);
 
     struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p_data);
 
@@ -310,7 +310,7 @@ int main(int argc, char *argv[])
 
     if(OPTION_PREDICT){
         for(j=0; j<J; j++) {
-            load_best(p_best, p_data, json_array_get(thetas, j), 1, 0);
+            load_best(p_best, p_data, json_array_get(thetas, j), 1);
             transform_theta(p_best, p_data, 1);
             back_transform_theta2par(J_p_par[j], p_best->mean, p_data->p_it_all, p_data);
             linearize_and_repeat(J_p_X[j], J_p_par[j], p_data, p_data->p_it_par_sv);

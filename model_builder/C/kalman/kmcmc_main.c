@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         "                       [-s, --DT <float || 0.25 day>] [--eps_abs <float || 1e-6>] [--eps_rel <float || 1e-3>]\n"
         "                       [--full] [--traj] [--acc] [-p, --path <path>] [-i, --id <integer>]\n"
         "                       [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
-        "                       [-C --cov] [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >]"
+        "                       [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >]"
         "                       [-E --epsilon <int || 50>] [--epsilon_max <float || 50.0>] [--smooth] [--alpha <float || 0.02>]"
         "                       [--help]\n"
         "where implementation is 'sde' (default)\n"
@@ -54,7 +54,6 @@ int main(int argc, char *argv[])
         "\n"
         "--traj             print the trajectories\n"
         "--acc              print the acceptance rate\n"
-        "-C, --cov          load an initial covariance from the settings\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
@@ -62,7 +61,6 @@ int main(int argc, char *argv[])
 	"-o, --nb_obs       number of observations to be fitted (for tempering)"
         "--help             print the usage on stdout\n";
 
-    int load_cov = 0;
     int m_switch = -1;
     int m_eps = 50;
     double a = 0.999;
@@ -132,7 +130,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "jrxyzs:v:w:Ci:l:M:p:S:E:a:f:g:o:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "jrxyzs:v:w:i:l:M:p:S:E:a:f:g:o:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -185,9 +183,6 @@ int main(int argc, char *argv[])
         case 'e':
             print_log(sfr_help_string);
             return 1;
-        case 'C':
-            load_cov = 1;
-            break;
         case 'p':
             snprintf(SFR_PATH, STR_BUFFSIZE, "%s", optarg);
             break;
@@ -234,12 +229,13 @@ int main(int argc, char *argv[])
     }
 
     json_t *settings = load_settings(PATH_SETTINGS);
-
-    int update_covariance = ( (load_cov == 1) && (OPTION_FULL_UPDATE == 1)); //do we load the covariance ?
-    struct s_kalman *p_kalman = build_kalman(settings, implementation,  noises_off, 1, update_covariance, dt, eps_abs, eps_rel, nb_obs);
+    json_t *theta = load_json();
+    int is_covariance = (json_object_get(theta, "covariance") != NULL);
+    struct s_kalman *p_kalman = build_kalman(theta, settings, implementation,  noises_off, 1, dt, eps_abs, eps_rel, nb_obs);
     json_decref(settings);
+    json_decref(theta);
 
-    transform_theta(p_kalman->p_best, p_kalman->p_data, !update_covariance);
+    transform_theta(p_kalman->p_best, p_kalman->p_data, !is_covariance);
     gsl_vector_memcpy(p_kalman->p_best->proposed, p_kalman->p_best->mean);
 
     struct s_likelihood *p_like = build_likelihood();

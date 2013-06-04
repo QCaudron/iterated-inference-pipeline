@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
     struct s_hat **D_p_hat = build_D_p_hat(p_data);
     struct s_X ***D_J_p_X = build_D_J_p_X(size_proj, N_TS, p_data, dt);
     struct s_X ***D_J_p_X_tmp = build_D_J_p_X(size_proj, N_TS, p_data, dt);
-    struct s_best *p_best = build_best(p_data, theta, 0);
+    struct s_best *p_best = build_best(p_data, theta);
     json_decref(theta);
     struct s_likelihood *p_like = build_likelihood();
 

@@ -18,12 +18,11 @@
 
 #include "mif.h"
 
-struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double eps_abs, double eps_rel, double prop_L_option, int J, int is_covariance, int *n_threads)
+struct s_mif *build_mif(json_t *theta, enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double eps_abs, double eps_rel, double prop_L_option, int J, int *n_threads)
 {
     char str[STR_BUFFSIZE];
 
     json_t *settings = load_settings(PATH_SETTINGS);
-    json_t *theta = load_json();
 
     L = (int) floor(prop_L_option*N_DATA);
 
@@ -46,8 +45,7 @@ struct s_mif *build_mif(enum plom_implementations implementation,  enum plom_noi
         exit(EXIT_FAILURE);
     }
 
-    p->p_best = build_best(p->p_data, theta, is_covariance);
-    json_decref(theta);
+    p->p_best = build_best(p->p_data, theta);
 
     p->J_p_X = build_J_p_X(size_proj, N_TS, p->p_data, dt);
     p->J_p_X_tmp = build_J_p_X(size_proj, N_TS, p->p_data, dt);

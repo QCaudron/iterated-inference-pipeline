@@ -570,7 +570,7 @@ void load3d_var(double ***tab, int n, unsigned int *colbreaks1, unsigned int **c
 void load3u_var(unsigned int ***tab, int n, unsigned int *colbreaks1, unsigned int **colbreaks2, char *filename);
 void load3u_varp1(unsigned int ***tab, int n, unsigned int *colbreaks1, unsigned int colbreaks2, char *filename);
 
-void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int update_guess, int update_covariance);
+void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int update_guess);
 void load_covariance(gsl_matrix *covariance, json_t *array2d);
 json_t *load_settings(const char *path);
 
@@ -611,7 +611,7 @@ struct s_hat *build_hat(struct s_data *p_data);
 void clean_hat(struct s_hat *p_hat, struct s_data *p_data);
 struct s_likelihood *build_likelihood(void);
 void clean_likelihood(struct s_likelihood *p_like);
-struct s_best *build_best(struct s_data *p_data, json_t *theta, int update_covariance);
+struct s_best *build_best(struct s_data *p_data, json_t *theta);
 void clean_best(struct s_best *p_best);
 
 

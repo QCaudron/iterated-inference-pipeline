@@ -174,9 +174,11 @@ int main(int argc, char *argv[])
     sprintf(str, "Starting Plom-simplex with the following options: i = %d, LIKE_MIN = %g, M = %d, CONVERGENCE_STOP_SIMPLEX = %g", GENERAL_ID, LIKE_MIN, M, CONVERGENCE_STOP_SIMPLEX);
     print_log(str);
 
-    struct s_simplex *p_simplex = build_simplex(implementation, noises_off, GENERAL_ID, OPTION_PRIOR, dt, eps_abs, eps_rel, nb_obs);
-
-    transform_theta(p_simplex->p_best, p_simplex->p_data, 1);
+    json_t *theta = load_json();
+    struct s_simplex *p_simplex = build_simplex(theta, implementation, noises_off, GENERAL_ID, OPTION_PRIOR, dt, eps_abs, eps_rel, nb_obs);
+    int is_covariance = (json_object_get(theta, "covariance") != NULL);
+    json_decref(theta);
+    transform_theta(p_simplex->p_best, p_simplex->p_data, !is_covariance);
 
     if (M == 0) {
         //simply return the sum of square or the log likelihood (can be used to do slices especially with least square where smc can't be used'...)

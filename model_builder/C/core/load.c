@@ -492,7 +492,7 @@ json_t *load_settings(const char *path)
 /**
  * integrate best data from the webApp
  */
-void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int update_guess, int update_covariance)
+void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int update_guess)
 {
     int i, k, g, offset;
 
@@ -541,7 +541,7 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int
 	}
     }
 
-    if (update_covariance) {
+    if (json_object_get(theta, "covariance")) {
         load_covariance(p_best->var, fast_get_json_array(theta, "covariance"));
     }
 
