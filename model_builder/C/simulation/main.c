@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         "usage:\n"
         "simul [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                       [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
-        "                       [--traj] [--predict] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
+        "                       [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
         "                       [-b, --bif] [--continue] [-l, --lyap]\n"
         "                       [-o, --t0 <integer>] [-D, --tend <integer>] [-T --transiant <integer>]\n"
         "                       [-B, --block <integer>] [-x, --precision <float>] [-J <integer>]\n"
@@ -40,8 +40,8 @@ int main(int argc, char *argv[])
         "options:\n"
         "\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
-        "--no_white_noise       turn off environmental stochasticity (if any)\n"
-        "--no_diff         turn off drift (if any)\n"
+        "--no_white_noise   turn off environmental stochasticity (if any)\n"
+        "--no_diff          turn off drift (if any)\n"
         "\n"
         "-s, --DT           Initial integration time step\n"
         "--eps_abs          Absolute error for adaptive step-size contro\n"
@@ -49,7 +49,6 @@ int main(int argc, char *argv[])
         "\n"
         "--traj             print the trajectories\n"
         "--continue         print the final states in a bifurcation analysis to allow continuation\n"
-        "--predict          load an array of theta for Bayesian prediction\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-P, --N_THREAD     number of threads to be used (default to the number of cores)\n"
@@ -78,7 +77,6 @@ int main(int argc, char *argv[])
     int OPTION_LYAP = 0;
     int OPTION_BIF = 0;
     static int OPTION_CONTINUE = 0;
-    static int OPTION_PREDICT = 0;
     int OPTION_PERIOD_DYNAMICAL_SYTEM = 0;
     int OPTION_FFT = 0;
 
@@ -96,7 +94,6 @@ int main(int argc, char *argv[])
                 /* These options set a flag. */
                 {"traj", no_argument,       &OPTION_TRAJ, 1},
                 {"continue", no_argument,   &OPTION_CONTINUE, 1},
-                {"predict", no_argument,   &OPTION_PREDICT, 1},
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
                 {"no_dem_sto", no_argument,       0, 'x'},
                 {"no_white_noise", no_argument,       0, 'y'},
@@ -249,7 +246,8 @@ int main(int argc, char *argv[])
 
     json_t *settings = load_settings(PATH_SETTINGS);
     json_t *thetas = load_json();
-    json_t *theta = (OPTION_PREDICT) ? json_array_get(thetas, 0): thetas;
+    int is_predict = json_is_array(thetas);
+    json_t *theta = is_predict ? json_array_get(thetas, 0): thetas;
 
 
     if((OPTION_BIF || OPTION_LYAP) && (J>1)) {
@@ -257,7 +255,7 @@ int main(int argc, char *argv[])
         print_log("for bifurcation analysis and Lyapunov exp. comupations, J must be 1 !!");
     }
 
-    if( OPTION_PREDICT && (J != json_array_size(thetas)) ){
+    if( is_predict && (J != json_array_size(thetas)) ){
         J=json_array_size(thetas);
         print_log("for Bayesian prediction J is set to the length of the list of thetas");
     }
@@ -308,7 +306,7 @@ int main(int argc, char *argv[])
         t_end = t0 + nextpow2((t_end-t0));
     }
 
-    if(OPTION_PREDICT){
+    if(is_predict){
         for(j=0; j<J; j++) {
             load_best(p_best, p_data, json_array_get(thetas, j), 1);
             transform_theta(p_best, p_data, 1);
@@ -341,7 +339,7 @@ int main(int argc, char *argv[])
     /**************************************************/
     /* SKIP TRANSIANT (not possible with prediction)  */
     /**************************************************/
-    if ( (!OPTION_PREDICT) && (t_transiant > 0.0) ) {
+    if ( (!is_predict) && (t_transiant > 0.0) ) {
         t_transiant = floor(t_transiant/ONE_YEAR)*ONE_YEAR + t0;
 #if FLAG_VERBOSE
         snprintf(str, STR_BUFFSIZE,  "skipping transiant... (Note that t_transiant has been ajusted to %g to respect seasonality and t0)", t_transiant );
@@ -380,7 +378,7 @@ int main(int argc, char *argv[])
 
         traj(J_p_X, t0, t_end, t_transiant, J_p_par, p_data, calc, f_pred);
 
-    } else if ( (!OPTION_PREDICT) && (OPTION_BIF || OPTION_LYAP) ) {
+    } else if ( (!is_predict) && (OPTION_BIF || OPTION_LYAP) ) {
 
         /*store (potentialy new, if t_transiant > 0.0) initial conditions*/
         for (i=0; i<(N_PAR_SV*N_CAC); i++){
