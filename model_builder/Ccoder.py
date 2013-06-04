@@ -132,8 +132,9 @@ class Ccoder(Cmodel):
         else:
             pterm = sympify(safe)
 
-        #remove the plom___ prefix            
-        term = ccode(simplify(pterm)).replace('plom___', '')
+        #remove the plom___ prefix                
+        #term = ccode(simplify(pterm)).replace('plom___', '') ##NOTE simplify is just too slow to be used...
+        term = ccode(pterm).replace('plom___', '')
 
         #make the plom C expression
         if human:
@@ -982,12 +983,11 @@ if __name__=="__main__":
     c = json.load(open(os.path.join('example', 'noise', 'context.json')))
     p = json.load(open(os.path.join('example', 'noise', 'process.json')))
     l = json.load(open(os.path.join('example', 'noise', 'link.json')))
-    
-    #l["model"]["common"]["mean"] = "rep*prop*x +x**2*rep"
-    
+
     ##fix path (this is normally done by pmbuilder(1))
     for x in c['data'] + c['metadata']:
         x['source'] = os.path.join('example', 'noise', x['source'])
+    
 
     model = Ccoder(c, p, l)
     

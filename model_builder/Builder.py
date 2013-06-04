@@ -229,7 +229,7 @@ if __name__=="__main__":
     ##fix path (this is normally done by pmbuilder(1))
     for x in c['data'] + c['metadata']:
         x['source'] = os.path.join('example', 'noise', x['source'])
-
+            
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
 
 ##    print model.par_fixed
