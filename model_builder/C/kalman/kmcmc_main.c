@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         "usage:\n"
         "kmcmc [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                       [-s, --DT <float || 0.25 day>] [--eps_abs <float || 1e-6>] [--eps_rel <float || 1e-3>]\n"
-        "                       [--full] [--traj] [--acc] [-p, --path <path>] [-i, --id <integer>]\n"
+        "                       [--full] [-n, --n_traj <int || 1000>] [--acc] [-p, --path <path>] [-i, --id <integer>]\n"
         "                       [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
         "                       [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >]"
         "                       [-E --epsilon <int || 50>] [--epsilon_max <float || 50.0>] [--smooth] [--alpha <float || 0.02>]"
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
         "--smooth           tune epsilon with the value of the acceptance rate obtained with exponential smoothing\n"
         "--alpha            smoothing factor of exponential smoothing used to compute the smoothed acceptance rate (low values increase degree of smoothing)\n"
         "\n"
-        "--traj             print the trajectories\n"
+        "-n, --n_traj       number of trajectories stored\n"
         "--acc              print the acceptance rate\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
     double alpha = 0.02;
 
     static int is_smooth = 0;
+    int n_traj = 1000;
 
     GENERAL_ID =0;
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
@@ -97,7 +98,7 @@ int main(int argc, char *argv[])
                 {"transf",      no_argument, &OPTION_TRANSF, 1},
 
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
-                {"traj",       no_argument,       0, 'j'},
+                {"n_traj",     required_argument, 0, 'n'},
                 {"acc",        no_argument,       0, 'r'},
                 {"no_dem_sto", no_argument,       0, 'x'},
                 {"no_white_noise", no_argument,       0, 'y'},
@@ -130,7 +131,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "jrxyzs:v:w:i:l:M:p:S:E:a:f:g:o:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "n:rxyzs:v:w:i:l:M:p:S:E:a:f:g:o:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -196,8 +197,8 @@ int main(int argc, char *argv[])
         case 'M':
             M = atoi(optarg);
             break;
-        case 'j':
-	    print_opt |= PLOM_PRINT_X;
+        case 'n':
+            n_traj = atoi(optarg);
             break;
         case 'r':
 	    print_opt |= PLOM_PRINT_ACC;
@@ -243,7 +244,15 @@ int main(int argc, char *argv[])
 
     p_kalman->calc[0]->method_specific_shared_data = p_mcmc_calc_data; //needed to use ran_proposal_sequential in pmcmc
 
-    kmcmc(p_kalman, p_like, p_mcmc_calc_data, f_prediction_ode,  print_opt);
+
+    n_traj = GSL_MIN(M, n_traj);
+    int thin_traj = (int) ( (double) M / (double) n_traj); //the thinning interval
+
+    if(n_traj>0){       
+	print_opt |= PLOM_PRINT_X;
+    }
+
+    kmcmc(p_kalman, p_like, p_mcmc_calc_data, f_prediction_ode,  print_opt, thin_traj);
 
     // print empirical covariance
     if (OPTION_FULL_UPDATE) {
