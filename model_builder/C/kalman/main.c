@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
         "-r, --no_pred_res  do not write pred_res_<general_id>.output file (prediction residuals)\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
+	"-o, --nb_obs       number of observations to be fitted (for tempering)"
         "--help             print the usage on stdout\n";
 
 
@@ -64,6 +65,7 @@ int main(int argc, char *argv[])
     // options
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
+    int nb_obs = -1;
 
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
 
@@ -96,6 +98,7 @@ int main(int argc, char *argv[])
         {"traj", no_argument, &OPTION_TRAJ, 1},
         {"prior", no_argument, &OPTION_PRIOR, 1},
         {"transf", no_argument, &OPTION_TRANSF, 1},
+	{"nb_obs", required_argument,  0, 'o'},
 
         {"LIKE_MIN",   required_argument, 0, 'l'},
 
@@ -103,7 +106,7 @@ int main(int argc, char *argv[])
     };
 
     int option_index = 0;
-    while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:jbhr", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:jbhro:", long_options, &option_index)) != -1) {
         switch (ch) {
         case 0:
             break;
@@ -116,6 +119,9 @@ int main(int argc, char *argv[])
             break;
         case 'z':
             noises_off = noises_off | PLOM_NO_DRIFT;
+            break;
+	case 'o':
+	    nb_obs = atoi(optarg);
             break;
 
         case 's':
@@ -189,7 +195,7 @@ int main(int argc, char *argv[])
 
     json_t *theta = load_json();
     int is_covariance = (json_object_get(theta, "covariance") != NULL);
-    struct s_kalman *p_kalman = build_kalman(theta, settings, implementation, noises_off, OPTION_PRIOR, dt, eps_abs, eps_rel, -1);
+    struct s_kalman *p_kalman = build_kalman(theta, settings, implementation, noises_off, OPTION_PRIOR, dt, eps_abs, eps_rel, nb_obs);
     json_decref(settings);
     json_decref(theta);
 
