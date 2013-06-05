@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
 	"\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-J                 number of particles\n"
+	"-o, --nb_obs       number of observations to be fitted (for tempering)"
 	"\n"
         "--traj             print the trajectories\n"
         "-t, --no_filter    do not filter\n"
@@ -75,6 +76,8 @@ int main(int argc, char *argv[])
     J=1;
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
+    int nb_obs = -1;
+
     int n_threads=omp_get_max_threads();
 
     while (1) {
@@ -89,6 +92,7 @@ int main(int argc, char *argv[])
                 {"DT",         required_argument, 0, 's'},
                 {"eps_abs",    required_argument, 0, 'v'},
                 {"eps_rel",    required_argument, 0, 'w'},
+		{"nb_obs", required_argument,  0, 'o'},
 
                 {"help",       no_argument,       0, 'e'},
                 {"path",       required_argument, 0, 'p'},
@@ -107,7 +111,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:p:i:J:l:tjbhrP:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:p:i:J:l:tjbhrP:o:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -140,7 +144,9 @@ int main(int argc, char *argv[])
         case 'w':
             eps_rel = atof(optarg);
             break;
-
+	case 'o':
+	    nb_obs = atoi(optarg);
+            break;
 
         case 'e':
             print_log(sfr_help_string);
@@ -210,7 +216,7 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
 
     json_t *theta = load_json();
-    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR, -1);
+    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR, nb_obs);
     json_decref(settings);
 
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
