@@ -818,8 +818,6 @@ class Ccoder(Cmodel):
             if 'white_noise' in r:
                 if r['from'] not in ['U', self.remainder]:
                     Qn_term = '({0})*{1}'.format(r['rate'], r['from'])
-                elif r['from'] in  self.remainder:
-                    Qn_term = '({0})*(N-{1})'.format(r['rate'],'-'.join(self.par_sv))
                 else:
                     Qn_term = r['rate']
 
