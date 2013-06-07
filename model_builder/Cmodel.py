@@ -152,9 +152,8 @@ class Cmodel:
                                                                              'sd': x['sd']}
 
                                     
-        ##We treat reaction starting from remainder as reaction starting from U that is rate -> rate * from size. It results in simpler code in Ccoder.py
         ##if no remainder, we replace 'N' by sum of par_sv
-        ##else, we replace remainder by N - sum(par_sv) in the rates (and in the rates ONLY)
+        ##else, we replace remainder by N - sum(par_sv_no_rem) in the rates (and in the rates ONLY)
 
         resolve_N = lambda x: '({0})'.format('+'.join(self.par_sv)) if x == 'N' else x
         resolve_remainder = lambda x: '(N-{0})'.format('-'.join(self.par_sv_no_rem)) if x == self.remainder else x
