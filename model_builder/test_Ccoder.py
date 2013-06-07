@@ -18,7 +18,18 @@ class TestCcoder(unittest.TestCase):
         for x in c['data'] + c['metadata']:
             x['source'] = os.path.join('example', 'drift', x['source'])
 
-        self.m = Ccoder(c, p, l) 
+        self.m_drift = Ccoder(c, p, l)
+
+
+        c = json.load(open(os.path.join('example', 'noise', 'context.json')))
+        p = json.load(open(os.path.join('example', 'noise', 'process.json')))
+        l = json.load(open(os.path.join('example', 'noise', 'link.json')))
+
+        ##fix path (this is normally done by pmbuilder(1))
+        for x in c['data'] + c['metadata']:
+            x['source'] = os.path.join('example', 'noise', x['source'])
+
+        self.m_noise = Ccoder(c, p, l)
 
 
     def test_make_C_term(self):
@@ -37,8 +48,8 @@ class TestCcoder(unittest.TestCase):
         ]
             
         for t in terms:
-            self.assertEqual(self.m.make_C_term(t['x'], False, human=True), t['h'])
-            self.assertEqual(self.m.make_C_term(t['x'], False, human=False), t['c'])
+            self.assertEqual(self.m_drift.make_C_term(t['x'], False, human=True), t['h'])
+            self.assertEqual(self.m_drift.make_C_term(t['x'], False, human=False), t['c'])
 
 
     def test_make_C_term_derivate(self):
@@ -46,8 +57,8 @@ class TestCcoder(unittest.TestCase):
         h = '2*M_PI*cos(2*M_PI*(r0 + t/ONE_YEAR))'
         c = '2*M_PI*cos(2*M_PI*(drifted[ORDER_drift__par_proc__r0][cac]+t/ONE_YEAR))'
 
-        self.assertEqual(self.m.make_C_term(x, False, human=True, derivate='r0'), h)
-        self.assertEqual(self.m.make_C_term(x, False, human=False, derivate='r0'), c)
+        self.assertEqual(self.m_drift.make_C_term(x, False, human=True, derivate='r0'), h)
+        self.assertEqual(self.m_drift.make_C_term(x, False, human=False, derivate='r0'), c)
 
 
     def test_make_C_term_skip_correct_rate(self):
@@ -56,7 +67,7 @@ class TestCcoder(unittest.TestCase):
         x = 'mu_b*(1.0+correct_rate(v)*sin((correct_rate(v)/N+(mu_b)))) + r0'
         c = 'covar[ORDER_mu_b][nn][cac]*((par[ORDER_v][routers[ORDER_v]->map[cac]])*sin(covar[ORDER_mu_b][nn][cac]+(par[ORDER_v][routers[ORDER_v]->map[cac]])/covar[ORDER_N][nn][cac])+1.0)+drifted[ORDER_drift__par_proc__r0][cac]'
 
-        self.assertEqual(self.m.make_C_term(x, True, human=False), c)
+        self.assertEqual(self.m_drift.make_C_term(x, True, human=False), c)
 
 
     def test_make_C_term_extra_terms(self):
@@ -75,18 +86,53 @@ class TestCcoder(unittest.TestCase):
         ]
             
         for t in terms:
-            self.assertEqual(self.m.make_C_term(t['x'], False, human=False), t['c'])
+            self.assertEqual(self.m_drift.make_C_term(t['x'], False, human=False), t['c'])
 
 
     def test_cache_special_function_C(self):
 
-        caches = map(lambda x: self.m.make_C_term(x, True), ['sin(2*M_PI*(t/ONE_YEAR +r0))', 'sin(2*M_PI*(t/ONE_YEAR +r0))', 'terms_forcing(v)*sin(2*M_PI*(t/ONE_YEAR +r0))*terms_forcing(v)'])
-        sf = self.m.cache_special_function_C(caches, prefix='_sf[cac]')
+        caches = map(lambda x: self.m_drift.make_C_term(x, True), ['sin(2*M_PI*(t/ONE_YEAR +r0))', 'sin(2*M_PI*(t/ONE_YEAR +r0))', 'terms_forcing(v)*sin(2*M_PI*(t/ONE_YEAR +r0))*terms_forcing(v)'])
+        sf = self.m_drift.cache_special_function_C(caches, prefix='_sf[cac]')
 
         self.assertEqual(sf, ['sin(2*M_PI*(drifted[ORDER_drift__par_proc__r0][cac]+t/ONE_YEAR))', 'terms_forcing(par[ORDER_v][routers[ORDER_v]->map[cac]],t,p_data,cac)'])
         self.assertEqual(caches, ['_sf[cac][0]', '_sf[cac][0]', 'pow(_sf[cac][1],2)*_sf[cac][0]'])
         
+    def test_eval_Q(self):
+        calc_Q = self.m_noise.eval_Q()
 
+        # testing env sto only
+        term = '((((r0/N*v*I)*S)*((sto)**2))*((r0/N*v*I)*S)))'
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][0],'((-1)*'+term+'*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][1],'((-1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][2],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][4],'((-1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][0],'((1)*'+term+'*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][1],'((1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][2],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][4],'((1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][0],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][1],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][2],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][4],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][0],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][1],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][2],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][4],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][0],'((1)*'+term+'*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][1],'((1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][2],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][4],'((1)*'+term+'*(1)')
+
+        # testing dem sto only
+        
+
+        #print(calc_Q["no_env_sto"]["Q_proc"])
+        
 
 if __name__ == '__main__':
     unittest.main()

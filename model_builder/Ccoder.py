@@ -706,7 +706,7 @@ class Ccoder(Cmodel):
         Qc matrix of size s*s.
 
         Qc is composed of 2 blocks: Qc_dem (for demographic
-        stochasticity) and Qc_sto (for environmental stochasticity)
+        stochasticity) and Qc_env (for environmental stochasticity)
 
         Qc_dem: diagonal matrix (one term per reaction: rate/N)
 
@@ -738,7 +738,7 @@ class Ccoder(Cmodel):
 
         unique_noises_names = [x['name'] for x in self.white_noise]
         N_ENV_STO_UNIQUE = len(unique_noises_names)
-
+        
         ##add sd and order properties to noisy reactions
         N_ENV_STO = 0
         for r in proc_model:
@@ -746,6 +746,7 @@ class Ccoder(Cmodel):
                 r['order_env_sto_unique'] = unique_noises_names.index(r['white_noise']['name'])
                 r['order_env_sto'] = N_ENV_STO
                 N_ENV_STO += 1
+
 
         s = N_REAC + N_ENV_STO ##for demographic stochasticity, one independent noise term per reaction
 
@@ -813,7 +814,6 @@ class Ccoder(Cmodel):
                             Ls[N_PAR_SV + i][B_dem_ind] += 1
                             if is_noise:
                                 Ls[N_PAR_SV + i][B_sto_ind] += 1
-
 
 
         ############################

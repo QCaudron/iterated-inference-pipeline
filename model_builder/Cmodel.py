@@ -42,14 +42,16 @@ class Cmodel:
 
         self.remainder = None
         self.par_sv = []
+        self.par_sv_no_rem = []
         for x in process['state']:
             if 'remainder' in x.get('tag', []):
                 self.remainder = x['id']
             else:
-                self.par_sv.append(x['id'])
+                self.par_sv_no_rem.append(x['id'])
+            self.par_sv.append(x['id'])
 
 
-        self.universes = ['U', self.remainder]
+        self.universes = ['U']
 
         ##par fixed !! N **HAS** to be first if it exists
         self.par_fixed = [x['id'] for x in context.get('metadata', []) if x['id'] == 'N'] #does N exist, if so it is first
@@ -155,7 +157,7 @@ class Cmodel:
         ##else, we replace remainder by N - sum(par_sv) in the rates (and in the rates ONLY)
 
         resolve_N = lambda x: '({0})'.format('+'.join(self.par_sv)) if x == 'N' else x
-        resolve_remainder = lambda x: '(N-{0})'.format('-'.join(self.par_sv)) if x == self.remainder else x
+        resolve_remainder = lambda x: '(N-{0})'.format('-'.join(self.par_sv_no_rem)) if x == self.remainder else x
 
         if not self.remainder:
             for k, v in self.obs_model.iteritems():
