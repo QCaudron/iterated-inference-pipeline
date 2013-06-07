@@ -186,7 +186,7 @@ class Ccoder(Cmodel):
 
     def print_build_psr(self):
         Clist = []
-        for s in self.par_sv + self.universes:
+        for s in self.par_sv + ['U', self.remainder]:
             nbreac = len([r for r in self.proc_model if r['from']==s]) +1 ##+1 to stay in the same compartment or to declare smtg in case of no reaction (not super clean but makes C code easier...)
             Clist.append({'state':s, 'nb_reaction': nbreac})
 
@@ -222,7 +222,7 @@ class Ccoder(Cmodel):
         ##make the rates noisy (if needed e.g r
         rates = set()
         for r in proc_model:
-            if r['from'] not in self.universes:
+            if r['from'] not in ['U', self.remainder]:
                 myrate = r['rate']
                 if 'white_noise' in r:
                     myrate = '({0})*{1}'.format(myrate, r['white_noise']['name'])
@@ -234,7 +234,7 @@ class Ccoder(Cmodel):
         sf = self.cache_special_function_C(caches)
 
         for r in proc_model:
-            if r['from'] not in self.universes:
+            if r['from'] not in ['U', self.remainder]:
                 myrate = r['rate']
                 if 'white_noise' in r:
                     myrate = '({0})*{1}'.format(myrate, r['white_noise']['name'])
@@ -288,13 +288,13 @@ class Ccoder(Cmodel):
         for s in self.par_sv: #come in from other compartments
             myinput = [r for r in self.proc_model if r['from'] == s]
             for nbreac in range(len(myinput)):
-                if myinput[nbreac]['to'] not in self.universes: ##we exclude deaths or transitions to remainder in the update
+                if myinput[nbreac]['to'] not in ['U', self.remainder]: ##we exclude deaths or transitions to remainder in the update
                     incDict[myinput[nbreac]['to']] += ' + p_calc->inc[ORDER_{0}][cac][{1}]'.format(myinput[nbreac]['from'], nbreac)
 
 
-        ##we add flow from the universes (Poisson term). We want to cache those flow so that the incidences can be computed
+        ##we add flow from ['U', self.remainder] (Poisson term). We want to cache those flow so that the incidences can be computed
         poisson = []
-        for s in self.universes:
+        for s in ['U', self.remainder]:
             reac_from_univ = [r for r in self.proc_model if r['from'] == s]
             for nbreac in range(len(reac_from_univ)):
                 myrate = self.make_C_term(reac_from_univ[nbreac]['rate'], False)
@@ -400,14 +400,14 @@ class Ccoder(Cmodel):
 
         ##outputs
         for r in proc_model:
-            if r['from'] not in self.universes:
+            if r['from'] not in ['U', self.remainder]:
                 cached = '_r[cac][{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
                 odeDict[r['from']].append(get_rhs_term('-', cached, r))
 
         ##inputs
         for r in proc_model:
-            if r['to'] not in self.universes:
-                if r['from'] not in self.universes:
+            if r['to'] not in ['U', self.remainder]:
+                if r['from'] not in ['U', self.remainder]:
                     cached = '_r[cac][{0}]*X[ORDER_{1}{2}]'.format(r['ind_cache'], r['from'], '*N_CAC+cac')
                 else:
                     cached= '_r[cac][{0}]'.format(r['ind_cache'])
@@ -429,7 +429,7 @@ class Ccoder(Cmodel):
                     id_out = [proc_model.index(r) for r in proc_model if ((r['from'] == self.obs_var_def[i][j]['from']) and (r['to'] == self.obs_var_def[i][j]['to']) and (r['rate'] == self.obs_var_def[i][j]['rate'])) ]
                     for o in id_out:
                         reaction = proc_model[o]
-                        if self.obs_var_def[i][j]['from'] in self.universes:
+                        if self.obs_var_def[i][j]['from'] in ['U', self.remainder]:
                             cached = '_r[cac][{0}]'.format(reaction['ind_cache'])
                         else:
                             cached = '_r[cac][{0}]*X[ORDER_{1}{2}]'.format(reaction['ind_cache'], self.obs_var_def[i][j]['from'], '*N_CAC+cac')
@@ -513,7 +513,7 @@ class Ccoder(Cmodel):
     def print_order(self):
         order_univ = []
         N_PAR_SV = len(self.par_sv)
-        for i, X in enumerate(self.universes):
+        for i, X in enumerate(['U', self.remainder]):
             order_univ.append({'name': X, 'order': N_PAR_SV+i})
 
         return {'var': self.par_sv + self.par_proc + self.par_obs, 'drift': self.drift_var, 'data': self.par_fixed, 'universe': order_univ}
@@ -545,14 +545,14 @@ class Ccoder(Cmodel):
 
         ##outputs
         for r in my_model:
-            if r['from'] not in self.universes:
+            if r['from'] not in ['U', self.remainder]:
                 rate= ' - (({0})*{1})'.format(r['rate'], r['from'])
                 odeDict[r['from']] += rate
 
         ##inputs
         for r in my_model:
-            if r['to'] not in self.universes:
-                if r['from'] not in self.universes:
+            if r['to'] not in ['U', self.remainder]:
+                if r['from'] not in ['U', self.remainder]:
                     rate= ' + (({0})*{1})'.format(r['rate'], r['from'])
                     odeDict[r['to']] += rate
                 else:
@@ -579,7 +579,7 @@ class Ccoder(Cmodel):
                     id_out = [self.proc_model.index(r) for r in self.proc_model if ((r['from'] == self.obs_var_def[i][j]['from']) and (r['to'] == self.obs_var_def[i][j]['to']) and (r['rate'] == self.obs_var_def[i][j]['rate'])) ]
                     for o in id_out:
                         reaction = my_model[o]
-                        if self.obs_var_def[i][j]['from'] in self.universes:
+                        if self.obs_var_def[i][j]['from'] in ['U', self.remainder]:
                             eq += ' + ({0})'.format(reaction['rate'])
                         else:
                             eq += ' + (({0})*{1})'.format(reaction['rate'], self.obs_var_def[i][j]['from'])
@@ -764,7 +764,7 @@ class Ccoder(Cmodel):
             if is_noise:
                 B_sto_ind = N_REAC + r['order_env_sto']
 
-            if r['from'] not in self.universes:
+            if r['from'] not in ['U', self.remainder]:
                 i = self.par_sv.index(r['from'])
                 Ls[i][B_dem_ind] -= 1 ##demographic stochasticity
                 if is_noise:
@@ -774,7 +774,7 @@ class Ccoder(Cmodel):
             else:
                 Qc_term = r['rate']
 
-            if r['to'] not in self.universes:
+            if r['to'] not in ['U', self.remainder]:
                 i = self.par_sv.index(r['to'])
                 Ls[i][B_dem_ind] += 1
                 if is_noise:
@@ -824,7 +824,7 @@ class Ccoder(Cmodel):
 
         for r in proc_model:
             if 'white_noise' in r:
-                if r['from'] not in self.universes:
+                if r['from'] not in ['U', self.remainder]:
                     Qn_term = '({0})*{1}'.format(r['rate'], r['from'])
                 else:
                     Qn_term = r['rate']

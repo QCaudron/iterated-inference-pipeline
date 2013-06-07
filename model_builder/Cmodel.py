@@ -48,9 +48,6 @@ class Cmodel:
             else:
                 self.par_sv.append(x['id'])
 
-
-        self.universes = ['U', self.remainder]
-
         ##par fixed !! N **HAS** to be first if it exists
         self.par_fixed = [x['id'] for x in context.get('metadata', []) if x['id'] == 'N'] #does N exist, if so it is first
         self.par_fixed += [x['id'] for x in (context.get('data', []) + context.get('metadata', [])) if x['id'] != 'data' and x['id'] != 'N'] ##all the rest
