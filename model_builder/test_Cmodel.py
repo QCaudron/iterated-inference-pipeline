@@ -70,14 +70,9 @@ class TestCmodel(unittest.TestCase):
 
 
     def test_par_sv(self):
-        self.assertEqual(set(self.m.par_sv), set(['S','I','R']))
-        self.assertEqual(set(self.m2.par_sv), set(['S','I','R']))
+        self.assertEqual(set(self.m.par_sv), set(['S','R']))
+        self.assertEqual(set(self.m2.par_sv), set(['S','I']))
         self.assertEqual(set(self.m3.par_sv), set(['S','I', 'R']))
-
-    def test_par_sv_no_rem(self):
-        self.assertEqual(set(self.m.par_sv_no_rem), set(['S','R']))
-        self.assertEqual(set(self.m2.par_sv_no_rem), set(['S','I']))
-        self.assertEqual(set(self.m3.par_sv_no_rem), set(['S','I', 'R']))
 
     def test_remaider(self):
         self.assertEqual(self.m.remainder, 'I')
