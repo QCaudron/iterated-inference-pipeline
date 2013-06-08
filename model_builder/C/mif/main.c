@@ -81,7 +81,14 @@ int main(int argc, char *argv[])
     prop_L_option = 0.75;
     SWITCH = 5;
     OPTION_IC_ONLY = 0;
-    int n_threads = omp_get_max_threads();
+   
+#if FLAG_OMP
+    int n_threads = omp_get_max_threads();       
+#else
+    int n_threads = 1;
+#endif
+
+
     OPTION_TRAJ = 0;
     OPTION_PRIOR = 0;
 

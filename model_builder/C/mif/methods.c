@@ -282,7 +282,12 @@ void resample_and_mut_theta_mif(unsigned int *select, gsl_vector **J_theta, gsl_
         //resample and (possibly) mutate
 #pragma omp parallel for private(thread_id, i, k, offset)
         for(j=0; j<J; j++) {
-            thread_id = omp_get_thread_num();
+#if FLAG_OMP
+	    thread_id = omp_get_thread_num();
+#else
+	    thread_id = 0;
+#endif
+
 
             for(k=0; k<p_best->n_to_be_estimated; k++) {
                 gsl_vector_set((gsl_vector *) calc[thread_id]->method_specific_thread_safe_data, k, gsl_ran_ugaussian(calc[thread_id]->randgsl));
@@ -319,7 +324,12 @@ void resample_and_mut_theta_mif(unsigned int *select, gsl_vector **J_theta, gsl_
 
 #pragma omp parallel for private(thread_id, i, k, offset)
         for(j=0; j<J; j++) {
-            thread_id = omp_get_thread_num();
+#if FLAG_OMP
+	    thread_id = omp_get_thread_num();
+#else
+	    thread_id = 0;
+#endif
+
 
             //resample and mutate
             for(i=0; i<p_it_mif->length; i++) {

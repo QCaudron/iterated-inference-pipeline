@@ -245,7 +245,12 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
 
 #pragma omp parallel for private(thread_id)
             for(j=0;j<J;j++) {
-                thread_id = omp_get_thread_num();
+#if FLAG_OMP
+		thread_id = omp_get_thread_num();
+#else
+		thread_id = 0;
+#endif
+
                 reset_inc(D_J_p_X[nnp1][j], p_data);
                 (*f_pred)(D_J_p_X[nnp1][j], nn, nnp1, p_par, p_data, calc[thread_id]);
                 //round_inc(D_J_p_X[nnp1][j]);
@@ -300,15 +305,19 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
 
 }
 
+
+
 /**
- *   same as run_SMC but deleguates work to simforence workers. Each
+ *  same as run_SMC but deleguates work to plom workers. Each
  *  worker receive Jchunk particles
  */
 void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int Jchunk, void *sender, void *receiver, void *controller)
 {
     int j, n, nn, nnp1;
     int t0,t1;
-    int rc, the_j;
+    int the_j;
+
+    printf("Jchunk %d\n", Jchunk);
 
     t0=0;
 
@@ -325,28 +334,29 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
             //send work
             //we are going to overwrite the content of the [nnp1] pointer: initialise it with values from [nn]
             for (j=0;j<J;j++) {
-
-                // we try to minimize the number of times we send the parameters...
+		//we try to minimize the number of times we send the parameters...
                 if ( (j % Jchunk) == 0) {
-                    rc = send_int(sender, n, ZMQ_SNDMORE);
-                    rc = send_int(sender, nn, ZMQ_SNDMORE);
-                    rc = send_par(sender, p_par, p_data, ZMQ_SNDMORE);
+		    zmq_send(sender, &n, sizeof (int), ZMQ_SNDMORE);    
+		    zmq_send(sender, &nn, sizeof (int), ZMQ_SNDMORE);    
+                    send_par(sender, p_par, p_data, ZMQ_SNDMORE);
                 }
 
-                rc = send_int(sender, j, ZMQ_SNDMORE);
-                rc = send_X(sender, D_J_p_X[nn][j], p_data, ( ((j+1) % Jchunk) == 0) ? 0: ZMQ_SNDMORE);
+		zmq_send(sender, &j, sizeof (int), ZMQ_SNDMORE);                   	       	       
+                send_X(sender, D_J_p_X[nn][j], p_data, ( ((j+1) % Jchunk) == 0) ? 0: ZMQ_SNDMORE);
+		//printf("part %d sent %d\n", j, ( ((j+1) % Jchunk) == 0) ? 0: ZMQ_SNDMORE);
             }
 
             //get results from the workers
             for (j=0; j<J; j++) {
-                the_j = recv_int(receiver);
+		zmq_recv(receiver, &the_j, sizeof (int), 0);
                 recv_X(D_J_p_X[nnp1][ the_j ], p_data, receiver);
-                p_like->weights[the_j] = recv_double(receiver);
+		zmq_recv(receiver, &(p_like->weights[the_j]), sizeof (double), 0);
+		//printf("part  %d received\n", the_j);
             }
 
             if( nnp1 < t1 ){
-                compute_hat_nn(D_J_p_X[nnp1], &p_par, p_data, calc, D_p_hat[nn], 0);
-            }
+		compute_hat_nn(D_J_p_X[nnp1], &p_par, p_data, calc, D_p_hat[nn], 1);
+	    }
 
         } /* end for on nn */
 
@@ -354,7 +364,7 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
             systematic_sampling(p_like, calc[0], n);
         }
 
-        compute_hat(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1], p_like->weights);
+	compute_hat(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1], p_like->weights);
 
         resample_X(p_like->select[n], &(D_J_p_X[t1]), &(D_J_p_X_tmp[t1]), p_data);
         t0=t1;

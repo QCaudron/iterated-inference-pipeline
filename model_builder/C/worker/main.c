@@ -33,7 +33,7 @@ struct s_thread_params
 
 void *worker_routine (void *params) {
     char str[STR_BUFFSIZE];
-    int j, jrcv, rc, n, nn, nnp1, t1;
+    int j, jrcv, n, nn, nnp1, t1;
 
     struct s_thread_params *p = (struct s_thread_params *) params;
 
@@ -68,29 +68,30 @@ void *worker_routine (void *params) {
         { server_controller, 0, ZMQ_POLLIN, 0 }
     };
 
+
     while (1) {
         zmq_poll (items, 2, -1);
         if (items [0].revents & ZMQ_POLLIN) {
-
+	    
             //get a particle from the server
-            n = recv_int(server_receiver);
-            nn = recv_int(server_receiver);
+	    zmq_recv(server_receiver, &n, sizeof (int), 0);
+	    zmq_recv(server_receiver, &nn, sizeof (int), 0);
             nnp1 = nn+1;
             t1 = p_data->times[n];
 
             p_calc->current_n = n;
             p_calc->current_nn = nn;
 
-            recv_par(p_par, p_data, server_receiver);
+	    recv_par(p_par, p_data, server_receiver);
 
             for(j=0; j<J; j++) {
-                jrcv = recv_int(server_receiver);
-                //printf("j: %d jrcv %d from %d n:%d nn%d\n", j, jrcv, p->thread_id, p_calc->current_n, p_calc->current_nn);
+		zmq_recv(server_receiver, &jrcv, sizeof (int), 0);
+                //printf("j: %d jrcv %d\n", j, jrcv);
                 recv_X(p_X, p_data, server_receiver);
 
                 //do the computations..
                 reset_inc(p_X, p_data);
-		f_pred(p_X, nn, nnp1, p_par, p_data, p_calc);
+				f_pred(p_X, nn, nnp1, p_par, p_data, p_calc);
                 proj2obs(p_X, p_data);
 
                 if(nnp1 == t1) {
@@ -98,19 +99,19 @@ void *worker_routine (void *params) {
                 }
 
                 //send results
-                rc = send_int(server_sender, jrcv, ZMQ_SNDMORE);
-                rc = send_X(server_sender, p_X, p_data, ZMQ_SNDMORE);
-                rc = send_double(server_sender, like, 0);
+		zmq_send(server_sender, &jrcv, sizeof (int), ZMQ_SNDMORE);    
+		send_X(server_sender, p_X, p_data, ZMQ_SNDMORE);
+		zmq_send(server_sender, &like, sizeof (double), 0);
+                //printf("j: %d jrcv %d sent back\n", j, jrcv);
             }
         }
 
         //controller commands:
         if (items [1].revents & ZMQ_POLLIN) {
-            char *c_str = recv_str(server_controller);
-
-            if(strcmp(c_str, "KILL") == 0) {
-                printf("worker %d: controller sent: %s\n", p->thread_id, c_str);
-                free(c_str);
+	    char buf [256];
+	    zmq_recv(server_controller, buf, 256, 0);           
+            if(strcmp(buf, "KILL") == 0) {
+                printf("worker %d: controller sent: %s\n", p->thread_id, buf);
                 break;  //  Exit loop
             }
         }
@@ -161,7 +162,7 @@ int main(int argc, char *argv[])
         "-I, --IPv4         ip address or DNS of the particle server\n"
         "-P, --N_THREAD     number of threads to be used (defaults to the number of cores)\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
-        "-J  -Jchunk        size of the chunk of particles\n"
+        "-c  -Jchunk        size of the chunk of particles\n"
 	"-o, --nb_obs       number of observations to be fitted (for tempering)"
         "--help             print the usage on stdout\n";
 
@@ -169,7 +170,13 @@ int main(int argc, char *argv[])
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
     GENERAL_ID =0;
     J = 1; //here J is actualy Jchunk!
-    int n_threads = omp_get_max_threads();
+    
+#if FLAG_OMP
+    int n_threads = omp_get_max_threads();       
+#else
+    int n_threads = 1;
+#endif
+
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
     OPTION_TRAJ = 0;
@@ -194,7 +201,7 @@ int main(int argc, char *argv[])
                 {"id",         required_argument, 0, 'i'},
                 {"N_THREAD",   required_argument, 0, 'P'},
                 {"IPv4",       required_argument, 0, 'I'},
-                {"Jchunk",     required_argument, 0, 'J'},
+                {"Jchunk",     required_argument, 0, 'c'},
 		{"nb_obs", required_argument,  0, 'o'},
 
                 {"LIKE_MIN",   required_argument, 0, 'l'},
@@ -204,7 +211,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:i:P:J:I:l:o:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:i:P:c:I:l:o:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -247,7 +254,7 @@ int main(int argc, char *argv[])
             GENERAL_ID = atoi(optarg);
             break;
 
-        case 'J':
+        case 'c':
             J = atoi(optarg);
             break;
 
@@ -270,6 +277,7 @@ int main(int argc, char *argv[])
 
         case '?':
             /* getopt_long already printed an error message. */
+	    exit(0);
             break;
 
         default:
@@ -302,12 +310,12 @@ int main(int argc, char *argv[])
     json_t *theta = load_json();
 
     n_threads = sanitize_n_threads(n_threads, J);
+    n_threads = 1;
 
 #if FLAG_VERBOSE
     snprintf(str, STR_BUFFSIZE, "Starting Plom-worker with the following options: i = %d, LIKE_MIN = %g, N_THREADS = %d", GENERAL_ID, LIKE_MIN, n_threads);
     print_log(str);
 #endif
-
     struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 1, nb_obs);
     json_decref(settings);
     json_decref(theta);
@@ -316,7 +324,7 @@ int main(int argc, char *argv[])
     print_log("setting up zmq context...");
 #endif
 
-    void *context = zmq_init (1);
+    void *context = zmq_ctx_new();
 
 #if FLAG_VERBOSE
     print_log("starting the threads...");
@@ -353,7 +361,7 @@ int main(int argc, char *argv[])
     print_log("closing zmq sockets...");
 #endif
 
-    zmq_term (context);
+    zmq_ctx_destroy(context);
 
     return 0;
 }

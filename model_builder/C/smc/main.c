@@ -78,7 +78,13 @@ int main(int argc, char *argv[])
     LOG_LIKE_MIN = log(1e-17);
     int nb_obs = -1;
 
-    int n_threads=omp_get_max_threads();
+
+#if FLAG_OMP
+    int n_threads = omp_get_max_threads();       
+#else
+    int n_threads = 1;
+#endif
+
 
     while (1) {
         static struct option long_options[] =

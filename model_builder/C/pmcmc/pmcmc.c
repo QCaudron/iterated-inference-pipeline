@@ -76,7 +76,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 #if FLAG_VERBOSE
         print_log("setting up zmq sockets...");
 #endif
-        context = zmq_init (1);
+        context = zmq_ctx_new ();
 
         //  Socket to send messages on
         sender = zmq_socket (context, ZMQ_PUSH);
@@ -216,6 +216,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 
     }
 
+
     /////////////////
     // terminating //
     /////////////////
@@ -235,7 +236,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 #if FLAG_VERBOSE
         print_log("killing the workers...");
 #endif
-        sfr_send (controller, "KILL");
+	zmq_send (controller, "KILL", 5, 0);        
 
 #if FLAG_VERBOSE
         print_log("closing zmq sockets...");
@@ -244,6 +245,6 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         zmq_close (receiver);
         zmq_close (controller);
 
-        zmq_term (context);
+        zmq_ctx_destroy (context);
     }
 }

@@ -26,6 +26,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <assert.h>
 #include <sys/time.h>
 
 #include <getopt.h>
@@ -78,6 +79,7 @@ typedef enum {PLOM_SUCCESS=0, PLOM_ERR_LIKE=-1} plom_err_code;
 #define FLAG_VERBOSE 1
 #define FLAG_WARNING 0
 #define FLAG_JSON 0 /**< webApp */
+#define FLAG_OMP 0
 
 #define PLOM_EPS_ABS 1e-6 /**< absolute error control for ODEs*/
 #define PLOM_EPS_REL 1e-3 /**< relative error control for ODEs*/
@@ -812,24 +814,10 @@ void transfer_estimated(struct s_best *p_best, const gsl_vector *x, struct s_dat
 void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simplex, double (*f_simplex)(const gsl_vector *, void *), double CONVERGENCE_STOP_SIMPLEX, int M, const int option_no_trace);
 
 /* zhelpers.c */
-int sfr_send(void *socket, char *string);
-
-int sfr_send_zero_copy (void *socket, char *string);
-void free_zmq_msg_zero_copy(void *data, void *hint);
-int send_array_d(void *socket, double *array, int array_size, int zmq_options);
-int send_int(void *socket, int x, int zmq_options);
-int send_double(void *socket, double x, int zmq_options);
-int send_int64_t(void *socket, int64_t x, int zmq_options);
-int send_par(void *socket, const struct s_par *p_par, struct s_data *p_data, int zmq_options);
+void send_par(void *socket, const struct s_par *p_par, struct s_data *p_data, int zmq_options);
 void recv_par(struct s_par *p_par, struct s_data *p_data, void *socket);
-int send_X(void *socket, const struct s_X *p_X, struct s_data *p_data, int zmq_options);
+void send_X(void *socket, const struct s_X *p_X, struct s_data *p_data, int zmq_options);
 void recv_X(struct s_X *p_X, struct s_data *p_data, void *socket);
-
-char *recv_str(void *socket);
-int recv_int(void *socket);
-double recv_double(void *socket);
-int64_t recv_int64_t(void *socket);
-void recv_array_d(double *array, int array_size, void *socket);
 
 
 /* mvn.c */

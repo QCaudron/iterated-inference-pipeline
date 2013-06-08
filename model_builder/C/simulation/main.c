@@ -86,7 +86,14 @@ int main(int argc, char *argv[])
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
     J=1;
 
-    int n_threads=omp_get_max_threads();
+
+#if FLAG_OMP
+    int n_threads = omp_get_max_threads();       
+#else
+    int n_threads = 1;
+#endif
+
+
 
     while (1) {
         static struct option long_options[] =
@@ -358,7 +365,11 @@ int main(int argc, char *argv[])
                 ip1 = i+1;
 #pragma omp parallel for private(thread_id)
                 for(j=0; j<J; j++) {
-                    thread_id = omp_get_thread_num();
+#if FLAG_OMP
+        thread_id = omp_get_thread_num();
+#else
+	thread_id = 0;
+#endif
                     reset_inc(J_p_X[j], p_data);
                     f_pred(J_p_X[j], i, ip1, J_p_par[0], p_data, calc[thread_id]);
                 }

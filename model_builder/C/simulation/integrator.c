@@ -167,7 +167,14 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
 
 #pragma omp parallel for private(thread_id)
         for(j=0;j<J;j++) {
-            thread_id = omp_get_thread_num();
+#if FLAG_OMP
+	    thread_id = omp_get_thread_num();
+#else
+	    thread_id = 0;
+#endif
+
+
+
             reset_inc(J_p_X[j], p_data);
 
             f_pred(J_p_X[j], k, k+1, J_p_par[j], p_data, calc[thread_id]);

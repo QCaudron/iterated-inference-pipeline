@@ -78,8 +78,11 @@ void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data,
     /* par_sv */
 #pragma omp parallel for private(thread_id, j)
     for(i=0; i<(N_PAR_SV*N_CAC); i++) {
+#if FLAG_OMP
         thread_id = omp_get_thread_num();
-
+#else
+	thread_id = 0;
+#endif
         /* J_p_X contains the particles at t1 projected from
            t0. At t1 we have data so we know the weights hence we
            compute a weighted average */
@@ -98,7 +101,12 @@ void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data,
        on p_X->obs */
 #pragma omp parallel for private(thread_id, j)
     for(ts=0; ts<N_TS; ts++) {
+#if FLAG_OMP
         thread_id = omp_get_thread_num();
+#else
+	thread_id = 0;
+#endif
+
 
         /* weighted average */
         p_hat->obs[ts] = 0.0;
@@ -119,7 +127,12 @@ void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data,
 
 #pragma omp parallel for private(thread_id, j) //we parallelize k and not i as in most cases there are only one single diffusion
         for (k=0; k< routers[ ind_par_Xdrift_applied ]->n_gp; k++) {
-            thread_id = omp_get_thread_num();
+#if FLAG_OMP
+	    thread_id = omp_get_thread_num();
+#else
+	    thread_id = 0;
+#endif
+
 
             p_hat->drift[offset+k] = 0.0;
 
@@ -153,7 +166,12 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
     /* par_sv */
 #pragma omp parallel for private(thread_id, j)
     for(i=0; i<(N_PAR_SV*N_CAC); i++) {
+#if FLAG_OMP
         thread_id = omp_get_thread_num();
+#else
+	thread_id = 0;
+#endif
+
 
         p_hat->state[i] = 0.0;
         for(j=0;j<J;j++) {
@@ -173,7 +191,12 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
 
 #pragma omp parallel for private(thread_id, j)
         for(ts=0; ts<N_TS; ts++) {
-            thread_id = omp_get_thread_num();
+#if FLAG_OMP
+	    thread_id = omp_get_thread_num();
+#else
+	    thread_id = 0;
+#endif
+
 
             /* empirical average */
             p_hat->obs[ts] = 0.0;
@@ -190,7 +213,12 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
 
 #pragma omp parallel for private(thread_id, j)
         for(ts=0; ts<N_TS; ts++) {
-            thread_id = omp_get_thread_num();
+#if FLAG_OMP
+	    thread_id = omp_get_thread_num();
+#else
+	    thread_id = 0;
+#endif
+
 
             /* empirical average */
             p_hat->obs[ts] = 0.0;
@@ -215,7 +243,12 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
 
 #pragma omp parallel for private(thread_id, j) //we parallelize k and not i as in most cases there are only one single diffusion
         for (k=0; k< routers[ ind_par_Xdrift_applied ]->n_gp; k++) {
-            thread_id = omp_get_thread_num();
+#if FLAG_OMP
+	    thread_id = omp_get_thread_num();
+#else
+	    thread_id = 0;
+#endif
+
 
             p_hat->drift[offset+k] = 0.0;
             for(j=0; j<J; j++) {

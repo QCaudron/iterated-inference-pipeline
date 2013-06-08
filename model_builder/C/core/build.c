@@ -845,7 +845,9 @@ struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, doubl
 
 
     *n_threads = sanitize_n_threads(*n_threads, J);
+#if FLAG_OMP
     omp_set_num_threads(*n_threads);
+#endif
 
     struct s_calc **calc;
     calc=malloc(*n_threads*sizeof (struct s_calc *));
