@@ -1,0 +1,56 @@
+CC=gcc
+CPP=g++
+CFLAGS=-Wall -O3 -DGSL_RANGE_CHECK_OFF
+LDFLAGS=-lplom -lplomtpl -lm /Users/team/standalone_C_plom/build/lib/libgsl.a /Users/team/standalone_C_plom/build/lib/libgslcblas.a /Users/team/standalone_C_plom/build/lib/libjansson.a /Users/team/standalone_C_plom/build/lib/libzmq.a
+LIB=libplomtpl.a
+SRC= $(wildcard *.c)
+OBJ= $(SRC:.c=.o)
+LIBDIR=../lib
+
+EXEC=simul simplex smc mif pmcmc kalman ksimplex kmcmc worker
+
+all: $(LIB)
+
+install: $(EXEC)
+	mv $(EXEC) ../../
+
+$(LIB): $(OBJ)
+	ar -rcs $@ $(OBJ)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+simul: libplomtpl.a
+	$(CPP) $(CFLAGS) -L. -o $@ -lplom_simul $(LDFLAGS)
+
+simplex: libplomtpl.a
+	$(CPP) $(CFLAGS) -L. -o $@ -lplom_simplex $(LDFLAGS)
+
+smc: libplomtpl.a
+	$(CPP) $(CFLAGS) -L. -o $@ -lplom_smc $(LDFLAGS) 
+
+mif: libplomtpl.a
+	$(CPP) $(CFLAGS) -L. -o $@ -lplom_mif $(LDFLAGS)  
+
+pmcmc: libplomtpl.a
+	$(CPP) $(CFLAGS) -L. -o $@ -lplom_pmcmc $(LDFLAGS)  
+
+kalman: libplomtpl.a
+	$(CPP) $(CFLAGS) -L. -o $@ -lplom_kalman $(LDFLAGS) 
+
+ksimplex: libplomtpl.a
+	$(CPP) $(CFLAGS) -L. -o $@ -lplom_ksimplex $(LDFLAGS)
+
+kmcmc: libplomtpl.a
+	$(CPP) $(CFLAGS) -L. -o $@ -lplom_kmcmc $(LDFLAGS)
+
+worker: libplomtpl.a
+	$(CPP) $(CFLAGS) -L. -o $@ -lplom_worker $(LDFLAGS) 
+
+.PHONY: clean
+
+clean:
+	rm *.o $(LIB)
+
+uninstall: clean
+	rm ../../{simul,simplex,smc,mif,pmcmc,kalman,ksimplex,kmcmc,worker}
