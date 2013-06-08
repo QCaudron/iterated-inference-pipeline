@@ -1,6 +1,5 @@
 CC=gcc
-CFLAGS=-std=gnu99 -Wall -O3 -DGSL_RANGE_CHECK_OFF -I kalman -I pmcmc -I simulation -I mif -I simplex -I core
-#CFLAGS=-fopenmp -std=gnu99 -Wall -O3 -DGSL_RANGE_CHECK_OFF -I kalman -I pmcmc -I simulation -I mif -I simplex -I core
+CFLAGS=-fopenmp -std=gnu99 -Wall -O3 -DGSL_RANGE_CHECK_OFF -I kalman -I pmcmc -I simulation -I mif -I simplex -I core
 LIB=libplom.a libplom_smc.a libplom_simplex.a libplom_mif.a libplom_pmcmc.a libplom_kalman.a libplom_ksimplex.a libplom_kmcmc.a libplom_simul.a libplom_worker.a
 ALL_SRC= $(wildcard */*.c)
 ALL_SRC_NO_TEMPLATE=$(filter-out templates/core_template.c templates/kalman_template.c templates/simulation_template.c, $(ALL_SRC))

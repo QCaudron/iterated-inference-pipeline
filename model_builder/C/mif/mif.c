@@ -109,7 +109,9 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
                 store_state_current_n_nn(calc, n, nn);
                 nnp1 = nn+1;
 
+#if FLAG_OMP
 #pragma omp parallel for private(thread_id)
+#endif
                 for(j=0;j<J;j++) {
 #if FLAG_OMP
 		    thread_id = omp_get_thread_num();

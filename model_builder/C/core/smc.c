@@ -242,7 +242,9 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
                 D_J_p_X[nnp1][j]->dt = D_J_p_X[nn][j]->dt;
             }
 
+#if FLAG_OMP
 #pragma omp parallel for private(thread_id)
+#endif
             for(j=0;j<J;j++) {
 #if FLAG_OMP
 		thread_id = omp_get_thread_num();

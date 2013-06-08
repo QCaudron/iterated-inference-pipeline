@@ -11,7 +11,7 @@ C:
 - gsl: http://www.gnu.org/software/gsl/
 - zmq: http://www.zeromq.org/
 - jansson: http://www.digip.org/jansson/
-- openMP: http://openmp.org/
+- openMP: http://openmp.org/ (openMP is optional as it is not supported by Clang. All the feature provided by openMP have a counterpart provided by zmq and pthread.)
 
 Python:
 - Python 2.7.x: www.python.org/

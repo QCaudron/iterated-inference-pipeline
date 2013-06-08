@@ -28,7 +28,11 @@ void run_propag(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *
     if (OPTION_PIPELINE) {
 	run_SMC_zmq(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_pred, JCHUNK, sender, receiver, controller);
     } else {
+#if FLAG_OMP
 	run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_pred, 1, NULL, NULL, NULL, print_opt);
+#else       
+	run_SMC_zmq_inproc(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_pred, 1, NULL, NULL, NULL, print_opt, sender, receiver, controller);
+#endif
     }
 }
 
@@ -70,6 +74,11 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     void *receiver = NULL;
     void *controller = NULL;
 
+#if !FLAG_OMP
+    struct s_thread_smc *p_thread_smc = NULL;
+    pthread_t *worker = NULL;
+    int nt;
+#endif
 
     if (OPTION_PIPELINE) {
 
@@ -89,8 +98,49 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         //  Socket for worker control
         controller = zmq_socket (context, ZMQ_PUB);
         zmq_bind (controller, "tcp://*:5559");
-    }
 
+    } else {
+
+#if !FLAG_OMP
+
+	context = zmq_ctx_new ();
+	sender = zmq_socket (context, ZMQ_PUSH);
+	zmq_bind (sender, "inproc://server_sender");
+
+	receiver = zmq_socket (context, ZMQ_PULL);
+	zmq_bind (receiver, "inproc://server_receiver");
+
+	controller = zmq_socket (context, ZMQ_PUB);
+	zmq_bind (controller, "inproc://server_controller");
+
+	p_thread_smc = malloc(calc[0]->n_threads*sizeof(struct s_thread_smc));
+	worker = malloc(calc[0]->n_threads*sizeof(pthread_t));
+	int id;
+	int J_chunk = J/calc[0]->n_threads;
+	
+	for (nt = 0; nt < calc[0]->n_threads; nt++) {
+	    p_thread_smc[nt].thread_id = nt;       	    	    
+	    p_thread_smc[nt].J_chunk = J_chunk;
+	    p_thread_smc[nt].J = J;
+	    p_thread_smc[nt].p_data = p_data;
+	    p_thread_smc[nt].p_par = p_par;
+	    p_thread_smc[nt].D_J_p_X = D_J_p_X;
+	    p_thread_smc[nt].p_calc = calc[nt];	
+	    p_thread_smc[nt].p_like = p_like;
+	    p_thread_smc[nt].context = context;
+	    pthread_create (&worker[nt], NULL, worker_routine_smc_inproc, (void*) &p_thread_smc[nt]);
+	    printf("worker %d started\n", nt);
+	}
+
+	//wait that all worker are connected
+	for (nt = 0; nt < calc[0]->n_threads; nt++) {
+	    zmq_recv(receiver, &id, sizeof (int), 0);
+	    printf("worker %d connected\n", id);
+	}
+	       
+#endif
+
+    }
 
     /////////////////////////
     // initialization step //
@@ -216,7 +266,6 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 
     }
 
-
     /////////////////
     // terminating //
     /////////////////
@@ -246,5 +295,26 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         zmq_close (controller);
 
         zmq_ctx_destroy (context);
+
+    } else {
+
+#if !FLAG_OMP
+
+	zmq_send (controller, "KILL", 5, 0);        
+	zmq_close (sender);
+	zmq_close (receiver);
+	zmq_close (controller);
+
+	for(nt = 0; nt < calc[0]->n_threads; nt++){
+	    pthread_join(worker[nt], NULL);
+	}
+
+	free(worker);
+	free(p_thread_smc);
+
+	zmq_ctx_destroy (context);	       
+#endif
+
     }
+
 }

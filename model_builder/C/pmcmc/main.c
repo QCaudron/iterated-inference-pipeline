@@ -86,11 +86,7 @@ int main(int argc, char *argv[])
     LOG_LIKE_MIN = log(1e-17);
     M = 10;
     
-#if FLAG_OMP
-    int n_threads = omp_get_max_threads();       
-#else
     int n_threads = 1;
-#endif
 
     OPTION_PIPELINE = 0;
     OPTION_FULL_UPDATE = 0;
