@@ -286,8 +286,8 @@ int main(int argc, char *argv[])
 	
 	for (nt = 0; nt < n_threads; nt++) {
 	    p_thread_smc[nt].thread_id = nt;       	    	    
-	    p_thread_smc[nt].J_start = nt*J_chunk;       
-	    p_thread_smc[nt].J_end = (nt+1 == n_threads)? J : (nt+1)*J_chunk;	   
+	    p_thread_smc[nt].J_chunk = J_chunk;
+	    p_thread_smc[nt].J = J;
 	    p_thread_smc[nt].p_data = p_data;
 	    p_thread_smc[nt].p_par = p_par;
 	    p_thread_smc[nt].D_J_p_X = D_J_p_X;

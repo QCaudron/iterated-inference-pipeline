@@ -356,13 +356,12 @@ struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get
     void *method_specific_shared_data;
 };
 
-
 struct s_thread_smc
 {
     void *context; ///< zmq context
-    int J_start; ///<index of first particle to be integrated
-    int J_end;  ///<index of last particle to be integrated (non inclusive) (for (j=Jstart; J<J_end; j++))
     int thread_id;    
+    int J_chunk;
+    int J;
     struct s_data *p_data;
     struct s_par *p_par;
     struct s_X ***D_J_p_X;
@@ -373,9 +372,9 @@ struct s_thread_smc
 struct s_thread_mif
 {
     void *context; ///< zmq context
-    int J_start;
-    int J_end;
     int thread_id;    
+    int J_chunk;
+    int J;
     struct s_data *p_data;
     struct s_par ** J_p_par;
     struct s_X ***J_p_X;
@@ -386,9 +385,9 @@ struct s_thread_mif
 struct s_thread_predict
 {
     void *context; ///< zmq context
-    int J_start;
-    int J_end;
     int thread_id;    
+    int J_chunk;
+    int J;
     struct s_data *p_data;
     struct s_par ** J_p_par;
     struct s_X **J_p_X;

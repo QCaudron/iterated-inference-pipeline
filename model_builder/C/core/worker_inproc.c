@@ -30,8 +30,6 @@ void *worker_routine_smc_inproc(void *params)
     struct s_calc *p_calc = p->p_calc;
     struct s_X ***D_J_p_X = p->D_J_p_X;
     struct s_likelihood *p_like = p->p_like;
-    int J_start = p->J_start;
-    int J_end = p->J_end;
 
     plom_f_pred_t f_pred = get_f_pred(p_data->implementation, p_data->noises_off);
 
@@ -65,6 +63,9 @@ void *worker_routine_smc_inproc(void *params)
 	    nn = p_calc->current_nn;
 	    nnp1 = nn+1;
 	    t1 = p_data->times[p_calc->current_n];
+
+	    int J_start = id * p->J_chunk;
+	    int J_end = (id+1 == p_calc->n_threads) ? p->J : (id+1)*p->J_chunk;	  
 	   
 	    for(j=J_start; j<J_end; j++ ){
 		reset_inc(D_J_p_X[nnp1][j], p_data);
@@ -114,8 +115,6 @@ void *worker_routine_mif_inproc(void *params)
     struct s_calc *p_calc = p->p_calc;
     struct s_X ***J_p_X = p->J_p_X;
     struct s_likelihood *p_like = p->p_like;
-    int J_start = p->J_start;
-    int J_end = p->J_end;
 
     plom_f_pred_t f_pred = get_f_pred(p_data->implementation, p_data->noises_off);
 
@@ -148,6 +147,9 @@ void *worker_routine_mif_inproc(void *params)
 	    nn = p_calc->current_nn;
 	    nnp1 = nn+1;
 	    t1 = p_data->times[p_calc->current_n];
+
+	    int J_start = id * p->J_chunk;
+	    int J_end = (id+1 == p_calc->n_threads) ? p->J : (id+1)*p->J_chunk;	  
 
 	    for(j=J_start; j<J_end; j++ ){
 		reset_inc((*J_p_X)[j], p_data);
@@ -196,8 +198,6 @@ void *worker_routine_predict_inproc(void *params)
     struct s_par **J_p_par = p->J_p_par;
     struct s_calc *p_calc = p->p_calc;
     struct s_X **J_p_X = p->J_p_X;   
-    int J_start = p->J_start;
-    int J_end = p->J_end;
 
     plom_f_pred_t f_pred = get_f_pred(p_data->implementation, p_data->noises_off);
 
@@ -228,6 +228,9 @@ void *worker_routine_predict_inproc(void *params)
 	    nn = p_calc->current_nn;
 	    nnp1 = nn+1;
 	    t1 = p_data->times[p_calc->current_n];
+
+	    int J_start = id * p->J_chunk;
+	    int J_end = (id+1 == p_calc->n_threads) ? p->J : (id+1)*p->J_chunk;	  
 
 	    for(j=J_start; j<J_end; j++ ){
 		reset_inc(J_p_X[j], p_data);
