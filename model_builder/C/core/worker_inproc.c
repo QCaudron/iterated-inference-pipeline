@@ -189,8 +189,8 @@ void *worker_routine_mif_inproc(void *params)
 
 void *worker_routine_predict_inproc(void *params) 
 {
-    int j, nn, nnp1, t1;
-    int id;
+    int j;
+    int k, kp1, id;
 
     struct s_thread_predict *p = (struct s_thread_predict *) params;
 
@@ -224,22 +224,16 @@ void *worker_routine_predict_inproc(void *params)
         if (items [0].revents & ZMQ_POLLIN) {
 
 	    zmq_recv(receiver, &id, sizeof (int), 0);
-
-	    nn = p_calc->current_nn;
-	    nnp1 = nn+1;
-	    t1 = p_data->times[p_calc->current_n];
+	    zmq_recv(receiver, &k, sizeof (int), 0);
+	    kp1 = k+1;
 
 	    int J_start = id * p->J_chunk;
 	    int J_end = (id+1 == p_calc->n_threads) ? p->J : (id+1)*p->J_chunk;	  
 
 	    for(j=J_start; j<J_end; j++ ){
 		reset_inc(J_p_X[j], p_data);
-
-		f_pred(J_p_X[j], nn, nnp1, J_p_par[j], p_data, p_calc);
-
-		if(nnp1 == t1) {
-		    proj2obs(J_p_X[j], p_data);
-		}
+		f_pred(J_p_X[j], k, kp1, J_p_par[j], p_data, p_calc);
+		proj2obs(J_p_X[j], p_data);
 	    }
 
 	    //send back id of the batch of particles now integrated

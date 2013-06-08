@@ -86,14 +86,7 @@ int main(int argc, char *argv[])
     snprintf(SFR_PATH, STR_BUFFSIZE, "%s", DEFAULT_PATH);
     J=1;
 
-
-#if FLAG_OMP
-    int n_threads = omp_get_max_threads();       
-#else
     int n_threads = 1;
-#endif
-
-
 
     while (1) {
         static struct option long_options[] =
@@ -343,38 +336,96 @@ int main(int argc, char *argv[])
 
     plom_f_pred_t f_pred = get_f_pred(p_data->implementation, p_data->noises_off);
 
+
+    void *sender = NULL;
+    void *receiver = NULL;
+    void *controller = NULL;
+
+#if !FLAG_OMP   
+    void *context = zmq_ctx_new ();
+
+    sender = zmq_socket (context, ZMQ_PUSH);
+    zmq_bind (sender, "inproc://server_sender");
+
+    receiver = zmq_socket (context, ZMQ_PULL);
+    zmq_bind (receiver, "inproc://server_receiver");
+
+    controller = zmq_socket (context, ZMQ_PUB);
+    zmq_bind (controller, "inproc://server_controller");
+
+    struct s_thread_predict *p_thread_predict = malloc(n_threads*sizeof(struct s_thread_predict));
+    pthread_t *worker = malloc(n_threads*sizeof(pthread_t));
+    int nt, id;
+    int J_chunk = J/n_threads;
+	
+    for (nt = 0; nt < n_threads; nt++) {
+	p_thread_predict[nt].thread_id = nt;       	    	    
+	p_thread_predict[nt].J_chunk = J_chunk;
+	p_thread_predict[nt].J = J;
+	p_thread_predict[nt].p_data = p_data;
+	p_thread_predict[nt].J_p_par = J_p_par;
+	p_thread_predict[nt].J_p_X = J_p_X;
+	p_thread_predict[nt].p_calc = calc[nt];    
+	p_thread_predict[nt].context = context;
+	pthread_create (&worker[nt], NULL, worker_routine_predict_inproc, (void*) &p_thread_predict[nt]);
+	printf("worker %d started\n", nt);
+    }
+
+    //wait that all worker are connected
+    for (nt = 0; nt < n_threads; nt++) {
+	zmq_recv(receiver, &id, sizeof (int), 0);
+	printf("worker %d connected\n", id);
+    }
+#endif
+
+
+
     /**************************************************/
     /* SKIP TRANSIANT (not possible with prediction)  */
     /**************************************************/
     if ( (!is_predict) && (t_transiant > 0.0) ) {
-        t_transiant = floor(t_transiant/ONE_YEAR)*ONE_YEAR + t0;
+	t_transiant = floor(t_transiant/ONE_YEAR)*ONE_YEAR + t0;
 #if FLAG_VERBOSE
-        snprintf(str, STR_BUFFSIZE,  "skipping transiant... (Note that t_transiant has been ajusted to %g to respect seasonality and t0)", t_transiant );
-        print_warning(str);
+	snprintf(str, STR_BUFFSIZE,  "skipping transiant... (Note that t_transiant has been ajusted to %g to respect seasonality and t0)", t_transiant );
+	print_warning(str);
 #endif
 
-        if (implementation == PLOM_ODE) {
-            //only the first particle is used to skip transiant
-            if ( integrate(J_p_X[0], y0, t0, t_transiant, J_p_par[0], &abs_tol, &rel_tol, calc[0], p_data) ) {
-                print_err("integration error, the program will now quit");
-                exit(EXIT_FAILURE);
-            }
-        } else {
-            int thread_id, ip1;
-            for(i=t0 ; i<t_transiant ; i++) {
-                ip1 = i+1;
-#pragma omp parallel for private(thread_id)
-                for(j=0; j<J; j++) {
+	if (implementation == PLOM_ODE) {
+	    //only the first particle is used to skip transiant
+	    if ( integrate(J_p_X[0], y0, t0, t_transiant, J_p_par[0], &abs_tol, &rel_tol, calc[0], p_data) ) {
+		print_err("integration error, the program will now quit");
+		exit(EXIT_FAILURE);
+	    }
+	} else {            
+
+	    for(i=t0 ; i<t_transiant ; i++) {
 #if FLAG_OMP
-        thread_id = omp_get_thread_num();
+
+		int thread_id;
+		int ip1 = i+1;
+#pragma omp parallel for private(thread_id)
+		for(j=0; j<J; j++) {
+		    thread_id = omp_get_thread_num();
+		    reset_inc(J_p_X[j], p_data);
+		    f_pred(J_p_X[j], i, ip1, J_p_par[0], p_data, calc[thread_id]);
+		}
+
 #else
-	thread_id = 0;
+		int the_nt;
+		//send work           
+		for (nt=0; nt<calc[0]->n_threads; nt++) {
+		    zmq_send(sender, &nt, sizeof (int), ZMQ_SNDMORE);
+		    zmq_send(sender, &i, sizeof (int), 0);
+		}
+
+		//get results from the workers
+		for (nt=0; nt<calc[0]->n_threads; nt++) {
+		    zmq_recv(receiver, &the_nt, sizeof (int), 0);	       
+		}
 #endif
-                    reset_inc(J_p_X[j], p_data);
-                    f_pred(J_p_X[j], i, ip1, J_p_par[0], p_data, calc[thread_id]);
-                }
-            }
-        }
+
+	    }
+	}
     }
 
 
@@ -383,11 +434,11 @@ int main(int argc, char *argv[])
         //we need to integrate for at least 1 time step so that
         //incidence is reset to 0 after transiant (transiant did not
         //reset incidences every week in case of PLOM_ODE)
-        traj(J_p_X, t0, t0+1, t_transiant, J_p_par, p_data, calc, f_pred);
+        traj(J_p_X, t0, t0+1, t_transiant, J_p_par, p_data, calc, f_pred, sender, receiver, controller);
 
     } else if(!(OPTION_BIF || OPTION_LYAP) && OPTION_TRAJ && (t_end>t0)) { //ONLY TRAJ
 
-        traj(J_p_X, t0, t_end, t_transiant, J_p_par, p_data, calc, f_pred);
+        traj(J_p_X, t0, t_end, t_transiant, J_p_par, p_data, calc, f_pred, sender, receiver, controller);
 
     } else if ( (!is_predict) && (OPTION_BIF || OPTION_LYAP) ) {
 
@@ -454,10 +505,26 @@ int main(int argc, char *argv[])
 
     } //end OPTION_BIF or OPTION_LYAP
 
-
 #if FLAG_VERBOSE
     print_log("clean up...");
 #endif
+
+#if !FLAG_OMP
+    zmq_send (controller, "KILL", 5, 0);        
+    zmq_close (sender);
+    zmq_close (receiver);
+    zmq_close (controller);
+
+    for(nt = 0; nt < n_threads; nt++){
+	pthread_join(worker[nt], NULL);
+    }
+
+    free(worker);
+    free(p_thread_predict);
+
+    zmq_ctx_destroy (context);
+#endif
+
 
     FREE(y0);
 
