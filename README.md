@@ -3,7 +3,26 @@ plom-sfi
 
 **Plug-and-play** inference methods in plain C for http://www.plom.io/.
 
-The C code contain generic part and model specific part. Specific part are templated using the plom python package.
+usage
+=====
+
+This README provided information for developers
+or users wanting to build plom-sfi on their local machine.
+
+If you want to use the method provided by plom-sfi see
+http://www.plom.io/cli
+
+You do not need to install plom-sfi or its dependencies to use
+it. plom.io provide a compilation service that generate standalone
+binaries that you can run on your machine so go to
+http://www.plom.io/cli
+
+introduction
+============
+
+The C code contain generic part and model specific part. The C code of
+the specific parts are templated using the plom python package.
+
 
 ##Dependencies
 
@@ -17,7 +36,6 @@ Python:
 - Python 2.7.x: www.python.org/
 - Django: https://www.djangoproject.com/
 - SymPy: http://sympy.org/
-
 
 ##Building the C libraries
 in model_builder/C:
@@ -66,7 +84,7 @@ in path_model_coded_in_C/C/templates:
     
 All the inference methods binaries are now available in path_model_coded_in_C
 
-See http://www.plom.io/doc/modeler/intro for documentation on how to
+See http://www.plom.io/cli for documentation on how to
 use the generated binaries.
 
 
