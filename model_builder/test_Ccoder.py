@@ -31,6 +31,32 @@ class TestCcoder(unittest.TestCase):
 
         self.m_noise = Ccoder(c, p, l)
 
+        p = json.load(open(os.path.join('example', 'noise', 'process.json')))
+        p["white_noise"][0]["reaction"][0] = {'to':'S','from':'U'}
+        self.m_noise2 = Ccoder(c, p, l)
+
+
+        p = json.load(open(os.path.join('example', 'noise', 'process.json')))
+        p["white_noise"][0]["reaction"][0] = {'to':'R','from':'I'}
+        self.m_noise3 = Ccoder(c, p, l)
+
+        p = json.load(open(os.path.join('example', 'noise', 'process.json')))
+        p["white_noise"][0]["reaction"][0] = {'to':'U','from':'I'}
+        self.m_noise4 = Ccoder(c, p, l)
+
+        p = json.load(open(os.path.join('example', 'noise', 'process.json')))
+        p["model"].append({"from": "R", "to": "U",  "rate": "mu_d", "comment":"death"})
+        p["white_noise"][0]["reaction"][0] = {'to':'U','from':'R'}
+        self.m_noise5 = Ccoder(c, p, l)
+
+        p = json.load(open(os.path.join('example', 'noise', 'process.json')))
+        p["white_noise"][0]["reaction"].append({'to':'R','from':'I'})
+        self.m_noise6 = Ccoder(c, p, l)
+
+        p = json.load(open(os.path.join('example', 'noise', 'process.json')))
+        p["white_noise"].append({"reaction":[{'to':'R','from':'I'}],"sd":"sto"})
+        self.m_noise7 = Ccoder(c, p, l)
+
 
     def test_make_C_term(self):
         terms = [
@@ -105,34 +131,202 @@ class TestCcoder(unittest.TestCase):
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][0],'((-1)*'+term+'*(-1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][1],'((-1)*'+term+'*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][2],0)
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][3],'((-1)*'+term+'*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][4],'((-1)*'+term+'*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][0],'((1)*'+term+'*(-1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][1],'((1)*'+term+'*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][2],0)
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][3],'((1)*'+term+'*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][4],'((1)*'+term+'*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][0],0)
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][1],0)
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][2],0)
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][3],0)
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][4],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][0],'((1)*'+term+'*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][1],'((1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][2],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][3],'((1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][4],'((1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][0],'((1)*'+term+'*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][1],'((1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][2],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][3],'((1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][4],'((1)*'+term+'*(1)')
+
+        # testing dem sto only
+        term1 = '(mu_b*N))'
+        term2 = '((r0/N*v*I)*S))'
+        term3 = '((correct_rate(v))*I))'
+        term4 = '((mu_d)*S))'
+        term5 = '((mu_d)*I))'
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][0][0],'((1)*'+term1+'*(1) + ((-1)*'+term2+'*(-1) + ((-1)*'+term4+'*(-1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][0][1],'((-1)*'+term2+'*(1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][0][2],0)
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][0][3],'((-1)*'+term2+'*(1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][0][4],'((-1)*'+term2+'*(1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][1][0],'((1)*'+term2+'*(-1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][1][1],'((1)*'+term2+'*(1) + ((-1)*'+term3+'*(-1) + ((-1)*'+term5+'*(-1)' )
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][1][2],'((-1)*'+term3+'*(1) + ((-1)*'+term5+'*(1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][1][3],'((1)*'+term2+'*(1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][1][4],'((1)*'+term2+'*(1) + ((-1)*'+term3+'*(-1) + ((-1)*'+term5+'*(-1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][2][0],0)
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][2][1],'((1)*'+term3+'*(-1) + ((1)*'+term5+'*(-1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][2][2],'((1)*'+term3+'*(1) + ((1)*'+term5+'*(1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][2][3],0)
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][2][4],'((1)*'+term3+'*(-1) + ((1)*'+term5+'*(-1)')       
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][3][0],'((1)*'+term2+'*(-1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][3][1],'((1)*'+term2+'*(1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][3][2],0)
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][3][3],'((1)*'+term2+'*(1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][3][4],'((1)*'+term2+'*(1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][4][0],'((1)*'+term2+'*(-1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][4][1],'((1)*'+term2+'*(1) + ((-1)*'+term3+'*(-1) + ((-1)*'+term5+'*(-1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][4][2],'((-1)*'+term3+'*(1) + ((-1)*'+term5+'*(1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][4][3],'((1)*'+term2+'*(1)')
+        self.assertEqual(calc_Q["no_env_sto"]["Q"][4][4],'((1)*'+term2+'*(1) + ((-1)*'+term3+'*(-1) + ((-1)*'+term5+'*(-1)')
+
+        #print(calc_Q["no_env_sto"]["Q_proc"])
+
+    
+    def test_eval_Q_tricky_cases(self):
+
+        calc_Q = self.m_noise2.eval_Q()
+        # testing env sto only for m_noise2 : WN on U->S
+        term = '(((mu_b*N)*((sto)**2))*(mu_b*N)))'
+        for i in range(5):
+            for j in range(5):
+                if i==0 and j == 0:
+                    self.assertEqual(calc_Q["no_dem_sto"]["Q"][i][j],'((1)*'+term+'*(1)')
+                else:
+                    self.assertEqual(calc_Q["no_dem_sto"]["Q"][i][j],0)
+
+
+        calc_Q = self.m_noise3.eval_Q()
+        # testing env sto only for m_noise3 : WN on I->R
+        term = '((((correct_rate(v))*I)*((sto)**2))*((correct_rate(v))*I)))'
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][0],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][1],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][2],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][4],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][0],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][1],'((-1)*'+term+'*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][2],'((-1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][4],'((-1)*'+term+'*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][0],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][1],'((1)*'+term+'*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][2],'((1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][4],'((1)*'+term+'*(-1)')       
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][0],0)
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][1],0)
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][2],0)
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][3],0)
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][4],0)
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][0],'((1)*'+term+'*(-1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][1],'((1)*'+term+'*(1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][2],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][0],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][1],'((-1)*'+term+'*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][2],'((-1)*'+term+'*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][3],0)
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][4],'((1)*'+term+'*(1)')
-
-        # testing dem sto only
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][4],'((-1)*'+term+'*(-1)')
         
 
-        #print(calc_Q["no_env_sto"]["Q_proc"])
-        
+        calc_Q = self.m_noise4.eval_Q()
+        # testing env sto only for m_noise4 : WN on I->U
+        term = '((((mu_d)*I)*((sto)**2))*((mu_d)*I)))'
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][0],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][1],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][2],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][4],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][0],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][1],'((-1)*'+term+'*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][2],'((-1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][4],'((-1)*'+term+'*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][0],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][1],'((1)*'+term+'*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][2],'((1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][4],'((1)*'+term+'*(-1)')       
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][0],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][1],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][2],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][4],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][0],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][1],'((-1)*'+term+'*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][2],'((-1)*'+term+'*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][4],'((-1)*'+term+'*(-1)')
+
+        calc_Q = self.m_noise5.eval_Q()
+        # testing env sto only for m_noise5 : WN on R->U
+        for i in range(5):
+            for j in range(5):
+                self.assertEqual(calc_Q["no_dem_sto"]["Q"][i][j],0)
+
+        calc_Q = self.m_noise6.eval_Q()
+        # testing env sto only for m_noise6 : correlated WN on I->R and S->I
+        term1 = '((r0/N*v*I)*S)'
+        term2 = '((correct_rate(v))*I)'
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][0],'((-1)*(('+term1+'*((sto)**2))*'+term1+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][1],'((-1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][2],'((-1)*(('+term1+'*((sto)**2))*'+term2+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][3],'((-1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][4],'((-1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][0],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][1],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][2],'((1)*(('+term1+'*((sto)**2))*'+term2+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][0],'((1)*(('+term2+'*((sto)**2))*'+term1+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][1],'((1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][2],'((1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][3],'((1)*(('+term2+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][4],'((1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')       
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][0],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][1],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][2],'((1)*(('+term1+'*((sto)**2))*'+term2+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][0],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][1],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][2],'((1)*(('+term1+'*((sto)**2))*'+term2+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+
+        calc_Q = self.m_noise7.eval_Q()
+        # testing env sto only for m_noise7 : uncorrelated WN on I->R and S->I
+        term1 = '((r0/N*v*I)*S)'
+        term2 = '((correct_rate(v))*I)'
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][0],'((-1)*(('+term1+'*((sto)**2))*'+term1+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][1],'((-1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][2],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][3],'((-1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][4],'((-1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][0],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][1],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][2],'((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][0],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][1],'((1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][2],'((1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][3],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][4],'((1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')       
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][0],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][1],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][2],0)
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][0],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][1],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][2],'((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+
 
 if __name__ == '__main__':
     unittest.main()

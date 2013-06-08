@@ -697,37 +697,25 @@ class Ccoder(Cmodel):
 
 
     def eval_Q(self, debug = False):
-        """create Ls and Qc
+        """
 
-        Ls: Dispersion matrix of stochastic differential equation as
-        defined is Sarkka 2006 phD.
-        Ls is of size n*s with n == N_PAR_SV and s == number of noise terms
+        The construction of Qsv is based on three levels:
+         - states: state variables and observations (s)
+         - reactions (r)
+         - noise terms (n)
 
-        Qc matrix of size s*s.
-
-        Qc is composed of 2 blocks: Qc_dem (for demographic
-        stochasticity) and Qc_env (for environmental stochasticity)
-
-        Qc_dem: diagonal matrix (one term per reaction: rate/N)
-
-        Qc_env: we build it using the following procedure:
-
-        - enumerate all noise terms coming from environmental sto.
-        Let's say we have p noise terms, s reactions and n state
-        variables.
-
-        - build a "noise to rate" dispersion matrix Lc (s*p) that is
-        analog to a soechiometric matrix (L above): each column
-        illustrates the impact of a noise term on each reaction.  The
-        component (i,j) of Lc is equal to the rate of reaction i if it
-        is concerned with noise term j.
-
-        - build a noise diffusion matrix Qc (p*p) that is diagonal,
-        with diagonal terms equal to sto^2.
-
-        - Qc_env is then simply given by Lc Qn Lc'
+        At the reaction level, Qr is a two-blocks diagonal matrix: Qr_dem and Qr_env.
+        Qr_dem corresponds to demographic noise and has reaction rates on the diagonal.
+        Qr_env corresponds to white noises. It is built from Qn through Lr.
+        Qn is a diagonal matrix which diagonal terms correspond to squarred amplitude of white noises.
+        The stoechiometric matrices L are used to switch from one level to another:
+              Qr_env = Lr Qn Lr'  and Qs = Ls Qr Ls'
+        
+        In particular, Lr has reaction rates in term (i,j) if reaction i is concerned by white noise j.
+        Ls has +1 or -1 in term (i,j) if reaction j goes to or leaves from state i, and O's everywhere else.
 
         Note: we assume only one environmental noise term per reaction
+
 
         """
         proc_model = copy.deepcopy(self.proc_model) ##we are going to modify it...
@@ -751,11 +739,16 @@ class Ccoder(Cmodel):
         s = N_REAC + N_ENV_STO ##for demographic stochasticity, one independent noise term per reaction
 
         Ls = [[0]*s for x in range(N_PAR_SV + N_OBS)]
-        Qc = [[0]*s for x in range(s)]
+        Qs = [[0]*(N_PAR_SV + N_OBS) for x in range(N_PAR_SV + N_OBS)]
+        Qr = [[0]*s for x in range(s)]
+        Qr_dem = [[0]*s for x in range(N_REAC)]
+        Qr_sto = [[0]*s for x in range(N_ENV_STO)]
+        Lr = [[0]*N_ENV_STO_UNIQUE for x in range(N_ENV_STO)]
+        Qn = [[0]*N_ENV_STO_UNIQUE for x in range(N_ENV_STO_UNIQUE)]
 
 
         ###########################################
-        # Create Ls_proc, Ls_obs and diag_Qc_dem  #
+        #    Create Ls and Qr_dem                 #
         ###########################################
 
         #state variables
@@ -780,7 +773,7 @@ class Ccoder(Cmodel):
                 if is_noise:
                     Ls[i][B_sto_ind] += 1
 
-            Qc[B_dem_ind][B_dem_ind] =  Qc_term
+            Qr_dem[B_dem_ind][B_dem_ind] =  Qc_term
 
         # observed variables
         for i in range(len(self.obs_var_def)): #(for every obs variable)
@@ -816,12 +809,11 @@ class Ccoder(Cmodel):
                                 Ls[N_PAR_SV + i][B_sto_ind] += 1
 
 
-        ############################
-        ## Create Qc_env = Lc Qn Lc'
-        ############################
-        Lc = [[0]*N_ENV_STO_UNIQUE for x in range(N_ENV_STO)]
-        Qn = [[0]*N_ENV_STO_UNIQUE for x in range(N_ENV_STO_UNIQUE)]
 
+
+        ############################
+        ## Create Qr_env = Lr Qn Lr'
+        ############################
         for r in proc_model:
             if 'white_noise' in r:
                 if r['from'] not in ['U', self.remainder]:
@@ -829,10 +821,10 @@ class Ccoder(Cmodel):
                 else:
                     Qn_term = r['rate']
 
-                Lc[r['order_env_sto']][r['order_env_sto_unique']] = Qn_term
+                Lr[r['order_env_sto']][r['order_env_sto_unique']] = Qn_term
                 Qn[r['order_env_sto_unique']][r['order_env_sto_unique']] = '({0})**2'.format(r['white_noise']['sd'])
 
-        #Qc_env = Lc Qn tLc:
+
 
         def matrix_product(A, B):
             if not A or not B:
@@ -844,35 +836,30 @@ class Ccoder(Cmodel):
                 for j in range(len(B[0])):
                     for k in range(len(B)):
                         if (A[i][k] and B[k][j]):
-                            term = ('({0})*({1})').format(A[i][k], B[k][j])
+                            for a in str(A[i][k]).split(' + '):
+                                for b in str(B[k][j]).split(' + '):
+                                    term = ('({0})*({1})').format(a,b)
 
-                            if res[i][j]:
-                               res[i][j] = res[i][j] + ' + {0}'.format(term)
-                            else:
-                               res[i][j] = term
+                                    if res[i][j]:
+                                        res[i][j] = res[i][j] + ' + {0}'.format(term)
+                                    else:
+                                        res[i][j] = term
 
             return res
 
 
-        Qc_env = matrix_product(Lc, Qn)
-        Qc_env = matrix_product(Qc_env, zip(*Lc))
+        Qr_env = matrix_product(Lr, Qn)
+        Qr_env = matrix_product(Qr_env, zip(*Lr))
 
         for i in range(N_ENV_STO):
             for j in range(N_ENV_STO):
-                Qc[N_REAC+i][N_REAC+j] = Qc_env[i][j]
+                Qr[N_REAC+i][N_REAC+j] = Qr_env[i][j]
 
-        #we split Qc into Qc_dem and Qc_env
-        Qc_dem = [[0]*N_REAC for x in range(N_REAC)]
-
+        #we fill Qr with Qc_dem and Qc_env
         for i in range(N_REAC):
             for j in range(N_REAC):
-                Qc_dem[i][j] = Qc[i][j]
+                Qr[i][j] = Qr_dem[i][j]
 
-        Qc_env = [[0]*N_ENV_STO for x in range(N_ENV_STO)]
-
-        for i in range(N_ENV_STO):
-            for j in range(N_ENV_STO):
-                Qc_env[i][j] = Qc[N_REAC+i][N_REAC+j]
     
         #we split Ls into Ls_dem and Ls_env
         Ls_dem = [[0]*N_REAC for x in range(N_PAR_SV + N_OBS)]
@@ -890,24 +877,24 @@ class Ccoder(Cmodel):
         ##we create 4 versions of Q (no_dem_sto, no_env_sto, no_dem_sto_no_env_sto and full)
         #####################################################################################
 
-        Q = matrix_product(Ls, Qc)
-        Q = matrix_product(Q, zip(*Ls))
+        Qs = matrix_product(Ls, Qr)
+        Qs = matrix_product(Qs, zip(*Ls))
 
-        Q_dem = matrix_product(Ls_dem, Qc_dem)
-        Q_dem = matrix_product(Q_dem, zip(*Ls_dem))
+        Qs_dem = matrix_product(Ls_dem, Qr_dem)
+        Qs_dem = matrix_product(Qs_dem, zip(*Ls_dem))
 
-        Q_env = matrix_product(Ls_env, Qc_env)
-        Q_env = matrix_product(Q_env, zip(*Ls_env))
+        Qs_env = matrix_product(Ls_env, Qr_env)
+        Qs_env = matrix_product(Qs_env, zip(*Ls_env))
 
         calc_Q = {'no_dem_sto': {'Q_proc':[],
                                  'Q_obs':[],
-                                 'Q': Q_env},
+                                 'Q': Qs_env},
                   'no_env_sto': {'Q_proc':[],
                                  'Q_obs':[],
-                                 'Q': Q_dem},
+                                 'Q': Qs_dem},
                   'full': {'Q_proc':[],
                            'Q_obs':[],
-                           'Q': Q},
+                           'Q': Qs},
                   'no_dem_sto_no_env_sto':{'Q_proc':[],
                                            'Q_obs':[],
                                            'Q': []}}
