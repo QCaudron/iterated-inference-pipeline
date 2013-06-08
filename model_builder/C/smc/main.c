@@ -277,25 +277,32 @@ int main(int argc, char *argv[])
 	zmq_bind (receiver, "inproc://server_receiver");
 
 	void *controller = zmq_socket (context, ZMQ_PUB);
-	zmq_bind (controller, "inproc://plom_controller");
-
+	zmq_bind (controller, "inproc://server_controller");
 
 	struct s_thread_smc *p_thread_smc = malloc(n_threads*sizeof(struct s_thread_smc));
 	pthread_t *worker = malloc(n_threads*sizeof(pthread_t));
-	int nt;
+	int nt, id;
+	int J_chunk = J/n_threads;
+	
 	for (nt = 0; nt < n_threads; nt++) {
-	    p_thread_smc[nt].thread_id = nt;       	    
-	    p_thread_smc[nt].size_J = J / n_threads;       
+	    p_thread_smc[nt].thread_id = nt;       	    	    
+	    p_thread_smc[nt].J_start = nt*J_chunk;       
+	    p_thread_smc[nt].J_end = (nt+1 == n_threads)? J : (nt+1)*J_chunk;	   
 	    p_thread_smc[nt].p_data = p_data;
 	    p_thread_smc[nt].p_par = p_par;
 	    p_thread_smc[nt].D_J_p_X = D_J_p_X;
-	    p_thread_smc[nt].calc = calc;	
+	    p_thread_smc[nt].p_calc = calc[nt];	
 	    p_thread_smc[nt].p_like = p_like;
 	    p_thread_smc[nt].context = context;
 	    pthread_create (&worker[nt], NULL, worker_routine_smc_inproc, (void*) &p_thread_smc[nt]);
-	    printf("thread %d started\n", nt);
+	    printf("worker %d started\n", nt);
 	}
 
+	//wait that all worker are connected
+	for (nt = 0; nt < n_threads; nt++) {
+	    zmq_recv(receiver, &id, sizeof (int), 0);
+	    printf("worker %d connected\n", id);
+	}
 
 	run_SMC_zmq_inproc(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, get_f_pred(implementation, noises_off), filter, p_file_X, p_file_hat, p_file_pred_res, print_opt, sender, receiver, controller);
 

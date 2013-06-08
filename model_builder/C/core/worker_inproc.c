@@ -18,81 +18,245 @@
 
 #include "plom.h"
 
-void *worker_routine_smc_inproc (void *params) 
+void *worker_routine_smc_inproc(void *params) 
 {
     int j, nn, nnp1, t1;
     int id;
 
     struct s_thread_smc *p = (struct s_thread_smc *) params;
 
-    // Socket to server controller
-    void *server_controller = zmq_socket (p->context, ZMQ_SUB);
-    zmq_connect (server_controller, "inproc://plom_controller");
-    zmq_setsockopt (server_controller, ZMQ_SUBSCRIBE, "", 0);
-
-    //  Socket to receive messages (particles) from the server
-    void *server_receiver = zmq_socket (p->context, ZMQ_PULL);   
-    zmq_connect (server_receiver, "inproc://server_sender");
-
-    //  Socket to send messages (results) to the server
-    void *server_sender = zmq_socket (p->context, ZMQ_PUSH);
-    zmq_connect (server_sender, "inproc://server_receiver");
-
     struct s_data *p_data = p->p_data;
     struct s_par *p_par = p->p_par;
-    struct s_calc **calc = p->calc;
+    struct s_calc *p_calc = p->p_calc;
     struct s_X ***D_J_p_X = p->D_J_p_X;
     struct s_likelihood *p_like = p->p_like;
-    int size_J = p->size_J;
+    int J_start = p->J_start;
+    int J_end = p->J_end;
 
     plom_f_pred_t f_pred = get_f_pred(p_data->implementation, p_data->noises_off);
 
+    // Socket to server controller
+    void *controller = zmq_socket (p->context, ZMQ_SUB);
+    zmq_connect (controller, "inproc://server_controller");
+    zmq_setsockopt (controller, ZMQ_SUBSCRIBE, "", 0);
+
+    //  Socket to receive messages (particles) from the server
+    void *receiver = zmq_socket (p->context, ZMQ_PULL);   
+    zmq_connect (receiver, "inproc://server_sender");
+
+    //  Socket to send messages (results) to the server
+    void *sender = zmq_socket (p->context, ZMQ_PUSH);
+    zmq_connect (sender, "inproc://server_receiver");
+
+    // ready !    
+    zmq_send(sender, &p->thread_id, sizeof (int), 0);
+
     zmq_pollitem_t items [] = {
-        { server_receiver, 0, ZMQ_POLLIN, 0 },
-        { server_controller, 0, ZMQ_POLLIN, 0 }
+        { receiver, 0, ZMQ_POLLIN, 0 },
+        { controller, 0, ZMQ_POLLIN, 0 }
     };
 
     while (1) {
         zmq_poll (items, 2, -1);
         if (items [0].revents & ZMQ_POLLIN) {
 
-	    //particule to integrate
-	    zmq_recv(server_receiver, &id, sizeof (int), 0);
-	    //printf("rcv %d from thread %d\n", j, id);
+	    zmq_recv(receiver, &id, sizeof (int), 0);
 
-	    for(j=id*size_J; j<(id+1)*size_J; j++ ){
-		nn = calc[id]->current_nn;
-		nnp1 = nn+1;
-		t1 = p_data->times[calc[id]->current_n];
-
+	    nn = p_calc->current_nn;
+	    nnp1 = nn+1;
+	    t1 = p_data->times[p_calc->current_n];
+	   
+	    for(j=J_start; j<J_end; j++ ){
 		reset_inc(D_J_p_X[nnp1][j], p_data);
-		(*f_pred)(D_J_p_X[nnp1][j], nn, nnp1, p_par, p_data, calc[id]);
+		(*f_pred)(D_J_p_X[nnp1][j], nn, nnp1, p_par, p_data, p_calc);
 
 		proj2obs(D_J_p_X[nnp1][j], p_data);
 
 		if(nnp1 == t1) {
-		    p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[nnp1][j], p_par, p_data, calc[id]));
+		    p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[nnp1][j], p_par, p_data, p_calc));
 		}
 	    }
 
-	    //send back paricle index (now integrated)
-	    zmq_send(server_sender, &j, sizeof (int), 0);
+	    //send back id of the batch of particles now integrated
+	    zmq_send(sender, &p->thread_id, sizeof (int), 0);
 	}
 
         //controller commands:
         if (items [1].revents & ZMQ_POLLIN) {
 	    char buf [256];
-	    zmq_recv(server_controller, buf, 256, 0);           
+	    zmq_recv(controller, buf, 256, 0);           
+	    printf("worker %d: controller sent: %s\n", p->thread_id, buf);
             if(strcmp(buf, "KILL") == 0) {
-                printf("worker %d: controller sent: %s\n", p->thread_id, buf);
                 break;  //  Exit loop
             }
         }
     }
 
-    zmq_close (server_receiver);
-    zmq_close (server_sender);
-    zmq_close (server_controller);
+    zmq_close (receiver);
+    zmq_close (sender);
+    zmq_close (controller);
+
+    printf("thread %d done\n", p->thread_id);
+
+    return NULL;
+}
+
+
+void *worker_routine_mif_inproc(void *params) 
+{
+    int j, nn, nnp1, t1;
+    int id;
+
+    struct s_thread_mif *p = (struct s_thread_mif *) params;
+
+    struct s_data *p_data = p->p_data;
+    struct s_par **J_p_par = p->J_p_par;
+    struct s_calc *p_calc = p->p_calc;
+    struct s_X ***J_p_X = p->J_p_X;
+    struct s_likelihood *p_like = p->p_like;
+    int J_start = p->J_start;
+    int J_end = p->J_end;
+
+    plom_f_pred_t f_pred = get_f_pred(p_data->implementation, p_data->noises_off);
+
+
+    void *controller = zmq_socket (p->context, ZMQ_SUB);
+    zmq_connect (controller, "inproc://server_controller");
+    zmq_setsockopt (controller, ZMQ_SUBSCRIBE, "", 0);
+
+    void *receiver = zmq_socket (p->context, ZMQ_PULL);   
+    zmq_connect (receiver, "inproc://server_sender");
+
+    void *sender = zmq_socket (p->context, ZMQ_PUSH);
+    zmq_connect (sender, "inproc://server_receiver");
+
+    // ready !    
+    zmq_send(sender, &p->thread_id, sizeof (int), 0);
+
+
+    zmq_pollitem_t items [] = {
+        { receiver, 0, ZMQ_POLLIN, 0 },
+        { controller, 0, ZMQ_POLLIN, 0 }
+    };
+
+    while (1) {
+        zmq_poll (items, 2, -1);
+        if (items [0].revents & ZMQ_POLLIN) {
+	   
+	    zmq_recv(receiver, &id, sizeof (int), 0);
+
+	    nn = p_calc->current_nn;
+	    nnp1 = nn+1;
+	    t1 = p_data->times[p_calc->current_n];
+
+	    for(j=J_start; j<J_end; j++ ){
+		reset_inc((*J_p_X)[j], p_data);
+
+		f_pred((*J_p_X)[j], nn, nnp1, J_p_par[j], p_data, p_calc);
+
+		if(nnp1 == t1) {
+		    proj2obs((*J_p_X)[j], p_data);
+		    p_like->weights[j] = exp(get_log_likelihood((*J_p_X)[j], J_p_par[j], p_data, p_calc));
+		}
+	    }
+
+	    //send back id of the batch of particles now integrated
+	    zmq_send(sender, &p->thread_id, sizeof (int), 0);
+	}
+
+        //controller commands:
+        if (items [1].revents & ZMQ_POLLIN) {
+	    char buf [256];
+	    zmq_recv(controller, buf, 256, 0);           
+	    printf("worker %d: controller sent: %s\n", p->thread_id, buf);
+            if(strcmp(buf, "KILL") == 0) {
+                break;  //  Exit loop
+            }
+        }
+    }
+
+    zmq_close (receiver);
+    zmq_close (sender);
+    zmq_close (controller);
+
+    printf("thread %d done\n", p->thread_id);
+
+    return NULL;
+}
+
+
+void *worker_routine_predict_inproc(void *params) 
+{
+    int j, nn, nnp1, t1;
+    int id;
+
+    struct s_thread_predict *p = (struct s_thread_predict *) params;
+
+    struct s_data *p_data = p->p_data;
+    struct s_par **J_p_par = p->J_p_par;
+    struct s_calc *p_calc = p->p_calc;
+    struct s_X **J_p_X = p->J_p_X;   
+    int J_start = p->J_start;
+    int J_end = p->J_end;
+
+    plom_f_pred_t f_pred = get_f_pred(p_data->implementation, p_data->noises_off);
+
+    void *controller = zmq_socket (p->context, ZMQ_SUB);
+    zmq_connect (controller, "inproc://server_controller");
+    zmq_setsockopt (controller, ZMQ_SUBSCRIBE, "", 0);
+
+    void *receiver = zmq_socket (p->context, ZMQ_PULL);   
+    zmq_connect (receiver, "inproc://server_sender");
+
+    void *sender = zmq_socket (p->context, ZMQ_PUSH);
+    zmq_connect (sender, "inproc://server_receiver");
+
+    // ready !    
+    zmq_send(sender, &p->thread_id, sizeof (int), 0);
+
+    zmq_pollitem_t items [] = {
+        { receiver, 0, ZMQ_POLLIN, 0 },
+        { controller, 0, ZMQ_POLLIN, 0 }
+    };
+
+    while (1) {
+        zmq_poll (items, 2, -1);
+        if (items [0].revents & ZMQ_POLLIN) {
+
+	    zmq_recv(receiver, &id, sizeof (int), 0);
+
+	    nn = p_calc->current_nn;
+	    nnp1 = nn+1;
+	    t1 = p_data->times[p_calc->current_n];
+
+	    for(j=J_start; j<J_end; j++ ){
+		reset_inc(J_p_X[j], p_data);
+
+		f_pred(J_p_X[j], nn, nnp1, J_p_par[j], p_data, p_calc);
+
+		if(nnp1 == t1) {
+		    proj2obs(J_p_X[j], p_data);
+		}
+	    }
+
+	    //send back id of the batch of particles now integrated
+	    zmq_send(sender, &p->thread_id, sizeof (int), 0);
+	}
+
+        //controller commands:
+        if (items [1].revents & ZMQ_POLLIN) {
+	    char buf [256];
+	    zmq_recv(controller, buf, 256, 0);           
+	    printf("worker %d: controller sent: %s\n", p->thread_id, buf);
+            if(strcmp(buf, "KILL") == 0) {
+                break;  //  Exit loop
+            }
+        }
+    }
+
+    zmq_close (receiver);
+    zmq_close (sender);
+    zmq_close (controller);
 
     printf("thread %d done\n", p->thread_id);
 

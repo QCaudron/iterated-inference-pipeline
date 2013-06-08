@@ -355,21 +355,45 @@ struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get
     /** this is *not* thread safe!  */
     void *method_specific_shared_data;
 };
-    
-    
-    
+
+
 struct s_thread_smc
 {
-    void *context;
-    int size_J;
+    void *context; ///< zmq context
+    int J_start; ///<index of first particle to be integrated
+    int J_end;  ///<index of last particle to be integrated (non inclusive) (for (j=Jstart; J<J_end; j++))
     int thread_id;    
     struct s_data *p_data;
     struct s_par *p_par;
     struct s_X ***D_J_p_X;
-    struct s_calc **calc;
+    struct s_calc *p_calc;
     struct s_likelihood *p_like;
 };
 
+struct s_thread_mif
+{
+    void *context; ///< zmq context
+    int J_start;
+    int J_end;
+    int thread_id;    
+    struct s_data *p_data;
+    struct s_par ** J_p_par;
+    struct s_X ***J_p_X;
+    struct s_calc *p_calc;
+    struct s_likelihood *p_like;
+};
+
+struct s_thread_predict
+{
+    void *context; ///< zmq context
+    int J_start;
+    int J_end;
+    int thread_id;    
+    struct s_data *p_data;
+    struct s_par ** J_p_par;
+    struct s_X **J_p_X;
+    struct s_calc *p_calc;
+};
 
 
 
@@ -868,6 +892,8 @@ void step_sde_no_dem_sto_no_env_sto(struct s_X *p_X, double t, struct s_par *p_p
 
 
 /* worker_inproc.c */
-void *worker_routine_smc_inproc (void *params);
+void *worker_routine_smc_inproc(void *params);
+void *worker_routine_mif_inproc(void *params);
+void *worker_routine_predict_inproc(void *params);
 
 #endif

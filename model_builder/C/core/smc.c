@@ -407,15 +407,17 @@ void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct
             }
 
             //send work           
-            for (nt=0;nt<calc[0]->n_threads;nt++) {
+            for (nt=0; nt<calc[0]->n_threads; nt++) {
 		zmq_send(sender, &nt, sizeof (int), 0);
             }
 
             //get results from the workers
-	    for (nt=0;nt<calc[0]->n_threads;nt++) {
-		zmq_recv(receiver, &the_nt, sizeof (int), 0);
-		//printf("part  %d received\n", the_nt);
-            }
+	    for (nt=0; nt<calc[0]->n_threads; nt++) {
+		zmq_recv(receiver, &the_nt, sizeof (int), 0);	       
+		if(nn ==2){
+		    printf("done: %d\n", the_nt);
+		}
+	    }
 
             if (print_opt & PLOM_PRINT_X) {
                 print_X(p_file_X, &p_par, D_J_p_X[nnp1], p_data, calc[0], (double) nnp1, 1, 0, 0);
