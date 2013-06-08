@@ -17,7 +17,6 @@
  *************************************************************************/
 
 #include "plom.h"
-#include <pthread.h>
 
 struct s_thread_params
 {
