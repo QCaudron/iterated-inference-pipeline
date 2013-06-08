@@ -825,6 +825,7 @@ class Ccoder(Cmodel):
                 Qn[r['order_env_sto_unique']][r['order_env_sto_unique']] = '({0})**2'.format(r['white_noise']['sd'])
 
 
+
         def matrix_product(A, B):
             if not A or not B:
                 return []
@@ -835,12 +836,14 @@ class Ccoder(Cmodel):
                 for j in range(len(B[0])):
                     for k in range(len(B)):
                         if (A[i][k] and B[k][j]):
-                            term = ('({0})*({1})').format(A[i][k], B[k][j])
+                            for a in str(A[i][k]).split(' + '):
+                                for b in str(B[k][j]).split(' + '):
+                                    term = ('({0})*({1})').format(a,b)
 
-                            if res[i][j]:
-                               res[i][j] = res[i][j] + ' + {0}'.format(term)
-                            else:
-                               res[i][j] = term
+                                    if res[i][j]:
+                                        res[i][j] = res[i][j] + ' + {0}'.format(term)
+                                    else:
+                                        res[i][j] = term
 
             return res
 
