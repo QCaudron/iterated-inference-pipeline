@@ -280,8 +280,10 @@ void resample_and_mut_theta_mif(unsigned int *select, gsl_vector **J_theta, gsl_
         }
 
         //resample and (possibly) mutate
+#if FLAG_OMP
 #pragma omp parallel for private(thread_id, i, k, offset)
-        for(j=0; j<J; j++) {
+#endif        
+	for(j=0; j<J; j++) {
 #if FLAG_OMP
 	    thread_id = omp_get_thread_num();
 #else
@@ -322,7 +324,9 @@ void resample_and_mut_theta_mif(unsigned int *select, gsl_vector **J_theta, gsl_
 
     } else { //diagonal sigma
 
+#if FLAG_OMP
 #pragma omp parallel for private(thread_id, i, k, offset)
+#endif
         for(j=0; j<J; j++) {
 #if FLAG_OMP
 	    thread_id = omp_get_thread_num();

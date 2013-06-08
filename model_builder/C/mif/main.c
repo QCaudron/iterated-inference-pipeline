@@ -82,12 +82,7 @@ int main(int argc, char *argv[])
     SWITCH = 5;
     OPTION_IC_ONLY = 0;
    
-#if FLAG_OMP
-    int n_threads = omp_get_max_threads();       
-#else
     int n_threads = 1;
-#endif
-
 
     OPTION_TRAJ = 0;
     OPTION_PRIOR = 0;
@@ -231,14 +226,13 @@ int main(int argc, char *argv[])
         }
     }
 
-
     json_t *theta = load_json();
     struct s_mif *p_mif = build_mif(theta, implementation, noises_off, dt, eps_abs, eps_rel, prop_L_option, J,  &n_threads);
     int is_covariance = (json_object_get(theta, "covariance") != NULL);
     json_decref(theta);
 
 #if FLAG_VERBOSE
-    snprintf(str, STR_BUFFSIZE, "Starting Simforence-MIF with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, a = %g, b = %g, L = %g, SWITCH = %d, N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, M, MIF_a, MIF_b, prop_L_option, SWITCH, n_threads);
+    snprintf(str, STR_BUFFSIZE, "Starting PLOM-MIF with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, a = %g, b = %g, L = %g, SWITCH = %d, N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, M, MIF_a, MIF_b, prop_L_option, SWITCH, n_threads);
     print_log(str);
 #endif
 

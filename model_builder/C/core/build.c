@@ -837,12 +837,9 @@ void clean_data(struct s_data *p_data)
 
 
 struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data)
-
-
 {
     char str[STR_BUFFSIZE];
     int nt;
-
 
     *n_threads = sanitize_n_threads(*n_threads, J);
 #if FLAG_OMP

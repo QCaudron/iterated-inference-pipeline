@@ -145,7 +145,6 @@ void resample_X(unsigned int *select, struct s_X ***J_p_X, struct s_X ***J_p_X_t
     int k, j;
     int size_resample_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot;
 
-    //#pragma omp parallel for private(k) //parallelisation is not efficient here
     for(j=0;j<J;j++) {
 
         (*J_p_X_tmp)[j]->dt = (*J_p_X)[select[j]]->dt;
@@ -243,7 +242,9 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
                 D_J_p_X[nnp1][j]->dt = D_J_p_X[nn][j]->dt;
             }
 
+#if FLAG_OMP
 #pragma omp parallel for private(thread_id)
+#endif
             for(j=0;j<J;j++) {
 #if FLAG_OMP
 		thread_id = omp_get_thread_num();
@@ -317,8 +318,6 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
     int t0,t1;
     int the_j;
 
-    printf("Jchunk %d\n", Jchunk);
-
     t0=0;
 
     p_like->Llike_best = 0.0; p_like->n_all_fail = 0;
@@ -367,6 +366,95 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
 	compute_hat(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1], p_like->weights);
 
         resample_X(p_like->select[n], &(D_J_p_X[t1]), &(D_J_p_X_tmp[t1]), p_data);
+        t0=t1;
+
+    } /*end of for loop on the time (n)*/
+}
+
+
+
+void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int option_filter, FILE *p_file_X, FILE *p_file_hat, FILE *p_file_pred_res, const enum plom_print print_opt, void *sender, void *receiver, void *controller)
+{
+    int j, n, nn, nnp1;
+    int nt;
+    int the_nt;
+    int t0,t1;
+    int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
+
+    t0=0;
+
+    p_like->Llike_best = 0.0; p_like->n_all_fail = 0;
+
+    for (n=0; n < p_data->nb_obs; n++) {
+
+#if FLAG_JSON //for the webApp, we block at every iterations to prevent the client to be saturated with msg
+        if (print_opt & PLOM_PRINT_HAT) {
+            if(n % 10 == 0){
+                block();
+            }
+        }
+#endif
+
+        t1=p_data->times[n];
+
+        /*we have to use this subloop to mimate equaly spaced time step and hence set the incidence to 0 every time unit...*/
+        for (nn=t0 ; nn<t1 ; nn++) {
+            store_state_current_n_nn(calc, n, nn);
+            nnp1 = nn+1;
+
+            //we are going to overwrite the content of the [nnp1] pointer: initialise it with values from [nn]
+            for(j=0;j<J;j++) {
+                memcpy(D_J_p_X[nnp1][j]->proj, D_J_p_X[nn][j]->proj, size_proj * sizeof(double));
+                D_J_p_X[nnp1][j]->dt = D_J_p_X[nn][j]->dt;
+            }
+
+            //send work           
+            for (nt=0; nt<calc[0]->n_threads; nt++) {
+		zmq_send(sender, &nt, sizeof (int), 0);
+            }
+
+            //get results from the workers
+	    for (nt=0; nt<calc[0]->n_threads; nt++) {
+		zmq_recv(receiver, &the_nt, sizeof (int), 0);	       
+	    }
+
+            if (print_opt & PLOM_PRINT_X) {
+                print_X(p_file_X, &p_par, D_J_p_X[nnp1], p_data, calc[0], (double) nnp1, 1, 0, 0);
+            }
+
+            if( nnp1 < t1 ){
+		compute_hat_nn(D_J_p_X[nnp1], &p_par, p_data, calc, D_p_hat[nn], 1);
+
+                if (print_opt & PLOM_PRINT_HAT) {
+                    print_p_hat(p_file_hat, NULL, D_p_hat[nn], p_data, nn);
+                }
+
+	    }
+
+        } /* end for on nn */
+
+        if(option_filter) {
+            if(weight(p_like, n)) {
+                systematic_sampling(p_like, calc[0], n);
+            }
+
+            //!! time indexes: D_J_p_X is [N_DATA+1], *D_p_hat->... are in [N_DATA] so we have to be carrefull!
+            compute_hat(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1], p_like->weights);
+
+            resample_X(p_like->select[n], &(D_J_p_X[t1]), &(D_J_p_X_tmp[t1]), p_data);
+
+            if (print_opt & PLOM_PRINT_PRED_RES) {
+                print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[t1], p_like->Llike_best_n, p_like->ess_n, t1, 1);
+            }
+        } else {
+            //we do not filter. hat wil be used to get mean and 95% CI of J independant realisations
+	    compute_hat_nn(D_J_p_X[t1], &p_par, p_data, calc, D_p_hat[t1-1], 1);
+        }
+
+        if (print_opt & PLOM_PRINT_HAT) {
+            print_p_hat(p_file_hat, NULL, D_p_hat[t1-1], p_data, t1-1);
+        }
+
         t0=t1;
 
     } /*end of for loop on the time (n)*/

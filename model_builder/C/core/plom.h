@@ -53,6 +53,7 @@
 
 //parallel computing ability
 #include <zmq.h>
+#include <pthread.h>
 #include <omp.h>
 
 #define FREE(ppp) do {   \
@@ -354,6 +355,45 @@ struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get
     /** this is *not* thread safe!  */
     void *method_specific_shared_data;
 };
+
+struct s_thread_smc
+{
+    void *context; ///< zmq context
+    int thread_id;    
+    int J_chunk;
+    int J;
+    struct s_data *p_data;
+    struct s_par *p_par;
+    struct s_X ***D_J_p_X;
+    struct s_calc *p_calc;
+    struct s_likelihood *p_like;
+};
+
+struct s_thread_mif
+{
+    void *context; ///< zmq context
+    int thread_id;    
+    int J_chunk;
+    int J;
+    struct s_data *p_data;
+    struct s_par ** J_p_par;
+    struct s_X ***J_p_X;
+    struct s_calc *p_calc;
+    struct s_likelihood *p_like;
+};
+
+struct s_thread_predict
+{
+    void *context; ///< zmq context
+    int thread_id;    
+    int J_chunk;
+    int J;
+    struct s_data *p_data;
+    struct s_par ** J_p_par;
+    struct s_X **J_p_X;
+    struct s_calc *p_calc;
+};
+
 
 
 /**
@@ -761,6 +801,8 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_p
 
 void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int Jchunk, void *sender, void *receiver, void *controller);
 
+void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int option_filter, FILE *p_file_X, FILE *p_file_hat, FILE *p_file_pred_res, const enum plom_print print_opt, void *sender, void *receiver, void *controller);
+
 /* metropolis_hastings_prior.c */
 int metropolis_hastings(struct s_best *p_best, struct s_likelihood *p_like, double *alpha, struct s_data *p_data, struct s_calc *p_calc, gsl_matrix *var, double sd_fac, int is_mvn);
 
@@ -846,5 +888,11 @@ void step_sde_full(struct s_X *p_X, double t, struct s_par *p_par, struct s_data
 void step_sde_no_dem_sto(struct s_X *p_X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 void step_sde_no_env_sto(struct s_X *p_X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 void step_sde_no_dem_sto_no_env_sto(struct s_X *p_X, double t, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+
+
+/* worker_inproc.c */
+void *worker_routine_smc_inproc(void *params);
+void *worker_routine_mif_inproc(void *params);
+void *worker_routine_predict_inproc(void *params);
 
 #endif

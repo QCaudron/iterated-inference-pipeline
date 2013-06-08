@@ -76,7 +76,9 @@ void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data,
     struct s_router **routers = p_data->routers;
 
     /* par_sv */
+#if FLAG_OMP
 #pragma omp parallel for private(thread_id, j)
+#endif
     for(i=0; i<(N_PAR_SV*N_CAC); i++) {
 #if FLAG_OMP
         thread_id = omp_get_thread_num();
@@ -99,7 +101,9 @@ void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data,
 
     /* obs [N_TS] same thing as for state except that we use obs_mean()
        on p_X->obs */
+#if FLAG_OMP
 #pragma omp parallel for private(thread_id, j)
+#endif
     for(ts=0; ts<N_TS; ts++) {
 #if FLAG_OMP
         thread_id = omp_get_thread_num();
@@ -124,8 +128,9 @@ void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data,
     int offset = 0;
     for (i=0; i< p_data->p_it_only_drift->length ; i++) {
         int ind_par_Xdrift_applied = drift[i]->ind_par_Xdrift_applied;
-
+#if FLAG_OMP
 #pragma omp parallel for private(thread_id, j) //we parallelize k and not i as in most cases there are only one single diffusion
+#endif
         for (k=0; k< routers[ ind_par_Xdrift_applied ]->n_gp; k++) {
 #if FLAG_OMP
 	    thread_id = omp_get_thread_num();
@@ -164,7 +169,9 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
     struct s_router **routers = p_data->routers;
 
     /* par_sv */
+#if FLAG_OMP
 #pragma omp parallel for private(thread_id, j)
+#endif
     for(i=0; i<(N_PAR_SV*N_CAC); i++) {
 #if FLAG_OMP
         thread_id = omp_get_thread_num();
@@ -189,8 +196,10 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
 
     if(is_p_par_cst){ //J_p_par -> J_p_par[0]
 
+#if FLAG_OMP
 #pragma omp parallel for private(thread_id, j)
-        for(ts=0; ts<N_TS; ts++) {
+#endif
+	for(ts=0; ts<N_TS; ts++) {
 #if FLAG_OMP
 	    thread_id = omp_get_thread_num();
 #else
@@ -211,7 +220,9 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
         } /* end for on ts */
     } else { //same as above, the only difference is that J_p_par -> J_p_par[j]
 
+#if FLAG_OMP
 #pragma omp parallel for private(thread_id, j)
+#endif
         for(ts=0; ts<N_TS; ts++) {
 #if FLAG_OMP
 	    thread_id = omp_get_thread_num();
@@ -241,8 +252,10 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
     for (i=0; i< p_data->p_it_only_drift->length ; i++) {
         int ind_par_Xdrift_applied = drift[i]->ind_par_Xdrift_applied;
 
+#if FLAG_OMP
 #pragma omp parallel for private(thread_id, j) //we parallelize k and not i as in most cases there are only one single diffusion
-        for (k=0; k< routers[ ind_par_Xdrift_applied ]->n_gp; k++) {
+#endif        
+	for (k=0; k< routers[ ind_par_Xdrift_applied ]->n_gp; k++) {
 #if FLAG_OMP
 	    thread_id = omp_get_thread_num();
 #else

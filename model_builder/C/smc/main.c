@@ -78,13 +78,7 @@ int main(int argc, char *argv[])
     LOG_LIKE_MIN = log(1e-17);
     int nb_obs = -1;
 
-
-#if FLAG_OMP
-    int n_threads = omp_get_max_threads();       
-#else
     int n_threads = 1;
-#endif
-
 
     while (1) {
         static struct option long_options[] =
@@ -258,7 +252,63 @@ int main(int argc, char *argv[])
 
     replicate_J_p_X_0(D_J_p_X[0], p_data);
 
+
+#if FLAG_OMP
     run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, get_f_pred(implementation, noises_off), filter, p_file_X, p_file_hat, p_file_pred_res, print_opt);
+#else
+    void *context = zmq_ctx_new ();
+
+    void *sender = zmq_socket (context, ZMQ_PUSH);
+    zmq_bind (sender, "inproc://server_sender");
+
+    void *receiver = zmq_socket (context, ZMQ_PULL);
+    zmq_bind (receiver, "inproc://server_receiver");
+
+    void *controller = zmq_socket (context, ZMQ_PUB);
+    zmq_bind (controller, "inproc://server_controller");
+
+    struct s_thread_smc *p_thread_smc = malloc(n_threads*sizeof(struct s_thread_smc));
+    pthread_t *worker = malloc(n_threads*sizeof(pthread_t));
+    int nt, id;
+    int J_chunk = J/n_threads;
+	
+    for (nt = 0; nt < n_threads; nt++) {
+	p_thread_smc[nt].thread_id = nt;       	    	    
+	p_thread_smc[nt].J_chunk = J_chunk;
+	p_thread_smc[nt].J = J;
+	p_thread_smc[nt].p_data = p_data;
+	p_thread_smc[nt].p_par = p_par;
+	p_thread_smc[nt].D_J_p_X = D_J_p_X;
+	p_thread_smc[nt].p_calc = calc[nt];	
+	p_thread_smc[nt].p_like = p_like;
+	p_thread_smc[nt].context = context;
+	pthread_create (&worker[nt], NULL, worker_routine_smc_inproc, (void*) &p_thread_smc[nt]);
+	printf("worker %d started\n", nt);
+    }
+
+    //wait that all worker are connected
+    for (nt = 0; nt < n_threads; nt++) {
+	zmq_recv(receiver, &id, sizeof (int), 0);
+	printf("worker %d connected\n", id);
+    }
+
+    run_SMC_zmq_inproc(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, get_f_pred(implementation, noises_off), filter, p_file_X, p_file_hat, p_file_pred_res, print_opt, sender, receiver, controller);
+
+    zmq_send (controller, "KILL", 5, 0);        
+    zmq_close (sender);
+    zmq_close (receiver);
+    zmq_close (controller);
+
+    for(nt = 0; nt < n_threads; nt++){
+	pthread_join(worker[nt], NULL);
+    }
+
+    free(worker);
+    free(p_thread_smc);
+
+    zmq_ctx_destroy (context);
+#endif
+
 
     if (OPTION_PRIOR) {
 	double log_prob_prior_value;

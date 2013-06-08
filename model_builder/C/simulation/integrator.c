@@ -132,10 +132,14 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
 
 
 
-void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred)
+void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, void *sender, void *receiver, void *controller)
 {
-    int j, k, nn;
-    int thread_id;
+    int k, nn;
+#if FLAG_OMP
+    int j, thread_id;
+#else
+    int nt, the_nt;
+#endif
 
     FILE *p_file_X = NULL;
     if (OPTION_TRAJ) {
@@ -165,21 +169,31 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
             store_state_current_n_nn(calc, nn, nn);
         }
 
+#if FLAG_OMP
+
 #pragma omp parallel for private(thread_id)
         for(j=0;j<J;j++) {
-#if FLAG_OMP
 	    thread_id = omp_get_thread_num();
-#else
-	    thread_id = 0;
-#endif
-
-
 
             reset_inc(J_p_X[j], p_data);
-
             f_pred(J_p_X[j], k, k+1, J_p_par[j], p_data, calc[thread_id]);
             proj2obs(J_p_X[j], p_data);
         }
+
+#else
+
+	//send work           
+	for (nt=0; nt<calc[0]->n_threads; nt++) {
+	    zmq_send(sender, &nt, sizeof (int), ZMQ_SNDMORE);
+	    zmq_send(sender, &k, sizeof (int), 0);
+	}
+
+	//get results from the workers
+	for (nt=0; nt<calc[0]->n_threads; nt++) {
+	    zmq_recv(receiver, &the_nt, sizeof (int), 0);	       
+	}
+
+#endif
 
         compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 0);
         print_p_hat(p_file_hat, NULL, p_hat, p_data, k);
