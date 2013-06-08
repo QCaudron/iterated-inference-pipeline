@@ -3,6 +3,8 @@
 cd model_builder/C/core/
 
 sed -ie "s/#define FLAG_JSON \([0-9]*\)/#define FLAG_JSON 0/" plom.h
+#NOTE on OSX openMP require to compile with gcc-4.7 or gcc-4.8
+sed -ie "s/#define FLAG_OMP \([0-9]*\)/#define FLAG_OMP 0/" plom.h 
 
 cd ..
 
@@ -25,6 +27,6 @@ fi
 python setup.py sdist
 
 cd dist
-tar -zxvf plom-0.8.0.tar.gz
-cd plom-0.8.0
+tar -zxvf plom-0.9.0.tar.gz
+cd plom-0.9.0
 sudo python setup.py install
