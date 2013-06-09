@@ -635,8 +635,9 @@ class Ccoder(Cmodel):
                 jac_obs_drift.append([])
 
             for sy in self.par_sv:
+                print(obsList[o])
                 Cterm = self.make_C_term(obsList[o], True, derivate=sy)
-
+                print(Cterm)
                 jac_obs[o].append(Cterm)
                 caches.append(Cterm)
 
