@@ -543,6 +543,10 @@ class Ccoder(Cmodel):
         my_model = copy.deepcopy(self.proc_model)
         odeDict = dict([(x,'') for x in self.par_sv])
 
+        ##############################
+        ###   Build odeDict
+        ##############################
+
         ##outputs
         for r in my_model:
             if r['from'] not in ['U', self.remainder]:
@@ -836,14 +840,13 @@ class Ccoder(Cmodel):
                 for j in range(len(B[0])):
                     for k in range(len(B)):
                         if (A[i][k] and B[k][j]):
-                            for a in str(A[i][k]).split(' + '):
-                                for b in str(B[k][j]).split(' + '):
-                                    term = ('({0})*({1})').format(a,b)
+                            term = ('({0})*({1})').format(A[i][k], B[k][j])
 
-                                    if res[i][j]:
-                                        res[i][j] = res[i][j] + ' + {0}'.format(term)
-                                    else:
-                                        res[i][j] = term
+                            if res[i][j]:
+                               res[i][j] = res[i][j] + ' + {0}'.format(term)
+                            else:
+                               res[i][j] = term
+
 
             return res
 

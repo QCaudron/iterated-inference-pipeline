@@ -58,6 +58,7 @@ class TestCcoder(unittest.TestCase):
         self.m_noise7 = Ccoder(c, p, l)
 
 
+
     def test_make_C_term(self):
         terms = [
             {'x': 'mu_b*(1.0+v*sin((v/N+(mu_b)))) + r0', #input
@@ -276,11 +277,11 @@ class TestCcoder(unittest.TestCase):
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][2],'((-1)*(('+term1+'*((sto)**2))*'+term2+'))*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][3],'((-1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][4],'((-1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][0],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(-1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][1],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][2],'((1)*(('+term1+'*((sto)**2))*'+term2+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][0],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][1],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+') + (-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][2],'((1)*(('+term1+'*((sto)**2))*'+term2+') + (-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][3],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][4],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+') + (-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][0],'((1)*(('+term2+'*((sto)**2))*'+term1+'))*(-1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][1],'((1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][2],'((1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
@@ -291,11 +292,11 @@ class TestCcoder(unittest.TestCase):
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][2],'((1)*(('+term1+'*((sto)**2))*'+term2+'))*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][0],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(-1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][1],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][2],'((1)*(('+term1+'*((sto)**2))*'+term2+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][0],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][1],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+') + (-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][2],'((1)*(('+term1+'*((sto)**2))*'+term2+') + (-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][3],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][4],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+') + (-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
 
         calc_Q = self.m_noise7.eval_Q()
         # testing env sto only for m_noise7 : uncorrelated WN on I->R and S->I
@@ -326,6 +327,11 @@ class TestCcoder(unittest.TestCase):
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][2],'((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+
+
+    def test_jac(self):
+        step_ode_sde = self.m_drift.step_ode_sde()
+        jac = self.m_drift.jac(step_ode_sde['sf'])
 
 
 if __name__ == '__main__':
