@@ -563,6 +563,7 @@ class Ccoder(Cmodel):
                     rate= ' + ({0})'.format(r['rate'])
                     odeDict[r['to']] += rate
 
+        print(odeDict)
 
         ##observed equations
         obsList = []
@@ -590,6 +591,7 @@ class Ccoder(Cmodel):
 
             obsList.append(eq)
 
+        print(obsList)
 
         ####################
         ### Jacobian
@@ -635,9 +637,7 @@ class Ccoder(Cmodel):
                 jac_obs_drift.append([])
 
             for sy in self.par_sv:
-                print(obsList[o])
                 Cterm = self.make_C_term(obsList[o], True, derivate=sy)
-                print(Cterm)
                 jac_obs[o].append(Cterm)
                 caches.append(Cterm)
 

@@ -368,14 +368,31 @@ class TestCcoder(unittest.TestCase):
         step_ode_sde = self.m_drift2.step_ode_sde()
         jac = self.m_drift2.jac(step_ode_sde['sf'])
 
-
-
+        
+        print('jac_only')
+        print(jac["jac_only"])
+        print('jac')
+        print(jac["jac"])
+        print('jac_obs')
+        print(jac["jac_obs"])
+        print('jac_drift')
+        print(jac["jac_drift"])
+        print('jac_obs_drift')
+        print(jac["jac_obs_drift"])
+        print('caches')
+        for x in jac["caches"]:
+            print(x)
+        print('sf')
+        print(jac["sf"])
+        print('caches_jac_only')
+        for x in jac["caches_jac_only"]:
+            print(x)
 
         # jac_obs
         # prev - ((v)*I) - ((mu_d)*I) + ((r0/N*v*I)*S) + ((correct_rate(v))*(N-S-I))
-        #self.assertEqual(jac["caches"][jac["jac_obs"][2][0]],self.m_drift.make_C_term('((r0/N*v*I)) -  correct_rate(v)', False, human=False))
-        #     self.assertEqual(jac["caches"][jac["jac_obs"][2][1]],self.m_drift.make_C_term('- ((v)) - ((mu_d)) + ((r0/N*v)*S)', False, human=False))
-        #self.assertEqual(jac["caches"][jac["jac_obs_drift"][2][0]["value"]],self.m_drift.make_C_term('((1/N*v*I)*S)', False, human=False))
+        self.assertEqual(jac["caches"][jac["jac_obs"][2][0]],self.m_drift.make_C_term('((r0/N*v*I)) -  correct_rate(v)', True, human=False))
+        self.assertEqual(jac["caches"][jac["jac_obs"][2][1]],self.m_drift.make_C_term('- ((v)) - ((mu_d)) + ((r0/N*v)*S) -  correct_rate(v)', True, human=False))
+        self.assertEqual(jac["caches"][jac["jac_obs_drift"][2][0]["value"]],self.m_drift.make_C_term('((1/N*v*I)*S)', True, human=False))
                 
 
 
