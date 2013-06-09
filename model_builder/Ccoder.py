@@ -563,7 +563,6 @@ class Ccoder(Cmodel):
                     rate= ' + ({0})'.format(r['rate'])
                     odeDict[r['to']] += rate
 
-        print(odeDict)
 
         ##observed equations
         obsList = []
@@ -591,8 +590,7 @@ class Ccoder(Cmodel):
 
             obsList.append(eq)
 
-        print(obsList)
-
+ 
         ####################
         ### Jacobian
         ####################

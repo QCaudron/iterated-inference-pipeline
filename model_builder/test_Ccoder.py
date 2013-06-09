@@ -368,25 +368,6 @@ class TestCcoder(unittest.TestCase):
         step_ode_sde = self.m_drift2.step_ode_sde()
         jac = self.m_drift2.jac(step_ode_sde['sf'])
 
-        
-        print('jac_only')
-        print(jac["jac_only"])
-        print('jac')
-        print(jac["jac"])
-        print('jac_obs')
-        print(jac["jac_obs"])
-        print('jac_drift')
-        print(jac["jac_drift"])
-        print('jac_obs_drift')
-        print(jac["jac_obs_drift"])
-        print('caches')
-        for x in jac["caches"]:
-            print(x)
-        print('sf')
-        print(jac["sf"])
-        print('caches_jac_only')
-        for x in jac["caches_jac_only"]:
-            print(x)
 
         # jac_obs
         # prev - ((v)*I) - ((mu_d)*I) + ((r0/N*v*I)*S) + ((correct_rate(v))*(N-S-I))
