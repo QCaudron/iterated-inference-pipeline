@@ -1,7 +1,7 @@
 CC=gcc
 CPP=g++
 CFLAGS=-Wall -O3 -DGSL_RANGE_CHECK_OFF
-LDFLAGS=-lplom -lplomtpl -lm /Users/team/standalone_C_plom/build/lib/libgsl.a /Users/team/standalone_C_plom/build/lib/libgslcblas.a /Users/team/standalone_C_plom/build/lib/libjansson.a /Users/team/standalone_C_plom/build/lib/libzmq.a
+LDFLAGS=-lplom -lplomtpl -lm /Users/team/plom-build/darwin/lib/libgsl.a /Users/team/plom-build/darwin/lib/libgslcblas.a /Users/team/plom-build/darwin/lib/libjansson.a /Users/team/plom-build/darwin/lib/libzmq.a
 LIB=libplomtpl.a
 SRC= $(wildcard *.c)
 OBJ= $(SRC:.c=.o)
