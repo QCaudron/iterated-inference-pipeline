@@ -57,6 +57,11 @@ class TestCcoder(unittest.TestCase):
         p["white_noise"].append({"reaction":[{'to':'R','from':'I'}],"sd":"sto"})
         self.m_noise7 = Ccoder(c, p, l)
 
+        p = json.load(open(os.path.join('example', 'drift', 'process.json')))
+        p["model"].append({"from": "R", "to": "I", "rate": "correct_rate(v)", "comment":"testing"}) 
+        self.m_drift2 = Ccoder(c, p, l)
+
+
 
     def test_make_C_term(self):
         terms = [
@@ -276,11 +281,11 @@ class TestCcoder(unittest.TestCase):
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][2],'((-1)*(('+term1+'*((sto)**2))*'+term2+'))*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][3],'((-1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][0][4],'((-1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][0],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(-1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][1],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][2],'((1)*(('+term1+'*((sto)**2))*'+term2+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][0],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][1],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+') + (-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][2],'((1)*(('+term1+'*((sto)**2))*'+term2+') + (-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][3],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][1][4],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+') + (-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][0],'((1)*(('+term2+'*((sto)**2))*'+term1+'))*(-1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][1],'((1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][2][2],'((1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
@@ -291,11 +296,11 @@ class TestCcoder(unittest.TestCase):
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][2],'((1)*(('+term1+'*((sto)**2))*'+term2+'))*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][3][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][0],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(-1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][1],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][2],'((1)*(('+term1+'*((sto)**2))*'+term2+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1)')
-        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+'))*(-1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][0],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][1],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+') + (-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][2],'((1)*(('+term1+'*((sto)**2))*'+term2+') + (-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][3],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1)')
+        self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][4],'((1)*(('+term1+'*((sto)**2))*'+term1+') + (-1)*(('+term2+'*((sto)**2))*'+term1+'))*(1) + ((1)*(('+term1+'*((sto)**2))*'+term2+') + (-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
 
         calc_Q = self.m_noise7.eval_Q()
         # testing env sto only for m_noise7 : uncorrelated WN on I->R and S->I
@@ -326,6 +331,50 @@ class TestCcoder(unittest.TestCase):
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][2],'((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][3],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1)')
         self.assertEqual(calc_Q["no_dem_sto"]["Q"][4][4],'((1)*(('+term1+'*((sto)**2))*'+term1+'))*(1) + ((-1)*(('+term2+'*((sto)**2))*'+term2+'))*(-1)')
+
+
+    def test_jac(self):
+        step_ode_sde = self.m_drift.step_ode_sde()
+        jac = self.m_drift.jac(step_ode_sde['sf'])
+
+
+        # testing jac
+        # S ode - ((r0/N*v*I)*S) - ((mu_d)*S) + (mu_b*N)
+        self.assertEqual(jac["caches"][jac["jac"][0][0]],self.m_drift.make_C_term('- ((r0/N*v*I)) - ((mu_d))', False, human=False))
+        self.assertEqual(jac["caches"][jac["jac"][0][1]],self.m_drift.make_C_term('- ((r0/N*v)*S)', False, human=False))
+        self.assertEqual(jac["caches"][jac["jac_drift"][0][0]["value"]],self.m_drift.make_C_term('- ((1/N*v*I)*S)', False, human=False)) # the derivative is computed with regards to r0 and not transf(r0), as the latter is taken care of on runtime because it depends on the transformation.
+        # I ode - ((v)*I) - ((mu_d)*I) + ((r0/N*v*I)*S)
+        self.assertEqual(jac["caches"][jac["jac"][1][0]],self.m_drift.make_C_term(' ((r0/N*v*I)) ', False, human=False))
+        self.assertEqual(jac["caches"][jac["jac"][1][1]],self.m_drift.make_C_term('- ((v)) - ((mu_d)) + ((r0/N*v)*S)', False, human=False))
+        self.assertEqual(jac["caches"][jac["jac_drift"][1][0]["value"]],self.m_drift.make_C_term('((1/N*v*I)*S)', False, human=False))
+        
+        # testing jac_obs
+        # inc_out ((v)*I) + ((mu_d)*I)
+        self.assertEqual(jac["caches"][jac["jac_obs"][0][0]],self.m_drift.make_C_term('0', False, human=False))
+        self.assertEqual(jac["caches"][jac["jac_obs"][0][1]],self.m_drift.make_C_term('((v)) + ((mu_d))', False, human=False))
+        self.assertEqual(jac["caches"][jac["jac_obs_drift"][0][0]["value"]],self.m_drift.make_C_term('0', False, human=False))
+        # inc_in ((r0/N*v*I)*S)
+        self.assertEqual(jac["caches"][jac["jac_obs"][1][0]],self.m_drift.make_C_term('((r0/N*v*I))', False, human=False))
+        self.assertEqual(jac["caches"][jac["jac_obs"][1][1]],self.m_drift.make_C_term('((r0/N*v)*S)', False, human=False))
+        self.assertEqual(jac["caches"][jac["jac_obs_drift"][1][0]["value"]],self.m_drift.make_C_term('((1/N*v*I)*S)', False, human=False))
+        # prev - ((v)*I) - ((mu_d)*I) + ((r0/N*v*I)*S)
+        self.assertEqual(jac["caches"][jac["jac_obs"][2][0]],self.m_drift.make_C_term('((r0/N*v*I))', False, human=False))
+        self.assertEqual(jac["caches"][jac["jac_obs"][2][1]],self.m_drift.make_C_term('- ((v)) - ((mu_d)) + ((r0/N*v)*S)', False, human=False))
+        self.assertEqual(jac["caches"][jac["jac_obs_drift"][2][0]["value"]],self.m_drift.make_C_term('((1/N*v*I)*S)', False, human=False))
+
+    def test_jac_tricky_cases(self):
+
+        # testing if remainder is well dealt with
+        step_ode_sde = self.m_drift2.step_ode_sde()
+        jac = self.m_drift2.jac(step_ode_sde['sf'])
+
+
+        # jac_obs
+        # prev - ((v)*I) - ((mu_d)*I) + ((r0/N*v*I)*S) + ((correct_rate(v))*(N-S-I))
+        self.assertEqual(jac["caches"][jac["jac_obs"][2][0]],self.m_drift.make_C_term('((r0/N*v*I)) -  correct_rate(v)', True, human=False))
+        self.assertEqual(jac["caches"][jac["jac_obs"][2][1]],self.m_drift.make_C_term('- ((v)) - ((mu_d)) + ((r0/N*v)*S) -  correct_rate(v)', True, human=False))
+        self.assertEqual(jac["caches"][jac["jac_obs_drift"][2][0]["value"]],self.m_drift.make_C_term('((1/N*v*I)*S)', True, human=False))
+                
 
 
 if __name__ == '__main__':
