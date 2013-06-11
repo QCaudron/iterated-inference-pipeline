@@ -4,6 +4,7 @@ import subprocess
 import shutil
 import json
 from numpy import genfromtxt
+from scipy import stats
 import math
 
 class TestLogTransfsAndPMCMC(unittest.TestCase):
@@ -79,7 +80,42 @@ class TestKalmanOnDiffusions(unittest.TestCase):
             tab = genfromtxt('hat_0.csv',delimiter=',',names=True)
             self.assertAlmostEqual(tab['low95drifttest_parall'][9]/math.sqrt(10),-1.96,5)
 
+class TestSMCSDEagainstKalman(unittest.TestCase):
+      def setUp(self):
+      # Things that need to be done before tests
+            os.chdir(Root+'/linear/model')
 
+      def test_only_env_sto(self):
+            os.system('plom pipe theta.json |  ./kalman --no_dem_sto --traj -o 2')
+            tab0 = genfromtxt('hat_0.csv',delimiter=',',names=True)
+            nparts = 6000
+            os.system('plom pipe theta.json |  ./smc sde --no_dem_sto --traj -o 2 -J ' + str(nparts) + ' -i 1 -P 8 --DT 0.0001 --traj')
+            tab1 = genfromtxt('hat_1.csv',delimiter=',',names=True)
+
+            meanSMC0a = tab1[0][2]
+            meanEKF0a = tab0[0][2]
+            q975SMC0a = tab1[0][3]
+            q975EKF0a = tab0[0][3]
+            meanSMC0b = tab1[0][8]
+            meanEKF0b = tab0[0][8]
+            q975SMC0b = tab1[0][9]
+            q975EKF0b = tab0[0][9]
+            meanSMC0r0 = math.log(tab1[0][20])
+            meanEKF0r0 = tab0[0][20]
+            q975SMC0r0 = math.log(tab1[0][21])
+            q975EKF0r0 = tab0[0][21]
+
+            # Tests on 97.5% quantiles
+            # based on on CLT for empirical quantile given in "Statistics and Data Analysis for Financial Engineering, Rupert 2011"
+            self.assertTrue(abs((q975SMC0r0-q975EKF0r0)/(math.sqrt(0.975*0.025)/(stats.norm.pdf(q975EKF0r0-meanEKF0r0,loc=0,scale=(q975EKF0r0-meanEKF0r0)/1.96)*math.sqrt(nparts))))<1.96)
+            self.assertTrue(abs((q975SMC0a-q975EKF0a)/(math.sqrt(0.975*0.025)/(stats.norm.pdf(q975EKF0a-meanEKF0a,loc=0,scale=(q975EKF0a-meanEKF0a)/1.96)*math.sqrt(nparts))))<1.96)
+            self.assertTrue(abs((q975SMC0b-q975EKF0b)/(math.sqrt(0.975*0.025)/(stats.norm.pdf(q975EKF0b-meanEKF0b,loc=0,scale=(q975EKF0b-meanEKF0b)/1.96)*math.sqrt(nparts))))<1.96)
+
+
+
+
+     
+           
 def suite_TestLogTransfsAndPMCMC():
       suite = unittest.TestSuite()
       suite.addTest(unittest.makeSuite(TestLogTransfsAndPMCMC))
@@ -90,10 +126,16 @@ def suite_TestKalmanOnDiffusions():
       suite.addTest(unittest.makeSuite(TestKalmanOnDiffusions))
       return suite
 
+def suite_SMCSDEagainstKalman():
+      suite = unittest.TestSuite()
+      suite.addTest(unittest.makeSuite(TestSMCSDEagainstKalman))
+      return suite
+
 if __name__ == '__main__' :
 
       run_LogTransfsAndPMCMC = 0
-      run_KalmanOnDiffusions = 1
+      run_KalmanOnDiffusions = 0
+      run_SMCSDEagainstKalman = 1
       
 
       Root = os.getcwd()
@@ -127,4 +169,14 @@ if __name__ == '__main__' :
             unittest.TextTestRunner().run(suite_TestKalmanOnDiffusions())
 
             shutil.rmtree(Root + '/noise_test_diff')
+
+      if run_SMCSDEagainstKalman:
+            # copy noise from the examples, replace reactions by linear model, and build it
+            shutil.copytree(Root + '/../example/linear',Root + '/linear')     
+            os.chdir(Root+'/linear')
+            os.system('plom build -t theta.json --local')
+
+            unittest.TextTestRunner().run(suite_SMCSDEagainstKalman())
+
+            shutil.rmtree(Root + '/linear')
 

@@ -1,0 +1,38 @@
+{
+  "name": "Princeton, USA",
+  "description": "my comment",
+
+  "disease": ["measles"],
+
+  "population": [
+    {
+      "id": "city1__all",
+      "comment": "city 1, all age classes"
+    }
+  ],
+
+  "time_series": [
+    {
+      "id": "city1__CDC__prev",
+      "population_id": ["city1__all"],
+      "comment": ""
+    }
+  ],
+
+  "data": [
+    {
+      "id": "data",
+      "source": "data/data.csv",
+      "comment": "my data"
+    }
+  ],
+
+  "metadata": [
+    {
+      "id": "N",
+      "source": "data/N.csv",
+      "comment": "population size"
+    }
+  ]
+
+}

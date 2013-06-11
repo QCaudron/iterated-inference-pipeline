@@ -1,0 +1,45 @@
+{
+  "name": "SIR",
+  "description": "SIR model with birth and death processes, and white noise on the transmission term",
+
+  "state": [
+    {"id": "S", "comment": "Susceptible"},
+    {"id": "I", "comment": "Infectious", "tag": "infectious"},
+    {"id": "I2", "comment": "Infectious", "tag": "infectious"},
+    {"id": "E1", "comment": "Retired"},
+    {"id": "E2", "comment": "Retired"}
+  ],
+
+  "parameter": [
+    {"id": "r0",   "comment": "basic reproduction number"},
+    {"id": "vol",   "comment": "basic reproduction number"},
+    {"id": "vol2",   "comment": "basic reproduction number"}
+  ],
+
+  "model": [
+    {"from": "S", "to": "I",  "rate": "1000/S", "comment":"birth"},
+    {"from": "I", "to": "I2",  "rate": "1000/I", "comment":"birth"},
+    {"from": "I2", "to": "S",  "rate": "1000/I2", "comment":"birth"},
+    {"from": "E1", "to": "E2",  "rate": "3", "comment":"birth"}  
+  ],
+
+  "white_noise": [
+    {
+      "reaction": [{"from":"S", "to": "I"},{"from":"I", "to": "I2"}],
+      "sd": "vol"
+    },
+    {
+      "reaction": [{"from":"I2", "to": "S"}],
+      "sd": "vol2"
+    }
+  ],
+
+  "diffusion": [
+   {
+     "parameter":"r0",
+     "volatility": "vol",
+     "drift": 0.0
+   }
+ ]
+ 
+}

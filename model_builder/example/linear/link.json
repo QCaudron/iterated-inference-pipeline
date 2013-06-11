@@ -1,0 +1,27 @@
+{
+  "name": "oBinomial",
+  "description": "my comment",
+
+  "observed": [
+    {
+      "id": "prev", "comment":"prevalence",
+      "definition": ["E1"],
+      "time_series_id": ["city1__CDC__prev"],
+      "observation_id": "common"
+    }
+  ],
+
+  "observation": [
+    {
+      "id": "common", 
+      "parameter": [
+        {"id": "rep", "comment": "reporting rate"}
+      ],
+      "model": {
+        "distribution": "discretized_normal",
+        "mean": "1",
+        "var": "1"
+      }
+    }
+  ]
+}
