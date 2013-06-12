@@ -54,12 +54,6 @@ def prepare_model(path_rendered, path_templates, replace=True):
         shutil.copytree(path_templates, os.path.join(path_rendered, 'C'))
 
 
-    #create settings directory (if needed)
-    path_settings = os.path.join(path_rendered, 'settings')
-    if not os.path.exists(path_settings):
-        os.makedirs(path_settings)
-
-
 def archive_model(path_rendered, replace=True):
     """make a tarball"""
 
@@ -210,8 +204,8 @@ class PlomModelBuilder(Context, Ccoder):
     ##write
     ##########################
 
-    def write_settings(self, settings_name='settings'):
-        with open(os.path.join(self.path_rendered, 'settings', settings_name+'.json'), 'w') as f:
+    def write_settings(self, settings_name='.settings'):
+        with open(os.path.join(self.path_rendered, settings_name+'.json'), 'w') as f:
             f.write(make_settings_json(self))
 
 
