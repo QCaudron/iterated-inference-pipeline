@@ -1,6 +1,6 @@
 CC=gcc
-CPP=g++
-CFLAGS=-Wall -O3 -DGSL_RANGE_CHECK_OFF
+CXX=g++
+CFLAGS=-Wall -O3 -DGSL_RANGE_CHECK_OFF -mmacosx-version-min=10.7
 LDFLAGS=-lplom -lplomtpl -lm /Users/team/plom-build/darwin/lib/libgsl.a /Users/team/plom-build/darwin/lib/libgslcblas.a /Users/team/plom-build/darwin/lib/libjansson.a /Users/team/plom-build/darwin/lib/libzmq.a
 LIB=libplomtpl.a
 SRC= $(wildcard *.c)
@@ -21,31 +21,31 @@ $(LIB): $(OBJ)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 simul: libplomtpl.a
-	$(CPP) $(CFLAGS) -L. -o $@ -lplom_simul $(LDFLAGS)
+	$(CXX) $(CFLAGS) -L. -o $@ -lplom_simul $(LDFLAGS)
 
 simplex: libplomtpl.a
-	$(CPP) $(CFLAGS) -L. -o $@ -lplom_simplex $(LDFLAGS)
+	$(CXX) $(CFLAGS) -L. -o $@ -lplom_simplex $(LDFLAGS)
 
 smc: libplomtpl.a
-	$(CPP) $(CFLAGS) -L. -o $@ -lplom_smc $(LDFLAGS) 
+	$(CXX) $(CFLAGS) -L. -o $@ -lplom_smc $(LDFLAGS) 
 
 mif: libplomtpl.a
-	$(CPP) $(CFLAGS) -L. -o $@ -lplom_mif $(LDFLAGS)  
+	$(CXX) $(CFLAGS) -L. -o $@ -lplom_mif $(LDFLAGS)  
 
 pmcmc: libplomtpl.a
-	$(CPP) $(CFLAGS) -L. -o $@ -lplom_pmcmc $(LDFLAGS)  
+	$(CXX) $(CFLAGS) -L. -o $@ -lplom_pmcmc $(LDFLAGS)  
 
 kalman: libplomtpl.a
-	$(CPP) $(CFLAGS) -L. -o $@ -lplom_kalman $(LDFLAGS) 
+	$(CXX) $(CFLAGS) -L. -o $@ -lplom_kalman $(LDFLAGS) 
 
 ksimplex: libplomtpl.a
-	$(CPP) $(CFLAGS) -L. -o $@ -lplom_ksimplex $(LDFLAGS)
+	$(CXX) $(CFLAGS) -L. -o $@ -lplom_ksimplex $(LDFLAGS)
 
 kmcmc: libplomtpl.a
-	$(CPP) $(CFLAGS) -L. -o $@ -lplom_kmcmc $(LDFLAGS)
+	$(CXX) $(CFLAGS) -L. -o $@ -lplom_kmcmc $(LDFLAGS)
 
 worker: libplomtpl.a
-	$(CPP) $(CFLAGS) -L. -o $@ -lplom_worker $(LDFLAGS) 
+	$(CXX) $(CFLAGS) -L. -o $@ -lplom_worker $(LDFLAGS) 
 
 .PHONY: clean
 
