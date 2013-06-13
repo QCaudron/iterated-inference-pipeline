@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
     sfr_fclose(p_file_cov);
 
 #if FLAG_VERBOSE
-    print_log("clean up...\n");
+    print_log("clean up...");
 #endif
 
     clean_pmcmc(p_pmcmc);

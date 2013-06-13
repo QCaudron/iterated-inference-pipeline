@@ -368,13 +368,16 @@ int main(int argc, char *argv[])
 	p_thread_predict[nt].p_calc = calc[nt];    
 	p_thread_predict[nt].context = context;
 	pthread_create (&worker[nt], NULL, worker_routine_predict_inproc, (void*) &p_thread_predict[nt]);
-	printf("worker %d started\n", nt);
+
+	snprintf(str, STR_BUFFSIZE, "worker %d started", nt);
+	print_log(str);
     }
 
     //wait that all worker are connected
     for (nt = 0; nt < n_threads; nt++) {
 	zmq_recv(receiver, &id, sizeof (int), 0);
-	printf("worker %d connected\n", id);
+	snprintf(str, STR_BUFFSIZE, "worker %d connected", id);
+	print_log(str);
     }
 #endif
 

@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
     mif(p_mif->calc, p_mif->p_data, p_mif->p_best, &(p_mif->J_p_X), &(p_mif->J_p_X_tmp), p_mif->J_p_par, p_mif->p_like, p_mif->J_theta, p_mif->J_theta_tmp, p_mif->D_theta_bart, p_mif->D_theta_Vt, get_f_pred(implementation, noises_off), is_covariance);
 
 #if FLAG_VERBOSE
-    print_log("clean up...\n");
+    print_log("clean up...");
 #endif
 
     clean_mif(p_mif);

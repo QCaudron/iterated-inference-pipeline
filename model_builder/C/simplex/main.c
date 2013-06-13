@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
 
 
 #if FLAG_VERBOSE
-    print_log("clean up...\n");
+    print_log("clean up...");
 #endif
 
     clean_simplex(p_simplex);

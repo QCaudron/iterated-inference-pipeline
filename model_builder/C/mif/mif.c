@@ -22,8 +22,9 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 {
     int i, j, k;
     int m, n, nn; /*m:filtering iteration index, n: indeces N_DATA and nn N_DATA_NONAN */
+    char str[STR_BUFFSIZE];
+
 #if FLAG_VERBOSE
-    char str[255];
     int64_t time_mif_begin, time_mif_end; /* to calculate the computational time of the MIF iteration */
 #endif
     int t0, t1;
@@ -61,13 +62,16 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 	p_thread_mif[nt].p_like = p_like;
 	p_thread_mif[nt].context = context;
 	pthread_create (&worker[nt], NULL, worker_routine_mif_inproc, (void*) &p_thread_mif[nt]);
-	printf("worker %d started\n", nt);
+
+	snprintf(str, STR_BUFFSIZE, "worker %d started", nt);
+	print_log(str);	
     }
 
     //wait that all worker are connected
     for (nt = 0; nt < calc[0]->n_threads; nt++) {
 	zmq_recv(receiver, &id, sizeof (int), 0);
-	printf("worker %d connected\n", id);
+	snprintf(str, STR_BUFFSIZE, "worker %d connected", id);
+	print_log(str);
     }
 #endif
 

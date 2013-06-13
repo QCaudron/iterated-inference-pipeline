@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
     simplex(p_kalman->p_best, p_kalman->p_data, p_kalman, f_simplex_kalman, CONVERGENCE_STOP_SIMPLEX, M, option_no_trace);
 
 #if FLAG_VERBOSE
-    print_log("clean up...\n");
+    print_log("clean up...");
 #endif
 
     clean_kalman(p_kalman);

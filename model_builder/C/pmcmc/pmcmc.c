@@ -50,9 +50,10 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     // syntactical shortcut
     struct s_mcmc_calc_data *p_mcmc_calc_data =  (struct s_mcmc_calc_data *) calc[0]->method_specific_shared_data;
 
+    char str[STR_BUFFSIZE];
+
     // initialize time to calculate the computational time of a pMCMC iteration
 #if FLAG_VERBOSE
-    char str[255];
     int64_t time_pmcmc_begin, time_pmcmc_end; /* to calculate the computational time of a pMCMC iteration */
     time_pmcmc_begin = s_clock();
 #endif
@@ -129,13 +130,15 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 	    p_thread_smc[nt].p_like = p_like;
 	    p_thread_smc[nt].context = context;
 	    pthread_create (&worker[nt], NULL, worker_routine_smc_inproc, (void*) &p_thread_smc[nt]);
-	    printf("worker %d started\n", nt);
+	    snprintf(str, STR_BUFFSIZE, "worker %d started", nt);
+	    print_log(str);
 	}
 
 	//wait that all worker are connected
 	for (nt = 0; nt < calc[0]->n_threads; nt++) {
 	    zmq_recv(receiver, &id, sizeof (int), 0);
-	    printf("worker %d connected\n", id);
+	    snprintf(str, STR_BUFFSIZE, "worker %d connected", id);
+	    print_log(str);
 	}
 	       
 #endif

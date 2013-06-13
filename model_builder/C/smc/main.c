@@ -282,14 +282,16 @@ int main(int argc, char *argv[])
 	p_thread_smc[nt].p_calc = calc[nt];	
 	p_thread_smc[nt].p_like = p_like;
 	p_thread_smc[nt].context = context;
-	pthread_create (&worker[nt], NULL, worker_routine_smc_inproc, (void*) &p_thread_smc[nt]);
-	printf("worker %d started\n", nt);
+	pthread_create (&worker[nt], NULL, worker_routine_smc_inproc, (void*) &p_thread_smc[nt]);	
+	snprintf(str, STR_BUFFSIZE, "worker %d started", nt);
+	print_log(str);
     }
 
     //wait that all worker are connected
     for (nt = 0; nt < n_threads; nt++) {
 	zmq_recv(receiver, &id, sizeof (int), 0);
-	printf("worker %d connected\n", id);
+	snprintf(str, STR_BUFFSIZE, "worker %d connected", id);
+	print_log(str);
     }
 
     run_SMC_zmq_inproc(D_J_p_X, D_J_p_X_tmp, p_par, D_p_hat, p_like, p_data, calc, get_f_pred(implementation, noises_off), filter, p_file_X, p_file_hat, p_file_pred_res, print_opt, sender, receiver, controller);

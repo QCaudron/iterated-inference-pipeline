@@ -109,8 +109,11 @@ void *worker_routine (void *params) {
         if (items [1].revents & ZMQ_POLLIN) {
 	    char buf [256];
 	    zmq_recv(server_controller, buf, 256, 0);           
+
+	    snprintf(str, STR_BUFFSIZE, "worker %d: controller sent: %s", p->thread_id, buf);
+	    print_log(str);
+
             if(strcmp(buf, "KILL") == 0) {
-                printf("worker %d: controller sent: %s\n", p->thread_id, buf);
                 break;  //  Exit loop
             }
         }
@@ -124,7 +127,8 @@ void *worker_routine (void *params) {
     clean_X(p_X);
     clean_p_calc(p_calc, p_data);
 
-    printf("thread %d done\n", p->thread_id);
+    snprintf(str, STR_BUFFSIZE, "thread %d done", p->thread_id);
+    print_log(str);
 
     return NULL;
 }
@@ -341,7 +345,8 @@ int main(int argc, char *argv[])
         p_thread_params[nt].p_data = p_data;
         p_thread_params[nt].context = context;
         pthread_create (&worker[nt], NULL, worker_routine, (void*) &p_thread_params[nt]);
-        printf("thread %d started\n", nt);
+	snprintf(str, STR_BUFFSIZE, "worker %d started", nt);
+	print_log(str);        
     }
 
     for(nt = 0; nt < n_threads; nt++){
