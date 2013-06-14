@@ -88,7 +88,7 @@ class Context:
         self.frequency = context.get('frequency', None) ##determined by plom(1) (recommended way)
         if not self.frequency: ##quick and dirty
             delta = datetime.datetime.strptime(self.dates[1], "%Y-%m-%d").date() - datetime.datetime.strptime(self.dates[0], "%Y-%m-%d").date()
-            self.frequency = {1: 'D', 7: 'W', 30: 'M', 365: 'Y'}[delta.days]
+            self.frequency = {1: 'D', 7: 'W', 14, 'B', 28: 'M', 30: 'M', 31: 'M', 365: 'Y'}[delta.days]
 
 
     def handle_context_data(self, source):
