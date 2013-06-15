@@ -35,7 +35,6 @@ struct s_mif *build_mif(json_t *theta, enum plom_implementations implementation,
     }
 
     p->p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR, -1); //also build obs2ts
-    json_decref(settings);
     int size_proj = N_PAR_SV*N_CAC + p->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
     //N_DATA_NONAN is set in build_data
@@ -52,7 +51,9 @@ struct s_mif *build_mif(json_t *theta, enum plom_implementations implementation,
     p->J_p_par = build_J_p_par(p->p_data);
     p->p_like = build_likelihood();
 
-    p->calc = build_calc(n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p->p_data);
+    p->calc = build_calc(n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p->p_data, settings);
+
+    json_decref(settings);
 
     //read only
     p->calc[0]->method_specific_shared_data = gsl_matrix_calloc(p->p_best->n_to_be_estimated, p->p_best->n_to_be_estimated); //used to store the cholesky decomposition

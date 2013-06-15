@@ -262,7 +262,6 @@ int main(int argc, char *argv[])
 
 
     struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 0, -1);
-    json_decref(settings);
 
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
@@ -270,7 +269,8 @@ int main(int argc, char *argv[])
     struct s_X **J_p_X = build_J_p_X(size_proj, N_TS, p_data, dt);
     struct s_best *p_best = build_best(p_data, theta);
 
-    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p_data);
+    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p_data, settings);
+    json_decref(settings);
 
     double *y0 = init1d_set0(N_PAR_SV*N_CAC + N_TS_INC_UNIQUE);
     double abs_tol = eps_abs, rel_tol = eps_rel;
@@ -312,14 +312,14 @@ int main(int argc, char *argv[])
             transform_theta(p_best, p_data, 1);
             back_transform_theta2par(J_p_par[j], p_best->mean, p_data->p_it_all, p_data);
             linearize_and_repeat(J_p_X[j], J_p_par[j], p_data, p_data->p_it_par_sv);
-            prop2Xpop_size(J_p_X[j], p_data);
+            prop2Xpop_size(J_p_X[j], p_data, calc[0]);
             theta_driftIC2Xdrift(J_p_X[j], p_best->mean, p_data);
         }
     } else{
         transform_theta(p_best, p_data, 1);
         back_transform_theta2par(J_p_par[0], p_best->mean, p_data->p_it_all, p_data);
         linearize_and_repeat(J_p_X[0], J_p_par[0], p_data, p_data->p_it_par_sv);
-        prop2Xpop_size(J_p_X[0], p_data);
+        prop2Xpop_size(J_p_X[0], p_data, calc[0]);
         theta_driftIC2Xdrift(J_p_X[0], p_best->mean, p_data);
 
         replicate_J_p_X_0(J_p_X, p_data);

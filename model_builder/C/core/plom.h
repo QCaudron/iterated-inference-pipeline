@@ -90,6 +90,8 @@ typedef enum {PLOM_SUCCESS=0, PLOM_ERR_LIKE=-1} plom_err_code;
 #define ZERO_LOG 1e-17 /**< smallest value that can be log transformed without being replaced by @c ZERO_LOG */
 #define ONE_LOGIT 0.999999999 /**< largest value that can be logit transformed without being replaced by @c ONE_LOGIT */
 
+#define ONE_YEAR 365.0 /**< One year in days */
+
 
 /*-------global variables--------*/
 /* algo parameters (read from the command line) */
@@ -123,9 +125,6 @@ int IS_SCHOOL_TERMS;   /**< do we need school terms data */
 
 char SFR_PATH[STR_BUFFSIZE]; /**< path where the output files will be written */
 int GENERAL_ID;              /**< general identifiant to make the output files unique */
-
-/* numerical integration parameters (read from JSON) */
-double ONE_YEAR;
 
 /* option and commands */
 int OPTION_TRAJ;   /**< print the trajectories */
@@ -272,9 +271,6 @@ struct s_data{
 
     int nb_obs; /*length of the data to be used for inference */
 
-    /* fixed params */
-    double ***par_fixed;     /**< [N_PAR_FIXED][N_DATA_PAR_FIXED][N_CAC || T_TS] an array of covariates (each covariate is a 2D array) */
-
     /* if school terms */
     unsigned int *n_terms;   /**< [N_CAC] number of terms for cac */
     double *prop_school;     /**< proportion of the year taken by school */
@@ -329,14 +325,16 @@ struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get
     /* SDE */
     double *y_pred; /**< used to store y predicted for Euler Maruyama */
 
-
     //  double *gravity; /*[NUMC] additional term specific to measles model*/
-
 
     //multi-threaded sorting
     double *to_be_sorted;  /**< [J] array of the J particle to be sorted*/
     size_t *index_sorted;  /**< [J] index of the sorted weights used to compute 95% confidence interval */
 
+    //interpolators for covariates
+    gsl_interp_accel ***acc; /**< [N_PAR_FIXED][N_CAC || N_TS] an array of array of pointer to gsl_interp_accel */
+    gsl_spline ***spline;    /**< [N_PAR_FIXED][N_CAC || N_TS] an array of array of pointer to gsl_spline */   
+    unsigned int *n_spline;  /**< N_CAC or N_TS for each spline */
 
     /**
      *  Reference to s_par used to pass s_par to some GSL function
@@ -637,8 +635,8 @@ void clean_drift(struct s_drift **drift);
 struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int nb_obs);
 void clean_data(struct s_data *p_data);
 
-struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
-struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data);
+struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data, json_t *settings);
+struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data, json_t *settings);
 
 void clean_p_calc(struct s_calc *p_calc, struct s_data *p_data);
 void clean_calc(struct s_calc **calc, struct s_data *p_data);
@@ -695,7 +693,7 @@ double sum_SV(const double *X_proj, int cac);
 double correct_rate(double rate, double dt);
 
 void linearize_and_repeat(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, const struct s_iterator *p_it);
-void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data);
+    void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc);
 void theta_driftIC2Xdrift(struct s_X *p_X, const theta_t *best_mean, struct s_data *p_data);
 
 plom_f_pred_t get_f_pred(enum plom_implementations implementation, enum plom_noises_off noises_off);
@@ -817,7 +815,7 @@ void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, gs
 
 void ran_proposal(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc);
 
-int check_IC(struct s_X *p_X, struct s_data *p_data);
+int check_IC(struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc);
 plom_err_code log_prob_proposal(double *log_like, struct s_best *p_best, theta_t *proposed, theta_t *mean, gsl_matrix *var, double sd_fac, struct s_data *p_data, int is_mvn);
 void apply_following_constraints(theta_t *proposed, struct s_best *p_best, struct s_data *p_data);
 

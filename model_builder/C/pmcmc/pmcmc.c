@@ -154,7 +154,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     // initialize SMC arguments (particle 0)
     back_transform_theta2par(p_par, p_best->proposed, p_data->p_it_all, p_data);
     linearize_and_repeat(D_J_p_X[0][0], p_par, p_data, p_data->p_it_par_sv);
-    prop2Xpop_size(D_J_p_X[0][0], p_data);
+    prop2Xpop_size(D_J_p_X[0][0], p_data, calc[0]);
     theta_driftIC2Xdrift(D_J_p_X[0][0], p_best->proposed, p_data);
 
     //load X_0 for the J-1 other particles

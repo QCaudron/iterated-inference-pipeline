@@ -166,7 +166,7 @@ struct s_kalman *build_kalman(json_t *theta, json_t *settings, enum plom_impleme
     p_kalman->p_best = build_best(p_kalman->p_data, theta);
 
     int n_threads =1;
-    p_kalman->calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, 1, size_proj, step_ode_ekf, p_kalman->p_data);
+    p_kalman->calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, 1, size_proj, step_ode_ekf, p_kalman->p_data, settings);
     p_kalman->p_par = build_par(p_kalman->p_data);
 
     p_kalman->smallest_log_like = get_smallest_log_likelihood(p_kalman->p_data->data_ind);

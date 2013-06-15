@@ -159,7 +159,7 @@ class PlomModelBuilder(Context, Ccoder):
 
         #core templates
         t= get_template(os.path.join(self.path_rendered, 'C', 'templates', 'core_template.c'))
-
+    
         c = DjangoContext({'order':order,
                            'white_noise': self.white_noise,
                            'step_psr': self.step_psr(),

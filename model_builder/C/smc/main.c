@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 
     json_t *theta = load_json();
     struct s_data *p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR, nb_obs);
-    json_decref(settings);
+
 
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
@@ -229,7 +229,8 @@ int main(int argc, char *argv[])
     json_decref(theta);
     struct s_likelihood *p_like = build_likelihood();
 
-    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p_data);
+    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p_data, settings);
+    json_decref(settings);
 
     FILE *p_file_X = (print_opt & PLOM_PRINT_X) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
     FILE *p_file_hat = (print_opt & PLOM_PRINT_HAT) ? sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data): NULL;
@@ -247,7 +248,7 @@ int main(int argc, char *argv[])
 
     back_transform_theta2par(p_par, p_best->mean, p_data->p_it_all, p_data);
     linearize_and_repeat(D_J_p_X[0][0], p_par, p_data, p_data->p_it_par_sv);
-    prop2Xpop_size(D_J_p_X[0][0], p_data);
+    prop2Xpop_size(D_J_p_X[0][0], p_data, calc[0]);
     theta_driftIC2Xdrift(D_J_p_X[0][0], p_best->mean, p_data);
 
     replicate_J_p_X_0(D_J_p_X[0], p_data);

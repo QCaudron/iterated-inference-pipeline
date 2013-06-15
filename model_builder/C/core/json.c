@@ -191,8 +191,8 @@ unsigned int *fast_load_fill_json_1u(json_t *array, char *array_name)
     }
 
     return tab;
-
 }
+
 
 unsigned int **fast_load_fill_json_2u(json_t *array, char *array_name)
 {
@@ -252,18 +252,6 @@ unsigned int ***fast_load_fill_json_3u(json_t *array, char *array_name)
     return tab;
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

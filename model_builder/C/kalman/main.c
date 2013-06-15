@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
 
     back_transform_theta2par(p_kalman->p_par, p_kalman->p_best->mean, p_kalman->p_data->p_it_all, p_kalman->p_data);
     linearize_and_repeat(p_kalman->p_X, p_kalman->p_par, p_kalman->p_data, p_kalman->p_data->p_it_par_sv);
-    prop2Xpop_size(p_kalman->p_X, p_kalman->p_data);
+    prop2Xpop_size(p_kalman->p_X, p_kalman->p_data, p_kalman->calc[0]);
     theta_driftIC2Xdrift(p_kalman->p_X, p_kalman->p_best->mean, p_kalman->p_data);
 
     FILE *p_file_X = (print_opt & PLOM_PRINT_X) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_kalman->p_data): NULL;

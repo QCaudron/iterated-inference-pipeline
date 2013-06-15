@@ -23,9 +23,8 @@ struct s_thread_params
     int thread_id;
     int n_threads;
     struct s_data *p_data;
+    struct s_calc *p_calc;
     double dt;
-    double eps_abs;
-    double eps_rel;
     char *host;
     void *context;
 };
@@ -51,12 +50,12 @@ void *worker_routine (void *params) {
     void *server_sender = zmq_socket (p->context, ZMQ_PUSH);
     snprintf(str, STR_BUFFSIZE, "tcp://%s:%d", p->host, 5558);
     zmq_connect (server_sender, str);
-
+   
     struct s_data *p_data = p->p_data;
     struct s_par *p_par = build_par(p_data);
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
     struct s_X *p_X = build_X(size_proj, N_TS, p_data, p->dt);
-    struct s_calc *p_calc = build_p_calc(p->n_threads, p->thread_id, GENERAL_ID, p->eps_abs, p->eps_rel, size_proj, step_ode, p_data);
+    struct s_calc *p_calc = p->p_calc;
 
     double like = 0.0;
 
@@ -320,7 +319,6 @@ int main(int argc, char *argv[])
     print_log(str);
 #endif
     struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 1, nb_obs);
-    json_decref(settings);
     json_decref(theta);
 
 #if FLAG_VERBOSE
@@ -333,14 +331,15 @@ int main(int argc, char *argv[])
     print_log("starting the threads...");
 #endif
 
+    int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
+
     struct s_thread_params *p_thread_params = malloc(n_threads*sizeof(struct s_thread_params));
     pthread_t *worker = malloc(n_threads*sizeof(pthread_t));
     for (nt = 0; nt < n_threads; nt++) {
         p_thread_params[nt].thread_id = nt;
         p_thread_params[nt].n_threads = n_threads;
         p_thread_params[nt].dt = dt;
-        p_thread_params[nt].eps_abs = eps_abs;
-        p_thread_params[nt].eps_rel = eps_rel;
+	p_thread_params[nt].p_calc = build_p_calc(n_threads, nt, GENERAL_ID, eps_abs, eps_rel, size_proj, step_ode, p_data, settings);
         p_thread_params[nt].host = host;
         p_thread_params[nt].p_data = p_data;
         p_thread_params[nt].context = context;
@@ -348,6 +347,8 @@ int main(int argc, char *argv[])
 	snprintf(str, STR_BUFFSIZE, "worker %d started", nt);
 	print_log(str);        
     }
+
+    json_decref(settings);
 
     for(nt = 0; nt < n_threads; nt++){
         pthread_join(worker[nt], NULL);

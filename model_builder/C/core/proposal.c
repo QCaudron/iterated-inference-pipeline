@@ -50,9 +50,9 @@ void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, gs
             //load_X0 (p_X->proj)
             back_transform_theta2par(p_par, proposed, p_data->p_it_par_sv, p_data);
             linearize_and_repeat(p_X, p_par, p_data, p_data->p_it_par_sv);
-            prop2Xpop_size(p_X, p_data); //If POP_SIZE_EQ_SUM_SV the last state is replaced by pop_size-sum_every_state_except_the_last.
+            prop2Xpop_size(p_X, p_data, p_calc); //If POP_SIZE_EQ_SUM_SV the last state is replaced by pop_size-sum_every_state_except_the_last.
         }
-    while (check_IC(p_X, p_data) > 0);
+    while (check_IC(p_X, p_data, p_calc) > 0);
 
     //reset dt to dt0
     p_X->dt = p_X->dt0;
@@ -77,12 +77,10 @@ void ran_proposal(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, dou
 }
 
 
-int check_IC(struct s_X *p_X, struct s_data *p_data)
+int check_IC(struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc)
 {
     /*return the number of errors (=number of cac where the intitial
       population size is not respected)*/
-
-    double *pop_size_t0 = p_data->par_fixed[0][0];
 
     int cac;
     double pop_IC_cac = 0;
@@ -91,7 +89,7 @@ int check_IC(struct s_X *p_X, struct s_data *p_data)
     for (cac=0; cac<N_CAC; cac++) {
         pop_IC_cac = sum_SV(p_X->proj, cac);
 
-        if(pop_IC_cac > pop_size_t0[cac]) {
+        if(pop_IC_cac > gsl_spline_eval(p_calc->spline[0][cac], 0.0, p_calc->acc[0][cac])) { //pop_size_t0 is interpolated
             cnt_error++;
         }
     }

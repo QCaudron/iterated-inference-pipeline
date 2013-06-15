@@ -31,7 +31,6 @@ struct s_simplex *build_simplex(json_t *theta, enum plom_implementations impleme
 
   json_t *settings = load_settings(PATH_SETTINGS);
   p_simplex->p_data = build_data(settings, theta, implementation, noises_off, is_bayesian, nb_obs); //also build obs2ts
-  json_decref(settings);
 
   int size_proj = N_PAR_SV*N_CAC + p_simplex->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
@@ -41,9 +40,10 @@ struct s_simplex *build_simplex(json_t *theta, enum plom_implementations impleme
 
   int n_threads = 1;
 
-  p_simplex->calc = build_calc(&n_threads, general_id, eps_abs, eps_rel, 1, size_proj, step_ode, p_simplex->p_data);
+  p_simplex->calc = build_calc(&n_threads, general_id, eps_abs, eps_rel, 1, size_proj, step_ode, p_simplex->p_data, settings);
   p_simplex->smallest_log_like = get_smallest_log_likelihood(p_simplex->p_data->data_ind);
 
+  json_decref(settings);
   return p_simplex;
 }
 

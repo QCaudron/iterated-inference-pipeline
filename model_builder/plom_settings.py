@@ -103,9 +103,11 @@ def make_settings_json(self):
         #change values format so that it's easy to generate GSL interpolators'
         values = []
         for i in range(len(v['values'][0])):            
-            obj = {'id': v['header'][i+1], 'x': times, 'y': [v['values'][x][i] for x in range(len(v['values']))] }
-            values.append(obj)        
-        v['values'] = values
+            obj = {'id': v['header'][i+1], 'x': times, 'y': [v['values'][x][i] for x in range(len(v['values']))], 'size': len(len(v['values'])) }
+            values.append(obj)
+        
+        settings['data']['par_fixed_values'][k] = values
+        
 
     settings['data']['dates'] = self.dates
     settings['data']['times'] = [(datetime.datetime.strptime(x, "%Y-%m-%d").date() - self.date_0).days for x in self.dates]

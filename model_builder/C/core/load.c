@@ -482,10 +482,7 @@ json_t *load_settings(const char *path)
     N_DRIFT = fast_get_json_integer(cst, "N_DRIFT");
 
     IS_SCHOOL_TERMS = fast_get_json_integer(cst, "IS_SCHOOL_TERMS");
-
-    /* unit */
-    ONE_YEAR = fast_get_json_real(cst, "ONE_YEAR");
-
+    
     return settings;
 }
 
