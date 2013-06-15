@@ -190,6 +190,8 @@ double u_duration_par2u_data(const char *u_par, const char *u_data)
             return 1.0;
         else if (strcmp(u_data, "W") == 0)
             return 1.0/7.0;
+        else if (strcmp(u_data, "B") == 0)
+            return 1.0/14.0;
         else if (strcmp(u_data, "M") == 0)
             return 12.0/365.0;
         else if (strcmp(u_data, "Y") == 0)
@@ -200,6 +202,21 @@ double u_duration_par2u_data(const char *u_par, const char *u_data)
         if(strcmp(u_data, "D") == 0)
             return 7.0;
         else if (strcmp(u_data, "W") == 0)
+            return 1.0;
+        else if (strcmp(u_data, "B") == 0)
+            return 0.5;
+        else if (strcmp(u_data, "M") == 0)
+            return 84.0/365.0;
+        else if (strcmp(u_data, "Y") == 0)
+            return 7.0/365.0;
+
+    } else if (strcmp(u_par, "B") == 0) {
+
+        if(strcmp(u_data, "D") == 0)
+            return 14.0;
+        else if (strcmp(u_data, "W") == 0)
+            return 2.0;
+        else if (strcmp(u_data, "B") == 0)
             return 1.0;
         else if (strcmp(u_data, "M") == 0)
             return 84.0/365.0;
@@ -212,6 +229,8 @@ double u_duration_par2u_data(const char *u_par, const char *u_data)
             return 365.0/12.0;
         else if (strcmp(u_data, "W") == 0)
             return 365.0/84.0;
+	else if (strcmp(u_data, "B") == 0)
+            return 365.0/168.0;
         else if (strcmp(u_data, "M") == 0)
             return 1.0;
         else if (strcmp(u_data, "Y") == 0)
@@ -223,6 +242,8 @@ double u_duration_par2u_data(const char *u_par, const char *u_data)
             return 365.0;
         else if (strcmp(u_data, "W") == 0)
             return 365.0/7.0;
+        else if (strcmp(u_data, "B") == 0)
+            return 365.0/14.0;
         else if (strcmp(u_data, "M") == 0)
             return 12.0;
         else if (strcmp(u_data, "Y") == 0)

@@ -26,7 +26,7 @@ struct s_thread_params
     double dt;
     double eps_abs;
     double eps_rel;
-    char *IPv4;
+    char *host;
     void *context;
 };
 
@@ -38,18 +38,18 @@ void *worker_routine (void *params) {
 
     // Socket to server controller
     void *server_controller = zmq_socket (p->context, ZMQ_SUB);
-    snprintf(str, STR_BUFFSIZE, "tcp://%s:%d", p->IPv4, 5559);
+    snprintf(str, STR_BUFFSIZE, "tcp://%s:%d", p->host, 5559);
     zmq_connect (server_controller, str);
     zmq_setsockopt (server_controller, ZMQ_SUBSCRIBE, "", 0);
 
     //  Socket to receive messages (particles) from the server
     void *server_receiver = zmq_socket (p->context, ZMQ_PULL);
-    snprintf(str, STR_BUFFSIZE, "tcp://%s:%d", p->IPv4, 5557);
+    snprintf(str, STR_BUFFSIZE, "tcp://%s:%d", p->host, 5557);
     zmq_connect (server_receiver, str);
 
     //  Socket to send messages (results) to the server
     void *server_sender = zmq_socket (p->context, ZMQ_PUSH);
-    snprintf(str, STR_BUFFSIZE, "tcp://%s:%d", p->IPv4, 5558);
+    snprintf(str, STR_BUFFSIZE, "tcp://%s:%d", p->host, 5558);
     zmq_connect (server_sender, str);
 
     struct s_data *p_data = p->p_data;
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
 {
     char ch;
     char str[STR_BUFFSIZE];
-    char IPv4[STR_BUFFSIZE] = "127.0.0.1";
+    char host[STR_BUFFSIZE] = "127.0.0.1";
     int nt;
 
     /* set default values for the options */
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
         "usage:\n"
         "worker [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                        [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
-        "                        [-i, --id <integer>] [-I, --IPv4 <ip address or DNS>] [-P, --N_THREAD <integer>]\n"
+        "                        [-i, --id <integer>] [-h, --host <hostname>] [-P, --N_THREAD <integer>]\n"
         "                        [-l, --LIKE_MIN <float>] [-J <integer>]\n"
         "                        [--help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 	"--eps_rel          Relative error for adaptive step-size contro\n"
 	"\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
-        "-I, --IPv4         ip address or DNS of the particle server\n"
+        "-h, --host         domain name or IP address of the particule server (defaults to 127.0.0.1)\n"
         "-P, --N_THREAD     number of threads to be used (defaults to the number of cores)\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-c  -Jchunk        size of the chunk of particles\n"
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
 
                 {"id",         required_argument, 0, 'i'},
                 {"N_THREAD",   required_argument, 0, 'P'},
-                {"IPv4",       required_argument, 0, 'I'},
+                {"host",       required_argument, 0, 'h'},
                 {"Jchunk",     required_argument, 0, 'c'},
 		{"nb_obs", required_argument,  0, 'o'},
 
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:i:P:c:I:l:o:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:i:P:c:h:l:o:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -265,8 +265,8 @@ int main(int argc, char *argv[])
             n_threads = atoi(optarg);
             break;
 
-        case 'I':
-            snprintf(IPv4, STR_BUFFSIZE, "%s", optarg);
+        case 'h':
+            snprintf(host, STR_BUFFSIZE, "%s", optarg);
             break;
 
         case 'l':
@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
         p_thread_params[nt].dt = dt;
         p_thread_params[nt].eps_abs = eps_abs;
         p_thread_params[nt].eps_rel = eps_rel;
-        p_thread_params[nt].IPv4 = IPv4;
+        p_thread_params[nt].host = host;
         p_thread_params[nt].p_data = p_data;
         p_thread_params[nt].context = context;
         pthread_create (&worker[nt], NULL, worker_routine, (void*) &p_thread_params[nt]);
