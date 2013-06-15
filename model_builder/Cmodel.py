@@ -50,7 +50,7 @@ class Cmodel:
 
         ##par fixed !! N **HAS** to be first if it exists
         self.par_fixed = [x['id'] for x in context.get('metadata', []) if x['id'] == 'N'] #does N exist, if so it is first
-        self.par_fixed += [x['id'] for x in (context.get('data', []) + context.get('metadata', [])) if x['id'] != 'data' and x['id'] != 'N'] ##all the rest
+        self.par_fixed += [x['id'] for x in context.get('metadata', []) if x['id'] != 'N'] ##all the rest
 
         ##remove par_fixed from par_proc and par_obs (be sure to conserve the original order so don't use set')
         self.par_proc = [x['id'] for x in process['parameter'] if x['id'] not in self.par_fixed]

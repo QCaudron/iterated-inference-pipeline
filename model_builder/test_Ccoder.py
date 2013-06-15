@@ -15,7 +15,8 @@ class TestCcoder(unittest.TestCase):
         l = json.load(open(os.path.join('example', 'drift', 'link.json')))
 
         ##fix path (this is normally done by pmbuilder(1))
-        for x in c['data'] + c['metadata']:
+        c['data']['source'] = os.path.join('example', 'drift', c['data']['source'])
+        for x in c['metadata']:
             x['source'] = os.path.join('example', 'drift', x['source'])
 
         self.m_drift = Ccoder(c, p, l)
@@ -26,7 +27,8 @@ class TestCcoder(unittest.TestCase):
         l = json.load(open(os.path.join('example', 'noise', 'link.json')))
 
         ##fix path (this is normally done by pmbuilder(1))
-        for x in c['data'] + c['metadata']:
+        c['data']['source'] = os.path.join('example', 'noise', c['data']['source'])    
+        for x in c['metadata']:
             x['source'] = os.path.join('example', 'noise', x['source'])
 
         self.m_noise = Ccoder(c, p, l)

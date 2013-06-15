@@ -28,8 +28,8 @@ class TestCmodel(unittest.TestCase):
         
         ##context elements needed for Cmodel
         c = {
-            'data': [{'id': 'data'}, {'id': 'prop'}],
-            'metadata': [{'id': 'mu_b'}, {'id': 'mu_d'}, {'id': 'N'}]
+            'data': {},
+            'metadata': [{'id': 'mu_b'}, {'id': 'mu_d'}, {'id': 'N'}, {'id': 'prop'}]
         }
 
         ##link elements needed for Cmodel

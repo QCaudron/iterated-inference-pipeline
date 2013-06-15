@@ -19,6 +19,8 @@
 import os
 import os.path
 import json
+import datetime
+import copy
 
 def get_obs2ts(self):
     """get obs2ts: list with for every obs_var:
@@ -89,11 +91,27 @@ def make_settings_json(self):
 
     ##data/data (be sure to have sorted the context before this part)
     settings['data']['data'] = self.data
-    settings['data']['par_fixed_values'] = self.par_fixed_values
+    settings['data']['par_fixed_values'] = copy.deepcopy(self.par_fixed_values)
+
+    #convert dates into days since first data points
+    for k, v in settings['data']['par_fixed_values'].iteritems():
+        times = []
+        for i, d in enumerate(v['dates']):
+            delta =  datetime.datetime.strptime(d, "%Y-%m-%d").date() - self.date_0
+            times.append(delta.days)
+
+        #change values format so that it's easy to generate GSL interpolators'
+        values = []
+        for i in range(len(v['values'][0])):            
+            obj = {'id': v['header'][i+1], 'x': times, 'y': [v['values'][x][i] for x in range(len(v['values']))] }
+            values.append(obj)        
+        v['values'] = values
+
+    settings['data']['dates'] = self.dates
+    settings['data']['times'] = [(datetime.datetime.strptime(x, "%Y-%m-%d").date() - self.date_0).days for x in self.dates]
 
     ##TODO
     ##settings['data']['school_terms'] = self.school_terms
-    settings['data']['dates'] = self.dates
 
     ##drift
     all_order = self.par_sv + self.par_proc + self.par_obs
@@ -117,8 +135,6 @@ def make_settings_json(self):
                        'N_OBS_ALL': len(self.obs_var_def),
                        'N_OBS_INC': len([x for x in self.obs_var_def if isinstance(x[0], dict)]),
                        'N_OBS_PREV': len([x for x in self.obs_var_def if not isinstance(x[0], dict) ]),
-                       'FREQUENCY': self.frequency,
-                       'ONE_YEAR': {'D':365.0, 'W':365.0/7.0, 'B':365.0/14.0, 'M':12.0, 'Y':1.0 }[self.frequency],
                        'N_DRIFT':len(self.drift_par_proc) + len(self.drift_par_obs),
                        'IS_SCHOOL_TERMS':1 if any(map(lambda x: 'terms_forcing' in x, [r['rate'] for r in self.proc_model])) else 0}
 

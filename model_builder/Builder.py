@@ -92,15 +92,15 @@ class PlomModelBuilder(Context, Ccoder):
         #tbs: to be sorted
         tbs = zip(self.ts_id, self._repeated_name_stream, self._repeated_name_ts)
         #sort by data_stream
-        tbs.sort(key=lambda x: x[1])
+        tbs.sort(key=lambda x: x[1])        
         #sort by name_ts (in python, sorts are guaranteed to be stable)
         tbs.sort(key=lambda x: x[2])
         #sort by obs_var (in python, sorts are guaranteed to be stable)
         tbs.sort(key=lambda x: self.obs_var.index(self.map_ts_obs[ x[0] ]))
 
-        #we need to sort ts_id, _repeated_name_ts, _repeated_name_stream, _repeated_obs_type, data, prop and all the par_fixed involved in the obs_model
 
-        #let's start easy: sort ts_id
+        #we need to sort ts_id, _repeated_name_ts, _repeated_name_stream, _repeated_obs_type, data and all the par_fixed involved in the obs_model
+
         ind_sorted = [ self.ts_id.index(x[0]) for x in tbs ]
 
         self.ts_id = [ self.ts_id[x] for x in ind_sorted ]
@@ -115,7 +115,8 @@ class PlomModelBuilder(Context, Ccoder):
         #sort self.par_fixed_obs
         if self.par_fixed_obs:
             for p in self.par_fixed_obs:
-                self.par_fixed_values[p] = [ [ y[x] for x in ind_sorted ] for y in self.par_fixed_values[p] ]
+                self.par_fixed_values[p]['values'] = [ [ y[x] for x in ind_sorted ] for y in self.par_fixed_values[p]['values'] ]
+                self.par_fixed_values[p]['header'] = [self.par_fixed_values[p]['header'][0]] + [  self.par_fixed_values[p]['header'][1:][x] for x in ind_sorted  ]
 
 
 
@@ -139,7 +140,6 @@ class PlomModelBuilder(Context, Ccoder):
 
     def prepare(self, path_templates=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'C'), replace=True):
         prepare_model(self.path_rendered, path_templates, replace)
-
 
     def render(self):
         """generate C code for MIF, Simplex, pMCMC, Kalman, simulation, ..."""
@@ -221,7 +221,8 @@ if __name__=="__main__":
     l = json.load(open(os.path.join('example', 'noise', 'link.json')))
 
     ##fix path (this is normally done by pmbuilder(1))
-    for x in c['data'] + c['metadata']:
+    c['data']['source'] = os.path.join('example', 'noise', c['data']['source'])    
+    for x in c['metadata']:
         x['source'] = os.path.join('example', 'noise', x['source'])
             
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)

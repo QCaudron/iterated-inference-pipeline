@@ -41,6 +41,8 @@
 #include <gsl/gsl_sf_gamma.h>
 #include <gsl/gsl_multimin.h>
 
+#include <gsl/gsl_spline.h>
+
 #include <gsl/gsl_sort.h>
 
 #include <gsl/gsl_vector.h>

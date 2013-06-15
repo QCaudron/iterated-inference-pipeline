@@ -21,7 +21,6 @@ import copy
 import json
 import sys
 import os
-#from dateutil import rrule
 import datetime
 
 class PlomContextError(Exception):
@@ -69,26 +68,28 @@ class Context:
         ##First we ensure that mandatory properties are represented in self
         self.data = []; self.dates = []
 
-        for d in (context.get('data', []) + context.get('metadata', [])):
-            if d['id'] == 'data':
-                mydata = self.handle_context_data(d['source'])
-                self.data = mydata['values']
-                self.dates = mydata['dates']
-            else:
-                self.par_fixed_values[d['id']] = self.handle_context_data(d['source'])['values']
+        if 'data' in context:            
+            mydata = self.handle_context_data(context['data']['source'])
+            self.data = mydata['values']
+            self.dates = mydata['dates']
+
+        for d in context.get('metadata', []):        
+            self.par_fixed_values[d['id']] = self.handle_context_data(d['source'])
 
         self.N_DATA = len(self.data)
 
-        self.N_DATA_PAR_FIXED = len(self.par_fixed_values[self.par_fixed_values.keys()[0]]) if self.par_fixed_values else 1
+        self.N_DATA_PAR_FIXED = len(self.par_fixed_values[self.par_fixed_values.keys()[0]]['values']) if self.par_fixed_values else 1
+
+
+        #t0 is given by the pop size (N) pop size should start one unit of incidence before the first data!        
+        if self.data:
+            self.date_0 = datetime.datetime.strptime(context['data']['t0'], "%Y-%m-%d").date()
+        else:
+            self.date_0 = datetime.datetime.strptime(self.par_fixed_values['N']['dates'][0], "%Y-%m-%d").date()
+
 
         ##TO DO:
         ##self.school_terms = copy.deepcopy(school_terms)
-
-
-        self.frequency = context.get('frequency', None) ##determined by plom(1) (recommended way)
-        if not self.frequency: ##quick and dirty
-            delta = datetime.datetime.strptime(self.dates[1], "%Y-%m-%d").date() - datetime.datetime.strptime(self.dates[0], "%Y-%m-%d").date()
-            self.frequency = {1: 'D', 7: 'W', 14, 'B', 28: 'M', 30: 'M', 31: 'M', 365: 'Y'}[delta.days]
 
 
     def handle_context_data(self, source):
@@ -129,11 +130,11 @@ if __name__ == '__main__':
 
     c = json.load(open(os.path.join('example', 'noise','context.json')))
     ##fix path (this is normally done by pmbuilder(1))
-    for x in c['data'] + c['metadata']:
+    c['data']['source'] = os.path.join('example', 'noise', c['data']['source'])    
+    for x in c['metadata']:
         x['source'] = os.path.join('example', 'noise', x['source'])
 
     context = Context(c)
 
 ##    print(context.cac_id)
-##    print(context.par_fixed_values)
 ##    print(context.data)
