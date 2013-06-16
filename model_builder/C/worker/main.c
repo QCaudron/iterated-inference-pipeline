@@ -77,8 +77,6 @@ void *worker_routine (void *params) {
             t0 = p_data->times[n];
             t1 = p_data->times[np1];
 
-            p_calc->current_n = n;            
-
 	    recv_par(p_par, p_data, server_receiver);
 
             for(j=0; j<J; j++) {
@@ -93,7 +91,7 @@ void *worker_routine (void *params) {
 		proj2obs(p_X, p_data);
 
 		if(p_data->data_ind[n]->n_nonan) {
-		    like = exp(get_log_likelihood(p_X, p_par, p_data, p_calc));
+		    like = exp(get_log_likelihood(p_X, p_par, p_data, p_calc, n, t1));
 		}
 
                 //send results

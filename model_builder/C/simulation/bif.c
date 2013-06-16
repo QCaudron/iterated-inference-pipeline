@@ -126,7 +126,7 @@ void max_min(double *traj_obs_ts, struct s_par *p_par, struct s_data *p_data, st
     FILE *fmax = sfr_fopen(SFR_PATH, GENERAL_ID, filename, "w", NULL, NULL);
 
     int i, k;
-    double traj_min, traj_max, t_min, t_max;
+    double traj_min, traj_max, t_min, t_max, t;
     double max, min;
 
     double bloc[N_BLOC];
@@ -134,33 +134,30 @@ void max_min(double *traj_obs_ts, struct s_par *p_par, struct s_data *p_data, st
     //fixed point ?
     traj_min = get_min(traj_obs_ts, length_traj_obs_ts);
     traj_max = get_max(traj_obs_ts, length_traj_obs_ts);
-    if(fabs(traj_max - traj_min) < PRECISION)
-	{
-	    fprintf(fmin, "%g,NaN\n", (traj_min+traj_max)/ ((double) 2.0));
-	    fprintf(fmax, "%g,NaN\n",  (traj_min+traj_max)/ ((double) 2.0));
-	}
-    else //there is an extrema
-	{
-	    for(i=0;  i < (length_traj_obs_ts-N_BLOC) ; i++)
-		{
-		    for (k=0 ; k<N_BLOC ; k++)
-			bloc[k]=traj_obs_ts[i+k]; //can be optimized to copy less
+    if(fabs(traj_max - traj_min) < PRECISION) {
+	fprintf(fmin, "%g,NaN\n", (traj_min+traj_max)/ ((double) 2.0));
+	fprintf(fmax, "%g,NaN\n",  (traj_min+traj_max)/ ((double) 2.0));
+    } else { //there is an extrema	
+	for(i=0;  i < (length_traj_obs_ts-N_BLOC) ; i++) {
+	    for (k=0 ; k<N_BLOC ; k++)
+		bloc[k]=traj_obs_ts[i+k]; //can be optimized to copy less
 
-		    max = b_max(bloc, N_BLOC);
-		    if(max > -10.0) //there is a max in bloc
-			{
-			    t_max=(i+1+(N_BLOC-1)/2);
-			    fprintf(fmax, "%g,%g\n", obs_mean(max, p_par, p_data, p_calc, ts), t0+ t_max);
-			}
+	    max = b_max(bloc, N_BLOC);
+	    if(max > -10.0){ //there is a max in bloc			
+		t_max = (i+1+(N_BLOC-1)/2);
+		t = t0 + t_max;
+		fprintf(fmax, "%g,%g\n", obs_mean(max, p_par, p_data, p_calc, ts, t, t), t);
+	    }
 
-		    min = b_min(bloc, N_BLOC);
-		    if(min > -10.0) //there is a min in bloc
-			{
-			    t_min=(i+1+(N_BLOC-1)/2);
-			    fprintf(fmin, "%g,%g\n", obs_mean(min, p_par, p_data, p_calc, ts), t0+ t_min);
-			}
-		}
+	    min = b_min(bloc, N_BLOC);
+	    if(min > -10.0) { //there is a min in bloc
+
+		t_min = (i+1+(N_BLOC-1)/2);
+		t = t0 + t_min;
+		fprintf(fmin, "%g,%g\n", obs_mean(min, p_par, p_data, p_calc, ts, t, t), t);
+	    }
 	}
+    }
 
     sfr_fclose(fmin);
     sfr_fclose(fmax);

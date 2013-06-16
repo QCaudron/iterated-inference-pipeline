@@ -54,7 +54,6 @@ double f_simplex(const gsl_vector *x, void *params)
             t0=p_data->times[n];
             t1=p_data->times[n+1];
 
-	    store_state_current_n(calc, n);
 	    reset_inc(p_X, p_data); //reset incidence to 0
 	    f_prediction_ode(p_X, t0, t1, p_par, p_data, calc[0]);
 
@@ -62,9 +61,9 @@ double f_simplex(const gsl_vector *x, void *params)
 		proj2obs(p_X, p_data);
 
 		if (OPTION_LEAST_SQUARE) {
-		    fitness += get_sum_square(p_X, p_par, p_data, calc[0]);
+		    fitness += get_sum_square(p_X, p_par, p_data, calc[0], n, t1);
 		} else {
-		    fitness += get_log_likelihood(p_X, p_par, p_data, calc[0]);
+		    fitness += get_log_likelihood(p_X, p_par, p_data, calc[0], n, t1);
 		}
 	    }
         } /*end of for loop on n*/

@@ -145,8 +145,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
                 block();
             }
 #endif
-
-	    store_state_current_n(calc, n);
+	    
             t1=p_data->times[n];
 	    np1 = n+1;
 	    t0 = p_data->times[n];
@@ -174,7 +173,8 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 #else 
 	    //send work           
 	    for (nt=0; nt<calc[0]->n_threads; nt++) {
-		zmq_send(sender, &nt, sizeof (int), 0);
+		zmq_send(sender, &nt, sizeof (int), ZMQ_SNDMORE);
+		zmq_send(sender, &n, sizeof (int), 0);
 	    }
 
 	    //get results from the workers

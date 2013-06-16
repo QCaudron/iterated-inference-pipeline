@@ -207,7 +207,7 @@ void print_err(char *msg)
 
 
 
-void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int j_or_m, double time)
+void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int j_or_m, const int n, const double t)
 {
     /* helper function for sample_traj_and_print and print_X */
     int i, k, ts;
@@ -221,9 +221,9 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
 #if FLAG_JSON
     json_t *json_print_j = json_array();
     json_array_append_new(json_print_j, json_integer(j_or_m));
-    json_array_append_new(json_print_j, json_real(time));
+    json_array_append_new(json_print_j, json_real(t));
 #else
-    fprintf(p_file,"%d,%g,", j_or_m, time);
+    fprintf(p_file,"%d,%g,", j_or_m, t);
 #endif
 
     for(i=0; i<(N_PAR_SV*N_CAC); i++) {
@@ -236,7 +236,7 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
     }
 
     for(ts=0; ts<N_TS; ts++) {
-        x = obs_mean(p_X->obs[ts], p_par, p_data, p_calc, ts);
+        x = obs_mean(p_X->obs[ts], p_par, p_data, p_calc, ts, n, t);
 #if FLAG_JSON
         json_array_append_new(json_print_j, json_real(x));
 #else
@@ -257,7 +257,7 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
     }
 
     for(ts=0; ts<N_TS; ts++) {
-        x = observation(p_X->obs[ts], p_par, p_data, p_calc, ts);
+        x = observation(p_X->obs[ts], p_par, p_data, p_calc, ts, n, t);
 #if FLAG_JSON
         json_array_append_new(json_print_j, json_real(x));
 #else
@@ -275,7 +275,7 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
 
 
 
-void print_X(FILE *p_file_X, struct s_par **J_p_par, struct s_X **J_p_X, struct s_data *p_data, struct s_calc *p_calc, double time, int is_p_par_cst, int is_m, int m)
+void print_X(FILE *p_file_X, struct s_par **J_p_par, struct s_X **J_p_X, struct s_data *p_data, struct s_calc *p_calc, int is_p_par_cst, int is_m, int m, const int n, const double t)
 {
     /* print trajectory
        2 versions are possible: all the particles have the same
@@ -293,17 +293,17 @@ void print_X(FILE *p_file_X, struct s_par **J_p_par, struct s_X **J_p_X, struct 
 #endif
 
 #if FLAG_JSON //print only first particle
-    print_p_X(p_file_X, json_print, J_p_X[0], J_p_par[0], p_data, p_calc, (is_m ==1) ? m: 0, time);
+    print_p_X(p_file_X, json_print, J_p_X[0], J_p_par[0], p_data, p_calc, (is_m ==1) ? m: 0, n, t);
 #else
     int j;
     int zero = 0;
     int *fake_j = (is_p_par_cst) ? &zero : &j;
 
     if (is_m) {
-        print_p_X(p_file_X, json_print, J_p_X[0], J_p_par[0], p_data, p_calc, m, time);
+        print_p_X(p_file_X, json_print, J_p_X[0], J_p_par[0], p_data, p_calc, m, n, t);
     } else {
         for(j=0;j<J;j++) {
-            print_p_X(p_file_X, json_print, J_p_X[j], J_p_par[ *fake_j ], p_data, p_calc, j, time);
+            print_p_X(p_file_X, json_print, J_p_X[j], J_p_par[ *fake_j ], p_data, p_calc, j, n, t);
         }
     }
 #endif
@@ -369,16 +369,16 @@ void print_best(FILE *p_file_best, int m, struct s_best *p_best, struct s_data *
 /**
  * if json_print is NULL, send the hat msg otherwise put it into json_print array
  */
-void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s_data *p_data, int t)
+void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s_data *p_data, const double t)
 {
     int i;
     double x;
 
 #if FLAG_JSON
     json_t *json_print_n = json_array();
-    json_array_append_new(json_print_n, json_integer(t));
+    json_array_append_new(json_print_n, json_real(t));
 #else
-    fprintf(p_file, "%d,", t);
+    fprintf(p_file, "%g,", t);
 #endif
 
     /* par_sv */
@@ -488,7 +488,7 @@ void print_hat(FILE *p_file, struct s_hat **D_p_hat, struct s_data *p_data)
 #endif
 
     for(n=0; n<N_DATA; n++) {
-        print_p_hat(p_file, json_print, D_p_hat[n], p_data, n);
+        print_p_hat(p_file, json_print, D_p_hat[n], p_data, p_data->times[n+1]);
     }
 
 #if FLAG_JSON
@@ -526,7 +526,7 @@ void print_par(struct s_par *p_par, struct s_data *p_data)
  * times by opposed to N_DATA (ie when there is information)
  */
 
-void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X **J_p_X, double llike_t, double ess_t, int time, int is_p_par_cst)
+void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X **J_p_X, double llike_t, double ess_t, int is_p_par_cst, const int n, const double t)
 {
     int ts,j;
     int zero = 0;
@@ -548,9 +548,9 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
 #endif
 
 #if FLAG_JSON
-    json_array_append_new(json_print, json_integer(time));
+    json_array_append_new(json_print, json_real(t));
 #else
-    fprintf(p_file_pred_res,"%d,", time);
+    fprintf(p_file_pred_res,"%g,", t);
 #endif
 
     for(ts=0; ts<N_TS; ts++) {
@@ -561,18 +561,18 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
 
         for(j=0;j<J;j++) {
             kn += 1.0;
-            x = obs_mean(J_p_X[j]->obs[ts], J_p_par[*fake_j], p_data, p_calc, ts);
+            x = obs_mean(J_p_X[j]->obs[ts], J_p_par[*fake_j], p_data, p_calc, ts, n, t);
 
             delta = x - pred;
             pred += delta/kn;
             M2 += delta*(x - pred);
-            var_obs += obs_var(J_p_X[j]->obs[ts], J_p_par[*fake_j], p_data, p_calc, ts);
+            var_obs += obs_var(J_p_X[j]->obs[ts], J_p_par[*fake_j], p_data, p_calc, ts, n, t);
         }
 
         var_state = M2/(kn - 1.0);
         var_obs /= ((double) J);
 
-        y = p_data->data[ p_calc->current_n ][ts];
+        y = p_data->data[n][ts];
         res = (y - pred)/sqrt(var_state + var_obs);
 
 #if FLAG_JSON
@@ -605,6 +605,8 @@ void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_
     int j_sel;
     int n, nn;
 
+    double t=0.0; //TODO TO FIX
+
     double ran, cum_weights;
 
     struct s_X *p_X_sel;
@@ -627,32 +629,32 @@ void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_
 
     //print traj of ancestors of particle j;
 
-    p_X_sel = D_J_p_X[ p_data->ind_n_data_nonan[N_DATA_NONAN-1] ][j_sel];
+    p_X_sel = D_J_p_X[ p_data->indn_data_nonan[N_DATA_NONAN-1] ][j_sel];
 
-    print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, p_data->ind_n_data_nonan[N_DATA_NONAN-1]);
+    print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, p_data->indn_data_nonan[N_DATA_NONAN-1], t);
 
     //missing value for data
-    for(nn=(p_data->ind_n_data_nonan[N_DATA_NONAN-1]-1); nn>p_data->ind_n_data_nonan[N_DATA_NONAN-2]; nn--) {
+    for(nn=(p_data->indn_data_nonan[N_DATA_NONAN-1]-1); nn>p_data->indn_data_nonan[N_DATA_NONAN-2]; nn--) {
         p_X_sel = D_J_p_X[ nn ][j_sel];
-        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn);
+        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn, t);
     }
 
     for(n=(N_DATA_NONAN-1); n>=2; n--) {
         j_sel = p_like->select[n][j_sel];
-        p_X_sel = D_J_p_X[ p_data->ind_n_data_nonan[n-1] ][j_sel];
-        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, p_data->ind_n_data_nonan[n-1]);
+        p_X_sel = D_J_p_X[ p_data->indn_data_nonan[n-1] ][j_sel];
+        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, p_data->indn_data_nonan[n-1], t);
 
-        for(nn=(p_data->ind_n_data_nonan[n-1]-1); nn>(p_data->ind_n_data_nonan[n-2]); nn--) {
+        for(nn=(p_data->indn_data_nonan[n-1]-1); nn>(p_data->indn_data_nonan[n-2]); nn--) {
             p_X_sel = D_J_p_X[ nn ][j_sel];
-            print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn);
+            print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn, t);
         }
     }
 
     for(n=1; n>=0; n--) {
         j_sel = p_like->select[n][j_sel];
-        //works because p_data->ind_n_data_nonan[0] has to be equal to 1
+        //works because p_data->indn_data_nonan[0] has to be equal to 1
         p_X_sel = D_J_p_X[ n ][j_sel];
-        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, n);
+        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, n, t);
     }
 
 #if FLAG_JSON

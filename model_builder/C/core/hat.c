@@ -8,7 +8,7 @@
  *
  *    plom is distributed in the hope that it will be useful, but
  *    WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULARobs_mean PURPOSE.  See the
  *    GNU General Public License for more details.
  *
  *    You should have received a copy of the GNU General Public
@@ -66,7 +66,7 @@ void get_CI95(double *hat_95, const double *to_be_sorted, size_t *index_sorted, 
  *  value).
  */
 
-void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, double *weights)
+void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, double *weights, const int n, const double t)
 {
     //TODO weights = 1/J when no information
 
@@ -115,7 +115,7 @@ void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data,
         /* weighted average */
         p_hat->obs[ts] = 0.0;
         for(j=0;j<J;j++) {
-            calc[thread_id]->to_be_sorted[j] = obs_mean(J_p_X[j]->obs[ts], p_par, p_data, calc[thread_id], ts);
+            calc[thread_id]->to_be_sorted[j] = obs_mean(J_p_X[j]->obs[ts], p_par, p_data, calc[thread_id], ts, n, t);
             p_hat->obs[ts] += calc[thread_id]->to_be_sorted[j]*weights[j];
         }
 
@@ -161,7 +161,7 @@ void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data,
  * parameters (J of J_p_par=1, is_p_par_cst=1) or the particles have
  * different parameters values (J of J_p_par =J, is_p_par_cst=0).
  */
-void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, int is_p_par_cst)
+void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, int is_p_par_cst, const int n, const double t)
 {
     int j, i, k, ts;
     int thread_id;
@@ -210,7 +210,7 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
             /* empirical average */
             p_hat->obs[ts] = 0.0;
             for(j=0;j<J;j++) {
-                calc[thread_id]->to_be_sorted[j] = obs_mean(J_p_X[j]->obs[ts], J_p_par[0], p_data, calc[thread_id], ts);
+                calc[thread_id]->to_be_sorted[j] = obs_mean(J_p_X[j]->obs[ts], J_p_par[0], p_data, calc[thread_id], ts, n, t);
                 p_hat->obs[ts] += calc[thread_id]->to_be_sorted[j];
             }
             p_hat->obs[ts] /= ((double) J);
@@ -234,7 +234,7 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
             /* empirical average */
             p_hat->obs[ts] = 0.0;
             for(j=0;j<J;j++) {
-                calc[thread_id]->to_be_sorted[j] = obs_mean(J_p_X[j]->obs[ts], J_p_par[j], p_data, calc[thread_id], ts);
+                calc[thread_id]->to_be_sorted[j] = obs_mean(J_p_X[j]->obs[ts], J_p_par[j], p_data, calc[thread_id], ts, n, t);
                 p_hat->obs[ts] += calc[thread_id]->to_be_sorted[j];
             }
             p_hat->obs[ts] /= ((double) J);

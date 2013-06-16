@@ -34,18 +34,17 @@ double get_smallest_log_likelihood(struct s_data_ind **data_ind)
 /**
  *   Return sum of square (used for least square). The sum is computed **only** on ts != NaN
  */
-double get_sum_square(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+double get_sum_square(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int n, const double t)
 {
     int ts, ts_nonan;
     double ss = 0.0;
 
     /* syntax shortcuts */
-    int n = p_calc->current_n;
     struct s_data_ind * p_data_ind_n = p_data->data_ind[n];
 
     for(ts=0; ts< p_data_ind_n->n_nonan; ts++) {
         ts_nonan = p_data_ind_n->ind_nonan[ts];
-        ss += pow( p_data->data[p_calc->current_n][ts_nonan] - obs_mean(p_X->obs[ts_nonan], p_par, p_data, p_calc, ts_nonan), 2);
+        ss += pow( p_data->data[n][ts_nonan] - obs_mean(p_X->obs[ts_nonan], p_par, p_data, p_calc, ts_nonan, n, t), 2);
     }
     
     return ss;
@@ -54,18 +53,17 @@ double get_sum_square(struct s_X *p_X, struct s_par *p_par, struct s_data *p_dat
 /**
  * Return sum log likelihood. The sum is computed **only** on ts != NaN
  */
-double get_log_likelihood(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc)
+double get_log_likelihood(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int n, const double t)
 {
   int ts, ts_nonan;
   double loglike = 0.0;
 
   /* syntax shortcuts */
-  int n = p_calc->current_n;
   struct s_data_ind * p_data_ind_n = p_data->data_ind[n];
 
   for(ts=0; ts< p_data_ind_n->n_nonan; ts++) {
-      ts_nonan = p_data_ind_n->ind_nonan[ts];
-      loglike += log(likelihood(p_X->obs[ts_nonan], p_par, p_data, p_calc, ts_nonan));
+      ts_nonan = p_data_ind_n->ind_nonan[ts];      
+      loglike += log(likelihood(p_X->obs[ts_nonan], p_par, p_data, p_calc, ts_nonan, n, t));
   }
 
   return loglike;

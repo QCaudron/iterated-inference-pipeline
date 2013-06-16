@@ -644,7 +644,7 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
             exit(EXIT_FAILURE);
         }
         
-        tmp_n_data_nonan=0; // get N_DATA_NONAN and ind_n_data_nonan
+        tmp_n_data_nonan=0; // get N_DATA_NONAN and indn_data_nonan
 
         for(n=0; n<N_DATA; n++) {
             count_n_nan = 0;
@@ -654,20 +654,20 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
             if(count_n_nan < N_TS) {
                 tmp_n_data_nonan++;
                 if (tmp_n_data_nonan == 1) {
-                    p_data->ind_n_data_nonan = init1u_set0(1);
+                    p_data->indn_data_nonan = init1u_set0(1);
                 } else {
                     unsigned int *tmp;
-                    tmp = realloc(p_data->ind_n_data_nonan, tmp_n_data_nonan * sizeof(double ) );
+                    tmp = realloc(p_data->indn_data_nonan, tmp_n_data_nonan * sizeof(double ) );
                     if ( tmp == NULL ) {
                         print_err("Reallocation impossible");
-                        FREE(p_data->ind_n_data_nonan);
+                        FREE(p_data->indn_data_nonan);
                         exit(EXIT_FAILURE);
                     }
                     else {
-                        p_data->ind_n_data_nonan = tmp;
+                        p_data->indn_data_nonan = tmp;
                     }
                 }
-                p_data->ind_n_data_nonan[tmp_n_data_nonan-1] = n+1;
+                p_data->indn_data_nonan[tmp_n_data_nonan-1] = n+1;
             }
 
             data_ind[n] = malloc(sizeof(struct s_data_ind));
@@ -778,7 +778,7 @@ void clean_data(struct s_data *p_data)
 
     if (N_DATA) {
         clean2d(p_data->data, N_DATA);
-        FREE(p_data->ind_n_data_nonan);
+        FREE(p_data->indn_data_nonan);
 
         /*data_ind*/
         for(n=0; n<N_DATA; n++) {
@@ -871,8 +871,6 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_a
     }
 
     p_calc->n_threads = n_threads;
-
-    p_calc->current_n = 0;   
 
     /* ref */
     p_calc->p_data = p_data;
@@ -1269,7 +1267,7 @@ struct s_likelihood *build_likelihood(void)
     p_like->Llike_best = 0.0;
     p_like->weights = init1d_set0(J);
 
-    p_like->select = init2u_set0(N_DATA_NONAN, J);
+    p_like->select = init2u_set0(N_DATA, J);
 
     p_like->n_all_fail = 0;
 
@@ -1283,7 +1281,7 @@ struct s_likelihood *build_likelihood(void)
 void clean_likelihood(struct s_likelihood *p_like)
 {
     FREE(p_like->weights);
-    clean2u(p_like->select, N_DATA_NONAN);
+    clean2u(p_like->select, N_DATA);
 
     FREE(p_like);
 }

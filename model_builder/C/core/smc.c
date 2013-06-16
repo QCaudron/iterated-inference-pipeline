@@ -225,7 +225,6 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
         }
 #endif
 
-	store_state_current_n(calc, n);
 	np1 = n+1;
 	t0 = p_data->times[n];
 	t1 = p_data->times[np1];
@@ -253,7 +252,7 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
 	    proj2obs(D_J_p_X[np1][j], p_data);
 
 	    if(p_data->data_ind[n]->n_nonan) {
-		p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[np1][j], p_par, p_data, calc[thread_id]));
+		p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[np1][j], p_par, p_data, calc[thread_id], n, t1));
 	    }
 	}
 
@@ -264,17 +263,17 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
             }
 
             //!! time indexes: D_J_p_X is [N_DATA+1], *D_p_hat->... are in [N_DATA] so we have to be carrefull!
-            compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[n], p_like->weights);
+            compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[n], p_like->weights, n, t1);
 
             resample_X(p_like->select[n], &(D_J_p_X[np1]), &(D_J_p_X_tmp[np1]), p_data);
 
             if (print_opt & PLOM_PRINT_PRED_RES) {
-                print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[np1], p_like->Llike_best_n, p_like->ess_n, t1, 1);
+                print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[np1], p_like->Llike_best_n, p_like->ess_n, 1, n, t1);
             }
 
         } else {
             //we do not filter or all data ara NaN (no info).
-	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[n], 1);
+	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[n], 1, n, t1);
         }
 
 
@@ -283,7 +282,7 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
         }
 
 	if (print_opt & PLOM_PRINT_X) {
-	    print_X(p_file_X, &p_par, D_J_p_X[np1], p_data, calc[0], t1, 1, 0, 0);
+	    print_X(p_file_X, &p_par, D_J_p_X[np1], p_data, calc[0], 1, 0, 0, n, t1);
 	}
 
     }
@@ -305,7 +304,6 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
 
     for (n=0; n < p_data->nb_obs; n++) {
 
-	store_state_current_n(calc, n);
 	np1 = n+1;
 
 	//send work
@@ -335,12 +333,12 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
 	    if (weight(p_like, n)) {
 		systematic_sampling(p_like, calc[0], n);
 	    }
-	    compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[n], p_like->weights);
+	    compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[n], p_like->weights, n, p_data->times[np1]);
 	    resample_X(p_like->select[n], &(D_J_p_X[np1]), &(D_J_p_X_tmp[np1]), p_data);
 
 	} else {	
 
-	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[n], 1);
+	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[n], 1, n, p_data->times[np1]);
 
 	}
 
@@ -367,7 +365,6 @@ void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct
         }
 #endif
 
-	store_state_current_n(calc, n);
 	np1 = n+1;
 	t1 = p_data->times[np1];
 
@@ -379,7 +376,8 @@ void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct
 
 	//send work           
 	for (nt=0; nt<calc[0]->n_threads; nt++) {
-	    zmq_send(sender, &nt, sizeof (int), 0);
+	    zmq_send(sender, &nt, sizeof (int), ZMQ_SNDMORE);
+	    zmq_send(sender, &n, sizeof (int), 0);
 	}
 
 	//get results from the workers
@@ -395,17 +393,17 @@ void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct
             }
 
             //!! time indexes: D_J_p_X is [N_DATA+1], *D_p_hat->... are in [N_DATA] so we have to be carrefull!
-            compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[n], p_like->weights);
+            compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[n], p_like->weights, n, t1);
 
             resample_X(p_like->select[n], &(D_J_p_X[np1]), &(D_J_p_X_tmp[np1]), p_data);
 
             if (print_opt & PLOM_PRINT_PRED_RES) {
-                print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[np1], p_like->Llike_best_n, p_like->ess_n, t1, 1);
+                print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[np1], p_like->Llike_best_n, p_like->ess_n, 1, n, t1);
             }
 
         } else {
             //we do not filter or all data ara NaN (no info).
-	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[n], 1);
+	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[n], 1, n, t1);
         }
 
 
@@ -414,7 +412,7 @@ void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct
         }
 
 	if (print_opt & PLOM_PRINT_X) {
-	    print_X(p_file_X, &p_par, D_J_p_X[np1], p_data, calc[0], t1, 1, 0, 0);
+	    print_X(p_file_X, &p_par, D_J_p_X[np1], p_data, calc[0], 1, 0, 0, n, t1);
 	}
     } 
 }

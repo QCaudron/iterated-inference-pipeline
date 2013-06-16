@@ -118,7 +118,7 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
         }
 
         if (OPTION_TRAJ) {
-            print_X(p_file_X, &p_par, &p_X, p_data, p_calc, k+1, 1, 0, 0);
+            print_X(p_file_X, &p_par, &p_X, p_data, p_calc, 1, 0, 0, k, k+1);
         }
     }
 
@@ -163,8 +163,6 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
         }
 #endif
 
-	store_state_current_n(calc, k);
-
 #if FLAG_OMP
 
 #pragma omp parallel for private(thread_id)
@@ -191,11 +189,11 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
 
 #endif
 
-        compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 0);
-        print_p_hat(p_file_hat, NULL, p_hat, p_data, k);
+        compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 0, k, k+1);
+        print_p_hat(p_file_hat, NULL, p_hat, p_data, k+1);
 
         if (OPTION_TRAJ && FLAG_JSON==0) {
-            print_X(p_file_X, J_p_par, J_p_X, p_data, calc[0], k+1, 0, 0, 0);
+            print_X(p_file_X, J_p_par, J_p_X, p_data, calc[0], 0, 0, 0, k, k+1);
         }
     }
 

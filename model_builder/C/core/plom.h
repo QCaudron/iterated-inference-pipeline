@@ -56,7 +56,6 @@
 //parallel computing ability
 #include <zmq.h>
 #include <pthread.h>
-#include <omp.h>
 
 #define FREE(ppp) do {   \
         free( ppp );	\
@@ -83,6 +82,10 @@ typedef enum {PLOM_SUCCESS=0, PLOM_ERR_LIKE=-1} plom_err_code;
 #define FLAG_WARNING 0
 #define FLAG_JSON 0 /**< webApp */
 #define FLAG_OMP 0
+
+#if FLAG_OMP
+#include <omp.h>
+#endif
 
 #define PLOM_EPS_ABS 1e-6 /**< absolute error control for ODEs*/
 #define PLOM_EPS_REL 1e-3 /**< relative error control for ODEs*/
@@ -251,7 +254,7 @@ struct s_data{
 
     /*non fitted parameters*/
     double **data;           /**< [N_DATA][N_TS] the data */
-    unsigned int *ind_n_data_nonan;  /**< [N_DATA_NONAN] index of data where there is at least on ts !=NaN */
+    unsigned int *indn_data_nonan;  /**< [N_DATA_NONAN] index of data where there is at least on ts !=NaN */
     unsigned int *times;     /**< [N_DATA+1] [0] + [times in days where the data were collected] */
 
     struct s_data_ind **data_ind; /**< [N_DATA] an array of pointers to s_data_ind*/
@@ -297,9 +300,7 @@ struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get
 {
     int n_threads; /**< the total number of threads */
     int thread_id; /**< the id of the thread where the computation are being run */
-
-    int current_n;  /**< current value of the N_DATA index. The system is integrated from p_data->times[current_n] to p_data->times[current_n+1]*/
-
+    
     gsl_rng *randgsl; /**< random number generator */
 
     /////////////////
@@ -667,17 +668,17 @@ void print_warning(char *msg);
 void print_log(char *msg);
 void print_err(char *msg);
 
-void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int j_or_m, double time);
+void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int j_or_m, const int n, const double t);
 void print_best(FILE *p_file_best, int m, struct s_best *p_best, struct s_data *p_data, double log_like);
-void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s_data *p_data, int n);
+void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s_data *p_data, const double t);
 
 void print_hat(FILE *p_file, struct s_hat **D_p_hat, struct s_data *p_data);
 void print_par(struct s_par *p_par, struct s_data *p_data);
-void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X **J_p_X, double llike_t, double ess_t, int time, int is_p_par_cst);
+void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X **J_p_X, double llike_t, double ess_t, int is_p_par_cst, const int n, const double t);
 
 
 void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_likelihood *p_like, struct s_calc *p_calc, int m);
-void print_X(FILE *p_file_X, struct s_par **J_p_par, struct s_X **J_p_X, struct s_data *p_data, struct s_calc *p_calc, double time, int is_p_par_cst, int is_m, int m);
+void print_X(FILE *p_file_X, struct s_par **J_p_par, struct s_X **J_p_X, struct s_data *p_data, struct s_calc *p_calc, int is_p_par_cst, int is_m, int m, const int n, const double t);
 
 void header_X(FILE *p_file, struct s_data *p_data);
 void header_prediction_residuals(FILE *p_file, struct s_data *p_data);
@@ -711,7 +712,7 @@ void f_prediction_psr(struct s_X *p_X, double t0, double t1, struct s_par *p_par
 void f_prediction_psr_no_drift(struct s_X *p_X, double t0, double t1, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
 
 
-void plom_ran_multinomial (const gsl_rng * r, const size_t K, unsigned int N, const double p[], unsigned int n[]);
+void plom_ran_multinomial(const gsl_rng * r, const size_t K, unsigned int N, const double p[], unsigned int n[]);
 
 
 void *jac;
@@ -736,7 +737,6 @@ int get_max_u(unsigned int *tab, int length_tab);
 void update_to_be_estimated(struct s_best *p_best);
 int sanitize_n_threads(int n_threads, int J);
 int plom_sanitize_nb_obs(int nb_obs, int n_data);
-void store_state_current_n(struct s_calc **calc, int n);
 //void store_state_current_m(struct s_calc **calc, int m);
 int in_u(int i, unsigned int *tab, int length);
 int in_drift(int i, struct s_drift **drift);
@@ -777,8 +777,8 @@ void square_diag_sd(struct s_best *p_best, struct s_data *p_data);
 
 /* likelihood.c */
 double get_smallest_log_likelihood(struct s_data_ind **data_ind);
-double get_log_likelihood(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
-double get_sum_square(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);
+double get_log_likelihood(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int n, const double t);
+double get_sum_square(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int n, const double t);
 double sanitize_likelihood(double like);
 
 
@@ -820,8 +820,8 @@ void apply_following_constraints(theta_t *proposed, struct s_best *p_best, struc
 
 /* hat.c */
 void get_CI95(double *hat_95, const double *to_be_sorted, size_t *index_sorted, double *weights);
-void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, double *weights);
-void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, int is_p_par_cst);
+void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, double *weights, const int n, const double t);
+void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, int is_p_par_cst, const int n, const double t);
 
 /* json.c */
 json_t *fast_get_json_object(const json_t *container, const char *obj_name);
@@ -871,11 +871,10 @@ void eval_var_emp(struct s_best *p_best, double m);
 /* templated */
 void build_psr(struct s_calc *p);
 
-double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
-
-double obs_mean(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
-double obs_var(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
-double observation(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts);
+double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int ts, const int n, const double t);
+double obs_mean(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int ts, const int n, const double t);
+double obs_var(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int ts, const int n, const double t);
+double observation(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int ts, const int n, const double t);
 
 void proj2obs(struct s_X *p_X, struct s_data *p_data);
 

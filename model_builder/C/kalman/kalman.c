@@ -219,9 +219,6 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
         }
 #endif
 
-
-	store_state_current_n(calc, n);
-	n = calc[0]->current_n;
 	np1 = n+1;
 	t0 = p_data->times[n];
 	t1 = p_data->times[np1];
@@ -240,7 +237,7 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 	proj2obs(p_X, p_data);
 
 	if (print_opt & PLOM_PRINT_X) {
-	    print_X(p_file_X, &p_par, &p_X, p_data, calc[0], t1, 1, 1, m);
+	    print_X(p_file_X, &p_par, &p_X, p_data, calc[0], 1, 1, m, n, t1);
 	}
 
 	if(p_data->data_ind[n]->n_nonan){
@@ -259,15 +256,15 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 		int ts_nonan = data_ind[n]->ind_nonan[ts];
 		double xk_t_ts = gsl_vector_get(p_kalman_update->xk, N_PAR_SV*N_CAC + ts_nonan);
 
-		p_kalman_update->sc_rt = obs_var(xk_t_ts, p_par, p_data, calc[0], ts_nonan);
+		p_kalman_update->sc_rt = obs_var(xk_t_ts, p_par, p_data, calc[0], ts_nonan, m, t1);
 	    
 		//Observations are assimilated one by one so we reset p_kalman_update->ht to 0.0 at each iteration on ts
 		gsl_vector_set_zero(p_kalman_update->ht); 
-		eval_ht(p_kalman_update, xk_t_ts, p_par, p_data, calc[0], ts_nonan);
+		eval_ht(p_kalman_update, xk_t_ts, p_par, p_data, calc[0], ts_nonan, n, t1);
 
 		// compute gain
 		ekf_gain_computation(p_kalman_update,
-				     obs_mean(xk_t_ts, p_par, p_data, calc[0], ts_nonan),
+				     obs_mean(xk_t_ts, p_par, p_data, calc[0], ts_nonan, n, t1),
 				     p_data->data[n][ts_nonan],
 				     &Ct.matrix); 
 
@@ -282,7 +279,7 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 	}
 
 	if (print_opt & PLOM_PRINT_HAT) {
-	    print_p_hat_ekf(p_file_hat, p_data, p_par, calc[0], p_kalman_update, &Ct.matrix, t1);
+	    print_p_hat_ekf(p_file_hat, p_data, p_par, calc[0], p_kalman_update, &Ct.matrix, n, t1);
 	}
 
 

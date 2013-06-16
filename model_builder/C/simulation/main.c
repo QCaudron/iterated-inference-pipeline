@@ -468,7 +468,7 @@ int main(int argc, char *argv[])
             //print hat for continuation
             if(OPTION_CONTINUE) {
                 struct s_hat *p_hat = build_hat(p_data);
-                compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 1);
+		compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 1, t_end, t_end);
                 FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
                 print_p_hat(p_file_hat, NULL, p_hat, p_data, 0);
                 sfr_fclose(p_file_hat);
@@ -484,8 +484,7 @@ int main(int argc, char *argv[])
 
 #if FLAG_VERBOSE
             print_log("Lyapunov exponents computation...");
-#endif
-            store_state_current_n(calc, 0);
+#endif            
             lyapunov(calc[0], J_p_par[0], y0, t0, t_end, abs_tol, rel_tol, J_p_X[0]->dt);
         }
 

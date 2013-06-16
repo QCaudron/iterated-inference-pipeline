@@ -55,3 +55,4 @@ void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0,
 void gram_schmidt_normalize(double *y, double *lyap);
 
 void *jac_lyap;
+

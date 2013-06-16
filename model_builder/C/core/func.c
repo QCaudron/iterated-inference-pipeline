@@ -204,15 +204,6 @@ int sanitize_n_threads(int n_threads, int J)
 }
 
 
-void store_state_current_n(struct s_calc **calc, int n)
-{
-    int nt;
-    for (nt=0; nt<calc[0]->n_threads; nt++) {
-        calc[nt]->current_n = n;
-    }
-}
-
-
 
 /**
  * return 1 if i is in tab else 0

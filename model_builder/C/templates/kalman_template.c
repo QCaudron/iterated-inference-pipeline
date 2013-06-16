@@ -335,13 +335,9 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
  * (automaticaly generated code) and are a function of "x", the
  * observed variable (xk_t_ts).
  */
-void eval_ht(struct s_kalman_update * p, double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
+void eval_ht(struct s_kalman_update * p, double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int ts, const int n, const double t)
 {
     struct s_router **routers = p_data->routers;
-
-    //the automaticaly generated code may need these variables
-    int n = p_calc->current_n;    
-    double t = (double) p_data->times[n+1];
 
     double **par = p_par->natural;    
 
@@ -355,13 +351,9 @@ void eval_ht(struct s_kalman_update * p, double x, struct s_par *p_par, struct s
  * Second order Taylor expansion
  * Var(f(X))=[f'(EX)]^2Var(X)+\frac{[f''(EX)]^2}{4}Var^2(X)
  */
-double var_f_x(double varx, double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
+double var_f_x(double varx, double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int ts, const int n, const double t)
 {
     struct s_router **routers = p_data->routers;
-
-    //the automaticaly generated code may need these variables
-    int n = p_calc->current_n;    
-    double t = (double) p_data->times[n+1];
 
     double **par = p_par->natural;   
 

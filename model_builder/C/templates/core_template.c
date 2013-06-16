@@ -339,14 +339,11 @@ void step_sde_{{ noises_off }}(struct s_X *p_X, double t, struct s_par *p_par, s
 {% endfor %}
 
 
-double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
+double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int ts, const int n, const double t)
 {
     /*x is the predicted value from the model that we contrast with a time serie ts.
       Note: user should not use this function but get_log_likelihood
     */
-
-    int n = p_calc->current_n;
-    double t = (double) p_data->times[n+1];
 
     struct s_router **routers = p_data->routers;
 
@@ -369,13 +366,10 @@ double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s
     return sanitize_likelihood(like);
 }
 
-double obs_mean(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
+double obs_mean(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int ts, const int n, const double t)
 {
   /*x is the predicted value from the model that we contrast with a time serie ts*/
   struct s_router **routers = p_data->routers;
-
-  int n = p_calc->current_n;
-  double t = (double) p_data->times[n+1];
 
   double **par = p_par->natural;
   
@@ -385,13 +379,10 @@ double obs_mean(double x, struct s_par *p_par, struct s_data *p_data, struct s_c
   return mu;
 }
 
-double obs_var(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
+double obs_var(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int ts, const int n, const double t)
 {
   /*x is the predicted value from the model that we contrast with a time serie ts*/
   struct s_router **routers = p_data->routers;
-
-  int n = p_calc->current_n;
-  double t = (double) p_data->times[n+1];
 
   double **par = p_par->natural;
 
@@ -402,13 +393,10 @@ double obs_var(double x, struct s_par *p_par, struct s_data *p_data, struct s_ca
 }
 
 
-double observation(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int ts)
+double observation(double x, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int ts, const int n, const double t)
 {
   /*x is the predicted value from the model that we contrast with a time serie ts*/
   struct s_router **routers = p_data->routers;
-
-  int n = p_calc->current_n;
-  double t = (double) p_data->times[n+1];
 
   double **par = p_par->natural;  
 

@@ -60,8 +60,8 @@ void *worker_routine_smc_inproc(void *params)
         if (items [0].revents & ZMQ_POLLIN) {
 
 	    zmq_recv(receiver, &id, sizeof (int), 0);
+	    zmq_recv(receiver, &n, sizeof (int), 0);
 
-	    n = p_calc->current_n;
 	    np1 = n+1;
 	    t0 = p_data->times[n];
 	    t1 = p_data->times[np1];
@@ -76,7 +76,7 @@ void *worker_routine_smc_inproc(void *params)
 		proj2obs(D_J_p_X[np1][j], p_data);
 
 		if(p_data->data_ind[n]->n_nonan) {
-		    p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[np1][j], p_par, p_data, p_calc));
+		    p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[np1][j], p_par, p_data, p_calc, n, t1));
 		}
 	    }
 
@@ -150,8 +150,8 @@ void *worker_routine_mif_inproc(void *params)
         if (items [0].revents & ZMQ_POLLIN) {
 	   
 	    zmq_recv(receiver, &id, sizeof (int), 0);
-
-	    n = p_calc->current_n;
+	    zmq_recv(receiver, &n, sizeof (int), 0);
+	    
 	    np1 = n+1;
 	    t0 = p_data->times[n];
 	    t1 = p_data->times[np1];
@@ -166,7 +166,7 @@ void *worker_routine_mif_inproc(void *params)
 
 		if(p_data->data_ind[n]->n_nonan) {
 		    proj2obs((*J_p_X)[j], p_data);
-		    p_like->weights[j] = exp(get_log_likelihood((*J_p_X)[j], J_p_par[j], p_data, p_calc));
+		    p_like->weights[j] = exp(get_log_likelihood((*J_p_X)[j], J_p_par[j], p_data, p_calc, n, t1));
 		}
 	    }
 
