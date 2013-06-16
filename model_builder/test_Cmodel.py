@@ -44,7 +44,8 @@ class TestCmodel(unittest.TestCase):
             ],
             'observation': [{'id': 'common', 
                              'parameter': [{'id': 'rep','comment': 'reporting rate'}, 
-                                           {'id': 'phi',  'comment': 'over-dispertion'}],
+                                           {'id': 'phi',  'comment': 'over-dispertion'},
+                                           {"id": "prop",  "comment": "proportion of the population under surveillance"}],
                              'model': {'distribution': 'discretized_normal',
                                        'mean': 'rep*prop*x',
                                        'var': 'rep*(1.0-rep)*prop*x + (rep*phi*prop*x)**2'}}]

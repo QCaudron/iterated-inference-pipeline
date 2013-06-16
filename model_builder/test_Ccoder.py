@@ -69,15 +69,15 @@ class TestCcoder(unittest.TestCase):
         terms = [
             {'x': 'mu_b*(1.0+v*sin((v/N+(mu_b)))) + r0', #input
              'h': 'mu_b*(v*sin(mu_b + v/N) + 1.0) + r0', #expected human output
-             'c': 'covar[ORDER_mu_b][nn][cac]*(par[ORDER_v][routers[ORDER_v]->map[cac]]*sin(covar[ORDER_mu_b][nn][cac]+par[ORDER_v][routers[ORDER_v]->map[cac]]/covar[ORDER_N][nn][cac])+1.0)+drifted[ORDER_drift__par_proc__r0][cac]'}, #expected C output
+             'c': 'gsl_spline_eval(p_calc->spline[ORDER_mu_b][cac],t,p_calc->acc[ORDER_mu_b][cac])*(par[ORDER_v][routers[ORDER_v]->map[cac]]*sin(gsl_spline_eval(p_calc->spline[ORDER_mu_b][cac],t,p_calc->acc[ORDER_mu_b][cac])+par[ORDER_v][routers[ORDER_v]->map[cac]]/gsl_spline_eval(p_calc->spline[ORDER_N][cac],t,p_calc->acc[ORDER_N][cac]))+1.0)+drifted[ORDER_drift__par_proc__r0][cac]'}, #expected C output
 
             {'x': 'N-S-I+S+I',
              'h': 'N',
-             'c': 'covar[ORDER_N][nn][cac]'},
+             'c': 'gsl_spline_eval(p_calc->spline[ORDER_N][cac],t,p_calc->acc[ORDER_N][cac])'},
 
             {'x': 'rep*(1.0-rep)*prop*x + (rep*phi*prop*x)**2',
              'h': 'pow(phi, 2)*pow(rep, 2)*pow(x, 2)*pow(prop, 2) + rep*x*prop*(-rep + 1.0)',
-             'c': 'pow(par[ORDER_phi][routers[ORDER_phi]->map[ts]],2)*pow(par[ORDER_rep][routers[ORDER_rep]->map[ts]],2)*pow(x,2)*pow(covar[ORDER_prop][nn][ts],2)+par[ORDER_rep][routers[ORDER_rep]->map[ts]]*x*covar[ORDER_prop][nn][ts]*(-par[ORDER_rep][routers[ORDER_rep]->map[ts]]+1.0)'},
+             'c': 'pow(par[ORDER_phi][routers[ORDER_phi]->map[ts]],2)*pow(par[ORDER_rep][routers[ORDER_rep]->map[ts]],2)*pow(x,2)*pow(gsl_spline_eval(p_calc->spline[ORDER_prop][ts],t,p_calc->acc[ORDER_prop][ts]),2)+par[ORDER_rep][routers[ORDER_rep]->map[ts]]*x*gsl_spline_eval(p_calc->spline[ORDER_prop][ts],t,p_calc->acc[ORDER_prop][ts])*(-par[ORDER_rep][routers[ORDER_rep]->map[ts]]+1.0)'},
         ]
             
         for t in terms:
@@ -98,7 +98,7 @@ class TestCcoder(unittest.TestCase):
         #correct_rate is only skipped for C code
 
         x = 'mu_b*(1.0+correct_rate(v)*sin((correct_rate(v)/N+(mu_b)))) + r0'
-        c = 'covar[ORDER_mu_b][nn][cac]*((par[ORDER_v][routers[ORDER_v]->map[cac]])*sin(covar[ORDER_mu_b][nn][cac]+(par[ORDER_v][routers[ORDER_v]->map[cac]])/covar[ORDER_N][nn][cac])+1.0)+drifted[ORDER_drift__par_proc__r0][cac]'
+        c = 'gsl_spline_eval(p_calc->spline[ORDER_mu_b][cac],t,p_calc->acc[ORDER_mu_b][cac])*((par[ORDER_v][routers[ORDER_v]->map[cac]])*sin(gsl_spline_eval(p_calc->spline[ORDER_mu_b][cac],t,p_calc->acc[ORDER_mu_b][cac])+(par[ORDER_v][routers[ORDER_v]->map[cac]])/gsl_spline_eval(p_calc->spline[ORDER_N][cac],t,p_calc->acc[ORDER_N][cac]))+1.0)+drifted[ORDER_drift__par_proc__r0][cac]'
 
         self.assertEqual(self.m_drift.make_C_term(x, True, human=False), c)
 
