@@ -109,7 +109,7 @@ void fill_theta_bart_and_Vt_mif(double **D_theta_bart, double **D_theta_Vt, stru
     struct s_iterator *p_it = p_data->p_it_all;
     struct s_router **routers = p_data->routers;
 
-    for(n=0 ;n<=N_DATA_NONAN; n++) {
+    for(n=0 ;n<=N_DATA; n++) {
         for(i=0; i<p_it->length; i++) {
             for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
                 offset = p_it->offset[i]+k;
@@ -403,8 +403,10 @@ void update_theta_best_stable_mif(struct s_best *p_best, double **D_theta_bart, 
             offset = p_it->offset[i]+k;
             if(p_best->is_estimated[offset]) {
                 tmp = 0.0;
-                for(n=1; n<=N_DATA_NONAN; n++){
-                    tmp += D_theta_bart[n][offset];
+                for(n=0; n<N_DATA; n++){
+		    if(p_data->data_ind[n]->n_nonan){
+			tmp += D_theta_bart[n+1][offset];
+		    }
                 }
 
                 gsl_vector_set(p_best->mean, offset, tmp / ((double) N_DATA_NONAN) );
@@ -414,10 +416,10 @@ void update_theta_best_stable_mif(struct s_best *p_best, double **D_theta_bart, 
 
 }
 
+
 /**
  * The MIF update formlulae Ionides et al 2006 PNAS
  */
-
 void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, double **D_theta_Vt, struct s_data *p_data, int m)
 {
 
@@ -435,8 +437,11 @@ void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, do
             offset = p_it->offset[i]+k;
             if(p_best->is_estimated[offset]) {
                 tmp=0.0;
-                for(n=1; n<=N_DATA_NONAN; n++) {
-                    tmp += ( (D_theta_bart[n][offset]-D_theta_bart[n-1][offset]) / D_theta_Vt[n][offset] );
+
+                for(n=0; n<N_DATA; n++) {
+		    if(p_data->data_ind[n]->n_nonan){
+			tmp += ( (D_theta_bart[n+1][offset]-D_theta_bart[n][offset]) / D_theta_Vt[n+1][offset] );
+		    }
                 }
 
                 gsl_vector_set(p_best->mean,
@@ -445,7 +450,6 @@ void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, do
             }
         }
     }
-
 }
 
 

@@ -72,8 +72,8 @@ struct s_mif *build_mif(json_t *theta, enum plom_implementations implementation,
     p->J_theta = init2_gsl_vector_d_set0(J, p->p_data->p_it_all->nbtot);
     p->J_theta_tmp = init2_gsl_vector_d_set0(J, p->p_data->p_it_all->nbtot);
 
-    p->D_theta_bart = init2d_set0(N_DATA_NONAN+1, p->p_data->p_it_all->nbtot);
-    p->D_theta_Vt = init2d_set0(N_DATA_NONAN+1, p->p_data->p_it_all->nbtot);
+    p->D_theta_bart = init2d_set0(N_DATA+1, p->p_data->p_it_all->nbtot);
+    p->D_theta_Vt = init2d_set0(N_DATA+1, p->p_data->p_it_all->nbtot);
 
     return p;
 }

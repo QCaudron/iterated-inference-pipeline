@@ -369,16 +369,16 @@ void print_best(FILE *p_file_best, int m, struct s_best *p_best, struct s_data *
 /**
  * if json_print is NULL, send the hat msg otherwise put it into json_print array
  */
-void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s_data *p_data, int n)
+void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s_data *p_data, int t)
 {
     int i;
     double x;
 
 #if FLAG_JSON
     json_t *json_print_n = json_array();
-    json_array_append_new(json_print_n, json_integer(n+1));
+    json_array_append_new(json_print_n, json_integer(t));
 #else
-    fprintf(p_file, "%d,", n+1);
+    fprintf(p_file, "%d,", t);
 #endif
 
     /* par_sv */
@@ -522,8 +522,8 @@ void print_par(struct s_par *p_par, struct s_data *p_data)
  *
  * AND effective sample size.
  *
- * Note that this function is designed to be called only N_DATA
- * times by opposed to N_DATA_NONAN (ie when there is information)
+ * Note that this function is designed to be called only N_DATA_NONAN
+ * times by opposed to N_DATA (ie when there is information)
  */
 
 void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X **J_p_X, double llike_t, double ess_t, int time, int is_p_par_cst)
@@ -572,7 +572,7 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
         var_state = M2/(kn - 1.0);
         var_obs /= ((double) J);
 
-        y = p_data->data[ p_calc->current_nn ][ts];
+        y = p_data->data[ p_calc->current_n ][ts];
         res = (y - pred)/sqrt(var_state + var_obs);
 
 #if FLAG_JSON
@@ -599,7 +599,7 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
 
 
 
-void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_data, unsigned int **select, double *weights, unsigned int *times, struct s_calc *p_calc, int m)
+void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_likelihood *p_like, struct s_calc *p_calc, int m)
 {
 
     int j_sel;
@@ -619,38 +619,38 @@ void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_
     ran=gsl_ran_flat(p_calc->randgsl, 0.0, 1.0);
 
     j_sel=0;
-    cum_weights=weights[0];
+    cum_weights=p_like->weights[0];
 
     while (cum_weights < ran) {
-        cum_weights += weights[++j_sel];
+        cum_weights += p_like->weights[++j_sel];
     }
 
     //print traj of ancestors of particle j;
 
-    p_X_sel = D_J_p_X[ times[N_DATA_NONAN-1] ][j_sel];
+    p_X_sel = D_J_p_X[ p_data->ind_n_data_nonan[N_DATA_NONAN-1] ][j_sel];
 
-    print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, times[N_DATA_NONAN-1]);
+    print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, p_data->ind_n_data_nonan[N_DATA_NONAN-1]);
 
     //missing value for data
-    for(nn=(times[N_DATA_NONAN-1]-1); nn>times[N_DATA_NONAN-2]; nn--) {
+    for(nn=(p_data->ind_n_data_nonan[N_DATA_NONAN-1]-1); nn>p_data->ind_n_data_nonan[N_DATA_NONAN-2]; nn--) {
         p_X_sel = D_J_p_X[ nn ][j_sel];
         print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn);
     }
 
     for(n=(N_DATA_NONAN-1); n>=2; n--) {
-        j_sel = select[n][j_sel];
-        p_X_sel = D_J_p_X[ times[n-1] ][j_sel];
-        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, times[n-1]);
+        j_sel = p_like->select[n][j_sel];
+        p_X_sel = D_J_p_X[ p_data->ind_n_data_nonan[n-1] ][j_sel];
+        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, p_data->ind_n_data_nonan[n-1]);
 
-        for(nn=(times[n-1]-1); nn>(times[n-2]); nn--) {
+        for(nn=(p_data->ind_n_data_nonan[n-1]-1); nn>(p_data->ind_n_data_nonan[n-2]); nn--) {
             p_X_sel = D_J_p_X[ nn ][j_sel];
             print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn);
         }
     }
 
     for(n=1; n>=0; n--) {
-        j_sel = select[n][j_sel];
-        //works because times[0] has to be equal to 1
+        j_sel = p_like->select[n][j_sel];
+        //works because p_data->ind_n_data_nonan[0] has to be equal to 1
         p_X_sel = D_J_p_X[ n ][j_sel];
         print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, n);
     }

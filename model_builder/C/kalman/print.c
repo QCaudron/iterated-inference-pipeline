@@ -31,7 +31,7 @@ void header_prediction_residuals_ekf(FILE *p_file, struct s_data *p_data)
     fprintf(p_file, "\n");
 }
 
-void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_par *p_par, struct s_calc *p_calc, struct s_kalman_update *p, gsl_matrix *Ct, int n)
+void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_par *p_par, struct s_calc *p_calc, struct s_kalman_update *p, gsl_matrix *Ct, int t)
 {
     int i, ts;
     double x;
@@ -39,9 +39,9 @@ void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_par *p_par, s
 
 #if FLAG_JSON
     json_t *json_print_n = json_array();
-    json_array_append_new(json_print_n, json_integer(n+1));
+    json_array_append_new(json_print_n, json_integer(t));
 #else
-    fprintf(p_file, "%d,", n+1);
+    fprintf(p_file, "%d,", t);
 #endif
 
     /* par_sv */
@@ -132,7 +132,7 @@ void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_par *p_par, s
 }
 
 
-void print_prediction_residuals_ekf(FILE *p_file_pred_res, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X *p_X, struct s_kalman_update *p, gsl_matrix *Ct, int time)
+void print_prediction_residuals_ekf(FILE *p_file_pred_res, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X *p_X, struct s_kalman_update *p, gsl_matrix *Ct, int n, int time)
 {
     int ts;
     double var_obs, pred, y, res, fCt;
@@ -150,7 +150,7 @@ void print_prediction_residuals_ekf(FILE *p_file_pred_res, struct s_par *p_par, 
 
     for(ts=0; ts<N_TS; ts++) {
 	var_obs = obs_var(p_X->obs[ts], p_par, p_data, p_calc, ts);        
-	y = p_data->data[ p_calc->current_nn ][ts];
+	y = p_data->data[n][ts];
 	pred = obs_mean(gsl_vector_get(p->xk, N_PAR_SV*N_CAC+ts), p_par, p_data, p_calc, ts);
 	fCt = var_f_x(gsl_matrix_get(Ct, N_PAR_SV*N_CAC + ts, N_PAR_SV*N_CAC + ts), gsl_vector_get(p->xk, N_PAR_SV*N_CAC+ts), p_par, p_data, p_calc, ts);
 	res = (y - pred)/sqrt(fCt + var_obs);

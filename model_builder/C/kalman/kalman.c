@@ -178,12 +178,10 @@ void reset_inc_cov(gsl_matrix *Ct)
  */
 double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, struct s_kalman_update *p_kalman_update, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int m, FILE *p_file_X, FILE *p_file_hat, FILE *p_file_pred_res, const enum plom_print print_opt)
 {
-    // loops indices
-    int n, nn;		// data and nonan data indices
-    double t0, t1;	// first and last times
-    int ts;	// time series indices
 
-    // likelihoods
+    int n, np1, t0, t1;
+    int ts;
+
     double like, log_lik, log_lik_temp;
 
     struct s_data_ind **data_ind = p_data->data_ind;
@@ -220,87 +218,73 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
             }
         }
 #endif
-        t1=p_data->times[n];
 
-        /////////////////////////
-        // for every time unit //
-        /////////////////////////
-        /*
-         * we have to use this subloop to mimate equaly spaced time step
-         * and hence set the incidence to 0 every time unit...
-         */
-        for(nn=t0; nn<t1; nn++) {
-            store_state_current_n_nn(calc, n, nn);
 
-            reset_inc(p_X, p_data);	// reset incidence to 0
-            reset_inc_cov(&Ct.matrix);	// reset incidence covariance to 0
+	store_state_current_n(calc, n);
+	n = calc[0]->current_n;
+	np1 = n+1;
+	t0 = p_data->times[n];
+	t1 = p_data->times[np1];
 
-            // propagate X->proj (containing the covariance Ct) if populations not exploding
-            if (get_total_pop(p_X->proj)<WORLD_POP) {
-                f_pred(p_X, nn, nn+1, p_par, p_data, calc[0]);
-            } else {
-                print_err("total_pop(X->proj)>=WORLD_POP");
-            }
 
-            proj2obs(p_X, p_data);
+	reset_inc(p_X, p_data);	
+	reset_inc_cov(&Ct.matrix);
 
-            if (print_opt & PLOM_PRINT_X) {
-                print_X(p_file_X, &p_par, &p_X, p_data, calc[0], nn+1, 1, 1, m);
-            }
+	// propagate X->proj (containing the covariance Ct) if populations not exploding
+	if (get_total_pop(p_X->proj)<WORLD_POP) {
+	    f_pred(p_X, t0, t1, p_par, p_data, calc[0]);
+	} else {
+	    print_err("total_pop(X->proj)>=WORLD_POP");
+	}
 
-	    if (print_opt & PLOM_PRINT_HAT) {
-		if( (nn+1) < t1){
-		    X2xk(p_kalman_update->xk, p_X, p_data);
-		    print_p_hat_ekf(p_file_hat, p_data, p_par, calc[0], p_kalman_update, &Ct.matrix, nn);
-		}
+	proj2obs(p_X, p_data);
+
+	if (print_opt & PLOM_PRINT_X) {
+	    print_X(p_file_X, &p_par, &p_X, p_data, calc[0], t1, 1, 1, m);
+	}
+
+	if(p_data->data_ind[n]->n_nonan){
+	    X2xk(p_kalman_update->xk, p_X, p_data);
+
+	    log_lik_temp = 0.0;
+
+	    //Observations are assimilated one by one, which does not
+	    //change the outcome but makes the code more robust to varying
+	    //numbers of observations.
+	    if (print_opt & PLOM_PRINT_PRED_RES) {
+		print_prediction_residuals_ekf(p_file_pred_res, p_par, p_data, calc[0], p_X, p_kalman_update, &Ct.matrix, n, t1);
+	    }
+    
+	    for(ts=0; ts< data_ind[n]->n_nonan; ts++) {
+		int ts_nonan = data_ind[n]->ind_nonan[ts];
+		double xk_t_ts = gsl_vector_get(p_kalman_update->xk, N_PAR_SV*N_CAC + ts_nonan);
+
+		p_kalman_update->sc_rt = obs_var(xk_t_ts, p_par, p_data, calc[0], ts_nonan);
+	    
+		//Observations are assimilated one by one so we reset p_kalman_update->ht to 0.0 at each iteration on ts
+		gsl_vector_set_zero(p_kalman_update->ht); 
+		eval_ht(p_kalman_update, xk_t_ts, p_par, p_data, calc[0], ts_nonan);
+
+		// compute gain
+		ekf_gain_computation(p_kalman_update,
+				     obs_mean(xk_t_ts, p_par, p_data, calc[0], ts_nonan),
+				     p_data->data[n][ts_nonan],
+				     &Ct.matrix); 
+
+		like = ekf_update(p_kalman_update, &Ct.matrix);
+		log_lik_temp += log(like);	  
 	    }
 
-        } // end of for loop on nn
+	    //echo back the change on xk to p_X->proj
+	    xk2X(p_X, p_kalman_update->xk, p_data);
 
-        // transform p_X to x_k
-        X2xk(p_kalman_update->xk, p_X, p_data);
-
-        // from here we work only with xk
-
-        log_lik_temp = 0.0;
-	int current_nn = calc[0]->current_nn; //nn-1
-
-        //Observations are assimilated one by one, which does not
-        //change the outcome but makes the code more robust to varying
-        //numbers of observations.
-	if (print_opt & PLOM_PRINT_PRED_RES) {
-	    print_prediction_residuals_ekf(p_file_pred_res, p_par, p_data, calc[0], p_X, p_kalman_update, &Ct.matrix, t1);
+	    log_lik += log_lik_temp;
 	}
-    
-        for(ts=0; ts< data_ind[n]->n_nonan; ts++) {
-            int ts_nonan = data_ind[n]->ind_nonan[ts];
-	    double xk_t_ts = gsl_vector_get(p_kalman_update->xk, N_PAR_SV*N_CAC + ts_nonan);
-
-            p_kalman_update->sc_rt = obs_var(xk_t_ts, p_par, p_data, calc[0], ts_nonan);
-	    
-	    //Observations are assimilated one by one so we reset p_kalman_update->ht to 0.0 at each iteration on ts
-	    gsl_vector_set_zero(p_kalman_update->ht); 
-            eval_ht(p_kalman_update, xk_t_ts, p_par, p_data, calc[0], ts_nonan);
-
-            // compute gain
-            ekf_gain_computation(p_kalman_update,
-				 obs_mean(xk_t_ts, p_par, p_data, calc[0], ts_nonan),
-                                 p_data->data[current_nn][ts_nonan],
-                                 &Ct.matrix); 
-
-            like = ekf_update(p_kalman_update, &Ct.matrix);
-            log_lik_temp += log(like);	  
-        }
-
-        //echo back the change on xk to p_X->proj
-        xk2X(p_X, p_kalman_update->xk, p_data);
 
 	if (print_opt & PLOM_PRINT_HAT) {
-	    print_p_hat_ekf(p_file_hat, p_data, p_par, calc[0], p_kalman_update, &Ct.matrix, t1-1);
+	    print_p_hat_ekf(p_file_hat, p_data, p_par, calc[0], p_kalman_update, &Ct.matrix, t1);
 	}
-        log_lik += log_lik_temp;
 
-        t0=t1;
 
     } // end of for loop on n
 

@@ -21,17 +21,16 @@
 void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_par **J_p_par, struct s_likelihood *p_like, gsl_vector **J_theta, gsl_vector **J_theta_tmp, double **D_theta_bart, double **D_theta_Vt, plom_f_pred_t f_pred, int is_mvn)
 {
     int i, j, k;
-    int m, n, nn; /*m:filtering iteration index, n: indeces N_DATA and nn N_DATA_NONAN */
+    int m, n, np1, t0, t1, delta_t; 
     char str[STR_BUFFSIZE];
 
 #if FLAG_VERBOSE
     int64_t time_mif_begin, time_mif_end; /* to calculate the computational time of the MIF iteration */
 #endif
-    int t0, t1;
 
 #if FLAG_OMP
 
-    int thread_id, nnp1;
+    int thread_id;
 
 #else
 
@@ -134,8 +133,11 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
             propose_safe_theta_and_load_X0(J_theta[j], p_best, p_best->var, MIF_b*FREEZE, J_p_par[j], (*J_p_X)[j], p_data, calc[0], my_ran_proposal);
         }
 
-        t0=0; p_like->Llike_best = 0.0; p_like->n_all_fail = 0;
+	p_like->Llike_best = 0.0;
+	p_like->n_all_fail = 0;
 
+
+	delta_t = 0;
         for(n=0; n<n_max; n++) {
 
 #if FLAG_JSON //for the webApp, we block at every iterations to prevent the client to be saturated with msg
@@ -144,69 +146,68 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
             }
 #endif
 
+	    store_state_current_n(calc, n);
             t1=p_data->times[n];
+	    np1 = n+1;
+	    t0 = p_data->times[n];
+	    t1 = p_data->times[np1];
+	    delta_t += t1-t0; //cumulate t1 -t0 in between 2 data step where p_data->data_ind[n]->n_nonan > 0
 
             for(j=0; j<J; j++) {
 		back_transform_theta2par(J_p_par[j], J_theta[j], p_data->p_it_par_proc_par_obs_no_drift, p_data);
             }
 
-            /*we have to use this subloop to mimate equaly spaced time step and hence set the incidence to 0 every time unit...*/
-            for(nn=t0 ; nn<t1 ; nn++) {
-                store_state_current_n_nn(calc, n, nn);
+
 #if FLAG_OMP
-                nnp1 = nn+1;
 #pragma omp parallel for private(thread_id)
-                for(j=0;j<J;j++) {
-		    thread_id = omp_get_thread_num();
+	    for(j=0;j<J;j++) {
+		thread_id = omp_get_thread_num();
 
-                    reset_inc((*J_p_X)[j], p_data);
-		    f_pred((*J_p_X)[j], nn, nnp1, J_p_par[j], p_data, calc[thread_id]);
+		reset_inc((*J_p_X)[j], p_data);
+		f_pred((*J_p_X)[j], t0, t1, J_p_par[j], p_data, calc[thread_id]);
 
-                    if(nnp1 == t1) {
-                        proj2obs((*J_p_X)[j], p_data);
-                        p_like->weights[j] = exp(get_log_likelihood((*J_p_X)[j], J_p_par[j], p_data, calc[thread_id]));
-                    }
-                }
+		if(p_data->data_ind[n]->n_nonan) {
+		    proj2obs((*J_p_X)[j], p_data);
+		    p_like->weights[j] = exp(get_log_likelihood((*J_p_X)[j], J_p_par[j], p_data, calc[thread_id]));
+		}
+	    }
 #else 
-		//send work           
-		for (nt=0; nt<calc[0]->n_threads; nt++) {
-		    zmq_send(sender, &nt, sizeof (int), 0);
-		}
+	    //send work           
+	    for (nt=0; nt<calc[0]->n_threads; nt++) {
+		zmq_send(sender, &nt, sizeof (int), 0);
+	    }
 
-		//get results from the workers
-		for (nt=0; nt<calc[0]->n_threads; nt++) {
-		    zmq_recv(receiver, &the_nt, sizeof (int), 0);	       
-		}
-
+	    //get results from the workers
+	    for (nt=0; nt<calc[0]->n_threads; nt++) {
+		zmq_recv(receiver, &the_nt, sizeof (int), 0);	       
+	    }
 #endif
 
+	    if(p_data->data_ind[n]->n_nonan) {
+		if (OPTION_PRIOR) {
+		    patch_likelihood_prior(p_like, p_best, J_theta, p_data, n_max, n, L);
+		}
 
+		int success = weight(p_like, n);
+		mean_var_theta_theoretical_mif(D_theta_bart[n+1], D_theta_Vt[n+1], J_theta, p_like, p_data, p_best, m, ((double) delta_t), OPTION_TRAJ);
 
-            } /* end for on nn */
+		if (OPTION_TRAJ) {
+		    print_mean_var_theta_theoretical_mif(p_file_mif, D_theta_bart[n+1], D_theta_Vt[n+1], p_like, p_data, m, t1);
+		}
 
-            if (OPTION_PRIOR) {
-                patch_likelihood_prior(p_like, p_best, J_theta, p_data, n_max, n, L);
-            }
+		if(success) {
+		    systematic_sampling(p_like, calc[0], n);
+		}
 
-            int success = weight(p_like, n);
-	    mean_var_theta_theoretical_mif(D_theta_bart[n+1], D_theta_Vt[n+1], J_theta, p_like, p_data, p_best, m, ((double) (t1-t0)), OPTION_TRAJ);
+		resample_and_mut_theta_mif(p_like->select[n], J_theta, J_theta_tmp, calc, p_data, p_best, FREEZE*sqrt(((double) delta_t)), var_fitted, is_mvn);
+		resample_X(p_like->select[n], J_p_X, J_p_X_tmp, p_data);
 
-            if (OPTION_TRAJ) {
-		print_mean_var_theta_theoretical_mif(p_file_mif, D_theta_bart[n+1], D_theta_Vt[n+1], p_like, p_data, m, t1);
-            }
-
-            if(success) {
-		systematic_sampling(p_like, calc[0], n);
-            }
-
-	    resample_and_mut_theta_mif(p_like->select[n], J_theta, J_theta_tmp, calc, p_data, p_best, FREEZE*sqrt(((double) (t1-t0))), var_fitted, is_mvn);
-	    resample_X(p_like->select[n], J_p_X, J_p_X_tmp, p_data);
+		delta_t = 0;
+	    } 	    
 
 	    if(n==L){
 		update_fixed_lag_smoothing(p_best, p_like, J_theta, p_data);
 	    }
-
-            t0=t1;
 
         } /*end of for loop on the time (n)*/
 

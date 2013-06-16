@@ -204,12 +204,11 @@ int sanitize_n_threads(int n_threads, int J)
 }
 
 
-void store_state_current_n_nn(struct s_calc **calc, int n, int nn)
+void store_state_current_n(struct s_calc **calc, int n)
 {
     int nt;
     for (nt=0; nt<calc[0]->n_threads; nt++) {
         calc[nt]->current_n = n;
-        calc[nt]->current_nn = nn;
     }
 }
 
@@ -248,11 +247,11 @@ int in_drift(int i, struct s_drift **drift){
 /**
  * sanitize nb_obs.
  */
-int plom_sanitize_nb_obs(int nb_obs, int n_data_nonan){
+int plom_sanitize_nb_obs(int nb_obs, int n_data){
     
     if(nb_obs >= 0){
-	return (nb_obs < n_data_nonan) ? nb_obs : n_data_nonan;
+	return (nb_obs < n_data) ? nb_obs : n_data;
     }
 
-    return n_data_nonan;
+    return n_data;
 }

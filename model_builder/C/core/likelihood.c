@@ -45,7 +45,7 @@ double get_sum_square(struct s_X *p_X, struct s_par *p_par, struct s_data *p_dat
 
     for(ts=0; ts< p_data_ind_n->n_nonan; ts++) {
         ts_nonan = p_data_ind_n->ind_nonan[ts];
-        ss += pow( p_data->data[p_calc->current_nn][ts_nonan] - obs_mean(p_X->obs[ts_nonan], p_par, p_data, p_calc, ts_nonan), 2);
+        ss += pow( p_data->data[p_calc->current_n][ts_nonan] - obs_mean(p_X->obs[ts_nonan], p_par, p_data, p_calc, ts_nonan), 2);
     }
     
     return ss;

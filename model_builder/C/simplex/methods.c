@@ -21,9 +21,8 @@
 double f_simplex(const gsl_vector *x, void *params)
 {
     /* function to **minimize** */
-    int n, nn;
+    int n, t0, t1;
     double fitness;
-    int t0, t1;
 
     /* syntax shortcuts */
     struct s_simplex *p_params_simplex = (struct s_simplex *) params;
@@ -47,30 +46,28 @@ double f_simplex(const gsl_vector *x, void *params)
        the log likelihood to the smallest possible value:
        smallest_log_like */
 
-    t0=0;
+
     fitness=0.0;
 
     if (check_IC(p_X, p_data, calc[0]) == 0) {
         for(n=0; n< p_data->nb_obs; n++) {
 
-            t1=p_data->times[n];
+            t0=p_data->times[n];
+            t1=p_data->times[n+1];
 
-            /*we have to use this subloop to mimate equaly spaced time step and hence set the incidence to 0 every time unit...*/
-            for(nn=t0 ; nn<t1 ; nn++) {
-                store_state_current_n_nn(calc, n, nn);
-                reset_inc(p_X, p_data); //reset incidence to 0
-		f_prediction_ode(p_X, nn, (nn+1), p_par, p_data, calc[0]);
-            }
-            proj2obs(p_X, p_data);
+	    store_state_current_n(calc, n);
+	    reset_inc(p_X, p_data); //reset incidence to 0
+	    f_prediction_ode(p_X, t0, t1, p_par, p_data, calc[0]);
 
-            if (OPTION_LEAST_SQUARE) {
-                fitness += get_sum_square(p_X, p_par, p_data, calc[0]);
-            } else {
-                fitness += get_log_likelihood(p_X, p_par, p_data, calc[0]);
-            }
+	    if(p_data->data_ind[n]->n_nonan){
+		proj2obs(p_X, p_data);
 
-            t0=t1;
-
+		if (OPTION_LEAST_SQUARE) {
+		    fitness += get_sum_square(p_X, p_par, p_data, calc[0]);
+		} else {
+		    fitness += get_log_likelihood(p_X, p_par, p_data, calc[0]);
+		}
+	    }
         } /*end of for loop on n*/
 	
 	if (OPTION_PRIOR) {

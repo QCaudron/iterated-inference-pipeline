@@ -113,12 +113,9 @@ void step_psr(struct s_X *p_X, double t, struct s_par *p_par, struct s_data *p_d
     double sum_inc = 0.0;
     int offset;
 
-    const int nn = p_calc->current_nn;
-
     double sum, one_minus_exp_sum;
 
-    double **par = p_par->natural;
-    double ***covar = p_data->par_fixed;
+    double **par = p_par->natural;   
 
     double *X = p_X->proj;
     double dt = p_X->dt;
@@ -239,12 +236,8 @@ void step_sde_{{ noises_off }}(struct s_X *p_X, double t, struct s_par *p_par, s
     int i, c, ac, cac, n_cac, ts, o;
     double sum_inc = 0.0;
     int offset;
-
-    const int nn = p_calc->current_nn;
-
+    
     double **par = p_par->natural;
-    double ***covar = p_data->par_fixed;
-
 
     double _r[N_CAC][{{ step_ode_sde.caches|length }}];
 
@@ -353,17 +346,15 @@ double likelihood(double x, struct s_par *p_par, struct s_data *p_data, struct s
     */
 
     int n = p_calc->current_n;
-    int nn = p_calc->current_nn;
-    double t = (double) p_data->times[n];
+    double t = (double) p_data->times[n+1];
 
     struct s_router **routers = p_data->routers;
 
     double like; /* likelihood value */
 
-    double y = p_data->data[nn][ts];
+    double y = p_data->data[n][ts];
 
     double **par = p_par->natural;
-    double ***covar = p_data->par_fixed;
 
     /*automaticaly generated code*/
     double gsl_mu = {{ proc_obs.mean|safe }};
@@ -384,12 +375,10 @@ double obs_mean(double x, struct s_par *p_par, struct s_data *p_data, struct s_c
   struct s_router **routers = p_data->routers;
 
   int n = p_calc->current_n;
-  int nn = p_calc->current_nn;
-  double t = (double) p_data->times[n];
+  double t = (double) p_data->times[n+1];
 
   double **par = p_par->natural;
-  double ***covar = p_data->par_fixed;
-
+  
   /*automaticaly generated code*/
   double mu = {{ proc_obs.mean|safe }};
 
@@ -402,11 +391,9 @@ double obs_var(double x, struct s_par *p_par, struct s_data *p_data, struct s_ca
   struct s_router **routers = p_data->routers;
 
   int n = p_calc->current_n;
-  int nn = p_calc->current_nn;
-  double t = (double) p_data->times[n];
+  double t = (double) p_data->times[n+1];
 
   double **par = p_par->natural;
-  double ***covar = p_data->par_fixed;
 
   /*automaticaly generated code*/
   double var = {{ proc_obs.var|safe }};
@@ -421,11 +408,9 @@ double observation(double x, struct s_par *p_par, struct s_data *p_data, struct 
   struct s_router **routers = p_data->routers;
 
   int n = p_calc->current_n;
-  int nn = p_calc->current_nn;
-  double t = (double) p_data->times[n];
+  double t = (double) p_data->times[n+1];
 
-  double **par = p_par->natural;
-  double ***covar = p_data->par_fixed;
+  double **par = p_par->natural;  
 
   /*return an observation of the process model*/
 

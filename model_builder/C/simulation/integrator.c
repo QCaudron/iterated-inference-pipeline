@@ -29,9 +29,12 @@ int has_failed(double *y)
     return 0;
 }
 
+
+/**
+ * numerical integration from t0 to t_end, return 0 if success
+ */
 int integrator(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par *p_par, double abs_tol, double rel_tol, struct s_calc *p_calc, struct s_data *p_data)
 {
-    /*numerical integration from t0 to t_end, return 0 if success*/
 
     int status;
     int error=0;
@@ -67,10 +70,11 @@ int integrator(struct s_X *p_X, double *y0, double t0, double t_end, struct s_pa
     return error;
 }
 
-
+/** 
+ * recursive function that decreases abs_tol and rel_tol until integration success 
+ */
 int integrate(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par *p_par, double *abs_tol, double *rel_tol, struct s_calc *p_calc, struct s_data *p_data)
 {
-    /* recursive function that decreases abs_tol and rel_tol until integration success */
 
     int integration_error=1;
 
@@ -105,11 +109,6 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
     }
 
     for (k= (int) t0 ; k< (int) t_end ; k++) {
-
-        if ( t_transiant <= N_DATA ) {
-            p_calc->current_nn= (k < N_DATA_PAR_FIXED) ? k : N_DATA_PAR_FIXED-1;
-        }
-
         reset_inc(p_X, p_data);
         f_pred(p_X, k, k+1, p_par, p_data, p_calc);
         proj2obs(p_X, p_data);
@@ -134,7 +133,7 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
 
 void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, void *sender, void *receiver, void *controller)
 {
-    int k, nn;
+    int k;
 #if FLAG_OMP
     int j, thread_id;
 #else
@@ -164,10 +163,7 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
         }
 #endif
 
-        if ( t_transiant <= N_DATA ) {
-            nn= (k < N_DATA_PAR_FIXED) ? k : N_DATA_PAR_FIXED-1;
-            store_state_current_n_nn(calc, nn, nn);
-        }
+	store_state_current_n(calc, k);
 
 #if FLAG_OMP
 

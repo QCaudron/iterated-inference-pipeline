@@ -14,7 +14,6 @@
  *    You should have received a copy of the GNU General Public
  *    License along with plom.  If not, see
  *    <http://www.gnu.org/licenses/>.
-
  *************************************************************************/
 
 #include "plom.h"
@@ -210,12 +209,9 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
              const enum plom_print print_opt
              )
 {
-    int j, n, nn, nnp1;
-    int t0,t1;
+    int j, n, np1, t0,t1;
     int thread_id;
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
-
-    t0=0;
 
     p_like->Llike_best = 0.0;
 
@@ -229,80 +225,68 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
         }
 #endif
 
-        t1=p_data->times[n];
-
-        /*we have to use this subloop to mimate equaly spaced time step and hence set the incidence to 0 every time unit...*/
-        for(nn=t0 ; nn<t1 ; nn++) {
-            store_state_current_n_nn(calc, n, nn);
-            nnp1 = nn+1;
-
-            //we are going to overwrite the content of the [nnp1] pointer: initialise it with values from [nn]
-            for(j=0;j<J;j++) {
-                memcpy(D_J_p_X[nnp1][j]->proj, D_J_p_X[nn][j]->proj, size_proj * sizeof(double));
-                D_J_p_X[nnp1][j]->dt = D_J_p_X[nn][j]->dt;
-            }
+	store_state_current_n(calc, n);
+	np1 = n+1;
+	t0 = p_data->times[n];
+	t1 = p_data->times[np1];
+		    
+	//we are going to overwrite the content of the [np1] pointer: initialise it with values from [n]
+	for(j=0;j<J;j++) {
+	    memcpy(D_J_p_X[np1][j]->proj, D_J_p_X[n][j]->proj, size_proj * sizeof(double));
+	    D_J_p_X[np1][j]->dt = D_J_p_X[n][j]->dt;
+	}
 
 #if FLAG_OMP
 #pragma omp parallel for private(thread_id)
 #endif
-            for(j=0;j<J;j++) {
+	for(j=0;j<J;j++) {
 #if FLAG_OMP
-		thread_id = omp_get_thread_num();
+	    thread_id = omp_get_thread_num();
 #else
-		thread_id = 0;
+	    thread_id = 0;
 #endif
 
-                reset_inc(D_J_p_X[nnp1][j], p_data);
-                (*f_pred)(D_J_p_X[nnp1][j], nn, nnp1, p_par, p_data, calc[thread_id]);
-                //round_inc(D_J_p_X[nnp1][j]);
+	    reset_inc(D_J_p_X[np1][j], p_data);
+	    (*f_pred)(D_J_p_X[np1][j], t0, t1, p_par, p_data, calc[thread_id]);
+	    //round_inc(D_J_p_X[nnp1][j]);
 
-                proj2obs(D_J_p_X[nnp1][j], p_data);
+	    proj2obs(D_J_p_X[np1][j], p_data);
 
-                if(nnp1 == t1) {
-                    p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[nnp1][j], p_par, p_data, calc[thread_id]));
-                }
-            }
+	    if(p_data->data_ind[n]->n_nonan) {
+		p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[np1][j], p_par, p_data, calc[thread_id]));
+	    }
+	}
 
-            if (print_opt & PLOM_PRINT_X) {
-                print_X(p_file_X, &p_par, D_J_p_X[nnp1], p_data, calc[0], (double) nnp1, 1, 0, 0);
-            }
+        if(option_filter && p_data->data_ind[n]->n_nonan) {
 
-            if(nnp1 < t1){
-                compute_hat_nn(D_J_p_X[nnp1], &p_par, p_data, calc, D_p_hat[nn], 1);
-
-                if (print_opt & PLOM_PRINT_HAT) {
-                    print_p_hat(p_file_hat, NULL, D_p_hat[nn], p_data, nn);
-                }
-            }
-
-        } /* end for on nn */
-
-
-        if(option_filter) {
             if(weight(p_like, n)) {
                 systematic_sampling(p_like, calc[0], n);
             }
 
             //!! time indexes: D_J_p_X is [N_DATA+1], *D_p_hat->... are in [N_DATA] so we have to be carrefull!
-            compute_hat(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1], p_like->weights);
+            compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[n], p_like->weights);
 
-            resample_X(p_like->select[n], &(D_J_p_X[t1]), &(D_J_p_X_tmp[t1]), p_data);
+            resample_X(p_like->select[n], &(D_J_p_X[np1]), &(D_J_p_X_tmp[np1]), p_data);
 
             if (print_opt & PLOM_PRINT_PRED_RES) {
-                print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[t1], p_like->Llike_best_n, p_like->ess_n, t1, 1);
+                print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[np1], p_like->Llike_best_n, p_like->ess_n, t1, 1);
             }
+
         } else {
-            //we do not filter. hat wil be used to get mean and 95% CI of J independant realisations
-	    compute_hat_nn(D_J_p_X[t1], &p_par, p_data, calc, D_p_hat[t1-1], 1);
+            //we do not filter or all data ara NaN (no info).
+	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[n], 1);
         }
+
 
         if (print_opt & PLOM_PRINT_HAT) {
-            print_p_hat(p_file_hat, NULL, D_p_hat[t1-1], p_data, t1-1);
+            print_p_hat(p_file_hat, NULL, D_p_hat[n], p_data, t1);
         }
 
-        t0=t1;
+	if (print_opt & PLOM_PRINT_X) {
+	    print_X(p_file_X, &p_par, D_J_p_X[np1], p_data, calc[0], t1, 1, 0, 0);
+	}
 
-    } /*end of for loop on the time (n)*/
+    }
 
 }
 
@@ -314,74 +298,62 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
  */
 void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int Jchunk, void *sender, void *receiver, void *controller)
 {
-    int j, n, nn, nnp1;
-    int t0,t1;
+    int j, n, np1;
     int the_j;
-
-    t0=0;
 
     p_like->Llike_best = 0.0; p_like->n_all_fail = 0;
 
     for (n=0; n < p_data->nb_obs; n++) {
-        t1=p_data->times[n];
 
-        /*we have to use this subloop to mimate equaly spaced time step and hence set the incidence to 0 every time unit...*/
-        for (nn=t0 ; nn<t1 ; nn++) {
-            store_state_current_n_nn(calc, n, nn);
-            nnp1 = nn+1;
+	store_state_current_n(calc, n);
+	np1 = n+1;
 
-            //send work
-            //we are going to overwrite the content of the [nnp1] pointer: initialise it with values from [nn]
-            for (j=0;j<J;j++) {
-		//we try to minimize the number of times we send the parameters...
-                if ( (j % Jchunk) == 0) {
-		    zmq_send(sender, &n, sizeof (int), ZMQ_SNDMORE);    
-		    zmq_send(sender, &nn, sizeof (int), ZMQ_SNDMORE);    
-                    send_par(sender, p_par, p_data, ZMQ_SNDMORE);
-                }
-
-		zmq_send(sender, &j, sizeof (int), ZMQ_SNDMORE);                   	       	       
-                send_X(sender, D_J_p_X[nn][j], p_data, ( ((j+1) % Jchunk) == 0) ? 0: ZMQ_SNDMORE);
-		//printf("part %d sent %d\n", j, ( ((j+1) % Jchunk) == 0) ? 0: ZMQ_SNDMORE);
-            }
-
-            //get results from the workers
-            for (j=0; j<J; j++) {
-		zmq_recv(receiver, &the_j, sizeof (int), 0);
-                recv_X(D_J_p_X[nnp1][ the_j ], p_data, receiver);
-		zmq_recv(receiver, &(p_like->weights[the_j]), sizeof (double), 0);
-		//printf("part  %d received\n", the_j);
-            }
-
-            if( nnp1 < t1 ){
-		compute_hat_nn(D_J_p_X[nnp1], &p_par, p_data, calc, D_p_hat[nn], 1);
+	//send work
+	//we are going to overwrite the content of the [nnp1] pointer: initialise it with values from [nn]
+	for (j=0;j<J;j++) {
+	    //we try to minimize the number of times we send the parameters...
+	    if ( (j % Jchunk) == 0) {
+		zmq_send(sender, &n, sizeof (int), ZMQ_SNDMORE);
+		send_par(sender, p_par, p_data, ZMQ_SNDMORE);
 	    }
 
-        } /* end for on nn */
+	    zmq_send(sender, &j, sizeof (int), ZMQ_SNDMORE);                   	       	       
+	    send_X(sender, D_J_p_X[n][j], p_data, ( ((j+1) % Jchunk) == 0) ? 0: ZMQ_SNDMORE);
+	    //printf("part %d sent %d\n", j, ( ((j+1) % Jchunk) == 0) ? 0: ZMQ_SNDMORE);
+	}
 
-        if (weight(p_like, n)) {
-            systematic_sampling(p_like, calc[0], n);
-        }
+	//get results from the workers
+	for (j=0; j<J; j++) {
+	    zmq_recv(receiver, &the_j, sizeof (int), 0);
+	    recv_X(D_J_p_X[np1][ the_j ], p_data, receiver);
+	    zmq_recv(receiver, &(p_like->weights[the_j]), sizeof (double), 0);
+	    //printf("part  %d received\n", the_j);
+	}
 
-	compute_hat(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1], p_like->weights);
+        if( p_data->data_ind[n]->n_nonan) {
 
-        resample_X(p_like->select[n], &(D_J_p_X[t1]), &(D_J_p_X_tmp[t1]), p_data);
-        t0=t1;
+	    if (weight(p_like, n)) {
+		systematic_sampling(p_like, calc[0], n);
+	    }
+	    compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[n], p_like->weights);
+	    resample_X(p_like->select[n], &(D_J_p_X[np1]), &(D_J_p_X_tmp[np1]), p_data);
 
-    } /*end of for loop on the time (n)*/
+	} else {	
+
+	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[n], 1);
+
+	}
+
+    }
 }
-
 
 
 void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int option_filter, FILE *p_file_X, FILE *p_file_hat, FILE *p_file_pred_res, const enum plom_print print_opt, void *sender, void *receiver, void *controller)
 {
-    int j, n, nn, nnp1;
+    int j, n, np1,t1;
     int nt;
     int the_nt;
-    int t0,t1;
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
-
-    t0=0;
 
     p_like->Llike_best = 0.0; p_like->n_all_fail = 0;
 
@@ -395,67 +367,54 @@ void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct
         }
 #endif
 
-        t1=p_data->times[n];
+	store_state_current_n(calc, n);
+	np1 = n+1;
+	t1 = p_data->times[np1];
 
-        /*we have to use this subloop to mimate equaly spaced time step and hence set the incidence to 0 every time unit...*/
-        for (nn=t0 ; nn<t1 ; nn++) {
-            store_state_current_n_nn(calc, n, nn);
-            nnp1 = nn+1;
+	//we are going to overwrite the content of the [np1] pointer: initialise it with values from [n]
+	for(j=0;j<J;j++) {
+	    memcpy(D_J_p_X[np1][j]->proj, D_J_p_X[n][j]->proj, size_proj * sizeof(double));
+	    D_J_p_X[np1][j]->dt = D_J_p_X[n][j]->dt;
+	}
 
-            //we are going to overwrite the content of the [nnp1] pointer: initialise it with values from [nn]
-            for(j=0;j<J;j++) {
-                memcpy(D_J_p_X[nnp1][j]->proj, D_J_p_X[nn][j]->proj, size_proj * sizeof(double));
-                D_J_p_X[nnp1][j]->dt = D_J_p_X[nn][j]->dt;
-            }
+	//send work           
+	for (nt=0; nt<calc[0]->n_threads; nt++) {
+	    zmq_send(sender, &nt, sizeof (int), 0);
+	}
 
-            //send work           
-            for (nt=0; nt<calc[0]->n_threads; nt++) {
-		zmq_send(sender, &nt, sizeof (int), 0);
-            }
+	//get results from the workers
+	for (nt=0; nt<calc[0]->n_threads; nt++) {
+	    zmq_recv(receiver, &the_nt, sizeof (int), 0);	       
+	}
 
-            //get results from the workers
-	    for (nt=0; nt<calc[0]->n_threads; nt++) {
-		zmq_recv(receiver, &the_nt, sizeof (int), 0);	       
-	    }
 
-            if (print_opt & PLOM_PRINT_X) {
-                print_X(p_file_X, &p_par, D_J_p_X[nnp1], p_data, calc[0], (double) nnp1, 1, 0, 0);
-            }
+        if(option_filter && p_data->data_ind[n]->n_nonan) {
 
-            if( nnp1 < t1 ){
-		compute_hat_nn(D_J_p_X[nnp1], &p_par, p_data, calc, D_p_hat[nn], 1);
-
-                if (print_opt & PLOM_PRINT_HAT) {
-                    print_p_hat(p_file_hat, NULL, D_p_hat[nn], p_data, nn);
-                }
-
-	    }
-
-        } /* end for on nn */
-
-        if(option_filter) {
             if(weight(p_like, n)) {
                 systematic_sampling(p_like, calc[0], n);
             }
 
             //!! time indexes: D_J_p_X is [N_DATA+1], *D_p_hat->... are in [N_DATA] so we have to be carrefull!
-            compute_hat(D_J_p_X[t1], p_par, p_data, calc, D_p_hat[t1-1], p_like->weights);
+            compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[n], p_like->weights);
 
-            resample_X(p_like->select[n], &(D_J_p_X[t1]), &(D_J_p_X_tmp[t1]), p_data);
+            resample_X(p_like->select[n], &(D_J_p_X[np1]), &(D_J_p_X_tmp[np1]), p_data);
 
             if (print_opt & PLOM_PRINT_PRED_RES) {
-                print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[t1], p_like->Llike_best_n, p_like->ess_n, t1, 1);
+                print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[np1], p_like->Llike_best_n, p_like->ess_n, t1, 1);
             }
+
         } else {
-            //we do not filter. hat wil be used to get mean and 95% CI of J independant realisations
-	    compute_hat_nn(D_J_p_X[t1], &p_par, p_data, calc, D_p_hat[t1-1], 1);
+            //we do not filter or all data ara NaN (no info).
+	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[n], 1);
         }
+
 
         if (print_opt & PLOM_PRINT_HAT) {
-            print_p_hat(p_file_hat, NULL, D_p_hat[t1-1], p_data, t1-1);
+            print_p_hat(p_file_hat, NULL, D_p_hat[n], p_data, t1);
         }
 
-        t0=t1;
-
-    } /*end of for loop on the time (n)*/
+	if (print_opt & PLOM_PRINT_X) {
+	    print_X(p_file_X, &p_par, D_J_p_X[np1], p_data, calc[0], t1, 1, 0, 0);
+	}
+    } 
 }

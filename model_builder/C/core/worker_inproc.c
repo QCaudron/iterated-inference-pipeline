@@ -20,7 +20,7 @@
 
 void *worker_routine_smc_inproc(void *params) 
 {
-    int j, nn, nnp1, t1;
+    int j, n, np1, t0, t1;
     int id;
     char str[STR_BUFFSIZE];
 
@@ -61,21 +61,22 @@ void *worker_routine_smc_inproc(void *params)
 
 	    zmq_recv(receiver, &id, sizeof (int), 0);
 
-	    nn = p_calc->current_nn;
-	    nnp1 = nn+1;
-	    t1 = p_data->times[p_calc->current_n];
+	    n = p_calc->current_n;
+	    np1 = n+1;
+	    t0 = p_data->times[n];
+	    t1 = p_data->times[np1];
 
 	    int J_start = id * p->J_chunk;
 	    int J_end = (id+1 == p_calc->n_threads) ? p->J : (id+1)*p->J_chunk;	  
 	   
 	    for(j=J_start; j<J_end; j++ ){
-		reset_inc(D_J_p_X[nnp1][j], p_data);
-		(*f_pred)(D_J_p_X[nnp1][j], nn, nnp1, p_par, p_data, p_calc);
+		reset_inc(D_J_p_X[np1][j], p_data);
+		(*f_pred)(D_J_p_X[np1][j], t0, t1, p_par, p_data, p_calc);
 
-		proj2obs(D_J_p_X[nnp1][j], p_data);
+		proj2obs(D_J_p_X[np1][j], p_data);
 
-		if(nnp1 == t1) {
-		    p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[nnp1][j], p_par, p_data, p_calc));
+		if(p_data->data_ind[n]->n_nonan) {
+		    p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[np1][j], p_par, p_data, p_calc));
 		}
 	    }
 
@@ -110,7 +111,7 @@ void *worker_routine_smc_inproc(void *params)
 
 void *worker_routine_mif_inproc(void *params) 
 {
-    int j, nn, nnp1, t1;
+    int j, n, np1, t0, t1;
     int id;
     char str[STR_BUFFSIZE];
 
@@ -150,9 +151,10 @@ void *worker_routine_mif_inproc(void *params)
 	   
 	    zmq_recv(receiver, &id, sizeof (int), 0);
 
-	    nn = p_calc->current_nn;
-	    nnp1 = nn+1;
-	    t1 = p_data->times[p_calc->current_n];
+	    n = p_calc->current_n;
+	    np1 = n+1;
+	    t0 = p_data->times[n];
+	    t1 = p_data->times[np1];
 
 	    int J_start = id * p->J_chunk;
 	    int J_end = (id+1 == p_calc->n_threads) ? p->J : (id+1)*p->J_chunk;	  
@@ -160,9 +162,9 @@ void *worker_routine_mif_inproc(void *params)
 	    for(j=J_start; j<J_end; j++ ){
 		reset_inc((*J_p_X)[j], p_data);
 
-		f_pred((*J_p_X)[j], nn, nnp1, J_p_par[j], p_data, p_calc);
+		f_pred((*J_p_X)[j], t0, t1, J_p_par[j], p_data, p_calc);
 
-		if(nnp1 == t1) {
+		if(p_data->data_ind[n]->n_nonan) {
 		    proj2obs((*J_p_X)[j], p_data);
 		    p_like->weights[j] = exp(get_log_likelihood((*J_p_X)[j], J_p_par[j], p_data, p_calc));
 		}

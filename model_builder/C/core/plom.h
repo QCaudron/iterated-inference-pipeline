@@ -170,7 +170,7 @@ struct s_obs2ts /* [N_OBS_ALL] */
  * For a given time, contains the number and the index of the time
  * series containing no missing values.
  */
-struct s_data_ind /*[N_DATA_NONAN]*/
+struct s_data_ind /*[N_DATA]*/
 {
     int n_nonan; /**< number of time series without NaN at that time (n_nonan<=N_TS) */
     unsigned int *ind_nonan; /**< [self.n_nonan] index of time series without NaN*/
@@ -252,9 +252,10 @@ struct s_data{
 
     /*non fitted parameters*/
     double **data;           /**< [N_DATA][N_TS] the data */
-    unsigned int *times;     /**< [N_DATA_NONAN] times of the data points when there is at least one value @c != NaN */
+    unsigned int *ind_n_data_nonan;  /**< [N_DATA_NONAN] index of data where there is at least on ts !=NaN */
+    unsigned int *times;     /**< [N_DATA+1] [0] + [times in days where the data were collected] */
 
-    struct s_data_ind **data_ind; /**< [N_DATA_NONAN] an array of pointers to s_data_ind*/
+    struct s_data_ind **data_ind; /**< [N_DATA] an array of pointers to s_data_ind*/
     struct s_obs2ts **obs2ts;     /**< [N_OBS_ALL] an array of pointers to s_obs2ts*/
 
     struct s_router **routers;    /**< [ N_PAR_SV + N_PAR_PROC + N_PAR_OBS ] an array of pointers to s_router (one for each parameter) */
@@ -298,8 +299,7 @@ struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get
     int n_threads; /**< the total number of threads */
     int thread_id; /**< the id of the thread where the computation are being run */
 
-    int current_n;  /**< current value of the N_DATA_NONAN index*/
-    int current_nn; /**< current value of the time index (N_DATA) (usefull for covariates when there are missing data but we know the covariates)*/
+    int current_n;  /**< current value of the N_DATA index. The system is integrated from p_data->times[current_n] to p_data->times[current_n+1]*/
 
     gsl_rng *randgsl; /**< random number generator */
 
@@ -677,7 +677,7 @@ void print_par(struct s_par *p_par, struct s_data *p_data);
 void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X **J_p_X, double llike_t, double ess_t, int time, int is_p_par_cst);
 
 
-void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_data, unsigned int **select, double *weights, unsigned int *times, struct s_calc *p_calc, int m);
+void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_likelihood *p_like, struct s_calc *p_calc, int m);
 void print_X(FILE *p_file_X, struct s_par **J_p_par, struct s_X **J_p_X, struct s_data *p_data, struct s_calc *p_calc, double time, int is_p_par_cst, int is_m, int m);
 
 void header_X(FILE *p_file, struct s_data *p_data);
@@ -736,8 +736,8 @@ int get_min_u(unsigned int *tab, int length_tab);
 int get_max_u(unsigned int *tab, int length_tab);
 void update_to_be_estimated(struct s_best *p_best);
 int sanitize_n_threads(int n_threads, int J);
-int plom_sanitize_nb_obs(int nb_obs, int n_data_nonan);
-void store_state_current_n_nn(struct s_calc **calc, int n, int nn);
+int plom_sanitize_nb_obs(int nb_obs, int n_data);
+void store_state_current_n(struct s_calc **calc, int n);
 //void store_state_current_m(struct s_calc **calc, int m);
 int in_u(int i, unsigned int *tab, int length);
 int in_drift(int i, struct s_drift **drift);

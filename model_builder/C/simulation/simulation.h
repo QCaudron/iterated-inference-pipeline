@@ -29,7 +29,7 @@ double DELTA_STO_PRINT;  //how many points to we print for one data unit (NOTE t
 int N_BLOC; //used for max and min determination. We check if the middle cell of N_BLOC is the max or min. => has to be an odd number
 
 /* simulation_template.c */
-void ensure_cst_pop_size(struct s_data *p_data);
+int step_lyap (double t, const double X[], double f[], void *params);
 
 /* integrator.c */
 int has_failed(double *y);
@@ -51,7 +51,6 @@ double get_min(double *tab, int length_tab);
 double get_max(double *tab, int length_tab);
 
 /* lyap.c */
-int step_lyap (double t, const double y[], double f[], void *params);
 void lyapunov(struct s_calc *p_calc, struct s_par *p_par, double *y0, double t0, double t_end, double abs_tol, double rel_tol, double dt);
 void gram_schmidt_normalize(double *y, double *lyap);
 

@@ -56,9 +56,9 @@ int main(int argc, char *argv[])
         "-l, --lyap         compute lyapunov exponents\n"
         "-d, --period_dyn   compute period (dynamical system def)\n"
         "-f, --fft          compute period (FFT)\n"
-        "-o, --t0           time when the simulation starts\n"
-        "-D, --tend         time when the simulation ends\n"
-        "-T, --transiant    skip a transiant of the specified duration\n"
+        "-o, --t0           time when the simulation starts (in days)\n"
+        "-D, --tend         time when the simulation ends (in days)\n"
+        "-T, --transiant    skip a transiant of the specified duration (in days)\n"
         "-B, --block        tuning parameter for max and min detection (has to be an odd number)\n"
         "-x, --precision    smallest significant difference to detect variation for min and max detections\n"
         "-J                 number of realisations\n"
@@ -69,8 +69,7 @@ int main(int argc, char *argv[])
     enum plom_noises_off noises_off = 0;
 
     double t0 = 0.0, t_end = 0.0, t_transiant = 0.0;
-    int nn0 = 0; //for PAR_FIXED: t can be > N_DATA_PAR_FIXED: For transiant and lyap, we use p_calc->current_nn = t0 if t0 < N_DATA_PAR_FIXED. For traj_obs, we let p_calc->current_nn vary starting from nn0 and up to N_DATA_PAR_FIXED. After N_DATA_PAR_FIXED, the last value is recycled
-
+    
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
 
     OPTION_TRAJ = 0;
@@ -137,7 +136,6 @@ int main(int argc, char *argv[])
                 break;
             }
             break;
-
 
         case 'x':
             noises_off = noises_off | PLOM_NO_DEM_STO;
@@ -274,20 +272,6 @@ int main(int argc, char *argv[])
 
     double *y0 = init1d_set0(N_PAR_SV*N_CAC + N_TS_INC_UNIQUE);
     double abs_tol = eps_abs, rel_tol = eps_rel;
-
-
-    //if t_transiant > N_DATA: we ensure constant pop size by settings mu_d = mu_b in case of variable birth and death reates
-    if (t_transiant > N_DATA) {
-        ensure_cst_pop_size(p_data);
-    }
-
-    //setting p_calc->current_nn
-    if ( t0 < N_DATA_PAR_FIXED ) {
-        nn0 = t0;
-    } else {
-        nn0 = N_DATA_PAR_FIXED -1;
-    }
-    store_state_current_n_nn(calc, 0, nn0);
 
 
 #if FLAG_VERBOSE
@@ -502,7 +486,7 @@ int main(int argc, char *argv[])
 #if FLAG_VERBOSE
             print_log("Lyapunov exponents computation...");
 #endif
-            store_state_current_n_nn(calc, 0, nn0);
+            store_state_current_n(calc, 0);
             lyapunov(calc[0], J_p_par[0], y0, t0, t_end, abs_tol, rel_tol, J_p_X[0]->dt);
         }
 

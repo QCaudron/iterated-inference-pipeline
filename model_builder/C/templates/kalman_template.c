@@ -60,9 +60,7 @@ int step_ode_ekf(double t, const double X[], double f[], void *params)
     double sum_inc = 0.0;
     int offset;
 
-    const int nn = p_calc->current_nn;
     double **par = p_par->natural;
-    double ***covar = p_data->par_fixed;
 
     {% if current_p %}
     for (c=0;c<N_C;c++) {
@@ -206,11 +204,8 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
     int is_drift = ! (p_data->noises_off & PLOM_NO_DRIFT);
     {% endif %}
 
-    //the automaticaly generated code may need these variables
-    const int nn = p_calc->current_nn;
-
+    //the automaticaly generated code may need these variables   
     double **par = p_par->natural;
-    double ***covar = p_data->par_fixed;
 
     //some terms are always 0: derivative of the ODE (excluding the observed variable) against the observed variable, derivative of the dynamic of the observed variable against the observed variables, derivative of the drift eq.
     gsl_matrix_set_zero(Ft);
@@ -345,12 +340,10 @@ void eval_ht(struct s_kalman_update * p, double x, struct s_par *p_par, struct s
     struct s_router **routers = p_data->routers;
 
     //the automaticaly generated code may need these variables
-    int n = p_calc->current_n;
-    int nn = p_calc->current_nn;
-    double t = (double) p_data->times[n];
+    int n = p_calc->current_n;    
+    double t = (double) p_data->times[n+1];
 
-    double **par = p_par->natural;
-    double ***covar = p_data->par_fixed;
+    double **par = p_par->natural;    
 
     //derivative against state variable are always nul so we focus on the derivative against the observed variable
     gsl_vector_set(p->ht, N_PAR_SV*N_CAC +ts, {{ der_mean_proc_obs|safe }});
@@ -367,12 +360,10 @@ double var_f_x(double varx, double x, struct s_par *p_par, struct s_data *p_data
     struct s_router **routers = p_data->routers;
 
     //the automaticaly generated code may need these variables
-    int n = p_calc->current_n;
-    int nn = p_calc->current_nn;
-    double t = (double) p_data->times[n];
+    int n = p_calc->current_n;    
+    double t = (double) p_data->times[n+1];
 
-    double **par = p_par->natural;
-    double ***covar = p_data->par_fixed;
+    double **par = p_par->natural;   
 
     double derf = {{ der_mean_proc_obs|safe }};
     double der2f = {{ der2_mean_proc_obs|safe }};
@@ -392,9 +383,7 @@ void eval_Q_{{ noises_off }}(gsl_matrix *Q, const double *X, struct s_par *p_par
 
     struct s_router **routers = p_data->routers;
     //the automaticaly generated code may need these variables
-    const int nn = p_calc->current_nn;
-    double **par = p_par->natural;
-    double ***covar = p_data->par_fixed;
+    double **par = p_par->natural;    
     int i, k, cac, offset;
 
     {% if is_drift  %}

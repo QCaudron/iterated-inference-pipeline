@@ -320,8 +320,7 @@ struct s_router **build_routers(json_t *settings, json_t *theta, int is_bayesian
     json_t *parameters = fast_get_json_object(theta, "parameter");
     json_t *partitions = fast_get_json_object(theta, "partition");
     json_t *orders = fast_get_json_object(settings, "orders");
-    const char *frequency = fast_get_json_string_from_object(fast_get_json_object(settings, "cst"), "FREQUENCY");
-
+    
     const char par_types[][10] = { "par_sv", "par_proc", "par_obs" };
     const char pop_ts_types[][20] = { "cac_id", "cac_id", "ts_id" };
     const char link_types[][20] = { "population_id", "population_id", "time_series_id" };
@@ -367,7 +366,7 @@ struct s_router **build_routers(json_t *settings, json_t *theta, int is_bayesian
                                            fast_get_json_object(partitions, partition_key),
                                            fast_get_json_array(orders, pop_ts_types[i]),
                                            link_types[i],
-                                           frequency,
+                                           "D", //data unit is in days
                                            is_bayesian);
             offset++;
         }
@@ -628,14 +627,26 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
     p_data->p_it_only_drift = build_iterator(settings, p_data->routers, p_data->drift, "only_drift", p_data->noises_off);
     p_data->p_it_noise = build_iterator(settings, p_data->routers, p_data->drift, "noise", p_data->noises_off);
 
-
     //the following is optional (for instance it is non needed for simulation models)
     if (N_DATA) {
+
+	p_data->times = fast_load_fill_json_1u(fast_get_json_array(json_data, "times"), "times");
+
         /*mandatory non fitted parameters and data*/
         p_data->data = fast_load_fill_json_2d(fast_get_json_array(json_data, "data"), "data");
 
-        /*get N_DATA_NONAN and times */
-        tmp_n_data_nonan=0;
+        /*data_ind*/
+        struct s_data_ind **data_ind;
+        data_ind = malloc(N_DATA * sizeof(struct s_data_ind *));
+        if (data_ind==NULL) {
+            char str[STR_BUFFSIZE];
+            snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+            print_err(str);
+            exit(EXIT_FAILURE);
+        }
+        
+        tmp_n_data_nonan=0; // get N_DATA_NONAN and ind_n_data_nonan
+
         for(n=0; n<N_DATA; n++) {
             count_n_nan = 0;
             for(ts=0; ts<N_TS; ts++) //are all the lines composed only of NaN
@@ -644,37 +655,23 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
             if(count_n_nan < N_TS) {
                 tmp_n_data_nonan++;
                 if (tmp_n_data_nonan == 1) {
-                    p_data->times = init1u_set0(1);
+                    p_data->ind_n_data_nonan = init1u_set0(1);
                 } else {
                     unsigned int *tmp;
-                    tmp = realloc(p_data->times, tmp_n_data_nonan * sizeof(double ) );
+                    tmp = realloc(p_data->ind_n_data_nonan, tmp_n_data_nonan * sizeof(double ) );
                     if ( tmp == NULL ) {
                         print_err("Reallocation impossible");
-                        FREE(p_data->times);
+                        FREE(p_data->ind_n_data_nonan);
                         exit(EXIT_FAILURE);
                     }
                     else {
-                        p_data->times = tmp;
+                        p_data->ind_n_data_nonan = tmp;
                     }
                 }
-                p_data->times[tmp_n_data_nonan-1] = n+1;
+                p_data->ind_n_data_nonan[tmp_n_data_nonan-1] = n+1;
             }
-        }
-	N_DATA_NONAN = tmp_n_data_nonan;
 
-	p_data->nb_obs = plom_sanitize_nb_obs(nb_obs, N_DATA_NONAN);
 
-        /*data_ind*/
-        struct s_data_ind **data_ind;
-        data_ind = malloc(N_DATA_NONAN * sizeof(struct s_data_ind *));
-        if (data_ind==NULL) {
-            char str[STR_BUFFSIZE];
-            snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
-            print_err(str);
-            exit(EXIT_FAILURE);
-        }
-
-        for(n=0; n<N_DATA_NONAN; n++) {
             data_ind[n] = malloc(sizeof(struct s_data_ind));
             if (data_ind[n]==NULL) {
                 char str[STR_BUFFSIZE];
@@ -684,20 +681,29 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
             }
 
             data_ind[n]->n_nonan=0;
-            for(ts=0; ts<N_TS; ts++)
-                if (!isnan(p_data->data[p_data->times[n]-1][ts]))
+            for(ts=0; ts<N_TS; ts++) {
+                if (!isnan(p_data->data[n][ts])) {
                     data_ind[n]->n_nonan += 1;
+		}
+	    }
 
             if (data_ind[n]->n_nonan) {
                 data_ind[n]->ind_nonan = init1u_set0(data_ind[n]->n_nonan);
                 k=0;
-                for(ts=0; ts<N_TS; ts++)
-                    if (!isnan(p_data->data[p_data->times[n]-1][ts]))
+                for(ts=0; ts<N_TS; ts++){
+                    if (!isnan(p_data->data[p_data->ind_n_data_nonan[n]-1][ts])) {
                         data_ind[n]->ind_nonan[k++] = ts;
+		    }
+		}
             } else {
                 data_ind[n]->ind_nonan = NULL;
             }
+
         }
+
+	N_DATA_NONAN = tmp_n_data_nonan;
+
+	p_data->nb_obs = plom_sanitize_nb_obs(nb_obs, N_DATA);
 
         p_data->data_ind = data_ind;
     }
@@ -774,14 +780,18 @@ void clean_data(struct s_data *p_data)
 
     if (N_DATA) {
         clean2d(p_data->data, N_DATA);
-        FREE(p_data->times);
+        FREE(p_data->ind_n_data_nonan);
 
         /*data_ind*/
-        for(n=0; n<N_DATA_NONAN; n++) {
-            FREE(p_data->data_ind[n]->ind_nonan);
-            FREE(p_data->data_ind[n]);
+        for(n=0; n<N_DATA; n++) {
+	    if (p_data->data_ind[n]->n_nonan) {
+		FREE(p_data->data_ind[n]->ind_nonan);
+	    }
+	    FREE(p_data->data_ind[n]);
         }
         FREE(p_data->data_ind);
+        
+	FREE(p_data->times);
     }
 
     /* school terms */
@@ -864,8 +874,7 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_a
 
     p_calc->n_threads = n_threads;
 
-    p_calc->current_n = 0;
-    p_calc->current_nn = 0;
+    p_calc->current_n = 0;   
 
     /* ref */
     p_calc->p_data = p_data;

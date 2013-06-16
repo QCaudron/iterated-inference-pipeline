@@ -38,9 +38,9 @@ class Ccoder(Cmodel):
 
         elif term in self.set_par_fixed:
             if term in self.par_fixed_obs:
-                return 'covar[ORDER_{0}][nn][ts]'.format(term)
+                return 'gsl_spline_eval(p_calc->spline[ORDER_{0}][ts],t,p_calc->acc[ORDER_{0}][ts])'.format(term)
             else:
-                return 'covar[ORDER_{0}][nn][cac]'.format(term)
+                return 'gsl_spline_eval(p_calc->spline[ORDER_{0}][cac],t,p_calc->acc[ORDER_{0}][cac])'.format(term)
 
         elif term in self.par_proc :
             if term in self.drift_par_proc:

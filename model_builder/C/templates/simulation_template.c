@@ -31,20 +31,6 @@
 {% for o in order.data %}
 #define ORDER_{{ o|safe }} {{ forloop.counter0 }}{% endfor %}
 
-void ensure_cst_pop_size(struct s_data *p_data)
-{
-    {% if 'mu_b' in order.data and 'mu_d' in order.data %}
-    int nn, cac; 
-    print_warning("variable birth and death rate (mu_b and mu_d) detected in covariates. mu_d have been set to mu_b to ensure a constant population size to analyze the attractor");
-
-    for (nn=0; nn < N_DATA_PAR_FIXED; nn++) {
-        for (cac=0; cac < N_CAC; cac++) {
-            p_data->par_fixed[ORDER_mu_d][nn][cac] = p_data->par_fixed[ORDER_mu_b][nn][cac];
-        }
-    }
-    {% endif %}
-}
-
 int step_lyap (double t, const double X[], double f[], void *params)
 {
     struct s_calc *p_calc = (struct s_calc *) params;
@@ -52,10 +38,8 @@ int step_lyap (double t, const double X[], double f[], void *params)
     struct s_data *p_data = p_calc->p_data;
 
     int i;
-    int c, ac, cac;
-    const int nn = p_calc->current_nn;
+    int c, ac, cac;    
     double **par = p_par->natural;
-    double ***covar = p_data->par_fixed;
 
     struct s_router **routers = p_data->routers;  /* syntaxic shortcut */
 

@@ -31,7 +31,7 @@ struct s_thread_params
 
 void *worker_routine (void *params) {
     char str[STR_BUFFSIZE];
-    int j, jrcv, n, nn, nnp1, t1;
+    int j, jrcv, n, np1, t0, t1;
 
     struct s_thread_params *p = (struct s_thread_params *) params;
 
@@ -73,12 +73,11 @@ void *worker_routine (void *params) {
 	    
             //get a particle from the server
 	    zmq_recv(server_receiver, &n, sizeof (int), 0);
-	    zmq_recv(server_receiver, &nn, sizeof (int), 0);
-            nnp1 = nn+1;
-            t1 = p_data->times[n];
+            np1 = n+1;
+            t0 = p_data->times[n];
+            t1 = p_data->times[np1];
 
-            p_calc->current_n = n;
-            p_calc->current_nn = nn;
+            p_calc->current_n = n;            
 
 	    recv_par(p_par, p_data, server_receiver);
 
@@ -89,12 +88,13 @@ void *worker_routine (void *params) {
 
                 //do the computations..
                 reset_inc(p_X, p_data);
-				f_pred(p_X, nn, nnp1, p_par, p_data, p_calc);
-                proj2obs(p_X, p_data);
+		f_pred(p_X, t0, t1, p_par, p_data, p_calc);
 
-                if(nnp1 == t1) {
-                    like = exp(get_log_likelihood(p_X, p_par, p_data, p_calc));
-                }
+		proj2obs(p_X, p_data);
+
+		if(p_data->data_ind[n]->n_nonan) {
+		    like = exp(get_log_likelihood(p_X, p_par, p_data, p_calc));
+		}
 
                 //send results
 		zmq_send(server_sender, &jrcv, sizeof (int), ZMQ_SNDMORE);    

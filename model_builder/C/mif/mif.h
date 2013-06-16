@@ -35,22 +35,22 @@ int OPTION_IC_ONLY; /**< only fixed lag smoothing */
 
 struct s_mif
 {
-  struct s_data *p_data;
-  struct s_calc **calc;
-  struct s_best *p_best;
+    struct s_data *p_data;
+    struct s_calc **calc;
+    struct s_best *p_best;
 
-  struct s_X **J_p_X; /* [J] */
-  struct s_X **J_p_X_tmp; /* [J] */
-  struct s_par **J_p_par; /* [J][N_G] N_G is for par_sv, par_proc, par_obs */
+    struct s_X **J_p_X; /* [J] */
+    struct s_X **J_p_X_tmp; /* [J] */
+    struct s_par **J_p_par; /* [J][N_G] N_G is for par_sv, par_proc, par_obs */
 
-  struct s_likelihood *p_like;
+    struct s_likelihood *p_like;
 
-  /*MIF specific*/
-  gsl_vector **J_theta; /* [J][s_best.length] */
-  gsl_vector **J_theta_tmp; /* [J][s_best.length] */
+    /*MIF specific*/
+    gsl_vector **J_theta; /* [J][s_best.length] */
+    gsl_vector **J_theta_tmp; /* [J][s_best.length] */
 
-  double **D_theta_bart; /* [N_DATA+1][s_best.length] mean of theta at each time step, (N_DATA+1) because we keep values for every data point + initial condition */
-  double **D_theta_Vt; /* [N_DATA+1][s_best.length] variance of theta at each time step */
+    double **D_theta_bart; /* [N_DATA+1][s_best.length] mean of theta at each time step, (N_DATA+1) because we keep values for every data point + initial condition */
+    double **D_theta_Vt; /* [N_DATA+1][s_best.length] variance of theta at each time step */
 };
 
 
