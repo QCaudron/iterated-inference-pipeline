@@ -133,7 +133,6 @@ def make_settings_json(self):
                        'N_TS_INC': self.N_TS_INC,
                        'N_TS_INC_UNIQUE': self.N_TS_INC_UNIQUE,
                        'N_DATA': self.N_DATA,
-                       'N_DATA_PAR_FIXED': self.N_DATA_PAR_FIXED,
                        'N_OBS_ALL': len(self.obs_var_def),
                        'N_OBS_INC': len([x for x in self.obs_var_def if isinstance(x[0], dict)]),
                        'N_OBS_PREV': len([x for x in self.obs_var_def if not isinstance(x[0], dict) ]),

@@ -473,7 +473,6 @@ json_t *load_settings(const char *path)
     N_TS_INC = fast_get_json_integer(cst, "N_TS_INC");
     N_TS_INC_UNIQUE = fast_get_json_integer(cst, "N_TS_INC_UNIQUE");
     N_DATA = fast_get_json_integer(cst, "N_DATA");
-    N_DATA_PAR_FIXED = fast_get_json_integer(cst, "N_DATA_PAR_FIXED");
     //N_DATA_NONAN is computed and assigned in build_data
     N_OBS_ALL = fast_get_json_integer(cst, "N_OBS_ALL");
     N_OBS_INC = fast_get_json_integer(cst, "N_OBS_INC");

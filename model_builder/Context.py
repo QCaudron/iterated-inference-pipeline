@@ -68,7 +68,7 @@ class Context:
         ##First we ensure that mandatory properties are represented in self
         self.data = []; self.dates = []
 
-        if 'data' in context:            
+        if 'source' in context['data']:            
             mydata = self.handle_context_data(context['data']['source'])
             self.data = mydata['values']
             self.dates = mydata['dates']
@@ -77,15 +77,8 @@ class Context:
             self.par_fixed_values[d['id']] = self.handle_context_data(d['source'])
 
         self.N_DATA = len(self.data)
-
-        self.N_DATA_PAR_FIXED = len(self.par_fixed_values[self.par_fixed_values.keys()[0]]['values']) if self.par_fixed_values else 1
-
-
-        #t0 is given by the pop size (N) pop size should start one unit of incidence before the first data!        
-        if self.data:
-            self.date_0 = datetime.datetime.strptime(context['data']['t0'], "%Y-%m-%d").date()
-        else:
-            self.date_0 = datetime.datetime.strptime(self.par_fixed_values['N']['dates'][0], "%Y-%m-%d").date()
+        
+        self.date_0 = datetime.datetime.strptime(context['data']['t0'], "%Y-%m-%d").date()
 
 
         ##TO DO:

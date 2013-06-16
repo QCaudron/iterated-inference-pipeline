@@ -114,7 +114,6 @@ int N_TS_INC;          /**< size of subset of @c N_TS containing only incidence 
 int N_TS_INC_UNIQUE;   /**< size of subset of @c N_TS containing only non-repeated (i.e no repetition per data stream) incidece data  */
 int N_DATA;            /**< length of the data set (including @c NaN) */
 int N_DATA_NONAN;      /**< length of the data set (discarding lines where all ts are NaN) */
-int N_DATA_PAR_FIXED;  /**< length of the data for the covariates (@c PAR_FIXED) usefull mostly for simulation model where @c N_DATA =0 but @c  N_DATA_PAR_FIXED could be >0  or if@c  N_DATA_PAR_FIXED > N_DATA */
 int N_OBS_ALL;         /**< number of type of observed variables (e.g incidence_strain1, incidence_strain_2, prevalence S + prevalence I, ...) */
 int N_OBS_INC;         /**< number of incidences */
 int N_OBS_PREV;        /**< number of prevalences */
