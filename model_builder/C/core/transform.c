@@ -270,7 +270,7 @@ double get_multiplier(const char *u_data, const json_t *par, int direction)
     if (unit) {
         const char *u_par = json_string_value(unit);
 
-        if ( (strcmp(u_par, "D") == 0) || (strcmp(u_par, "W") == 0) || (strcmp(u_par, "M") == 0) || (strcmp(u_par, "Y") == 0) ) {
+        if ( (strcmp(u_par, "D") == 0) || (strcmp(u_par, "B") == 0) || (strcmp(u_par, "W") == 0) || (strcmp(u_par, "M") == 0) || (strcmp(u_par, "Y") == 0) ) {
             json_t *type = json_object_get(par, "type");
             if (type) {
                 const char *mytype = json_string_value(type);

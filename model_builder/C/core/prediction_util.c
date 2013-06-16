@@ -104,7 +104,6 @@ void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, struct s_calc *p_cal
     double *Xpop_size = p_X->proj;
     int i, cac;
 
-
     for (i=0; i< N_PAR_SV ; i++) {
         for (cac=0; cac<N_CAC; cac++) {
             Xpop_size[i*N_CAC+cac] = Xpop_size[i*N_CAC+cac] * gsl_spline_eval(p_calc->spline[0][cac], 0.0, p_calc->acc[0][cac]); //pop_size_t0 is interpolated

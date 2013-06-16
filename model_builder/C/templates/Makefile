@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-fopenmp -std=gnu99 -Wall -O3 -DGSL_RANGE_CHECK_OFF
+CFLAGS=-fopenmp -std=gnu99 -Wall -g -O3 -DGSL_RANGE_CHECK_OFF
 LDFLAGS=-lplom -lplomtpl -lm -lgsl -lgslcblas -ljansson -lzmq
 LIB=libplomtpl.a
 SRC= $(wildcard *.c)

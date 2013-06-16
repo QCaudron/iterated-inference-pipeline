@@ -24,7 +24,6 @@ int main(int argc, char *argv[])
     char str[255];
     int i, j;
 
-
     /* set default values for the options */
     char sfr_help_string[] =
         "PLOM Simulation\n"

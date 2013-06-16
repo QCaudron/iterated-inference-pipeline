@@ -21,7 +21,7 @@
 double f_simplex(const gsl_vector *x, void *params)
 {
     /* function to **minimize** */
-    int n, t0, t1;
+    unsigned int n, t0, t1;
     double fitness;
 
     /* syntax shortcuts */
@@ -45,7 +45,6 @@ double f_simplex(const gsl_vector *x, void *params)
     /* if the initial conditions do not respect the constraint we set
        the log likelihood to the smallest possible value:
        smallest_log_like */
-
 
     fitness=0.0;
 
