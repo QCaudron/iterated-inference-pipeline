@@ -598,7 +598,17 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
 }
 
 
-
+/**
+ * The key to understand that: X_resampled[j] = X[select[j]] so select
+ * give the index of the resample ancestor...
+ * The ancestor of particle j is select[j]
+ *
+ * With n index: X[n+1][j] = X[n][select[n][j]]
+ *
+ * Other caveat: D_J_p_X are in [N_DATA+1] ([0] contains the initial conditions)
+ * select is in [N_DATA] (with relevant values only for n in p_data->indn_data_nonan)
+ * times is in [N_DATA+1] with times[0] = 0
+ */
 void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_likelihood *p_like, struct s_calc *p_calc, int m)
 {
     int j_sel;
@@ -629,25 +639,25 @@ void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_
     //print traj of ancestors of particle j_sel;
 
     //!!! we assume that the last data point contain information'
-    p_X_sel = D_J_p_X[N_DATA][j_sel]; // == p_data->indn_data_nonan[N_DATA_NONAN-1] 
+    p_X_sel = D_J_p_X[N_DATA][j_sel]; // N_DATA-1 <=> p_data->indn_data_nonan[N_DATA_NONAN-1]
 
     print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, N_DATA, p_data->times[N_DATA]);
 
     //printing all ancesters up to previous observation time
-    for(nn=(p_data->indn_data_nonan[N_DATA_NONAN-1]-1); nn>=p_data->indn_data_nonan[N_DATA_NONAN-2]; nn--) {
+    for(nn = (p_data->indn_data_nonan[N_DATA_NONAN-1]-1); nn >= p_data->indn_data_nonan[N_DATA_NONAN-2]; nn--) {
         p_X_sel = D_J_p_X[ nn + 1 ][j_sel];
-        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn+1, p_data->times[nn+1]);
+        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn, p_data->times[nn+1]);
     }
 
-    for(n=(N_DATA_NONAN-2); n>=1; n--) {
+    for(n = (N_DATA_NONAN-2); n >= 1; n--) {
 	//indentifying index of the path that led to sampled particule
 	indn = p_data->indn_data_nonan[n];
 	j_sel = p_like->select[indn][j_sel];
 	
 	//printing all ancesters up to previous observation time
-        for(nn=(indn-1); nn>=(p_data->indn_data_nonan[n-1]); nn--) {
+        for(nn= (indn-1); nn >= p_data->indn_data_nonan[n-1]; nn--) {
             p_X_sel = D_J_p_X[ nn + 1 ][j_sel];
-            print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn + 1 , p_data->times[nn+1]);
+            print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn , p_data->times[nn+1]);
         }
     }
 
@@ -655,10 +665,10 @@ void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_
     j_sel = p_like->select[indn][j_sel];
     p_X_sel = D_J_p_X[indn+1][j_sel];
     
-    //printing up to initial condition
-    for(nn=(indn-1); nn>=-1; nn--) {
+    //printing up to n = 0 (we don't print the initial condition replace 0 by -1 if we want that)
+    for(nn=(indn-1); nn>=0; nn--) {
 	p_X_sel = D_J_p_X[ nn + 1 ][j_sel];
-	print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn + 1 , p_data->times[nn+1]);
+	print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn , p_data->times[nn+1]);
     }
 
 #if FLAG_JSON
