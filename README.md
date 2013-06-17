@@ -1,13 +1,15 @@
 plom-sfi
 ========
 
-**Plug-and-play** inference methods in plain C for http://www.plom.io/.
+**Plug-and-play** inference methods in plain C for http://www.plom.io/
+and the Princeton University project "Simforence" (Simulation,
+Forecasting, Inference).
 
 usage
 =====
 
-This README provided information for developers
-or users wanting to build plom-sfi on their local machine.
+This README provided information for developers or users wanting to
+build plom-sfi on their local machine.
 
 If you want to use the method provided by plom-sfi see
 http://www.plom.io/cli
