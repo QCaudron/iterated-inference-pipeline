@@ -933,8 +933,7 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_a
     p_calc->index_sorted = init1st_set0(J);
 
     p_calc->pop_size_t0 = init1d_set0(N_CAC);
-
-
+    
     /* create interpolators for covariates (non fitted parameters)
        (forcing parameters a.k.a par_fixed_values) and pop_size_t0 */   
 
@@ -985,14 +984,13 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_a
 	    exit(EXIT_FAILURE);
 	}
 
-	p_calc->spline[k] = malloc(p_calc->n_spline[k] * sizeof(gsl_spline **));
+	p_calc->spline[k] = malloc(p_calc->n_spline[k] * sizeof(gsl_spline *));
 	if (p_calc->spline[k] == NULL) {
 	    char str[STR_BUFFSIZE];
 	    snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
 	    print_err(str);
 	    exit(EXIT_FAILURE);
-	}
-	    
+	}	    
 
 	for(cac=0; cac< p_calc->n_spline[k]; cac++){
 	    json_t *my_par_fixed_values_n = json_array_get(my_par_fixed_values, cac);
