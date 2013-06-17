@@ -157,7 +157,7 @@ struct s_kalman *build_kalman(json_t *theta, json_t *settings, enum plom_impleme
     }
 
 
-    p_kalman->p_data = build_data(settings, theta, implementation, noises_off, is_bayesian, nb_obs);
+    p_kalman->p_data = build_data(settings, theta, implementation, noises_off, is_bayesian, nb_obs, "D");
 
     N_KAL = N_PAR_SV*N_CAC + N_TS + p_kalman->p_data->p_it_only_drift->nbtot;
     int size_proj = N_PAR_SV*N_CAC + p_kalman->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE + (N_KAL*N_KAL);

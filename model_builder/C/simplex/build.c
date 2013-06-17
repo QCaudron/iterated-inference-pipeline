@@ -30,7 +30,7 @@ struct s_simplex *build_simplex(json_t *theta, enum plom_implementations impleme
   }
 
   json_t *settings = load_settings(PATH_SETTINGS);
-  p_simplex->p_data = build_data(settings, theta, implementation, noises_off, is_bayesian, nb_obs); //also build obs2ts
+  p_simplex->p_data = build_data(settings, theta, implementation, noises_off, is_bayesian, nb_obs, "D");
 
   int size_proj = N_PAR_SV*N_CAC + p_simplex->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 

@@ -316,7 +316,7 @@ int main(int argc, char *argv[])
     snprintf(str, STR_BUFFSIZE, "Starting Plom-worker with the following options: i = %d, LIKE_MIN = %g, N_THREADS = %d", GENERAL_ID, LIKE_MIN, n_threads);
     print_log(str);
 #endif
-    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 1, nb_obs);
+    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 1, nb_obs, "D");
     json_decref(theta);
 
 #if FLAG_VERBOSE

@@ -31,8 +31,9 @@ int main(int argc, char *argv[])
         "simul [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                       [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                       [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
-        "                       [-b, --bif] [--continue] [-l, --lyap]\n"
+        "                       [-f, --freq <char>]\n"
         "                       [-o, --t0 <integer>] [-D, --tend <integer>] [-T --transiant <integer>]\n"
+        "                       [-b, --bif] [--continue] [-l, --lyap] [-u, --fft]\n"
         "                       [-B, --block <integer>] [-x, --precision <float>] [-J <integer>]\n"
         "                       [--help]\n"
         "where implementation is 'ode' (default), 'sde' or 'psr'\n"
@@ -46,22 +47,26 @@ int main(int argc, char *argv[])
         "--eps_abs          Absolute error for adaptive step-size contro\n"
         "--eps_rel          Relative error for adaptive step-size contro\n"
         "\n"
-        "--traj             print the trajectories\n"
-        "--continue         print the final states in a bifurcation analysis to allow continuation\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-P, --N_THREAD     number of threads to be used (default to the number of cores)\n"
+	"\n"
+        "--traj             print the trajectories\n"
+        "-J                 number of realisations\n"
+        "-f, --freq         print the outputs (and reset incidences to 0 if any) every day (D) (default), week (W), bi-week (B), month (M) (taken to be 12.0/365.0 days) or year (Y) \n"
+        "-o, --t0           time step when the simulation starts (in unit of frequency (see --freq))\n"
+        "-D, --tend         time step when the simulation ends (in unit of frequency (see --freq))\n"
+        "-T, --transiant    skip a transiant of the specified length (in number of time steps of unit specified by frequency (see --freq))\n"
+	"\n"
         "-b, --bif          run a bifurcation analysis\n"
         "-l, --lyap         compute lyapunov exponents\n"
         "-d, --period_dyn   compute period (dynamical system def)\n"
-        "-f, --fft          compute period (FFT)\n"
-        "-o, --t0           time when the simulation starts (in days)\n"
-        "-D, --tend         time when the simulation ends (in days)\n"
-        "-T, --transiant    skip a transiant of the specified duration (in days)\n"
+        "-u, --fft          compute period (FFT)\n"
         "-B, --block        tuning parameter for max and min detection (has to be an odd number)\n"
         "-x, --precision    smallest significant difference to detect variation for min and max detections\n"
-        "-J                 number of realisations\n"
+        "--continue         print the final states in a bifurcation analysis to allow continuation\n"
         "--help             print the usage on stdout\n";
+
 
 
     enum plom_implementations implementation;
@@ -77,6 +82,7 @@ int main(int argc, char *argv[])
     static int OPTION_CONTINUE = 0;
     int OPTION_PERIOD_DYNAMICAL_SYTEM = 0;
     int OPTION_FFT = 0;
+    char freq[] = "D";
 
     PRECISION = 1.0e-2;
     N_BLOC = 5;
@@ -101,15 +107,17 @@ int main(int argc, char *argv[])
                 {"eps_abs",    required_argument, 0, 'v'},
                 {"eps_rel",    required_argument, 0, 'w'},
 
-                {"help", no_argument,  0, 'e'},
-                {"path",    required_argument, 0, 'p'},
-                {"id",    required_argument, 0, 'i'},
+                {"help",       no_argument,       0, 'e'},
+                {"path",       required_argument, 0, 'p'},
+                {"id",         required_argument, 0, 'i'},
                 {"N_THREAD",   required_argument, 0, 'P'},
+
+                {"freq", required_argument, 0, 'f'},
 
                 {"bif",    no_argument, 0, 'b'},
                 {"lyap",    no_argument, 0, 'l'},
                 {"period_dyn",    no_argument, 0, 'd'},
-                {"fft",    no_argument, 0, 'f'},
+                {"fft",    no_argument, 0, 'u'},
 
                 {"t0",    required_argument, 0, 'o'},
                 {"tend",    required_argument, 0, 'D'},
@@ -122,7 +130,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:B:r:i:J:s:D:T:bldfp:o:P:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:B:r:i:J:s:D:T:bldup:o:P:f:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -155,10 +163,13 @@ int main(int argc, char *argv[])
         case 'w':
             eps_rel = atof(optarg);
             break;
-
         case 'e':
             print_log(sfr_help_string);
             return 1;
+
+        case 'f':
+            strncpy(freq, optarg, 2);
+            break;
 
         case 'p':
             snprintf(SFR_PATH, STR_BUFFSIZE, "%s", optarg);
@@ -176,7 +187,7 @@ int main(int argc, char *argv[])
             PRECISION = atof(optarg);
             break;
         case 'T':
-            t_transiant = atof(optarg);
+            t_transiant = ceil(atof(optarg));
             break;
         case 'b':
             OPTION_BIF = 1;
@@ -187,7 +198,7 @@ int main(int argc, char *argv[])
         case 'd':
             OPTION_PERIOD_DYNAMICAL_SYTEM = 1;
             break;
-        case 'f':
+        case 'u':
             OPTION_FFT = 1;
             break;
         case 'B':
@@ -257,8 +268,7 @@ int main(int argc, char *argv[])
         print_log("for Bayesian prediction J is set to the length of the list of thetas");
     }
 
-
-    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 0, -1);
+    struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 0, -1, freq);
 
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 

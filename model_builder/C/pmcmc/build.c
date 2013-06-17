@@ -43,7 +43,7 @@ struct s_pmcmc *build_pmcmc(json_t *theta, enum plom_implementations implementat
     }
 
 
-    p->p_data = build_data(settings, theta, implementation, noises_off, 1, nb_obs); //also build obs2ts
+    p->p_data = build_data(settings, theta, implementation, noises_off, 1, nb_obs, "D");
     p->p_best = build_best(p->p_data, theta);
 
     int size_proj = N_PAR_SV*N_CAC + p->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;

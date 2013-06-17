@@ -93,10 +93,11 @@ typedef enum {PLOM_SUCCESS=0, PLOM_ERR_LIKE=-1} plom_err_code;
 #define ZERO_LOG 1e-17 /**< smallest value that can be log transformed without being replaced by @c ZERO_LOG */
 #define ONE_LOGIT 0.999999999 /**< largest value that can be logit transformed without being replaced by @c ONE_LOGIT */
 
-#define ONE_YEAR 365.0 /**< One year in days */
-
 
 /*-------global variables--------*/
+
+double ONE_YEAR; /**< one year in data unit */
+
 /* algo parameters (read from the command line) */
 int J; /**< number of particles */
 double LIKE_MIN; /**< minimum value of likelihood (smaller value are considered 0.0)*/
@@ -248,6 +249,8 @@ struct s_data{
 
     char **ts_name; /**< [N_TS] name of the time series */
     char **cac_name; /**< [N_CAC] name of the populations */
+
+    char u_data[2]; /**< frequency of the data (D, W, B, M, Y) */
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off;
@@ -621,7 +624,7 @@ struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, s
 void clean_iterator(struct s_iterator *p_it);
 struct s_router *build_router(const json_t *par, const char *par_key, const json_t *partition, const json_t *order, const char *link_key, const char *u_data, int is_bayesian);
 void clean_router(struct s_router *p_router);
-struct s_router **build_routers(json_t *settings, json_t *theta, int is_bayesian);
+struct s_router **build_routers(json_t *settings, json_t *theta, const char *u_data, int is_bayesian);
 void clean_routers(struct s_router **routers);
 int index_of_json_array(const json_t *array, const char *element);
 struct s_par *build_par(struct s_data *p_data);
@@ -632,7 +635,7 @@ struct s_obs2ts **build_obs2ts(json_t *json_obs2ts);
 void clean_obs2ts(struct s_obs2ts **obs2ts);
 struct s_drift **build_drift(json_t *json_drift, struct s_router **routers);
 void clean_drift(struct s_drift **drift);
-struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int nb_obs);
+struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int nb_obs, const char *u_data);
 void clean_data(struct s_data *p_data);
 
 struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data, json_t *settings);

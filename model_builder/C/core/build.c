@@ -314,7 +314,7 @@ void clean_router(struct s_router *p_router)
     FREE(p_router);
 }
 
-struct s_router **build_routers(json_t *settings, json_t *theta, int is_bayesian)
+struct s_router **build_routers(json_t *settings, json_t *theta, const char *u_data, int is_bayesian)
 {
     int i, j, offset;
     json_t *parameters = fast_get_json_object(theta, "parameter");
@@ -366,7 +366,7 @@ struct s_router **build_routers(json_t *settings, json_t *theta, int is_bayesian
                                            fast_get_json_object(partitions, partition_key),
                                            fast_get_json_array(orders, pop_ts_types[i]),
                                            link_types[i],
-                                           "D", //data unit is in days
+                                           u_data,
                                            is_bayesian);
             offset++;
         }
@@ -560,7 +560,7 @@ void clean_drift(struct s_drift **drift)
     FREE(drift);
 }
 
-struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int nb_obs)
+struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int nb_obs, const char *u_data)
 {
     int n, ts, cac, k;
     int tmp_n_data_nonan, count_n_nan;
@@ -576,12 +576,17 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
         exit(EXIT_FAILURE);
     }
 
+    strncpy(p_data->u_data, u_data, 2);
+
+    //ONE_YEAR
+    ONE_YEAR = u_duration_par2u_data("Y", u_data);
+
     p_data->implementation = implementation;
     p_data->noises_off = noises_off;
 
     //always present
     p_data->obs2ts = build_obs2ts(fast_get_json_array(json_data, "obs2ts"));
-    p_data->routers = build_routers(settings, theta, is_bayesian);
+    p_data->routers = build_routers(settings, theta, u_data, is_bayesian);
 
     //ts names
     json_t *ts_name = fast_get_json_array(fast_get_json_object(settings, "orders"), "ts_id");
@@ -995,7 +1000,7 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_a
 		double *y = fast_load_fill_json_1d(fast_get_json_array(my_par_fixed_values_n, "y"), "y");
 		int size = fast_get_json_integer(my_par_fixed_values_n, "size");
 
-		double multiplier = get_multiplier("D", my_par_fixed_values_n, 0);
+		double multiplier = get_multiplier(p_data->u_data, my_par_fixed_values_n, 0);
 		if(multiplier != 1.0){
 		    int z;
 		    for(z=0; z< size; z++){
