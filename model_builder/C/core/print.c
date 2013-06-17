@@ -614,8 +614,6 @@ void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_
     int j_sel;
     int n, nn, indn;
 
-    double t=0.0; //TODO TO FIX
-
     double ran, cum_weights;
 
     struct s_X *p_X_sel;
@@ -641,10 +639,10 @@ void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_
     //!!! we assume that the last data point contain information'
     p_X_sel = D_J_p_X[N_DATA][j_sel]; // N_DATA-1 <=> p_data->indn_data_nonan[N_DATA_NONAN-1]
 
-    print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, N_DATA, p_data->times[N_DATA]);
+    print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, N_DATA-1, p_data->times[N_DATA]);
 
     //printing all ancesters up to previous observation time
-    for(nn = (p_data->indn_data_nonan[N_DATA_NONAN-1]-1); nn >= p_data->indn_data_nonan[N_DATA_NONAN-2]; nn--) {
+    for(nn = (p_data->indn_data_nonan[N_DATA_NONAN-1]-1); nn > p_data->indn_data_nonan[N_DATA_NONAN-2]; nn--) {
         p_X_sel = D_J_p_X[ nn + 1 ][j_sel];
         print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn, p_data->times[nn+1]);
     }
@@ -653,20 +651,24 @@ void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_
 	//indentifying index of the path that led to sampled particule
 	indn = p_data->indn_data_nonan[n];
 	j_sel = p_like->select[indn][j_sel];
+        p_X_sel = D_J_p_X[ indn + 1 ][j_sel];
+      
+	print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, indn, p_data->times[indn+1]);
 	
 	//printing all ancesters up to previous observation time
-        for(nn= (indn-1); nn >= p_data->indn_data_nonan[n-1]; nn--) {
+        for(nn= (indn-1); nn > p_data->indn_data_nonan[n-1]; nn--) {
             p_X_sel = D_J_p_X[ nn + 1 ][j_sel];
             print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn , p_data->times[nn+1]);
         }
     }
+
 
     indn = p_data->indn_data_nonan[0];
     j_sel = p_like->select[indn][j_sel];
     p_X_sel = D_J_p_X[indn+1][j_sel];
     
     //printing up to n = 0 (we don't print the initial condition replace 0 by -1 if we want that)
-    for(nn=(indn-1); nn>=0; nn--) {
+    for(nn=indn; nn>=0; nn--) {       
 	p_X_sel = D_J_p_X[ nn + 1 ][j_sel];
 	print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn , p_data->times[nn+1]);
     }
