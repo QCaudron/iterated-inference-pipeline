@@ -629,33 +629,36 @@ void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_
     //print traj of ancestors of particle j_sel;
 
     //!!! we assume that the last data point contain information'
-    p_X_sel = D_J_p_X[N_DATA][j_sel]; // == p_data->indn_data_nonan[N_DATA_NONAN-1] + 1
+    p_X_sel = D_J_p_X[N_DATA][j_sel]; // == p_data->indn_data_nonan[N_DATA_NONAN-1] 
 
-    print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, N_DATA-1, p_data->times[N_DATA-1]);
+    print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, N_DATA, p_data->times[N_DATA]);
 
-    //missing value for data
-    for(nn=(p_data->indn_data_nonan[N_DATA_NONAN-1]-1); nn>p_data->indn_data_nonan[N_DATA_NONAN-2]; nn--) {
-        p_X_sel = D_J_p_X[ nn +1 ][j_sel];
-        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn, p_data->times[nn]);
+    //printing all ancesters up to previous observation time
+    for(nn=(p_data->indn_data_nonan[N_DATA_NONAN-1]-1); nn>=p_data->indn_data_nonan[N_DATA_NONAN-2]; nn--) {
+        p_X_sel = D_J_p_X[ nn + 1 ][j_sel];
+        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn+1, p_data->times[nn+1]);
     }
 
-    for(n=(N_DATA_NONAN-1); n>=2; n--) {
+    for(n=(N_DATA_NONAN-2); n>=1; n--) {
+	//indentifying index of the path that led to sampled particule
 	indn = p_data->indn_data_nonan[n];
-	j_sel = p_like->select[n][j_sel];
-        p_X_sel = D_J_p_X[ p_data->indn_data_nonan[n-1] ][j_sel];
-        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, p_data->indn_data_nonan[n-1], t);
-
-        for(nn=(p_data->indn_data_nonan[n-1]-1); nn>(p_data->indn_data_nonan[n-2]); nn--) {
-            p_X_sel = D_J_p_X[ nn ][j_sel];
-            print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn, t);
+	j_sel = p_like->select[indn][j_sel];
+	
+	//printing all ancesters up to previous observation time
+        for(nn=(indn-1); nn>=(p_data->indn_data_nonan[n-1]); nn--) {
+            p_X_sel = D_J_p_X[ nn + 1 ][j_sel];
+            print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn + 1 , p_data->times[nn+1]);
         }
     }
 
-    for(n=1; n>=0; n--) {
-        j_sel = p_like->select[n][j_sel];
-        //works because p_data->indn_data_nonan[0] has to be equal to 1
-        p_X_sel = D_J_p_X[ n ][j_sel];
-        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, n, t);
+    indn = p_data->indn_data_nonan[0];
+    j_sel = p_like->select[indn][j_sel];
+    p_X_sel = D_J_p_X[indn+1][j_sel];
+    
+    //printing up to initial condition
+    for(nn=(indn-1); nn>=-1; nn--) {
+	p_X_sel = D_J_p_X[ nn + 1 ][j_sel];
+	print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn + 1 , p_data->times[nn+1]);
     }
 
 #if FLAG_JSON
