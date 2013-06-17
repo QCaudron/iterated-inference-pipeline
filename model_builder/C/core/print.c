@@ -601,9 +601,8 @@ void print_prediction_residuals(FILE *p_file_pred_res, struct s_par **J_p_par, s
 
 void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_likelihood *p_like, struct s_calc *p_calc, int m)
 {
-
     int j_sel;
-    int n, nn;
+    int n, nn, indn;
 
     double t=0.0; //TODO TO FIX
 
@@ -627,20 +626,22 @@ void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_
         cum_weights += p_like->weights[++j_sel];
     }
 
-    //print traj of ancestors of particle j;
+    //print traj of ancestors of particle j_sel;
 
-    p_X_sel = D_J_p_X[ p_data->indn_data_nonan[N_DATA_NONAN-1] ][j_sel];
+    //!!! we assume that the last data point contain information'
+    p_X_sel = D_J_p_X[N_DATA][j_sel]; // == p_data->indn_data_nonan[N_DATA_NONAN-1] + 1
 
-    print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, p_data->indn_data_nonan[N_DATA_NONAN-1], t);
+    print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, N_DATA-1, p_data->times[N_DATA-1]);
 
     //missing value for data
     for(nn=(p_data->indn_data_nonan[N_DATA_NONAN-1]-1); nn>p_data->indn_data_nonan[N_DATA_NONAN-2]; nn--) {
-        p_X_sel = D_J_p_X[ nn ][j_sel];
-        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn, t);
+        p_X_sel = D_J_p_X[ nn +1 ][j_sel];
+        print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn, p_data->times[nn]);
     }
 
     for(n=(N_DATA_NONAN-1); n>=2; n--) {
-        j_sel = p_like->select[n][j_sel];
+	indn = p_data->indn_data_nonan[n];
+	j_sel = p_like->select[n][j_sel];
         p_X_sel = D_J_p_X[ p_data->indn_data_nonan[n-1] ][j_sel];
         print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, p_data->indn_data_nonan[n-1], t);
 
