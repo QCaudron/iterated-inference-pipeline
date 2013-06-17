@@ -825,20 +825,11 @@ struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, doubl
 #endif
 
     struct s_calc **calc;
-    calc=malloc(*n_threads*sizeof (struct s_calc *));
+    calc=malloc(*n_threads * sizeof (struct s_calc *));
     if (calc==NULL) {
         snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);
         exit(EXIT_FAILURE);
-    }
-
-    for(nt=0; nt< *n_threads; nt++) {
-        calc[nt]=malloc(sizeof (struct s_calc));
-        if (calc[nt]==NULL) {
-            snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
-            print_err(str);
-            exit(EXIT_FAILURE);
-        }
     }
 
     unsigned long int seed; /*SEED*/
@@ -866,6 +857,7 @@ struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, doubl
  */
 struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data, json_t *settings)
 {
+
     struct s_calc *p_calc = malloc(sizeof(struct s_calc));
     if (p_calc==NULL) {
 	char str[STR_BUFFSIZE];
@@ -975,7 +967,7 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_a
 	my_par_fixed_values = fast_get_json_array(par_fixed_values, par_fixed_name);
 
 	p_calc->n_spline[k] = json_array_size(my_par_fixed_values); //N_CAC or N_TS
-	    
+	
 	p_calc->acc[k] = malloc(p_calc->n_spline[k] * sizeof(gsl_interp_accel *));
 	if (p_calc->acc[k] == NULL) {
 	    char str[STR_BUFFSIZE];
