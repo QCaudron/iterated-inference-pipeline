@@ -115,3 +115,18 @@ License
 =======
 
 GPL version 3 or any later version.
+
+
+Acknowledgements
+================
+
+We want to thank:
+
+- Professor
+  [Bryan Grenfell](http://www.princeton.edu/eeb/people/display_person.xml?netid=grenfell).
+
+- Professor
+  [Bernard Cazelles](http://www.biologie.ens.fr/~cazelles/bernard/Welcome.html).
+
+- Princeton University for letting us release the code of plom-sfi
+  under the GPLv3 license.

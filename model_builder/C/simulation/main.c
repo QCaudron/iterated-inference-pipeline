@@ -68,7 +68,6 @@ int main(int argc, char *argv[])
         "--help             print the usage on stdout\n";
 
 
-
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
 
