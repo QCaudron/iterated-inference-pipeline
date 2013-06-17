@@ -37,9 +37,9 @@ struct s_mif *build_mif(json_t *theta, enum plom_implementations implementation,
     p->p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR, -1); //also build obs2ts
     int size_proj = N_PAR_SV*N_CAC + p->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
-    //N_DATA_NONAN is set in build_data
-    if (L>N_DATA_NONAN) {
-        sprintf(str, "L > N_DATA_NONAN (%d > %d). Please choose a L <= %d", L, N_DATA_NONAN, N_DATA_NONAN);
+    //N_DATA is set in build_data
+    if (L>N_DATA) {
+        sprintf(str, "L > N_DATA (%d > %d). Please choose a L <= %d", L, N_DATA, N_DATA);
         print_err(str);
         exit(EXIT_FAILURE);
     }
@@ -100,8 +100,8 @@ void clean_mif(struct s_mif *p)
     clean2_gsl_vector_d(p->J_theta, J);
     clean2_gsl_vector_d(p->J_theta_tmp, J);
 
-    clean2d(p->D_theta_bart, N_DATA_NONAN+1);
-    clean2d(p->D_theta_Vt, N_DATA_NONAN+1);
+    clean2d(p->D_theta_bart, N_DATA+1);
+    clean2d(p->D_theta_Vt, N_DATA+1);
 
     FREE(p);
 }

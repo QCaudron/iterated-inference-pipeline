@@ -114,7 +114,7 @@ class PlomModelBuilder(Context, Ccoder):
 
         #sort self.par_fixed_obs
         if self.par_fixed_obs:
-            for p in self.par_fixed_obs:
+            for p in self.par_fixed_obs:                
                 self.par_fixed_values[p]['values'] = [ [ y[x] for x in ind_sorted ] for y in self.par_fixed_values[p]['values'] ]
                 self.par_fixed_values[p]['header'] = [self.par_fixed_values[p]['header'][0]] + [  self.par_fixed_values[p]['header'][1:][x] for x in ind_sorted  ]
 

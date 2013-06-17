@@ -8,7 +8,7 @@
  *
  *    plom is distributed in the hope that it will be useful, but
  *    WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULARobs_mean PURPOSE.  See the
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *    GNU General Public License for more details.
  *
  *    You should have received a copy of the GNU General Public
@@ -17,7 +17,6 @@
  *************************************************************************/
 
 #include "plom.h"
-
 
 /**
  *  fill hat_95[2] with the 95% confidence interval (lower value in
@@ -165,7 +164,7 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
 {
     int j, i, k, ts;
     int thread_id;
-
+    
     struct s_router **routers = p_data->routers;
 
     /* par_sv */

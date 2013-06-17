@@ -104,6 +104,10 @@ def make_settings_json(self):
         values = []        
         for i in range(len(v['values'][0])):                    
             obj = {'id': v['header'][i+1], 'x': times, 'y': [v['values'][x][i] for x in range(len(v['values']))], 'size': len(v['values']) }
+            if 'unit' in v:
+                obj['unit'] = v['unit']
+            if 'type' in v:
+                obj['type'] = v['type']
             values.append(obj)
         
         settings['data']['par_fixed_values'][k] = values

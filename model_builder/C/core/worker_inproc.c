@@ -75,8 +75,8 @@ void *worker_routine_smc_inproc(void *params)
 
 		proj2obs(D_J_p_X[np1][j], p_data);
 
-		if(p_data->data_ind[n]->n_nonan) {
-		    p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[np1][j], p_par, p_data, p_calc, n, t1));
+		if(p_data->data_ind[n]->n_nonan) {		    
+		    p_like->weights[j] = exp(get_log_likelihood(D_J_p_X[np1][j], p_par, p_data, p_calc, n, t1));		    
 		}
 	    }
 

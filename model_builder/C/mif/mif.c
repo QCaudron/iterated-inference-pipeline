@@ -76,9 +76,9 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 
     int n_max;
     if(OPTION_IC_ONLY) {
-        n_max = ((L+1) > N_DATA_NONAN) ? N_DATA_NONAN: L+1;
+        n_max = ((L+1) > N_DATA) ? N_DATA: L+1;
     } else {
-        n_max = N_DATA_NONAN;
+        n_max = N_DATA;
     }
 
     FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
@@ -150,7 +150,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 	    np1 = n+1;
 	    t0 = p_data->times[n];
 	    t1 = p_data->times[np1];
-	    delta_t += t1-t0; //cumulate t1 -t0 in between 2 data step where p_data->data_ind[n]->n_nonan > 0
+	    delta_t += (t1-t0); //cumulate t1 -t0 in between 2 data step where p_data->data_ind[n]->n_nonan > 0
 
             for(j=0; j<J; j++) {
 		back_transform_theta2par(J_p_par[j], J_theta[j], p_data->p_it_par_proc_par_obs_no_drift, p_data);
@@ -167,7 +167,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 
 		if(p_data->data_ind[n]->n_nonan) {
 		    proj2obs((*J_p_X)[j], p_data);
-		    p_like->weights[j] = exp(get_log_likelihood((*J_p_X)[j], J_p_par[j], p_data, calc[thread_id]));
+		    p_like->weights[j] = exp(get_log_likelihood((*J_p_X)[j], J_p_par[j], p_data, calc[thread_id], n, t1));
 		}
 	    }
 #else 
@@ -189,6 +189,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 		}
 
 		int success = weight(p_like, n);
+
 		mean_var_theta_theoretical_mif(D_theta_bart[n+1], D_theta_Vt[n+1], J_theta, p_like, p_data, p_best, m, ((double) delta_t), OPTION_TRAJ);
 
 		if (OPTION_TRAJ) {
@@ -203,7 +204,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 		resample_X(p_like->select[n], J_p_X, J_p_X_tmp, p_data);
 
 		delta_t = 0;
-	    } 	    
+	    }
 
 	    if(n==L){
 		update_fixed_lag_smoothing(p_best, p_like, J_theta, p_data);

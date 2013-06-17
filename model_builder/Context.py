@@ -69,12 +69,12 @@ class Context:
         self.data = []; self.dates = []
 
         if 'source' in context['data']:            
-            mydata = self.handle_context_data(context['data']['source'])
+            mydata = self.handle_context_data(context['data'])
             self.data = mydata['values']
             self.dates = mydata['dates']
 
         for d in context.get('metadata', []):        
-            self.par_fixed_values[d['id']] = self.handle_context_data(d['source'])
+            self.par_fixed_values[d['id']] = self.handle_context_data(d)
 
         self.N_DATA = len(self.data)
         
@@ -85,20 +85,32 @@ class Context:
         ##self.school_terms = copy.deepcopy(school_terms)
 
 
-    def handle_context_data(self, source):
+    def handle_context_data(self, data_obj):
         """
-        Takes into account that source can be a path to a csv or a native array and check that the header match the context header.
+        Takes into account that source can be a path to a csv or a
+        native array and check that the header match the context
+        header.
         """
 
+        data = {'header':[], 'values':[], 'dates':[]}
+
+        if 'unit' in data_obj:
+            data['unit'] = data_obj['unit']
+
+        if 'type' in data_obj:
+            data['type'] = data_obj['type']
+
+        source = copy.deepcopy(data_obj['source'])
+    
         #if source is a string : read from csv and replace source by the read array
         if isinstance(source, str) or isinstance(source, unicode):
             try :
                 f = open(source, 'r')
             except IOError:
                 raise PlomContextError('\033[91m' + 'FAILURE! ' + '\033[0m' + source + ' from ' + os.getcwd() + ' could not be found')
-            else:
+            else:                
                 reader = csv.reader(f, delimiter=',', quotechar='"')
-                header = [next(reader)] #skip header
+                header = [next(reader)] #skip header                
                 source = header + [[row[0]] + map(lambda x: float(x) if x!='null' else None, row[1:]) for row in reader if row!=[]]
                 f.close()
 
@@ -108,13 +120,10 @@ class Context:
                 raise PlomContextError("\033[91mFAIL:\033[0m data header doesn't match context description {0} != date".format(source[0][0]))
             if source[0][1:] != self.cac_id and source[0][1:] !=self.ts_id:
                 raise PlomContextError("\033[91mFAIL:\033[0m data header doesn't match context description")
-
-            data = {'header': source[0],
-                    'values': [x[1:] for x in source[1:]],
-                    'dates': [x[0] for x in source[1:]]}
-
-        else:
-            data = {'header':[], 'values':[], 'dates':[]}
+                        
+            data['header'] = source[0]
+            data['values'] = [x[1:] for x in source[1:]]
+            data['dates'] = [x[0] for x in source[1:]]
 
         return data
 

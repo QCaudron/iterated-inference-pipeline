@@ -102,7 +102,6 @@ void ran_proposal_chol(theta_t *proposed, struct s_best *p_best, gsl_matrix *var
 
 void fill_theta_bart_and_Vt_mif(double **D_theta_bart, double **D_theta_Vt, struct s_best *p_best, struct s_data *p_data, int m)
 {
-
     int n, i, k;
     int offset;
 
@@ -126,14 +125,13 @@ void fill_theta_bart_and_Vt_mif(double **D_theta_bart, double **D_theta_Vt, stru
 
 /**
  * Compute filtered mean and predeiction var of particles at time
- *   n. We take weighted averages with "weights" for the filtered
- * mean (in order to reduce monte-carlo variability) and use a numericaly stable
- * online algo for the variance.
+ *   n. We take weighted averages with "weights" for the filtered mean
+ *   (in order to reduce monte-carlo variability) and use a numericaly
+ *   stable online algo for the variance.
  */
 
 void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gsl_vector **J_theta, struct s_likelihood *p_like, struct s_data *p_data, struct s_best *p_best, int m, double delta_t, int is_printed)
 {
-
     int i, j, k;
 
     struct s_iterator *p_it;
@@ -179,10 +177,13 @@ void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gs
 #if FLAG_VERBOSE
                     print_err("error in variance computation");
 #endif
-
                 }
-                /*we add theoretical variance corresponding to mutation of theta
-                  to reduce Monte Carlo variability*/
+
+                /*we add theoretical variance corresponding to
+                  mutation of theta to reduce Monte Carlo variability
+                  AND ensure that Vt_n is > 0.0 (so that the crappy
+                  Ionides formulae don't crash (even if it will even
+                  with that)')*/
                 //TODO check that this is valid in MVN case
                 theta_Vt_n[offset] += delta_t*pow(FREEZE, 2)*gsl_matrix_get(p_best->var, offset, offset);
             }
@@ -334,7 +335,6 @@ void resample_and_mut_theta_mif(unsigned int *select, gsl_vector **J_theta, gsl_
 	    thread_id = 0;
 #endif
 
-
             //resample and mutate
             for(i=0; i<p_it_mif->length; i++) {
                 for(k=0; k< routers[p_it_mif->ind[i]]->n_gp; k++) {
@@ -387,8 +387,6 @@ void update_fixed_lag_smoothing(struct s_best *p_best, struct s_likelihood *p_li
  */
 void update_theta_best_stable_mif(struct s_best *p_best, double **D_theta_bart, struct s_data *p_data)
 {
-
-
     int i, k;
     struct s_iterator *p_it = p_data->p_it_par_proc_par_obs_no_drift;
     struct s_router **routers = p_data->routers;
@@ -403,10 +401,8 @@ void update_theta_best_stable_mif(struct s_best *p_best, double **D_theta_bart, 
             offset = p_it->offset[i]+k;
             if(p_best->is_estimated[offset]) {
                 tmp = 0.0;
-                for(n=0; n<N_DATA; n++){
-		    if(p_data->data_ind[n]->n_nonan){
-			tmp += D_theta_bart[n+1][offset];
-		    }
+                for(n=0; n<N_DATA_NONAN; n++){		    
+		    tmp += D_theta_bart[p_data->indn_data_nonan[n] + 1][offset];
                 }
 
                 gsl_vector_set(p_best->mean, offset, tmp / ((double) N_DATA_NONAN) );
@@ -418,16 +414,16 @@ void update_theta_best_stable_mif(struct s_best *p_best, double **D_theta_bart, 
 
 
 /**
- * The MIF update formlulae Ionides et al 2006 PNAS
+ * The MIF update formulae Ionides et al 2006 PNAS (worst shit ever)
+ * theta_{m+1} = theta_m + V(t1) * sum_n{1...n} [ 1/V(t_n) (theta(t_n) - theta(t_n-1)) ]
  */
 void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, double **D_theta_Vt, struct s_data *p_data, int m)
 {
-
     int i, k;
     struct s_iterator *p_it = p_data->p_it_par_proc_par_obs_no_drift;
     struct s_router **routers = p_data->routers;
 
-    int n;
+    int n, nn, nnp1;
     double tmp;
 
     int offset;
@@ -436,17 +432,20 @@ void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, do
         for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
             offset = p_it->offset[i]+k;
             if(p_best->is_estimated[offset]) {
-                tmp=0.0;
+		//from initial condition (before first data point) to first data point
+		nnp1 = p_data->indn_data_nonan[0]; //first entry with data
+                tmp = ( (D_theta_bart[nnp1 + 1][offset]-D_theta_bart[0][offset]) / D_theta_Vt[nnp1+1][offset] ); //+1 as D_theta_bart is in N_DATA+1
 
-                for(n=0; n<N_DATA; n++) {
-		    if(p_data->data_ind[n]->n_nonan){
-			tmp += ( (D_theta_bart[n+1][offset]-D_theta_bart[n][offset]) / D_theta_Vt[n+1][offset] );
-		    }
+		//from data point to data point
+                for(n=1; n< N_DATA_NONAN; n++){		    
+		    nn = p_data->indn_data_nonan[n-1]; //previous entry with data
+		    nnp1 = p_data->indn_data_nonan[n]; //current entry with data
+		    tmp += ( (D_theta_bart[nnp1+1][offset]-D_theta_bart[nn+1][offset]) / D_theta_Vt[nnp1+1][offset] ); //+1 as D_theta_bart is in N_DATA+
                 }
 
                 gsl_vector_set(p_best->mean,
                                offset,
-                               (gsl_vector_get(p_best->mean, offset) + ((1.0+MIF_b*MIF_b)*FREEZE*FREEZE*gsl_matrix_get(p_best->var, offset, offset)*tmp) ) ); //1.0 is p_data->times[0]
+                               (gsl_vector_get(p_best->mean, offset) + ((p_data->times[0] + MIF_b*MIF_b)*FREEZE*FREEZE*gsl_matrix_get(p_best->var, offset, offset)*tmp) ) );  //Cf Ionides 2006 for ((p_data->times[0] + MIF_b*MIF_b)*FREEZE*FREEZE*gsl_matrix_get(p_best->var, offset, offset)
             }
         }
     }

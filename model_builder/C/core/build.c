@@ -667,7 +667,7 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
                         p_data->indn_data_nonan = tmp;
                     }
                 }
-                p_data->indn_data_nonan[tmp_n_data_nonan-1] = n+1;
+                p_data->indn_data_nonan[tmp_n_data_nonan-1] = n;
             }
 
             data_ind[n] = malloc(sizeof(struct s_data_ind));
@@ -995,12 +995,20 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_a
 		double *y = fast_load_fill_json_1d(fast_get_json_array(my_par_fixed_values_n, "y"), "y");
 		int size = fast_get_json_integer(my_par_fixed_values_n, "size");
 
+		double multiplier = get_multiplier("D", my_par_fixed_values_n, 0);
+		if(multiplier != 1.0){
+		    int z;
+		    for(z=0; z< size; z++){
+			y[z] *= multiplier;
+		    }
+		}
+
 		p_calc->acc[k][n] = gsl_interp_accel_alloc ();
 		p_calc->spline[k][n]  = gsl_spline_alloc (gsl_interp_cspline, size);     
 		gsl_spline_init (p_calc->spline[k][n], x, y, size);	       
 		FREE(x);
 		FREE(y);
-	    }            
+	    }
         }
     }
 
