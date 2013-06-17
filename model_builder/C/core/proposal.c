@@ -86,10 +86,12 @@ int check_IC(struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc)
     double pop_IC_cac = 0;
     int cnt_error = 0;
 
+    double *pop_size_t0 = p_calc->pop_size_t0;
+
     for (cac=0; cac<N_CAC; cac++) {
         pop_IC_cac = sum_SV(p_X->proj, cac);
 
-        if(pop_IC_cac > gsl_spline_eval(p_calc->spline[0][cac], 0.0, p_calc->acc[0][cac])) { //pop_size_t0 is interpolated
+        if(pop_IC_cac > pop_size_t0[cac]) {
             cnt_error++;
         }
     }

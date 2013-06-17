@@ -339,6 +339,8 @@ struct s_calc /*[N_THREADS] : for parallel computing we need N_THREADS = omp_get
     gsl_spline ***spline;    /**< [N_PAR_FIXED][N_CAC || N_TS] an array of array of pointer to gsl_spline */   
     unsigned int *n_spline;  /**< N_CAC or N_TS for each spline */
 
+    double *pop_size_t0; /**< [N_CAC] the population size at time 0 (will be calculated with interpolated values if !pop_size_eq_sum_sv )*/
+
     /**
      *  Reference to s_par used to pass s_par to some GSL function
      *  that only accept an *void. Such function only received s_calc.

@@ -864,7 +864,6 @@ struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, doubl
 /**
  * eps_abs, eps_rel: absolute and relative error 
  */
-
 struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data, json_t *settings)
 {
     struct s_calc *p_calc = malloc(sizeof(struct s_calc));
@@ -933,88 +932,102 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_a
     p_calc->to_be_sorted = init1d_set0(J);
     p_calc->index_sorted = init1st_set0(J);
 
+    p_calc->pop_size_t0 = init1d_set0(N_CAC);
 
-    /* create interpolators for covariates (non fitted parameters) (forcing parameters a.k.a par_fixed_values)*/
-    if (N_PAR_FIXED) {
 
-        p_calc->acc = malloc(N_PAR_FIXED * sizeof(gsl_interp_accel **));
-        if (p_calc->acc == NULL) {
-            char str[STR_BUFFSIZE];
-            snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
-            print_err(str);
-            exit(EXIT_FAILURE);
-        }
+    /* create interpolators for covariates (non fitted parameters)
+       (forcing parameters a.k.a par_fixed_values) and pop_size_t0 */   
 
-        p_calc->spline = malloc(N_PAR_FIXED * sizeof(gsl_spline **));
-        if (p_calc->spline == NULL) {
-            char str[STR_BUFFSIZE];
-            snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
-            print_err(str);
-            exit(EXIT_FAILURE);
-        }
+    p_calc->acc = malloc(N_PAR_FIXED * sizeof(gsl_interp_accel **));
+    if (p_calc->acc == NULL) {
+	char str[STR_BUFFSIZE];
+	snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+	print_err(str);
+	exit(EXIT_FAILURE);
+    }
+
+    p_calc->spline = malloc(N_PAR_FIXED * sizeof(gsl_spline **));
+    if (p_calc->spline == NULL) {
+	char str[STR_BUFFSIZE];
+	snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+	print_err(str);
+	exit(EXIT_FAILURE);
+    }
 	
-        json_t *par_fixed = fast_get_json_array(fast_get_json_object(settings, "orders"), "par_fixed");
-        json_t *par_fixed_values = fast_get_json_object(fast_get_json_object(settings, "data"), "par_fixed_values");
+    json_t *par_fixed = fast_get_json_array(fast_get_json_object(settings, "orders"), "par_fixed");
+    json_t *par_fixed_values = fast_get_json_object(fast_get_json_object(settings, "data"), "par_fixed_values");
 
+    p_calc->n_spline = init1u_set0(N_PAR_FIXED);
+    int k, cac;
+    for (k=0; k< N_PAR_FIXED; k++) {
+	char par_fixed_name[STR_BUFFSIZE];
+	json_t *tmp_str = json_array_get(par_fixed, k);
+	json_t *my_par_fixed_values;
 
-	p_calc->n_spline = init1u_set0(N_PAR_FIXED);
-	int k;
-	for(k=0; k< N_PAR_FIXED; k++) {
-            char par_fixed_name[STR_BUFFSIZE];
-            json_t *tmp_str = json_array_get(par_fixed, k);
-            json_t *my_par_fixed_values;
+	if (!json_is_string(tmp_str)) {
+	    char str[STR_BUFFSIZE];
+	    snprintf(str, STR_BUFFSIZE, "error: par_fixed[%d] is not a string\n", k);
+	    print_err(str);
+	    exit(EXIT_FAILURE);
+	}
 
-            if (!json_is_string(tmp_str)) {
-                char str[STR_BUFFSIZE];
-                snprintf(str, STR_BUFFSIZE, "error: par_fixed[%d] is not a string\n", k);
-                print_err(str);
-                exit(EXIT_FAILURE);
-            }
+	strcpy(par_fixed_name, json_string_value(tmp_str));
 
-            strcpy(par_fixed_name, json_string_value(tmp_str));
-            my_par_fixed_values = fast_get_json_array(par_fixed_values, par_fixed_name);
+	my_par_fixed_values = fast_get_json_array(par_fixed_values, par_fixed_name);
 
-
-	    p_calc->n_spline[k] = json_array_size(my_par_fixed_values); //N_CAC or N_TS
+	p_calc->n_spline[k] = json_array_size(my_par_fixed_values); //N_CAC or N_TS
 	    
-	    p_calc->acc[k] = malloc(p_calc->n_spline[k] * sizeof(gsl_interp_accel *));
-	    if (p_calc->acc[k] == NULL) {
-		char str[STR_BUFFSIZE];
-		snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
-		print_err(str);
-		exit(EXIT_FAILURE);
-	    }
+	p_calc->acc[k] = malloc(p_calc->n_spline[k] * sizeof(gsl_interp_accel *));
+	if (p_calc->acc[k] == NULL) {
+	    char str[STR_BUFFSIZE];
+	    snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+	    print_err(str);
+	    exit(EXIT_FAILURE);
+	}
 
-	    p_calc->spline[k] = malloc(p_calc->n_spline[k] * sizeof(gsl_spline **));
-	    if (p_calc->spline[k] == NULL) {
-		char str[STR_BUFFSIZE];
-		snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
-		print_err(str);
-		exit(EXIT_FAILURE);
-	    }
+	p_calc->spline[k] = malloc(p_calc->n_spline[k] * sizeof(gsl_spline **));
+	if (p_calc->spline[k] == NULL) {
+	    char str[STR_BUFFSIZE];
+	    snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
+	    print_err(str);
+	    exit(EXIT_FAILURE);
+	}
 	    
-	    int n;
-	    for(n=0; n< p_calc->n_spline[k]; n++){
-		json_t *my_par_fixed_values_n = json_array_get(my_par_fixed_values, n);
-		double *x = fast_load_fill_json_1d(fast_get_json_array(my_par_fixed_values_n, "x"), "x");
-		double *y = fast_load_fill_json_1d(fast_get_json_array(my_par_fixed_values_n, "y"), "y");
-		int size = fast_get_json_integer(my_par_fixed_values_n, "size");
 
-		double multiplier = get_multiplier(p_data->u_data, my_par_fixed_values_n, 0);
-		if(multiplier != 1.0){
-		    int z;
-		    for(z=0; z< size; z++){
-			y[z] *= multiplier;
-		    }
+	for(cac=0; cac< p_calc->n_spline[k]; cac++){
+	    json_t *my_par_fixed_values_n = json_array_get(my_par_fixed_values, cac);
+	    double *x = fast_load_fill_json_1d(fast_get_json_array(my_par_fixed_values_n, "x"), "x");
+	    double *y = fast_load_fill_json_1d(fast_get_json_array(my_par_fixed_values_n, "y"), "y");
+	    int size = fast_get_json_integer(my_par_fixed_values_n, "size");
+
+	    double multiplier = get_multiplier(p_data->u_data, my_par_fixed_values_n, 0);
+	    if(multiplier != 1.0){
+		int z;
+		for(z=0; z< size; z++){
+		    y[z] *= multiplier;
 		}
-
-		p_calc->acc[k][n] = gsl_interp_accel_alloc ();
-		p_calc->spline[k][n]  = gsl_spline_alloc (gsl_interp_cspline, size);     
-		gsl_spline_init (p_calc->spline[k][n], x, y, size);	       
-		FREE(x);
-		FREE(y);
 	    }
-        }
+
+	    if(size>1){
+		p_calc->acc[k][cac] = gsl_interp_accel_alloc ();
+		p_calc->spline[k][cac]  = gsl_spline_alloc (gsl_interp_cspline, size);     
+		gsl_spline_init (p_calc->spline[k][cac], x, y, size);	       
+	    } else {
+		p_calc->acc[k][cac] = NULL;
+		p_calc->spline[k][cac] = NULL;		
+	    }
+
+	    if (k==0) { // <=> strcmp(par_fixed_name, "N") but in the future we might not be able to rely on N and N is guaranted to be first
+		if(POP_SIZE_EQ_SUM_SV && size == 1){
+		    p_calc->pop_size_t0[cac] = y[0];
+		} else {
+		    p_calc->pop_size_t0[cac] = gsl_spline_eval(p_calc->spline[k][cac], 0.0, p_calc->acc[k][cac]);
+		}
+	    }
+
+	    FREE(x);
+	    FREE(y);
+	}
     }
 
     return p_calc;
@@ -1045,29 +1058,29 @@ void clean_p_calc(struct s_calc *p_calc, struct s_data *p_data)
     FREE(p_calc->index_sorted);
 
 
-    /*extra non fitted parameters*/
-    if (N_PAR_FIXED) {
+    FREE(p_calc->pop_size_t0);
 
-	int k, n;
-	for(k=0; k< N_PAR_FIXED; k++) {
-	    for(n=0; n< p_calc->n_spline[k]; n++){
+    /*extra non fitted parameters*/
+    int k, n;
+    for(k=0; k< N_PAR_FIXED; k++) {
+	for(n=0; n< p_calc->n_spline[k]; n++){
+	    if(p_calc->spline[k][n]){
 		gsl_spline_free(p_calc->spline[k][n]);
+	    }
+	    if(p_calc->acc[k][n]){
 		gsl_interp_accel_free(p_calc->acc[k][n]);	    
 	    }
 	}
-
-	for(k=0; k< N_PAR_FIXED; k++) {
-	    FREE(p_calc->spline[k]);
-	    FREE(p_calc->acc[k]);
-	}
-
-
-
-	FREE(p_calc->spline);
-	FREE(p_calc->acc);
-	FREE(p_calc->n_spline);
-
     }
+
+    for(k=0; k< N_PAR_FIXED; k++) {
+	FREE(p_calc->spline[k]);
+	FREE(p_calc->acc[k]);
+    }
+
+    FREE(p_calc->spline);
+    FREE(p_calc->acc);
+    FREE(p_calc->n_spline);
 
     FREE(p_calc);
 }

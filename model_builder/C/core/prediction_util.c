@@ -103,10 +103,11 @@ void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, struct s_calc *p_cal
 
     double *Xpop_size = p_X->proj;
     int i, cac;
+    double *pop_size_t0 = p_calc->pop_size_t0;
 
     for (i=0; i< N_PAR_SV ; i++) {
         for (cac=0; cac<N_CAC; cac++) {
-            Xpop_size[i*N_CAC+cac] = Xpop_size[i*N_CAC+cac] * gsl_spline_eval(p_calc->spline[0][cac], 0.0, p_calc->acc[0][cac]); //pop_size_t0 is interpolated
+            Xpop_size[i*N_CAC+cac] = Xpop_size[i*N_CAC+cac] * pop_size_t0[cac]; //pop_size_t0 is interpolated
             if(p_data->implementation == PLOM_PSR){ //rounding for exact methods
                 Xpop_size[i*N_CAC+cac] = round(Xpop_size[i*N_CAC+cac]);
             }
@@ -115,7 +116,7 @@ void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, struct s_calc *p_cal
 
     if (POP_SIZE_EQ_SUM_SV) {
         for (cac=0; cac<N_CAC; cac++) {
-            Xpop_size[ (N_PAR_SV-1)*N_CAC + cac ] = gsl_spline_eval(p_calc->spline[0][cac], 0.0, p_calc->acc[0][cac]) - (sum_SV(p_X->proj, cac)  - Xpop_size[ (N_PAR_SV-1)*N_CAC + cac ]);
+            Xpop_size[ (N_PAR_SV-1)*N_CAC + cac ] = pop_size_t0[cac] - (sum_SV(p_X->proj, cac)  - Xpop_size[ (N_PAR_SV-1)*N_CAC + cac ]);
         }
     }
 }
