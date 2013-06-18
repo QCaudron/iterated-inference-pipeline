@@ -54,6 +54,13 @@ void header_X(FILE *p_file, struct s_data *p_data)
         }
     }
 
+    /* remainder */ 
+    if(!POP_SIZE_EQ_SUM_SV){
+	for(cac=0; cac < N_CAC; cac++) {
+	    fprintf(p_file,"%s:%s,", p_data->remainder_name, p_data->cac_name[cac]);
+	}
+    }
+
     for(ts=0; ts<N_TS; ts++) {
         fprintf(p_file, "obs_mean:%s,", p_data->ts_name[ts]);
     }
@@ -106,6 +113,13 @@ void header_hat(FILE *p_file, struct s_data *p_data)
         }
     }
 
+    /* remainder */ 
+    if(!POP_SIZE_EQ_SUM_SV){
+	for(cac=0; cac < N_CAC; cac++) {
+	    fprintf(p_file,"%s:%s,", p_data->remainder_name, p_data->cac_name[cac]);
+	}
+    }
+
     /* ts */
     for(ts=0; ts<N_TS; ts++) {
         fprintf(p_file, "low95:%s,%s,high95:%s%s", p_data->ts_name[ts], p_data->ts_name[ts], p_data->ts_name[ts], (ts< (N_TS-1))? ",": "");
@@ -122,7 +136,6 @@ void header_hat(FILE *p_file, struct s_data *p_data)
     }
 
     fprintf(p_file, "\n");
-
 }
 
 
@@ -142,7 +155,6 @@ void header_best(FILE *p_file, struct s_data *p_data)
     }
 
     fprintf(p_file, "log_like\n");
-
 }
 
 
@@ -206,10 +218,11 @@ void print_err(char *msg)
 }
 
 
-
+/**
+ * helper function for sample_traj_and_print and print_X 
+ */
 void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int j_or_m, const int n, const double t)
 {
-    /* helper function for sample_traj_and_print and print_X */
     int i, k, ts;
     double x;
 
@@ -235,6 +248,19 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
 #endif
     }
 
+    /* remainder (if any) */
+    if(!POP_SIZE_EQ_SUM_SV){
+	int cac;
+	for(cac=0; cac<N_CAC; cac++) {
+	    x = gsl_spline_eval(p_calc->spline[0][cac],t,p_calc->acc[0][cac]) - sum_SV(p_X->proj, cac);
+#if FLAG_JSON
+	    json_array_append_new(json_print_j, json_real(x));
+#else
+	    fprintf(p_file, "%g,", x);
+#endif
+	}
+    }
+    
     for(ts=0; ts<N_TS; ts++) {
         x = obs_mean(p_X->obs[ts], p_par, p_data, p_calc, ts, n, t);
 #if FLAG_JSON
@@ -274,16 +300,17 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
 }
 
 
+/**
+ *   print trajectory
+ *   2 versions are possible: all the particles have the same
+ *   parameters (J of J_p_par=1, is_p_par_cst=1) or the particles have
+ *   different parameters values (J of J_p_par =J, is_p_par_cst=0).
+ *
+ *   is_m : we print the iteration id (m) instead of the particles id (j).
+ */
 
 void print_X(FILE *p_file_X, struct s_par **J_p_par, struct s_X **J_p_X, struct s_data *p_data, struct s_calc *p_calc, int is_p_par_cst, int is_m, int m, const int n, const double t)
 {
-    /* print trajectory
-       2 versions are possible: all the particles have the same
-       parameters (J of J_p_par=1, is_p_par_cst=1) or the particles have
-       different parameters values (J of J_p_par =J, is_p_par_cst=0).
-
-       is_m : we print the iteration id (m) instead of the particles id (j).
-    */
 
 #if FLAG_JSON
     json_t *root;
@@ -375,8 +402,8 @@ void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s
     double x;
 
 #if FLAG_JSON
-    json_t *json_print_n = json_array();
-    json_array_append_new(json_print_n, json_real(t));
+    json_t *json_print_t = json_array();
+    json_array_append_new(json_print_t, json_real(t));
 #else
     fprintf(p_file, "%g,", t);
 #endif
@@ -385,45 +412,76 @@ void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s
     for(i=0; i< N_PAR_SV*N_CAC; i++) {
         x = p_hat->state_95[i][0];
 #if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
+        json_array_append_new(json_print_t, json_real(x));
 #else
         fprintf(p_file,"%g,", x);
 #endif
 
         x = p_hat->state[i];
 #if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
+        json_array_append_new(json_print_t, json_real(x));
 #else
         fprintf(p_file,"%g,", x);
 #endif
 
         x = p_hat->state_95[i][1];
 #if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
+        json_array_append_new(json_print_t, json_real(x));
 #else
         fprintf(p_file,"%g,", x);
 #endif
     }
 
+
+    /* remainder (if any) */
+    if(!POP_SIZE_EQ_SUM_SV){
+	int cac;
+
+	for(cac=0; cac<N_CAC; cac++){
+	    x = p_hat->remainder_95[cac][0];
+#if FLAG_JSON
+	    json_array_append_new(json_print_t, json_real(x));
+#else
+	    fprintf(p_file,"%g,", x);
+#endif
+
+	    x = p_hat->remainder[cac];
+#if FLAG_JSON
+	    json_array_append_new(json_print_t, json_real(x));
+#else
+	    fprintf(p_file,"%g,", x);
+#endif
+
+	    x = p_hat->remainder_95[cac][1];
+#if FLAG_JSON
+	    json_array_append_new(json_print_t, json_real(x));
+#else
+	    fprintf(p_file,"%g,", x);
+#endif
+	}	
+
+    }
+
+
     /* ts */
     for(i=0; i< N_TS; i++) {
         x = p_hat->obs_95[i][0];
 #if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
+        json_array_append_new(json_print_t, json_real(x));
 #else
         fprintf(p_file,"%g,", x);
 #endif
 
         x = p_hat->obs[i];
 #if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
+        json_array_append_new(json_print_t, json_real(x));
 #else
         fprintf(p_file,"%g,", x);
 #endif
 
         x = p_hat->obs_95[i][1];
 #if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
+        json_array_append_new(json_print_t, json_real(x));
 #else
         fprintf(p_file,"%g%s", x, (i< (N_TS-1)) ? ",": "");
 #endif
@@ -433,21 +491,21 @@ void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s
     for(i=0; i< p_data->p_it_only_drift->nbtot; i++) {
         x = p_hat->drift_95[i][0];
 #if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
+        json_array_append_new(json_print_t, json_real(x));
 #else
         fprintf(p_file,",%g,", x);
 #endif
 
         x = p_hat->drift[i];
 #if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
+        json_array_append_new(json_print_t, json_real(x));
 #else
         fprintf(p_file,"%g,", x);
 #endif
 
         x = p_hat->drift_95[i][1];
 #if FLAG_JSON
-        json_array_append_new(json_print_n, json_real(x));
+        json_array_append_new(json_print_t, json_real(x));
 #else
         fprintf(p_file,"%g", x);
 #endif
@@ -455,9 +513,9 @@ void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s
 
 #if FLAG_JSON
     if (json_print) {
-        json_array_append_new(json_print, json_print_n);
+        json_array_append_new(json_print, json_print_t);
     } else {
-        json_t *root = json_pack("{s,s,s,o}", "flag", "hat", "msg", json_print_n);
+        json_t *root = json_pack("{s,s,s,o}", "flag", "hat", "msg", json_print_t);
         json_dumpf(root, stdout, JSON_COMPACT); printf("\n");
         fflush(stdout);
         json_decref(root);

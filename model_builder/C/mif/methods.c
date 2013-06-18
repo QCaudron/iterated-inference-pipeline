@@ -124,13 +124,13 @@ void fill_theta_bart_and_Vt_mif(double **D_theta_bart, double **D_theta_Vt, stru
 
 
 /**
- * Compute filtered mean and predeiction var of particles at time
- *   n. We take weighted averages with "weights" for the filtered mean
- *   (in order to reduce monte-carlo variability) and use a numericaly
- *   stable online algo for the variance.
+ * Compute filtered mean and prediction var of particles at time
+ * n. We take weighted averages with "weights" for the filtered mean
+ * (in order to reduce monte-carlo variability) and use a numericaly
+ * stable online algo for the variance.
  */
 
-void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gsl_vector **J_theta, struct s_likelihood *p_like, struct s_data *p_data, struct s_best *p_best, int m, double delta_t, int is_printed)
+void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gsl_vector **J_theta, struct s_likelihood *p_like, struct s_data *p_data, struct s_best *p_best, int m, double var_fac, int is_printed)
 {
     int i, j, k;
 
@@ -185,7 +185,7 @@ void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gs
                   Ionides formulae don't crash (even if it will even
                   with that)')*/
                 //TODO check that this is valid in MVN case
-                theta_Vt_n[offset] += delta_t*pow(FREEZE, 2)*gsl_matrix_get(p_best->var, offset, offset);
+                theta_Vt_n[offset] += var_fac*gsl_matrix_get(p_best->var, offset, offset);
             }
         }
     }
@@ -409,13 +409,13 @@ void update_theta_best_stable_mif(struct s_best *p_best, double **D_theta_bart, 
             }
         }
     }
-
 }
 
 
 /**
- * The MIF update formulae Ionides et al 2006 PNAS (worst shit ever)
- * theta_{m+1} = theta_m + V(t1) * sum_n{1...n} [ 1/V(t_n) (theta(t_n) - theta(t_n-1)) ]
+ * The MIF update formulae Ionides et al 2006 PNAS (doesn't work although the authors said it should)
+ * theta_{m+1} = theta_m + V(t1) * sum_n{1...n} [ 1/V(t_n) (theta(t_n) - theta(t_{n-1})) ]
+ * NOTE: D_theta_bart is in [N_DATA+1] so everything has to be shiftted by 1 
  */
 void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, double **D_theta_Vt, struct s_data *p_data, int m)
 {

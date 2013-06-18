@@ -190,7 +190,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 
 		int success = weight(p_like, n);
 
-		mean_var_theta_theoretical_mif(D_theta_bart[n+1], D_theta_Vt[n+1], J_theta, p_like, p_data, p_best, m, ((double) delta_t), OPTION_TRAJ);
+		mean_var_theta_theoretical_mif(D_theta_bart[n+1], D_theta_Vt[n+1], J_theta, p_like, p_data, p_best, m, ((double) delta_t)*pow(FREEZE, 2), OPTION_TRAJ); //var_fac: ((double) delta_t)*pow(FREEZE, 2)
 
 		if (OPTION_TRAJ) {
 		    print_mean_var_theta_theoretical_mif(p_file_mif, D_theta_bart[n+1], D_theta_Vt[n+1], p_like, p_data, m, t1);
@@ -200,7 +200,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 		    systematic_sampling(p_like, calc[0], n);
 		}
 
-		resample_and_mut_theta_mif(p_like->select[n], J_theta, J_theta_tmp, calc, p_data, p_best, FREEZE*sqrt(((double) delta_t)), var_fitted, is_mvn);
+		resample_and_mut_theta_mif(p_like->select[n], J_theta, J_theta_tmp, calc, p_data, p_best, FREEZE*sqrt(((double) delta_t)), var_fitted, is_mvn); //sd_fac: FREEZE*sqrt(((double) delta_t)) 
 		resample_X(p_like->select[n], J_p_X, J_p_X_tmp, p_data);
 
 		delta_t = 0;

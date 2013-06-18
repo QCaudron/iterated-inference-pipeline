@@ -125,6 +125,8 @@ def make_settings_json(self):
                          'ind_volatility_Xdrift': [ all_order.index(x) for x in self.vol_par_proc + self.vol_par_obs ]}
 
     settings['ind_noise_sd'] = list(set([all_order.index(x['sd']) for x in self.white_noise])) ##set as different noise can have the same intensity
+    
+    settings['remainder'] = self.remainder
 
     #######cst settings
     settings['cst'] = {'N_C': self.N_C,

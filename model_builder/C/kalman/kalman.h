@@ -74,14 +74,14 @@ struct s_kalman
   double smallest_log_like; /* used in simplex kalman (see simplex.h) */
 
   /* kalman specific */
-    struct s_kalman_update *p_kalman_update;
+    struct s_kalman_update *p_kalman_update; //defined in plom.h
 };
 
 /* print.c */
 void header_prediction_residuals_ekf(FILE *p_file, struct s_data *p_data);
 void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_par *p_par, struct s_calc *p_calc, struct s_kalman_update *p, gsl_matrix *Ct, const int n, const double t);
 void print_prediction_residuals_ekf(FILE *p_file_pred_res, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, struct s_X *p_X, struct s_kalman_update *p, gsl_matrix *Ct, const int n, const double t);
-
+double get_var_remainder(struct s_kalman_update *p, gsl_matrix *Ct, int cac);
 
 /* build.c */
 struct s_kalman_specific_data *build_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data);

@@ -96,7 +96,23 @@ void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data,
 
         get_CI95(p_hat->state_95[i], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, weights);
 
-    } /* end for on i */
+    }
+
+    /* remainder */
+    if(!POP_SIZE_EQ_SUM_SV){
+	double pop_size;
+	for(i=0; i<N_CAC; i++) {	    
+	    pop_size = gsl_spline_eval(calc[0]->spline[0][i], t, calc[0]->acc[0][i]);
+	    p_hat->remainder[i] = 0.0;
+	    for(j=0;j<J;j++) {
+		calc[0]->to_be_sorted[j] = pop_size - sum_SV(J_p_X[j]->proj, i);
+		p_hat->remainder[i] += calc[0]->to_be_sorted[j]*weights[j];
+	    }
+
+	    get_CI95(p_hat->remainder_95[i], calc[0]->to_be_sorted, calc[0]->index_sorted, weights);
+	}
+    }
+
 
     /* obs [N_TS] same thing as for state except that we use obs_mean()
        on p_X->obs */
@@ -178,7 +194,6 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
 	thread_id = 0;
 #endif
 
-
         p_hat->state[i] = 0.0;
         for(j=0;j<J;j++) {
             calc[thread_id]->to_be_sorted[j] = J_p_X[j]->proj[i]; //This sucks... gsl_sort_index requires an array to be sorted and our particles are in J_p_X[t1][j]->proj[i] so we use an helper array (calc[thread_id]->to_be_sorted)
@@ -188,7 +203,24 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
 
         get_CI95(p_hat->state_95[i], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, NULL);
 
-    } /* end for on i */
+    }
+
+
+    /* remainder */
+    if(!POP_SIZE_EQ_SUM_SV){
+	double pop_size;;
+	for(i=0; i<N_CAC; i++) {	    
+	    pop_size = gsl_spline_eval(calc[0]->spline[0][i],t,calc[0]->acc[0][i]);
+	    p_hat->remainder[i] = 0.0;
+	    for(j=0;j<J;j++) {
+		calc[0]->to_be_sorted[j] = pop_size - sum_SV(J_p_X[j]->proj, i);
+		p_hat->remainder[i] += calc[0]->to_be_sorted[j];
+	    }
+	    p_hat->remainder[i] /= ((double) J);
+
+	    get_CI95(p_hat->remainder_95[i], calc[0]->to_be_sorted, calc[0]->index_sorted, NULL);
+	}
+    }
 
     /* obs [N_TS] same thing as for state except that we use obs_mean()
        on p_X->obs */
@@ -228,7 +260,6 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
 #else
 	    thread_id = 0;
 #endif
-
 
             /* empirical average */
             p_hat->obs[ts] = 0.0;

@@ -249,6 +249,7 @@ struct s_data{
 
     char **ts_name; /**< [N_TS] name of the time series */
     char **cac_name; /**< [N_CAC] name of the populations */
+    char *remainder_name; /**< the remainder name (if any) */
 
     char u_data[2]; /**< frequency of the data (D, W, B, M, Y) */
 
@@ -489,13 +490,16 @@ struct s_X /* optionaly [N_DATA+1][J] for MIF and pMCMC "+1" is for initial cond
 struct s_hat /* ([N_DATA]) */
 {
     double *state;         /**< [N_PAR_SV*N_CAC] best estimates of the states variables */
-    double **state_95;     /**< [N_PAR_SV*N_CAC][2] 5% and 95% quantile of the estimates of the states variables*/
+    double **state_95;     /**< [N_PAR_SV*N_CAC][2] 2.5% and 97.5% quantile of the estimates of the states variables*/
+
+    double *remainder;         /**< [N_CAC] best estimates of the remainder */
+    double **remainder_95;     /**< [N_CAC][2] 2.5% and 97.5% quantile of the estimates of the remainder*/
 
     double *obs;           /**< [N_TS] best estimates of the observed states variables */
-    double **obs_95;       /**< [N_TS][2] 5% and 95% quantile of the estimates of the observed states variables*/
+    double **obs_95;       /**< [N_TS][2] 2.5% and 97.5% quantile of the estimates of the observed states variables*/
 
     double *drift;         /**< [p_data->p_it_only_drift->nbtot] best estimates of the diffusion */
-    double **drift_95;     /**< [p_data->p_it_only_drift->nbtot][2] 5% and 95% quantile of the estimates of the diffusion */
+    double **drift_95;     /**< [p_data->p_it_only_drift->nbtot][2] 2.5% and 97.5% quantile of the estimates of the diffusion */
 };
 
 struct s_kalman_update

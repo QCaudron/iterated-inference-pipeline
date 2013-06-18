@@ -31,6 +31,32 @@ void header_prediction_residuals_ekf(FILE *p_file, struct s_data *p_data)
     fprintf(p_file, "\n");
 }
 
+
+
+/**
+ * get variance of the remainder for cac
+ * Var(sum(Xi)) = sum(var(Xi)) + 2*sum_{i<j} (cov(Xi, Xj))
+ */
+double get_var_remainder(struct s_kalman_update *p, gsl_matrix *Ct, int cac)
+{
+
+    int i, j, icac, jcac;
+    double sum_V = 0.0;
+    double sum_C = 0.0;
+
+    for(j=0; j< N_PAR_SV; j++) {
+	jcac = j*N_CAC + cac;
+	sum_V += gsl_matrix_get(Ct, jcac, jcac);
+	for(i=0; i< j; i++) {
+	    icac = i*N_CAC + cac;	    
+	    sum_V += gsl_matrix_get(Ct, icac, jcac);
+	}
+    }
+
+    return sum_V + 2.0* sum_C;
+}
+
+
 void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_par *p_par, struct s_calc *p_calc, struct s_kalman_update *p, gsl_matrix *Ct, const int n, const double t)
 {
     int i, ts;
@@ -67,6 +93,43 @@ void print_p_hat_ekf(FILE *p_file, struct s_data *p_data, struct s_par *p_par, s
         fprintf(p_file,"%g,", x);
 #endif
     }
+
+    /* remainder (if any) */
+    if(!POP_SIZE_EQ_SUM_SV){
+	int cac;
+	double sumsv, rem, sd;
+
+	for(cac=0; cac<N_CAC; cac++){
+	    sumsv = 0.0;
+	    for(i=0; i<N_PAR_SV; i++) {
+		sumsv += gsl_vector_get(p->xk, i*N_CAC +cac);
+	    }
+	    	    
+	    rem = gsl_spline_eval(p_calc->spline[0][cac],t,p_calc->acc[0][cac]) - sumsv;
+	    sd = sqrt(get_var_remainder(p, Ct, cac));
+
+	    x = rem - 1.96*sd;
+#if FLAG_JSON
+	    json_array_append_new(json_print_n, json_real(x));
+#else
+	    fprintf(p_file,"%g,", x);
+#endif
+
+#if FLAG_JSON
+	    json_array_append_new(json_print_n, json_real(rem));
+#else
+	    fprintf(p_file,"%g,", rem);
+#endif
+
+	    x = rem + 1.96*sd;
+#if FLAG_JSON
+	    json_array_append_new(json_print_n, json_real(x));
+#else
+	    fprintf(p_file,"%g,", x);
+#endif
+	}
+    }
+
 
     /* ts */
     for(ts= 0; ts<N_TS; ts++) {

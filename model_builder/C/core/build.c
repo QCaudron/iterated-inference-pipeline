@@ -620,6 +620,13 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
         strcpy(p_data->cac_name[cac], cac_key);
     }
 
+    //remainder name
+    if(!POP_SIZE_EQ_SUM_SV){
+	const char * remainder_name = fast_get_json_string_from_object(settings, "remainder");
+        p_data->remainder_name = init1c(strlen(remainder_name) + 1);
+        strcpy(p_data->remainder_name, remainder_name);
+    }
+
     /* drift (if any) */
     p_data->drift = build_drift(fast_get_json_object(settings, "drift"), p_data->routers);
 
@@ -767,6 +774,10 @@ void clean_data(struct s_data *p_data)
 
     clean2c(p_data->ts_name, N_TS);
     clean2c(p_data->cac_name, N_CAC);
+
+    if(!POP_SIZE_EQ_SUM_SV){
+        FREE(p_data->remainder_name);
+    }
 
     clean_iterator(p_data->p_it_all);
     clean_iterator(p_data->p_it_par_sv);
@@ -1205,6 +1216,11 @@ struct s_hat *build_hat(struct s_data *p_data)
     p_hat->state = init1d_set0(N_PAR_SV*N_CAC);
     p_hat->state_95 = init2d_set0(N_PAR_SV*N_CAC, 2);
 
+    if(!POP_SIZE_EQ_SUM_SV){
+	p_hat->remainder = init1d_set0(N_CAC);
+	p_hat->remainder_95 = init2d_set0(N_CAC, 2);
+    }
+
     p_hat->obs = init1d_set0(N_TS);
     p_hat->obs_95 = init2d_set0(N_TS, 2);
 
@@ -1221,6 +1237,11 @@ void clean_hat(struct s_hat *p_hat, struct s_data *p_data)
 {
     FREE(p_hat->state);
     clean2d(p_hat->state_95, N_PAR_SV*N_CAC);
+
+    if(!POP_SIZE_EQ_SUM_SV){
+	FREE(p_hat->remainder);
+	clean2d(p_hat->remainder_95, N_CAC);
+    }
 
     FREE(p_hat->obs);
     clean2d(p_hat->obs_95, N_TS);
