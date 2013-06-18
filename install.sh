@@ -27,6 +27,6 @@ fi
 python setup.py sdist
 
 cd dist
-tar -zxvf plom-0.9.0.tar.gz
-cd plom-0.9.0
+tar -zxvf plom-0.10.0.tar.gz
+cd plom-0.10.0
 sudo python setup.py install
