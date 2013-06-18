@@ -127,6 +127,7 @@ def make_settings_json(self):
     settings['ind_noise_sd'] = list(set([all_order.index(x['sd']) for x in self.white_noise])) ##set as different noise can have the same intensity
     
     settings['remainder'] = self.remainder
+    settings['date_0'] = str(self.date_0)
 
     #######cst settings
     settings['cst'] = {'N_C': self.N_C,

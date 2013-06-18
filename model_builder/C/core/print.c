@@ -116,7 +116,7 @@ void header_hat(FILE *p_file, struct s_data *p_data)
     /* remainder */ 
     if(!POP_SIZE_EQ_SUM_SV){
 	for(cac=0; cac < N_CAC; cac++) {
-	    fprintf(p_file,"%s:%s,", p_data->remainder_name, p_data->cac_name[cac]);
+            fprintf(p_file, "low95:%s:%s,%s:%s,high95:%s:%s,", p_data->remainder_name, p_data->cac_name[cac], p_data->remainder_name, p_data->cac_name[cac], p_data->remainder_name, p_data->cac_name[cac]);	    
 	}
     }
 
