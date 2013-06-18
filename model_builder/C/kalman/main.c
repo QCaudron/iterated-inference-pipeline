@@ -28,6 +28,7 @@ int main(int argc, char *argv[])
         "usage:\n"
         "kalman [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                        [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
+        "                        [-g, --freeze_forcing <float>]\n"
         "                        [--traj] [-p, --path <path>] [-i, --id <integer>]\n"
         "                        [-b, --no_best] [--prior] [--transf]\n"
         "                        [--help]\n"
@@ -41,6 +42,7 @@ int main(int argc, char *argv[])
         "-s, --DT           Initial integration time step\n"
 	"--eps_abs          Absolute error for adaptive step-size contro\n"
 	"--eps_rel          Relative error for adaptive step-size contro\n"
+        "-g, --freeze_forcing  freeze the metadata to their value at the specified time\n"
 	"\n"
         "--traj             print the trajectories\n"
         "--prior            add log(prior) to the estimated loglik\n"
@@ -66,6 +68,7 @@ int main(int argc, char *argv[])
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
     int nb_obs = -1;
+    double freeze_forcing = -1.0;
 
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
 
@@ -86,14 +89,13 @@ int main(int argc, char *argv[])
 	{"DT",         required_argument, 0, 's'},
 	{"eps_abs",    required_argument, 0, 'v'},
 	{"eps_rel",    required_argument, 0, 'w'},
-
+	{"freeze_forcing", required_argument, 0, 'g'},
         {"help",       no_argument,       0, 'e'},
         {"path",       required_argument, 0, 'p'},
         {"id",         required_argument, 0, 'i'},
 	{"no_best",    no_argument,       0, 'b'},
 	{"no_hat",     no_argument,       0, 'h'},
 	{"no_pred_res",no_argument,       0, 'r'},
-
 
         {"traj", no_argument, &OPTION_TRAJ, 1},
         {"prior", no_argument, &OPTION_PRIOR, 1},
@@ -106,7 +108,7 @@ int main(int argc, char *argv[])
     };
 
     int option_index = 0;
-    while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:jbhro:", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:jbhro:g:", long_options, &option_index)) != -1) {
         switch (ch) {
         case 0:
             break;
@@ -122,6 +124,10 @@ int main(int argc, char *argv[])
             break;
 	case 'o':
 	    nb_obs = atoi(optarg);
+            break;
+
+        case 'g':
+            freeze_forcing = atof(optarg);
             break;
 
         case 's':
@@ -195,7 +201,7 @@ int main(int argc, char *argv[])
 
     json_t *theta = load_json();
     int is_covariance = (json_object_get(theta, "covariance") != NULL);
-    struct s_kalman *p_kalman = build_kalman(theta, settings, implementation, noises_off, OPTION_PRIOR, dt, eps_abs, eps_rel, nb_obs);
+    struct s_kalman *p_kalman = build_kalman(theta, settings, implementation, noises_off, OPTION_PRIOR, dt, eps_abs, eps_rel, freeze_forcing, nb_obs);
     json_decref(settings);
     json_decref(theta);
 

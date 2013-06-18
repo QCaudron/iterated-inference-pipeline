@@ -30,6 +30,7 @@ int main(int argc, char *argv[])
         "kmcmc [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                       [-s, --DT <float || 0.25 day>] [--eps_abs <float || 1e-6>] [--eps_rel <float || 1e-3>]\n"
         "                       [--full] [-n, --n_traj <int || 1000>] [--acc] [-p, --path <path>] [-i, --id <integer>]\n"
+        "                       [-g, --freeze_forcing <float>]\n"
         "                       [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
         "                       [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >]"
         "                       [-E --epsilon <int || 50>] [--epsilon_max <float || 50.0>] [--smooth] [--alpha <float || 0.02>]"
@@ -44,6 +45,8 @@ int main(int argc, char *argv[])
         "-s, --DT           Initial integration time step\n"
         "--eps_abs          Absolute error for adaptive step-size contro\n"
         "--eps_rel          Relative error for adaptive step-size contro\n"
+        "-g, --freeze_forcing  freeze the metadata to their value at the specified time\n"
+        "\n"
         "--full             full update MVN mode\n"
         "-a, --cooling      cooling factor for sampling covariance live tuning\n"
         "-S, --switch       select switching iteration from initial covariance to empirical one\n"
@@ -79,6 +82,7 @@ int main(int argc, char *argv[])
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
     int nb_obs = -1;
+    double freeze_forcing = -1.0;
 
     enum plom_print print_opt = 0;
 
@@ -108,14 +112,14 @@ int main(int argc, char *argv[])
                 {"eps_abs",    required_argument, 0, 'v'},
                 {"eps_rel",    required_argument, 0, 'w'},
 
+                {"freeze_forcing", required_argument, 0, 'g'},
+
                 {"switch",     required_argument,   0, 'S'},
                 {"epsilon",     required_argument,   0, 'E'},
                 {"cooling",     required_argument,   0, 'a'},
                 {"smooth",    no_argument, &is_smooth, 1},
                 {"epsilon_max", required_argument, 0, 'f'},
-                {"alpha",    required_argument, 0, 'g'},
-
-
+                {"alpha",    required_argument, 0, 'G'},
 
                 {"cov",         no_argument, 0, 'c'},
 
@@ -131,7 +135,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "n:rxyzs:v:w:i:l:M:p:S:E:a:f:g:o:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "n:rxyzs:v:w:i:l:M:p:S:E:a:f:G:o:g:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -163,6 +167,11 @@ int main(int argc, char *argv[])
         case 'w':
             eps_rel = atof(optarg);
             break;
+
+        case 'g':
+            freeze_forcing = atof(optarg);
+            break;
+
 	case 'o':
 	    nb_obs = atoi(optarg);
             break;
@@ -178,7 +187,7 @@ int main(int argc, char *argv[])
         case 'f':
             epsilon_max = atof(optarg);
             break;
-        case 'g':
+        case 'G':
             alpha = atof(optarg);
             break;
         case 'e':
@@ -232,7 +241,7 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
     json_t *theta = load_json();
     int is_covariance = (json_object_get(theta, "covariance") != NULL);
-    struct s_kalman *p_kalman = build_kalman(theta, settings, implementation,  noises_off, 1, dt, eps_abs, eps_rel, nb_obs);
+    struct s_kalman *p_kalman = build_kalman(theta, settings, implementation,  noises_off, 1, dt, eps_abs, eps_rel, freeze_forcing, nb_obs);
     json_decref(settings);
     json_decref(theta);
 

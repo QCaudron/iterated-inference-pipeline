@@ -825,7 +825,13 @@ void clean_data(struct s_data *p_data)
 
 
 
-struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data, json_t *settings)
+/**
+ * @param eps_abs absolute error 
+ * @param eps_rel relative error 
+ * @param freeze_forcing the time to freeze. Metadata are not frozen and the option is ignored if freeze_forcing < 0.0
+ * @param t_max the highest possible time when interpolated metadata will be requested (-1 to default to last point of metadata). t_max is a number of time steps in unit of p_data->u_data (D,W,B,M,Y)
+ */
+struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), const double freeze_forcing, const int t_max, struct s_data *p_data, json_t *settings)
 {
     char str[STR_BUFFSIZE];
     int nt;
@@ -856,7 +862,7 @@ struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, doubl
 
     /* we create as many rng as parallel threads *but* note that for the operations not prarallelized, we always use cacl[0].randgsl */
     for (nt=0; nt< *n_threads; nt++) {
-        calc[nt] = build_p_calc(*n_threads, nt, seed, eps_abs, eps_rel, dim_ode, func_step_ode, p_data, settings);
+        calc[nt] = build_p_calc(*n_threads, nt, seed, eps_abs, eps_rel, dim_ode, func_step_ode, freeze_forcing, t_max, p_data, settings);
     }
 
     return calc;
@@ -864,9 +870,9 @@ struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, doubl
 
 
 /**
- * eps_abs, eps_rel: absolute and relative error 
+ * One p_calc will be used per thread see build_calc for parameters
  */
-struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data, json_t *settings)
+struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), const double freeze_forcing, const int t_max, struct s_data *p_data, json_t *settings)
 {
 
     struct s_calc *p_calc = malloc(sizeof(struct s_calc));
@@ -960,7 +966,8 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_a
     json_t *par_fixed_values = fast_get_json_object(fast_get_json_object(settings, "data"), "par_fixed_values");
 
     p_calc->n_spline = init1u_set0(N_PAR_FIXED);
-    int k, cac;
+    int k, cac, z;
+    double multiplier;
     for (k=0; k< N_PAR_FIXED; k++) {
 	char par_fixed_name[STR_BUFFSIZE];
 	json_t *tmp_str = json_array_get(par_fixed, k);
@@ -1001,29 +1008,91 @@ struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_a
 	    double *y = fast_load_fill_json_1d(fast_get_json_array(my_par_fixed_values_n, "y"), "y");
 	    int size = fast_get_json_integer(my_par_fixed_values_n, "size");
 
-	    double multiplier = get_multiplier(p_data->u_data, my_par_fixed_values_n, 0);
+	    //convert x unit (.settings.json provide x as days ("D") since t0)
+	    multiplier = u_duration_par2u_data("D", p_data->u_data);
 	    if(multiplier != 1.0){
-		int z;
+		for(z=0; z< size; z++){
+		    x[z] *= multiplier;
+		}
+	    }
+
+	    //convert y unit
+	    multiplier = get_multiplier(p_data->u_data, my_par_fixed_values_n, 0);
+	    if(multiplier != 1.0){
 		for(z=0; z< size; z++){
 		    y[z] *= multiplier;
 		}
 	    }
 
-	    if(size>1){
-		p_calc->acc[k][cac] = gsl_interp_accel_alloc ();
-		p_calc->spline[k][cac]  = gsl_spline_alloc (gsl_interp_cspline, size);     
-		gsl_spline_init (p_calc->spline[k][cac], x, y, size);	       
-	    } else {
-		p_calc->acc[k][cac] = NULL;
-		p_calc->spline[k][cac] = NULL;		
-	    }
+	    //no freeze but t_max > x[size-1] repeat last value
+	    if((freeze_forcing < 0.0) && (t_max > x[size-1])){
+		int prev_size = size ;	       
+		size += (t_max - x[prev_size-1]) ;
 
+		double *tmp_x = realloc(x, size * sizeof(double ) );
+		if ( tmp_x == NULL ) {
+		    print_err("Reallocation impossible"); FREE(x); exit(EXIT_FAILURE);
+		} else {
+		    x = tmp_x;
+		}
+
+		double *tmp_y = realloc(y, size * sizeof(double ) );
+		if ( tmp_y == NULL ) {
+		    print_err("Reallocation impossible"); FREE(y); exit(EXIT_FAILURE);
+		} else {
+		    y = tmp_y;
+		}
+
+		//repeat last value
+		double xlast = x[prev_size-1];
+		for(z = prev_size;  z < size ; z++ ){
+		    x[z] = xlast + z;
+		    y[z] = y[prev_size-1]; 
+		}
+	    }
+	    	    
+	    if(size == 1) {
+		p_calc->acc[k][cac] = NULL;
+		p_calc->spline[k][cac] = NULL;
+	    } else {	    
+		if(size > gsl_interp_type_min_size (gsl_interp_cspline)){
+		    p_calc->acc[k][cac] = gsl_interp_accel_alloc ();
+		    p_calc->spline[k][cac]  = gsl_spline_alloc (gsl_interp_cspline, size);     
+		    gsl_spline_init (p_calc->spline[k][cac], x, y, size);	       
+		} else { //linear interpolation
+		    p_calc->acc[k][cac] = gsl_interp_accel_alloc ();
+		    p_calc->spline[k][cac]  = gsl_spline_alloc (gsl_interp_linear, size);     
+		    gsl_spline_init (p_calc->spline[k][cac], x, y, size);	       
+		} 
+	    }
+	    
 	    if (k==0) { // <=> strcmp(par_fixed_name, "N") but in the future we might not be able to rely on N and N is guaranted to be first
 		if(POP_SIZE_EQ_SUM_SV && size == 1){
 		    p_calc->pop_size_t0[cac] = y[0];
 		} else {
 		    p_calc->pop_size_t0[cac] = gsl_spline_eval(p_calc->spline[k][cac], 0.0, p_calc->acc[k][cac]);
 		}
+	    }
+
+	    if(freeze_forcing>=0.0){
+		double x_all[2];
+		x_all[0] = x[0];
+		x_all[1] = GSL_MAX((double) t_max, x[size-1]);		
+		
+		double y_all[2]; 		
+		y_all[0] = (size == 1) ? y[0]: gsl_spline_eval(p_calc->spline[k][cac], GSL_MIN(freeze_forcing, x[size-1]), p_calc->acc[k][cac]); //interpolate y for time freeze_forcing requested (if possible)
+		y_all[1] = y_all[0];
+
+		if(p_calc->spline[k][cac]){
+		    gsl_spline_free(p_calc->spline[k][cac]);
+		}
+		if(p_calc->acc[k][cac]){
+		    gsl_interp_accel_free(p_calc->acc[k][cac]);	    
+		}
+
+		p_calc->acc[k][cac] = gsl_interp_accel_alloc ();
+		p_calc->spline[k][cac]  = gsl_spline_alloc (gsl_interp_linear, 2);     
+		gsl_spline_init (p_calc->spline[k][cac], x_all, y_all, 2);
 	    }
 
 	    FREE(x);

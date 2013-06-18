@@ -30,6 +30,7 @@ int main(int argc, char *argv[])
         "usage:\n"
         "smc [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                     [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
+        "                     [-g, --freeze_forcing <float>]\n"
         "                     [-t, --no_filter] [-b, --no_best] [-h, --no_hat]\n"
         "                     [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                     [-l, --LIKE_MIN <float>] [-J <integer>] [--prior]\n"
@@ -38,12 +39,13 @@ int main(int argc, char *argv[])
         "options:\n"
 	"\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
-        "--no_white_noise       turn off environmental stochasticity (if any)\n"
-        "--no_diff         turn off drift (if any)\n"
+        "--no_white_noise   turn off environmental stochasticity (if any)\n"
+        "--no_diff          turn off drift (if any)\n"
 	"\n"
         "-s, --DT           integration time step\n"
-	"--eps_abs          Absolute error for adaptive step-size contro\n"
-	"--eps_rel          Relative error for adaptive step-size contro\n"
+	"--eps_abs          Absolute error for adaptive step-size control\n"
+	"--eps_rel          Relative error for adaptive step-size control\n"
+        "-g, --freeze_forcing  freeze the metadata to their value at the specified time\n"
 	"\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-p, --path         path where the outputs will be stored\n"
@@ -55,8 +57,8 @@ int main(int argc, char *argv[])
 	"\n"
         "--traj             print the trajectories\n"
         "-t, --no_filter    do not filter\n"
-        "-b, --no_best      do not write best_<general_id>.output file\n"
-        "-h, --no_hat       do not write hat_<general_id>.output file\n"
+        "-b, --no_best      do not write best_<id>.output file\n"
+        "-h, --no_hat       do not write hat_<id>.output file\n"
         "-r, --no_pred_res  do not write pred_res_<general_id>.output file (prediction residuals)\n"
 	"\n"
         "--prior            add log(prior) to the estimated log likelihood\n"
@@ -77,6 +79,7 @@ int main(int argc, char *argv[])
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
     int nb_obs = -1;
+    double freeze_forcing = -1.0;
 
     int n_threads = 1;
 
@@ -93,6 +96,8 @@ int main(int argc, char *argv[])
                 {"eps_abs",    required_argument, 0, 'v'},
                 {"eps_rel",    required_argument, 0, 'w'},
 		{"nb_obs", required_argument,  0, 'o'},
+
+                {"freeze_forcing", required_argument, 0, 'g'},
 
                 {"help",       no_argument,       0, 'e'},
                 {"path",       required_argument, 0, 'p'},
@@ -111,7 +116,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:p:i:J:l:tjbhrP:o:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:p:i:J:l:tjbhrP:o:g:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -146,6 +151,10 @@ int main(int argc, char *argv[])
             break;
 	case 'o':
 	    nb_obs = atoi(optarg);
+            break;
+
+        case 'g':
+            freeze_forcing = atof(optarg);
             break;
 
         case 'e':
@@ -229,7 +238,7 @@ int main(int argc, char *argv[])
     json_decref(theta);
     struct s_likelihood *p_like = build_likelihood();
 
-    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p_data, settings);
+    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, freeze_forcing, -1, p_data, settings);
     json_decref(settings);
 
     FILE *p_file_X = (print_opt & PLOM_PRINT_X) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;

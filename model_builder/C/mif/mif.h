@@ -70,7 +70,7 @@ void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, do
 void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, gsl_vector **J_theta, struct s_data *p_data, int n_max, int n, const int lag);
 
 /* build.c */
-struct s_mif *build_mif(json_t *theta, enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double eps_abs, double eps_rel, double prop_L_option, int J, int *n_threads);
+struct s_mif *build_mif(json_t *theta, enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double eps_abs, double eps_rel, const double freeze_forcing, double prop_L_option, int J, int *n_threads);
 void clean_mif(struct s_mif *p_mif);
 
 /* mif.c */

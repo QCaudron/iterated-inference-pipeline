@@ -18,7 +18,7 @@
 
 #include "mif.h"
 
-struct s_mif *build_mif(json_t *theta, enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double eps_abs, double eps_rel, double prop_L_option, int J, int *n_threads)
+struct s_mif *build_mif(json_t *theta, enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double eps_abs, double eps_rel, const double freeze_forcing, double prop_L_option, int J, int *n_threads)
 {
     char str[STR_BUFFSIZE];
 
@@ -51,7 +51,7 @@ struct s_mif *build_mif(json_t *theta, enum plom_implementations implementation,
     p->J_p_par = build_J_p_par(p->p_data);
     p->p_like = build_likelihood();
 
-    p->calc = build_calc(n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p->p_data, settings);
+    p->calc = build_calc(n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, freeze_forcing, -1, p->p_data, settings);
 
     json_decref(settings);
 

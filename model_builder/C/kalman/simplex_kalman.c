@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
         "ksimplex [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                          [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                          [-p, --path <path>] [-i, --id <integer>]\n"
+        "                          [-g, --freeze_forcing <float>]\n"
         "                          [--prior] [--transf]\n"
         "                          [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>]\n"
         "                          [--help]\n"
@@ -71,6 +72,7 @@ int main(int argc, char *argv[])
         "-s, --DT           Initial integration time step\n"
 	"--eps_abs          Absolute error for adaptive step-size contro\n"
 	"--eps_rel          Relative error for adaptive step-size contro\n"
+        "-g, --freeze_forcing  freeze the metadata to their value at the specified time\n"
 	"\n"
         "--prior            to maximize posterior density in natural space\n"
         "--transf           to maximize posterior density in transformed space (if combined with --prior)\n"
@@ -94,6 +96,7 @@ int main(int argc, char *argv[])
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
     int nb_obs = -1;
+    double freeze_forcing = -1.0;
 
     // options
     OPTION_TRAJ = 0;
@@ -121,6 +124,7 @@ int main(int argc, char *argv[])
 	{"eps_abs",    required_argument, 0, 'v'},
 	{"eps_rel",    required_argument, 0, 'w'},
 
+	{"freeze_forcing", required_argument, 0, 'g'},
 
         {"path",       required_argument, 0, 'p'},
         {"id",         required_argument, 0, 'i'},
@@ -137,7 +141,7 @@ int main(int argc, char *argv[])
     };
 
     int option_index = 0;
-    while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:S:M:o:b", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:S:M:o:bg:", long_options, &option_index)) != -1) {
         switch (ch) {
         case 0:
             break;
@@ -171,6 +175,9 @@ int main(int argc, char *argv[])
             break;
         case 'i':
             GENERAL_ID = atoi(optarg);
+            break;
+        case 'g':
+            freeze_forcing = atof(optarg);
             break;
 	case 'o':
 	    nb_obs = atoi(optarg);
@@ -217,7 +224,7 @@ int main(int argc, char *argv[])
 
     json_t *theta = load_json();
     int is_covariance = (json_object_get(theta, "covariance") != NULL);
-    struct s_kalman *p_kalman = build_kalman(theta, settings, implementation, noises_off, OPTION_PRIOR, dt, eps_abs, eps_rel, nb_obs);
+    struct s_kalman *p_kalman = build_kalman(theta, settings, implementation, noises_off, OPTION_PRIOR, dt, eps_abs, eps_rel, freeze_forcing, nb_obs);
     json_decref(settings);
     json_decref(theta);
 

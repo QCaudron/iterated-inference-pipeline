@@ -89,7 +89,7 @@ void clean_kalman_specific_data(struct s_calc *p_calc, struct s_data *p_data);
 struct s_kalman_update *build_kalman_update(int n_kalman_update);
 void clean_kalman_update(struct s_kalman_update *p_kalman_update);
 
-struct s_kalman *build_kalman(json_t *theta, json_t *settings, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, double dt, double eps_abs, double eps_rel, int nb_obs);
+struct s_kalman *build_kalman(json_t *theta, json_t *settings, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, double dt, double eps_abs, double eps_rel, const double freeze_forcing, int nb_obs);
 void clean_kalman(struct s_kalman *p_kalman);
 
 /* kalman.c */

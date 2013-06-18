@@ -644,8 +644,8 @@ void clean_drift(struct s_drift **drift);
 struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int nb_obs, const char *u_data);
 void clean_data(struct s_data *p_data);
 
-struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data, json_t *settings);
-struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), struct s_data *p_data, json_t *settings);
+struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, double eps_rel, int J, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), const double freeze_forcing, const int t_max, struct s_data *p_data, json_t *settings);
+struct s_calc *build_p_calc(int n_threads, int thread_id, int seed, double eps_abs, double eps_rel, int dim_ode, int (*func_step_ode) (double, const double *, double *, void *), const double freeze_forcing, const int t_max, struct s_data *p_data, json_t *settings);
 
 void clean_p_calc(struct s_calc *p_calc, struct s_data *p_data);
 void clean_calc(struct s_calc **calc, struct s_data *p_data);

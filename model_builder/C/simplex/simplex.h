@@ -48,5 +48,5 @@ struct s_simplex
 double f_simplex(const gsl_vector *x, void *params);
 
 /* build.c */
-struct s_simplex *build_simplex(json_t *theta, enum plom_implementations implementation,  enum plom_noises_off noises_off, int general_id, int is_bayesian, double dt, double eps_abs, double eps_rel, int nb_obs);
+struct s_simplex *build_simplex(json_t *theta, enum plom_implementations implementation,  enum plom_noises_off noises_off, int general_id, int is_bayesian, double dt, double eps_abs, double eps_rel, const double freeze_forcing, int nb_obs);
 void clean_simplex(struct s_simplex *p_simplex);

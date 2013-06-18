@@ -145,6 +145,7 @@ int main(int argc, char *argv[])
         "worker [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                        [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                        [-i, --id <integer>] [-h, --host <hostname>] [-P, --N_THREAD <integer>]\n"
+	"                        [-g, --freeze_forcing <float>]\n"
         "                        [-l, --LIKE_MIN <float>] [-J <integer>]\n"
         "                        [--help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
@@ -155,8 +156,9 @@ int main(int argc, char *argv[])
         "--no_diff          turn off drift (if any)\n"
 	"\n"
         "-s, --DT           Initial integration time step\n"
-	"--eps_abs          Absolute error for adaptive step-size contro\n"
-	"--eps_rel          Relative error for adaptive step-size contro\n"
+	"--eps_abs          Absolute error for adaptive step-size control\n"
+	"--eps_rel          Relative error for adaptive step-size control\n"
+        "-g, --freeze_forcing freeze the metadata to their value at the specified time\n"
 	"\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-h, --host         domain name or IP address of the particule server (defaults to 127.0.0.1)\n"
@@ -181,6 +183,7 @@ int main(int argc, char *argv[])
     LOG_LIKE_MIN = log(1e-17);
     OPTION_TRAJ = 0;
     int nb_obs = -1;
+    double freeze_forcing = -1.0;
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
@@ -198,6 +201,8 @@ int main(int argc, char *argv[])
 		{"eps_abs",    required_argument, 0, 'v'},
 		{"eps_rel",    required_argument, 0, 'w'},
 
+                {"freeze_forcing", required_argument, 0, 'g'},
+
                 {"id",         required_argument, 0, 'i'},
                 {"N_THREAD",   required_argument, 0, 'P'},
                 {"host",       required_argument, 0, 'h'},
@@ -211,7 +216,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:i:P:c:h:l:o:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:i:P:c:h:l:o:g:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -270,6 +275,12 @@ int main(int argc, char *argv[])
             LIKE_MIN = atof(optarg);
             LOG_LIKE_MIN = log(LIKE_MIN);
             break;
+
+
+        case 'g':
+            freeze_forcing = atof(optarg);
+            break;
+
 
 	case 'o':
 	    nb_obs = atoi(optarg);
@@ -337,7 +348,7 @@ int main(int argc, char *argv[])
         p_thread_params[nt].thread_id = nt;
         p_thread_params[nt].n_threads = n_threads;
         p_thread_params[nt].dt = dt;
-	p_thread_params[nt].p_calc = build_p_calc(n_threads, nt, GENERAL_ID, eps_abs, eps_rel, size_proj, step_ode, p_data, settings);
+	p_thread_params[nt].p_calc = build_p_calc(n_threads, nt, GENERAL_ID, eps_abs, eps_rel, size_proj, step_ode, freeze_forcing, -1, p_data, settings);
         p_thread_params[nt].host = host;
         p_thread_params[nt].p_data = p_data;
         p_thread_params[nt].context = context;

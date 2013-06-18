@@ -32,6 +32,7 @@ int main(int argc, char *argv[])
         "                       [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                       [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
         "                       [-f, --freq <char>]\n"
+	"                       [-g, --freeze_forcing <float>]\n"
         "                       [-o, --t0 <integer>] [-D, --tend <integer>] [-T --transiant <integer>]\n"
         "                       [-b, --bif] [--continue] [-l, --lyap] [-u, --fft]\n"
         "                       [-B, --block <integer>] [-x, --precision <float>] [-J <integer>]\n"
@@ -57,6 +58,7 @@ int main(int argc, char *argv[])
         "-o, --t0           time step when the simulation starts (in unit of frequency (see --freq))\n"
         "-D, --tend         time step when the simulation ends (in unit of frequency (see --freq))\n"
         "-T, --transiant    skip a transiant of the specified length (in number of time steps of unit specified by frequency (see --freq))\n"
+        "-g, --freeze_forcing  freeze the metadata to their value at the specified time\n"
 	"\n"
         "-b, --bif          run a bifurcation analysis\n"
         "-l, --lyap         compute lyapunov exponents\n"
@@ -82,6 +84,7 @@ int main(int argc, char *argv[])
     int OPTION_PERIOD_DYNAMICAL_SYTEM = 0;
     int OPTION_FFT = 0;
     char freq[] = "D";
+    double freeze_forcing = -1.0;
 
     PRECISION = 1.0e-2;
     N_BLOC = 5;
@@ -111,7 +114,8 @@ int main(int argc, char *argv[])
                 {"id",         required_argument, 0, 'i'},
                 {"N_THREAD",   required_argument, 0, 'P'},
 
-                {"freq", required_argument, 0, 'f'},
+                {"freq", required_argument,   0, 'f'},
+                {"freeze_forcing", required_argument, 0, 'g'},
 
                 {"bif",    no_argument, 0, 'b'},
                 {"lyap",    no_argument, 0, 'l'},
@@ -129,7 +133,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:B:r:i:J:s:D:T:bldup:o:P:f:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "xyzs:v:w:B:r:i:J:s:D:T:bldup:o:P:f:g:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -168,6 +172,9 @@ int main(int argc, char *argv[])
 
         case 'f':
             strncpy(freq, optarg, 2);
+            break;
+        case 'g':
+            freeze_forcing = atof(optarg);
             break;
 
         case 'p':
@@ -245,7 +252,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (t0>t_end) {
+    if (t0 > t_end) {
         snprintf(str, STR_BUFFSIZE,  "t0 = %g > t_end = %g, now quiting", t0, t_end);
         print_err(str);
         exit(EXIT_FAILURE);
@@ -275,7 +282,7 @@ int main(int argc, char *argv[])
     struct s_X **J_p_X = build_J_p_X(size_proj, N_TS, p_data, dt);
     struct s_best *p_best = build_best(p_data, theta);
 
-    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p_data, settings);
+    struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, freeze_forcing, (int) GSL_MAX(t_transiant, t_end), p_data, settings);
     json_decref(settings);
 
     double *y0 = init1d_set0(N_PAR_SV*N_CAC + N_TS_INC_UNIQUE);

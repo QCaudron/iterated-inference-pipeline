@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
         "simplex [implementation] [-p, --path <path>] [-i, --id <integer>] [-q, --least_square]\n"
         "                         [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                         [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>]  [-o, --nb_obs <integer>] [--prior]\n"
+        "                         [-g, --freeze_forcing <float>]\n"
         "                         [--help]\n"
         "where implementation is 'ode' (default)\n"
         "options:\n"
@@ -38,14 +39,15 @@ int main(int argc, char *argv[])
         "-s, --DT             Initial integration time step\n"
 	"--eps_abs            Absolute error for adaptive step-size contro\n"
 	"--eps_rel            Relative error for adaptive step-size contro\n"
+        "-g, --freeze_forcing freeze the metadata to their value at the specified time\n"
 	"\n" 
-	"-q, --least_square    optimize the sum of square instead of the likelihood\n"
+	"-q, --least_square   optimize the sum of square instead of the likelihood\n"
         "-p, --path           path where the outputs will be stored\n"
         "-i, --id             general id (unique integer identifier that will be appended to the output files)\n"
         "-l, --LIKE_MIN       likelihood smaller that LIKE_MIN are considered 0.0\n"
         "-M, --iter           maximum number of iterations\n"
         "-S, --size           simplex size used as a stopping criteria\n"
-        "-b, --no_traces      do not write the traces\n"
+	"-b, --no_best        do not write best_<id>.output file\n"
         "-o, --nb_obs         number of observations to be fitted (for tempering)"
         "--prior              add log(prior) to the estimated log likelihood\n"
         "--help               print the usage on stdout\n";
@@ -68,6 +70,7 @@ int main(int argc, char *argv[])
     OPTION_PRIOR = 0;
     int option_no_trace = 0;
     int nb_obs = -1;
+    double freeze_forcing = -1.0;
 
     while (1) {
         static struct option long_options[] =
@@ -78,9 +81,10 @@ int main(int argc, char *argv[])
 		{"eps_abs",    required_argument, 0, 'v'},
 		{"eps_rel",    required_argument, 0, 'w'},
 
+                {"freeze_forcing", required_argument, 0, 'g'},
                 {"help", no_argument,  0, 'e'},
                 {"least_square", no_argument,  0, 'q'},
-                {"no_trace", no_argument,  0, 'b'},
+                {"no_best", no_argument,  0, 'b'},
                 {"prior", no_argument, &OPTION_PRIOR, 1},
                 {"path",    required_argument, 0, 'p'},
                 {"id",    required_argument, 0, 'i'},
@@ -94,7 +98,7 @@ int main(int argc, char *argv[])
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "s:v:w:qi:l:M:S:p:o:b", long_options, &option_index);
+        ch = getopt_long (argc, argv, "s:v:w:qi:l:M:S:p:o:bg:", long_options, &option_index);
 	
         /* Detect the end of the options. */
         if (ch == -1)
@@ -108,6 +112,10 @@ int main(int argc, char *argv[])
             }
             break;
 
+
+        case 'g':
+            freeze_forcing = atof(optarg);
+            break;
         case 's':
             dt = atof(optarg);
             break;
@@ -175,7 +183,7 @@ int main(int argc, char *argv[])
     print_log(str);
 
     json_t *theta = load_json();
-    struct s_simplex *p_simplex = build_simplex(theta, implementation, noises_off, GENERAL_ID, OPTION_PRIOR, dt, eps_abs, eps_rel, nb_obs);
+    struct s_simplex *p_simplex = build_simplex(theta, implementation, noises_off, GENERAL_ID, OPTION_PRIOR, dt, eps_abs, eps_rel, freeze_forcing, nb_obs);
     int is_covariance = (json_object_get(theta, "covariance") != NULL);
     json_decref(theta);
     transform_theta(p_simplex->p_best, p_simplex->p_data, !is_covariance);

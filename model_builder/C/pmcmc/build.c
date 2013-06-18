@@ -18,7 +18,7 @@
 
 #include "pmcmc.h"
 
-struct s_pmcmc *build_pmcmc(json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, json_t *settings, double dt, double eps_abs, double eps_rel, double a, int m_switch, int m_epsilon, double epsilon_max, int is_smooth, double alpha, int J, int *n_threads, int nb_obs)
+struct s_pmcmc *build_pmcmc(json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, json_t *settings, double dt, double eps_abs, double eps_rel, const double freeze_forcing, double a, int m_switch, int m_epsilon, double epsilon_max, int is_smooth, double alpha, int J, int *n_threads, int nb_obs)
 {
     char str[STR_BUFFSIZE];
 
@@ -57,7 +57,7 @@ struct s_pmcmc *build_pmcmc(json_t *theta, enum plom_implementations implementat
 
     p->p_like = build_likelihood();
 
-    p->calc = build_calc(n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, p->p_data, settings);
+    p->calc = build_calc(n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, freeze_forcing, -1, p->p_data, settings);
 
     struct s_mcmc_calc_data *p_mcmc_calc_data = build_mcmc_calc_data(p->p_best, a, m_switch, m_epsilon, epsilon_max, is_smooth, alpha);
     //store the ref for each element of calc
