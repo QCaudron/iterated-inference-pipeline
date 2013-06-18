@@ -487,7 +487,7 @@ struct s_X /* optionaly [N_DATA+1][J] for MIF and pMCMC "+1" is for initial cond
  * (weighted average of projected values, weighted by the likelihood)
  */
 
-struct s_hat /* ([N_DATA]) */
+struct s_hat /* ([N_DATA+1]) */
 {
     double *state;         /**< [N_PAR_SV*N_CAC] best estimates of the states variables */
     double **state_95;     /**< [N_PAR_SV*N_CAC][2] 2.5% and 97.5% quantile of the estimates of the states variables*/
@@ -807,7 +807,7 @@ void replicate_J_p_X_0(struct s_X **J_p_X, struct s_data *p_data);
 
 void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int option_filter, FILE *p_file_X, FILE *p_file_hat, FILE *p_file_pred_res, const enum plom_print print_opt);
 
-void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int Jchunk, void *sender, void *receiver, void *controller);
+void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int Jchunk, const enum plom_print print_opt, void *sender, void *receiver, void *controller);
 
 void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int option_filter, FILE *p_file_X, FILE *p_file_hat, FILE *p_file_pred_res, const enum plom_print print_opt, void *sender, void *receiver, void *controller);
 

@@ -215,6 +215,23 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
 
     p_like->Llike_best = 0.0;
 
+    //print t0 (n=-1)
+    if ((print_opt & PLOM_PRINT_X) || (print_opt & PLOM_PRINT_HAT)) {
+	for(j=0;j<J;j++) {
+	    reset_inc(D_J_p_X[0][j], p_data);
+	    proj2obs(D_J_p_X[0][j], p_data);
+	}       
+
+	if (print_opt & PLOM_PRINT_HAT) {
+	    compute_hat_nn(D_J_p_X[0], &p_par, p_data, calc, D_p_hat[0], 1, -1, 0.0);
+	    print_p_hat(p_file_hat, NULL, D_p_hat[0], p_data, 0.0);
+	}
+
+	if (print_opt & PLOM_PRINT_X) {
+	    print_X(p_file_X, &p_par, D_J_p_X[0], p_data, calc[0], 1, 0, 0, -1, 0.0);
+	}
+    }
+
     for(n=0; n<p_data->nb_obs; n++) {
 
 #if FLAG_JSON //for the webApp, we block at every iterations to prevent the client to be saturated with msg
@@ -262,8 +279,9 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
                 systematic_sampling(p_like, calc[0], n);
             }
 
-            //!! time indexes: D_J_p_X is [N_DATA+1], *D_p_hat->... are in [N_DATA] so we have to be carrefull!
-            compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[n], p_like->weights, n, t1);
+	    if (print_opt & PLOM_PRINT_HAT) {
+		compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[np1], p_like->weights, n, t1);
+	    }
 
             resample_X(p_like->select[n], &(D_J_p_X[np1]), &(D_J_p_X_tmp[np1]), p_data);
 
@@ -271,14 +289,13 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
                 print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[np1], p_like->Llike_best_n, p_like->ess_n, 1, n, t1);
             }
 
-        } else {
+        } else if (print_opt & PLOM_PRINT_HAT) { 
             //we do not filter or all data ara NaN (no info).
-	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[n], 1, n, t1);
+	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[np1], 1, n, t1);
         }
 
-
         if (print_opt & PLOM_PRINT_HAT) {
-            print_p_hat(p_file_hat, NULL, D_p_hat[n], p_data, t1);
+            print_p_hat(p_file_hat, NULL, D_p_hat[np1], p_data, t1);
         }
 
 	if (print_opt & PLOM_PRINT_X) {
@@ -295,12 +312,23 @@ void run_SMC(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp,
  *  same as run_SMC but deleguates work to plom workers. Each
  *  worker receive Jchunk particles
  */
-void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int Jchunk, void *sender, void *receiver, void *controller)
+void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *p_par, struct s_hat **D_p_hat, struct s_likelihood *p_like, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, int Jchunk, const enum plom_print print_opt, void *sender, void *receiver, void *controller)
 {
     int j, n, np1;
     int the_j;
 
     p_like->Llike_best = 0.0; p_like->n_all_fail = 0;
+
+    if (print_opt & PLOM_PRINT_HAT) {
+	for(j=0;j<J;j++) {
+	    for(j=0;j<J;j++) {
+		reset_inc(D_J_p_X[0][j], p_data);
+		proj2obs(D_J_p_X[0][j], p_data);
+	    }
+	}
+	compute_hat(D_J_p_X[0], p_par, p_data, calc, D_p_hat[0], p_like->weights, -1, 0.0);
+    }
+
 
     for (n=0; n < p_data->nb_obs; n++) {
 
@@ -333,12 +361,14 @@ void run_SMC_zmq(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par 
 	    if (weight(p_like, n)) {
 		systematic_sampling(p_like, calc[0], n);
 	    }
-	    compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[n], p_like->weights, n, p_data->times[np1]);
+	    if (print_opt & PLOM_PRINT_HAT) {
+		compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[np1], p_like->weights, n, p_data->times[np1]);
+	    }
 	    resample_X(p_like->select[n], &(D_J_p_X[np1]), &(D_J_p_X_tmp[np1]), p_data);
 
-	} else {	
+	} else if (print_opt & PLOM_PRINT_HAT) {
 
-	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[n], 1, n, p_data->times[np1]);
+	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[np1], 1, n, p_data->times[np1]);
 
 	}
 
@@ -354,6 +384,23 @@ void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
     p_like->Llike_best = 0.0; p_like->n_all_fail = 0;
+
+    //print t0 (n=-1)
+    if ((print_opt & PLOM_PRINT_X) || (print_opt & PLOM_PRINT_HAT)) {	
+	for(j=0;j<J;j++) {
+	    reset_inc(D_J_p_X[0][j], p_data);
+	    proj2obs(D_J_p_X[0][j], p_data);
+	}       
+	if (print_opt & PLOM_PRINT_HAT) {
+	    compute_hat_nn(D_J_p_X[0], &p_par, p_data, calc, D_p_hat[0], 1, -1, 0.0);
+	    print_p_hat(p_file_hat, NULL, D_p_hat[0], p_data, 0.0);
+	}
+
+	if (print_opt & PLOM_PRINT_X) {
+	    print_X(p_file_X, &p_par, D_J_p_X[0], p_data, calc[0], 1, 0, 0, -1, 0.0);
+	}
+    }
+
 
     for (n=0; n < p_data->nb_obs; n++) {
 
@@ -393,7 +440,9 @@ void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct
             }
 
             //!! time indexes: D_J_p_X is [N_DATA+1], *D_p_hat->... are in [N_DATA] so we have to be carrefull!
-            compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[n], p_like->weights, n, t1);
+	    if (print_opt & PLOM_PRINT_HAT) {
+		compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[np1], p_like->weights, n, t1);
+	    }
 
             resample_X(p_like->select[n], &(D_J_p_X[np1]), &(D_J_p_X_tmp[np1]), p_data);
 
@@ -401,14 +450,14 @@ void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct
                 print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[np1], p_like->Llike_best_n, p_like->ess_n, 1, n, t1);
             }
 
-        } else {
+        } else if (print_opt & PLOM_PRINT_HAT) { 
             //we do not filter or all data ara NaN (no info).
-	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[n], 1, n, t1);
+	    compute_hat_nn(D_J_p_X[np1], &p_par, p_data, calc, D_p_hat[np1], 1, n, t1);
         }
 
 
         if (print_opt & PLOM_PRINT_HAT) {
-            print_p_hat(p_file_hat, NULL, D_p_hat[n], p_data, t1);
+            print_p_hat(p_file_hat, NULL, D_p_hat[np1], p_data, t1);
         }
 
 	if (print_opt & PLOM_PRINT_X) {

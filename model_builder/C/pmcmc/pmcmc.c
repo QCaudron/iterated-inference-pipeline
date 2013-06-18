@@ -26,7 +26,7 @@ void run_propag(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct s_par *
                 void *sender, void *receiver, void *controller, const enum plom_print print_opt)
 {
     if (OPTION_PIPELINE) {
-	run_SMC_zmq(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_pred, JCHUNK, sender, receiver, controller);
+	run_SMC_zmq(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_pred, JCHUNK, print_opt, sender, receiver, controller);
     } else {
 #if FLAG_OMP
 	run_SMC(D_J_p_X, D_J_p_X_tmp, p_par, *D_p_hat_new, p_like, p_data, calc, f_pred, 1, NULL, NULL, NULL, print_opt);
@@ -203,7 +203,9 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
             update_to_be_estimated(p_best);
         }
 #endif
-        swap_D_p_hat(D_p_hat_prev, D_p_hat_new);
+
+	//currently depreciated (waiting for compute quantile online (https://github.com/plom-io/plom-sfi/issues/9))
+        //swap_D_p_hat(D_p_hat_prev, D_p_hat_new);
 
         // generate new theta
 	var = get_var_and_sd_fac(&sd_fac, p_best, p_mcmc_calc_data, calc[0], m);
@@ -221,7 +223,8 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 
         // acceptance
         is_accepted = metropolis_hastings(p_best, p_like, &alpha, p_data, calc[0], var, sd_fac, OPTION_FULL_UPDATE);
-        compute_best_traj(D_p_hat_best, *D_p_hat_prev, *D_p_hat_new, p_data, (alpha>1.0) ? 1.0 : alpha, (double) m);
+	//currently depreciated (waiting for compute quantile online (https://github.com/plom-io/plom-sfi/issues/9))
+        //compute_best_traj(D_p_hat_best, *D_p_hat_prev, *D_p_hat_new, p_data, (alpha>1.0) ? 1.0 : alpha, (double) m);
 
         if (is_accepted) {
             p_like->Llike_prev = p_like->Llike_new;

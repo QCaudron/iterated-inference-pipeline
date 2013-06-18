@@ -19,21 +19,27 @@
 #include "pmcmc.h"
 
 
+//Curently depreciated
+
 /**
  * recursive expression for the average so that it can be used in
  * real time by print_hat (zmq and co...)
+ * TODO: compute quantile online (https://github.com/plom-io/plom-sfi/issues/9)
  */
 void compute_best_traj(struct s_hat **D_p_hat_best, struct s_hat **D_p_hat_prev, struct s_hat **D_p_hat_new, struct s_data *p_data, double alpha, double m)
 {
     int n, i, ts;
 
-    for(n=0; n<N_DATA; n++) {
+    for(n=1; n<(N_DATA+1); n++) {
         //sv
         for(i=0 ; i<N_PAR_SV*N_CAC ; i++) {
             D_p_hat_best[n]->state[i] = ((m-1.0)/m)*D_p_hat_best[n]->state[i] + (1.0/m)*(alpha*D_p_hat_new[n]->state[i] + (1.0-alpha)*D_p_hat_prev[n]->state[i]);
             D_p_hat_best[n]->state_95[i][0] = ((m-1.0)/m)*D_p_hat_best[n]->state_95[i][0] + (1.0/m)*(alpha*D_p_hat_new[n]->state_95[i][0] + (1.0-alpha)*D_p_hat_prev[n]->state_95[i][0]);
             D_p_hat_best[n]->state_95[i][1] = ((m-1.0)/m)*D_p_hat_best[n]->state_95[i][1] + (1.0/m)*(alpha*D_p_hat_new[n]->state_95[i][1] + (1.0-alpha)*D_p_hat_prev[n]->state_95[i][1]);
         }
+
+	//TODO: remainder
+
 
         //ts
         for(ts=0; ts< N_TS; ts++) {

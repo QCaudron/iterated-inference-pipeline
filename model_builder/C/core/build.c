@@ -1259,7 +1259,7 @@ struct s_hat **build_D_p_hat(struct s_data *p_data)
 {
     int n;
 
-    struct s_hat **D_p_hat = malloc(N_DATA * sizeof (struct s_hat *));
+    struct s_hat **D_p_hat = malloc((N_DATA+1) * sizeof (struct s_hat *));
     if (D_p_hat==NULL) {
         char str[STR_BUFFSIZE];
         snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
@@ -1267,7 +1267,7 @@ struct s_hat **build_D_p_hat(struct s_data *p_data)
         exit(EXIT_FAILURE);
     }
 
-    for(n=0; n<N_DATA; n++) {
+    for(n=0; n<(N_DATA+1); n++) {
         D_p_hat[n] = build_hat(p_data);
     }
 
@@ -1279,7 +1279,7 @@ void clean_D_p_hat(struct s_hat **D_p_hat, struct s_data *p_data)
 {
     int n;
 
-    for(n=0; n<N_DATA; n++) {
+    for(n=0; n<(N_DATA+1); n++) {
         clean_hat(D_p_hat[n], p_data);
     }
 

@@ -545,8 +545,8 @@ void print_hat(FILE *p_file, struct s_hat **D_p_hat, struct s_data *p_data)
     json_t *json_print = NULL;
 #endif
 
-    for(n=0; n<N_DATA; n++) {
-        print_p_hat(p_file, json_print, D_p_hat[n], p_data, p_data->times[n+1]);
+    for(n=0; n<(N_DATA+1); n++) {
+        print_p_hat(p_file, json_print, D_p_hat[n], p_data, p_data->times[n]);
     }
 
 #if FLAG_JSON
@@ -725,8 +725,7 @@ void sample_traj_and_print(FILE *p_file, struct s_X ***D_J_p_X, struct s_par *p_
     j_sel = p_like->select[indn][j_sel];
     p_X_sel = D_J_p_X[indn+1][j_sel];
     
-    //printing up to n = 0 (we don't print the initial condition replace 0 by -1 if we want that)
-    for(nn=indn; nn>=0; nn--) {       
+    for(nn=indn; nn>=-1; nn--) {       
 	p_X_sel = D_J_p_X[ nn + 1 ][j_sel];
 	print_p_X(p_file, json_print, p_X_sel, p_par, p_data, p_calc, m, nn , p_data->times[nn+1]);
     }

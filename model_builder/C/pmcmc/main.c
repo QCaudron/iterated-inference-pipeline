@@ -274,9 +274,11 @@ int main(int argc, char *argv[])
 
     pmcmc(p_pmcmc->p_best, p_pmcmc->D_J_p_X, p_pmcmc->D_J_p_X_tmp, p_pmcmc->p_par, &(p_pmcmc->D_p_hat_prev), &(p_pmcmc->D_p_hat_new), p_pmcmc->D_p_hat_best, p_pmcmc->p_like, p_pmcmc->p_data, p_pmcmc->calc, get_f_pred(implementation, noises_off), print_opt, thin_traj);
 
-    FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_pmcmc->p_data);
-    print_hat(p_file_hat, p_pmcmc->D_p_hat_best, p_pmcmc->p_data);
-    sfr_fclose(p_file_hat);
+
+    //TODO compute quantile online (https://github.com/plom-io/plom-sfi/issues/9)
+    //FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_pmcmc->p_data);
+    //print_hat(p_file_hat, p_pmcmc->D_p_hat_best, p_pmcmc->p_data);
+    //sfr_fclose(p_file_hat);
 
     // print empirical covariance
     FILE *p_file_cov = sfr_fopen(SFR_PATH, GENERAL_ID, "covariance", "w", NULL, NULL);

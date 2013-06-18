@@ -202,9 +202,7 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
         p_hat->state[i] /= ((double) J);
 
         get_CI95(p_hat->state_95[i], calc[thread_id]->to_be_sorted, calc[thread_id]->index_sorted, NULL);
-
     }
-
 
     /* remainder */
     if(!POP_SIZE_EQ_SUM_SV){

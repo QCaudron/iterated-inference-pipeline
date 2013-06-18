@@ -206,6 +206,23 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 //    }
 
 
+    //print t0
+    if ((print_opt & PLOM_PRINT_X) || (print_opt & PLOM_PRINT_HAT)) {
+	reset_inc(p_X, p_data);	
+	proj2obs(p_X, p_data);
+
+	if (print_opt & PLOM_PRINT_X) {
+	    printf("e\n");
+	    print_X(p_file_X, &p_par, &p_X, p_data, calc[0], 1, 1, m, -1, 0.0);
+	}
+
+	if (print_opt & PLOM_PRINT_HAT) {
+	    X2xk(p_kalman_update->xk, p_X, p_data);
+	    print_p_hat_ekf(p_file_hat, p_data, p_par, calc[0], p_kalman_update, &Ct.matrix, -1, 0.0);
+	}
+    }
+
+
     //////////////////
     // for all data //
     //////////////////

@@ -108,6 +108,12 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
         p_X->proj[i]=y0[i];
     }
 
+    if (OPTION_TRAJ) {
+	reset_inc(p_X, p_data);
+	proj2obs(p_X, p_data);
+	print_X(p_file_X, &p_par, &p_X, p_data, p_calc, 1, 0, 0, (int) t0-1, t0);
+    }
+
     for (k= (int) t0 ; k< (int) t_end ; k++) {
         reset_inc(p_X, p_data);
         f_pred(p_X, k, k+1, p_par, p_data, p_calc);
@@ -133,9 +139,9 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
 
 void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, void *sender, void *receiver, void *controller)
 {
-    int k;
+    int k, j;
 #if FLAG_OMP
-    int j, thread_id;
+    int thread_id;
 #else
     int nt, the_nt;
 #endif
@@ -148,10 +154,26 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
 
     struct s_hat *p_hat = build_hat(p_data);
 
+
     //if ODE, only the first particle was used to skip the transiant
     if ( (p_data->implementation == PLOM_ODE) && (t_transiant > 0.0) ) {
         replicate_J_p_X_0(J_p_X, p_data);
     }
+
+
+    //print t0
+    for(j=0;j<J;j++) {
+	reset_inc(J_p_X[j], p_data);
+	proj2obs(J_p_X[j], p_data);
+    }	
+
+    compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 0, (int) t0-1, t0);
+    print_p_hat(p_file_hat, NULL, p_hat, p_data, t0);
+
+    if (OPTION_TRAJ && FLAG_JSON==0) {
+	print_X(p_file_X, J_p_par, J_p_X, p_data, calc[0], 0, 0, 0, (int) t0-1, t0);
+    }
+
 
     for (k= (int) t0 ; k< (int) t_end ; k++) {
 
