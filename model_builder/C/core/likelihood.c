@@ -19,13 +19,13 @@
 #include "plom.h"
 
 
-double get_smallest_log_likelihood(struct s_data_ind **data_ind)
+double get_smallest_log_likelihood(struct s_data *p_data)
 {
   int n;
   double smallest_log_like = 0.0;
 
-  for(n=0 ; n<N_DATA_NONAN; n++) {
-      smallest_log_like += data_ind[n]->n_nonan;
+  for(n=0 ; n<p_data->nb_obs_nonan; n++) {
+      smallest_log_like += p_data->data_ind[n]->n_nonan;
   }
 
   return smallest_log_like * LOG_LIKE_MIN;

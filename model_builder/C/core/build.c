@@ -655,10 +655,13 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
             print_err(str);
             exit(EXIT_FAILURE);
         }
+
+
+	p_data->nb_obs = plom_sanitize_nb_obs(nb_obs, N_DATA);
         
         tmp_n_data_nonan=0; // get N_DATA_NONAN and indn_data_nonan
 
-        for(n=0; n<N_DATA; n++) {
+        for(n=0; n<p_data->nb_obs; n++) {
             count_n_nan = 0;
             for(ts=0; ts<N_TS; ts++) //are all the lines composed only of NaN
                 if (isnan(p_data->data[n][ts])) count_n_nan++;
@@ -710,10 +713,9 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
             }
         }
 
+	p_data->nb_obs_nonan = tmp_n_data_nonan;
 
-	N_DATA_NONAN = tmp_n_data_nonan;
 
-	p_data->nb_obs = plom_sanitize_nb_obs(nb_obs, N_DATA);
 
         p_data->data_ind = data_ind;
     }

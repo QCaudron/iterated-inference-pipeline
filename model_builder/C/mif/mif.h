@@ -67,7 +67,7 @@ void resample_and_mut_theta_mif(unsigned int *select, gsl_vector **J_theta, gsl_
 void update_fixed_lag_smoothing(struct s_best *p_best, struct s_likelihood *p_like, gsl_vector **J_theta, struct s_data *p_data);
 void update_theta_best_stable_mif(struct s_best *p_best, double **D_theta_bart, struct s_data *p_data);
 void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, double **D_theta_Vt, struct s_data *p_data, int m);
-void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, gsl_vector **J_theta, struct s_data *p_data, int n_max, int n, const int lag);
+void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, gsl_vector **J_theta, struct s_data *p_data, int n, const int lag);
 
 /* build.c */
 struct s_mif *build_mif(json_t *theta, enum plom_implementations implementation,  enum plom_noises_off noises_off, double dt, double eps_abs, double eps_rel, const double freeze_forcing, double prop_L_option, int J, int *n_threads);

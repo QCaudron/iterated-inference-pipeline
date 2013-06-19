@@ -41,7 +41,7 @@ struct s_simplex *build_simplex(json_t *theta, enum plom_implementations impleme
   int n_threads = 1;
 
   p_simplex->calc = build_calc(&n_threads, general_id, eps_abs, eps_rel, 1, size_proj, step_ode, freeze_forcing, -1, p_simplex->p_data, settings);
-  p_simplex->smallest_log_like = get_smallest_log_likelihood(p_simplex->p_data->data_ind);
+  p_simplex->smallest_log_like = get_smallest_log_likelihood(p_simplex->p_data);
 
   json_decref(settings);
   return p_simplex;

@@ -33,10 +33,10 @@ void rescale_covariance_mif(struct s_best *p_best, struct s_data *p_data)
     struct s_iterator *p_it_fls = p_data->p_it_par_sv_and_drift; //parameters fitted with fixed lag smoothing (fls)
 
     int row, col;
-    double inv_n_data = 1.0/((double) N_DATA);
-    double sqrt_inv_n_data = 1.0/sqrt((double) N_DATA);
+    double inv_n_data = 1.0/((double) p_data->nb_obs);
+    double sqrt_inv_n_data = 1.0/sqrt((double) p_data->nb_obs);
 
-    //mif, mif terms: rescale by 1/N_DATA
+    //mif, mif terms: rescale by 1/p_data->nb_obs
 
     for(i=0; i<p_it_mif->length; i++) {
         for(k=0; k< routers[p_it_mif->ind[i]]->n_gp; k++) {
@@ -52,7 +52,7 @@ void rescale_covariance_mif(struct s_best *p_best, struct s_data *p_data)
         }
     }
 
-    //mif, fls and fls, mif terms: rescale by 1/sqrt(N_DATA)
+    //mif, fls and fls, mif terms: rescale by 1/sqrt(p_data->nb_obs)
 
     for(i=0; i<p_it_mif->length; i++) {
         for(k=0; k< routers[p_it_mif->ind[i]]->n_gp; k++) {
@@ -108,7 +108,7 @@ void fill_theta_bart_and_Vt_mif(double **D_theta_bart, double **D_theta_Vt, stru
     struct s_iterator *p_it = p_data->p_it_all;
     struct s_router **routers = p_data->routers;
 
-    for(n=0 ;n<=N_DATA; n++) {
+    for(n=0; n<=p_data->nb_obs; n++) {
         for(i=0; i<p_it->length; i++) {
             for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
                 offset = p_it->offset[i]+k;
@@ -401,11 +401,11 @@ void update_theta_best_stable_mif(struct s_best *p_best, double **D_theta_bart, 
             offset = p_it->offset[i]+k;
             if(p_best->is_estimated[offset]) {
                 tmp = 0.0;
-                for(n=0; n<N_DATA_NONAN; n++){		    
+                for(n=0; n<p_data->nb_obs_nonan; n++){		    
 		    tmp += D_theta_bart[p_data->indn_data_nonan[n] + 1][offset];
                 }
 
-                gsl_vector_set(p_best->mean, offset, tmp / ((double) N_DATA_NONAN) );
+                gsl_vector_set(p_best->mean, offset, tmp / ((double) p_data->nb_obs_nonan) );
             }
         }
     }
@@ -437,10 +437,10 @@ void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, do
                 tmp = ( (D_theta_bart[nnp1 + 1][offset]-D_theta_bart[0][offset]) / D_theta_Vt[nnp1+1][offset] ); //+1 as D_theta_bart is in N_DATA+1
 
 		//from data point to data point
-                for(n=1; n< N_DATA_NONAN; n++){		    
+                for(n=1; n< p_data->nb_obs_nonan; n++){		    
 		    nn = p_data->indn_data_nonan[n-1]; //previous entry with data
 		    nnp1 = p_data->indn_data_nonan[n]; //current entry with data
-		    tmp += ( (D_theta_bart[nnp1+1][offset]-D_theta_bart[nn+1][offset]) / D_theta_Vt[nnp1+1][offset] ); //+1 as D_theta_bart is in N_DATA+
+		    tmp += ( (D_theta_bart[nnp1+1][offset]-D_theta_bart[nn+1][offset]) / D_theta_Vt[nnp1+1][offset] ); //+1 as D_theta_bart is in N_DATA+1
                 }
 
                 gsl_vector_set(p_best->mean,
@@ -460,7 +460,7 @@ void update_theta_best_king_mif(struct s_best *p_best, double **D_theta_bart, do
  * This function multiply the loglikelihood weight of particle j at
  * observation i by 1/NbObs * logprior(theta_i^j)
  */
-void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, gsl_vector **J_theta, struct s_data *p_data, int n_max, int n, const int lag)
+void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, gsl_vector **J_theta, struct s_data *p_data, int n, const int lag)
 {
     int i, j, k;
     struct s_router **routers = p_data->routers;
@@ -473,7 +473,7 @@ void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, 
 
     int offset;
 
-    // weights are multiplied by prior(theta_j)^(1/n_max) for proc parameters fitted with MIF (as opposed to fixed lag smoothing)
+    // weights are multiplied by prior(theta_j)^(1/p_data->nb_obs) for proc parameters fitted with MIF (as opposed to fixed lag smoothing)
     for(i=0; i<p_it_mif->length; i++) {
         p_router = routers[p_it_mif->ind[i]];
         for(k=0; k< p_router->n_gp; k++) {
@@ -484,7 +484,7 @@ void patch_likelihood_prior(struct s_likelihood *p_like, struct s_best *p_best, 
                     p_tmp = (*(p_best->prior[offset]))(back_transformed, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);
                     p_tmp = sanitize_likelihood(p_tmp);
 
-                    p_like->weights[j] *= pow(p_tmp, 1.0/n_max);
+                    p_like->weights[j] *= pow(p_tmp, 1.0/ ((double) p_data->nb_obs));
                 }
             }
         }

@@ -34,7 +34,15 @@ struct s_mif *build_mif(json_t *theta, enum plom_implementations implementation,
         exit(EXIT_FAILURE);
     }
 
-    p->p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR, -1, "D"); //also build obs2ts
+
+    int nb_obs;
+    if(OPTION_IC_ONLY) {
+        nb_obs = ((L+1) > N_DATA) ? N_DATA: L+1;
+    } else {
+        nb_obs = N_DATA;
+    }
+
+    p->p_data = build_data(settings, theta, implementation, noises_off, OPTION_PRIOR, nb_obs, "D"); //also build obs2ts
     int size_proj = N_PAR_SV*N_CAC + p->p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
     //N_DATA is set in build_data

@@ -74,13 +74,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
     }
 #endif
 
-    int n_max;
-    if(OPTION_IC_ONLY) {
-        n_max = ((L+1) > N_DATA) ? N_DATA: L+1;
-    } else {
-        n_max = N_DATA;
-    }
-
+    
     FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
 
     FILE *p_file_mif = NULL;
@@ -138,7 +132,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 
 
 	delta_t = 0;
-        for(n=0; n<n_max; n++) {
+        for(n=0; n<p_data->nb_obs; n++) {
 
 #if FLAG_JSON //for the webApp, we block at every iterations to prevent the client to be saturated with msg
             if(n % 10 == 0){
@@ -185,7 +179,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 
 	    if(p_data->data_ind[n]->n_nonan) {
 		if (OPTION_PRIOR) {
-		    patch_likelihood_prior(p_like, p_best, J_theta, p_data, n_max, n, L);
+		    patch_likelihood_prior(p_like, p_best, J_theta, p_data, n, L);
 		}
 
 		int success = weight(p_like, n);

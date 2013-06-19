@@ -169,7 +169,7 @@ struct s_kalman *build_kalman(json_t *theta, json_t *settings, enum plom_impleme
     p_kalman->calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, 1, size_proj, step_ode_ekf, freeze_forcing, -1, p_kalman->p_data, settings);
     p_kalman->p_par = build_par(p_kalman->p_data);
 
-    p_kalman->smallest_log_like = get_smallest_log_likelihood(p_kalman->p_data->data_ind);
+    p_kalman->smallest_log_like = get_smallest_log_likelihood(p_kalman->p_data);
     p_kalman->p_kalman_update = build_kalman_update(N_KAL);
 
     p_kalman->calc[0]->method_specific_thread_safe_data = build_kalman_specific_data(p_kalman->calc[0], p_kalman->p_data);

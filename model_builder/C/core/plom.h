@@ -117,7 +117,6 @@ int N_TS;              /**< total number of time series */
 int N_TS_INC;          /**< size of subset of @c N_TS containing only incidence ts */
 int N_TS_INC_UNIQUE;   /**< size of subset of @c N_TS containing only non-repeated (i.e no repetition per data stream) incidece data  */
 int N_DATA;            /**< length of the data set (including @c NaN) */
-int N_DATA_NONAN;      /**< length of the data set (discarding lines where all ts are NaN) */
 int N_OBS_ALL;         /**< number of type of observed variables (e.g incidence_strain1, incidence_strain_2, prevalence S + prevalence I, ...) */
 int N_OBS_INC;         /**< number of incidences */
 int N_OBS_PREV;        /**< number of prevalences */
@@ -276,7 +275,8 @@ struct s_data{
     struct s_iterator *p_it_par_sv_and_drift;            /**< to iterate on the initial conditions of the state variable *and* the parameters following a diffusion */
     struct s_iterator *p_it_noise;                       /**< to iterate on environmental stochasticity noises *only* */
 
-    int nb_obs; /*length of the data to be used for inference */
+    int nb_obs; /**< length of the data to be used for inference */
+    int nb_obs_nonan; /**< length of the data to be used for inference discarding lines where all ts are NaN */
 
     /* if school terms */
     unsigned int *n_terms;   /**< [N_CAC] number of terms for cac */
@@ -785,7 +785,7 @@ void transform_theta(struct s_best *p_best, struct s_data *p_data, int square_di
 void square_diag_sd(struct s_best *p_best, struct s_data *p_data);
 
 /* likelihood.c */
-double get_smallest_log_likelihood(struct s_data_ind **data_ind);
+double get_smallest_log_likelihood(struct s_data *p_data);
 double get_log_likelihood(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int n, const double t);
 double get_sum_square(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, const int n, const double t);
 double sanitize_likelihood(double like);
