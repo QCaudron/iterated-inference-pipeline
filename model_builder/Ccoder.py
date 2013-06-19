@@ -973,13 +973,6 @@ if __name__=="__main__":
     p = json.load(open(os.path.join('example', 'noise', 'process.json')))
     l = json.load(open(os.path.join('example', 'noise', 'link.json')))
 
-
-    c = json.load(open(os.path.join('example', 'noise','context.json')))
-    ##fix path (this is normally done by pmbuilder(1))
-    c['data']['source'] = os.path.join('example', 'noise', c['data']['source'])    
-    for x in c['metadata']:
-        x['source'] = os.path.join('example', 'noise', x['source'])
-
     model = Ccoder(c, p, l)
     
 #    model.eval_Q(debug=True)

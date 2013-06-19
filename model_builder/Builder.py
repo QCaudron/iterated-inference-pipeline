@@ -100,7 +100,6 @@ class PlomModelBuilder(Context, Ccoder):
 
 
         #we need to sort ts_id, _repeated_name_ts, _repeated_name_stream, _repeated_obs_type, data and all the par_fixed involved in the obs_model
-
         ind_sorted = [ self.ts_id.index(x[0]) for x in tbs ]
 
         self.ts_id = [ self.ts_id[x] for x in ind_sorted ]
@@ -111,12 +110,6 @@ class PlomModelBuilder(Context, Ccoder):
         #data
         if self.data:
             self.data = [ [ y[x] for x in ind_sorted ] for y in self.data ]
-
-        #sort self.par_fixed_obs
-        if self.par_fixed_obs:
-            for p in self.par_fixed_obs:                
-                self.par_fixed_values[p]['values'] = [ [ y[x] for x in ind_sorted ] for y in self.par_fixed_values[p]['values'] ]
-                self.par_fixed_values[p]['header'] = [self.par_fixed_values[p]['header'][0]] + [  self.par_fixed_values[p]['header'][1:][x] for x in ind_sorted  ]
 
 
 
@@ -219,11 +212,6 @@ if __name__=="__main__":
     c = json.load(open(os.path.join('example', 'noise', 'context.json')))
     p = json.load(open(os.path.join('example', 'noise', 'process.json')))
     l = json.load(open(os.path.join('example', 'noise', 'link.json')))
-
-    ##fix path (this is normally done by pmbuilder(1))
-    c['data']['source'] = os.path.join('example', 'noise', c['data']['source'])    
-    for x in c['metadata']:
-        x['source'] = os.path.join('example', 'noise', x['source'])
             
     model = PlomModelBuilder(os.path.join(os.getenv("HOME"), 'plom_test_model'), c, p, l)
 

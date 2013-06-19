@@ -16,7 +16,6 @@
 #    <http://www.gnu.org/licenses/>.
 #########################################################################
 
-import csv
 import copy
 import json
 import sys
@@ -69,12 +68,13 @@ class Context:
         self.data = []; self.dates = []
 
         if 'source' in context['data']:            
-            mydata = self.handle_context_data(context['data'])
-            self.data = mydata['values']
-            self.dates = mydata['dates']
+            self.dates = [x[0] for x in context['data']['source'][self.ts_id[0]]['value']]
 
+            for i in range(len(self.dates)):
+                self.data.append([context['data']['source'][ts]['value'][i][1] for ts in self.ts_id])
+            
         for d in context.get('metadata', []):        
-            self.par_fixed_values[d['id']] = self.handle_context_data(d)
+            self.par_fixed_values[d['id']] = copy.deepcopy(d)
 
         self.N_DATA = len(self.data)
         
@@ -85,58 +85,14 @@ class Context:
         ##self.school_terms = copy.deepcopy(school_terms)
 
 
-    def handle_context_data(self, data_obj):
-        """
-        Takes into account that source can be a path to a csv or a
-        native array and check that the header match the context
-        header.
-        """
-
-        data = {'header':[], 'values':[], 'dates':[]}
-
-        if 'unit' in data_obj:
-            data['unit'] = data_obj['unit']
-
-        if 'type' in data_obj:
-            data['type'] = data_obj['type']
-
-        source = copy.deepcopy(data_obj['source'])
-    
-        #if source is a string : read from csv and replace source by the read array
-        if isinstance(source, str) or isinstance(source, unicode):
-            try :
-                f = open(source, 'r')
-            except IOError:
-                raise PlomContextError('\033[91m' + 'FAILURE! ' + '\033[0m' + source + ' from ' + os.getcwd() + ' could not be found')
-            else:                
-                reader = csv.reader(f, delimiter=',', quotechar='"')
-                header = [next(reader)] #skip header                
-                source = header + [[row[0]] + map(lambda x: float(x) if x!='null' else None, row[1:]) for row in reader if row!=[]]
-                f.close()
-
-        #source is now an array (it was or it has been transformed into one with csv)
-        if source:
-            if source[0][0] != 'date':
-                raise PlomContextError("\033[91mFAIL:\033[0m data header doesn't match context description {0} != date".format(source[0][0]))
-            if source[0][1:] != self.cac_id and source[0][1:] !=self.ts_id:
-                raise PlomContextError("\033[91mFAIL:\033[0m data header doesn't match context description")
-                        
-            data['header'] = source[0]
-            data['values'] = [x[1:] for x in source[1:]]
-            data['dates'] = [x[0] for x in source[1:]]
-
-        return data
 
 
 if __name__ == '__main__':
 
     c = json.load(open(os.path.join('example', 'noise','context.json')))
-    ##fix path (this is normally done by pmbuilder(1))
-    c['data']['source'] = os.path.join('example', 'noise', c['data']['source'])    
-    for x in c['metadata']:
-        x['source'] = os.path.join('example', 'noise', x['source'])
 
     context = Context(c)
 
-##    print(context.cac_id)
-##    print(context.data)
+    print(context.cac_id)
+    print(context.data)
+    print(context.par_fixed_values)

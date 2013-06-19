@@ -56,7 +56,7 @@ def main():
     parser.add_argument('link_file',    nargs='?', help='link (.json)')
 
     ##specifying the output
-    parser.add_argument('-o', '--output', action="store", default=None, help='Path of the created element')
+    parser.add_argument('-o', '--output', action="store", default='model', help='Path of the created element')
 
     ##generating model
     parser.add_argument('-i', '--input',  action="store",      default='files', help='Input type (used for the webApp)')
@@ -78,19 +78,7 @@ def main():
         c = getJSON(mycli.context_file)
         p = getJSON(mycli.process_file)
         l = getJSON(mycli.link_file)
-
-        ##sanitize path data in context: if not absolute path relative path from context file
-        for x in c.get('metatada', []):
-            if isinstance(x['source'], str) or isinstance(x['source'], unicode):
-                if not os.path.isabs(x['source']):
-                    x['source'] = os.path.join(os.path.dirname(os.path.abspath(mycli.context_file)), x['source'])
-
-        if 'data' in c:
-            if isinstance(c['data']['source'], str) or isinstance(c['data']['source'], unicode):
-                if not os.path.isabs(c['data']['source']):
-                    c['data']['source'] = os.path.join(os.path.dirname(os.path.abspath(mycli.context_file)), c['data']['source'])
-            
-
+        
 
     elif mycli.input == 'stdin': #get **one** JSON object containing context model and link objects (used by node.js)
         cpl = raw_input()
@@ -100,7 +88,7 @@ def main():
         p = cpl['process']
         l = cpl['link']
 
-    path_rendered = os.path.abspath(mycli.output) if mycli.output else os.path.join(os.getcwd(), 'my_plom_model')
+    path_rendered = os.path.abspath(mycli.output)
 
     model = PlomModelBuilder(path_rendered, c, p, l)
 

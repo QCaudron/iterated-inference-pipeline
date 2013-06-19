@@ -95,19 +95,25 @@ def make_settings_json(self):
 
     #convert dates into days since first data points
     for k, v in settings['data']['par_fixed_values'].iteritems():
-        times = []
-        for i, d in enumerate(v['dates']):
-            delta =  datetime.datetime.strptime(d, "%Y-%m-%d").date() - self.date_0
-            times.append(delta.days)
+        values = []
+        order = self.ts_id if k in self.par_fixed_obs else self.cac_id #!!self.ts_id have been sorted
+        for ts in order: 
+            x = []
+            y = []
+            for d in v['source'][ts]['value']:
+                delta =  datetime.datetime.strptime(d[0], "%Y-%m-%d").date() - self.date_0
+                x.append(delta.days)
+                y.append(d[1])
 
-        #change values format so that it's easy to generate GSL interpolators'
-        values = []        
-        for i in range(len(v['values'][0])):                    
-            obj = {'id': v['header'][i+1], 'x': times, 'y': [v['values'][x][i] for x in range(len(v['values']))], 'size': len(v['values']) }
+            
+            obj = {'id': ts, 'x': x, 'y': y, 'size': len(y)}
+
             if 'unit' in v:
                 obj['unit'] = v['unit']
+
             if 'type' in v:
                 obj['type'] = v['type']
+                
             values.append(obj)
         
         settings['data']['par_fixed_values'][k] = values
