@@ -19,13 +19,12 @@
     }
   ],
 
-  "data": [
+  "data": 
     {
-      "id": "data",
       "source": "data/data.csv",
-      "comment": "my data"
-    }
-  ],
+      "comment": "my data",
+      "t0": "2012-07-26"
+    },
 
   "metadata": [
     {

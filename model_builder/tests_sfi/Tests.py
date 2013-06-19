@@ -73,12 +73,12 @@ class TestKalmanOnDiffusions(unittest.TestCase):
       def test_1step(self):
             os.system('plom pipe theta.json | ./kalman -o 2')
             tab = genfromtxt('hat_0.csv',delimiter=',',names=True)
-            self.assertAlmostEqual(tab['low95drifttest_parall'][0],-1.96,5)
+            self.assertAlmostEqual(tab['low95drifttest_parall'][1],-1.96/math.sqrt(7),5)
 
       def test_10step(self):
             os.system('plom pipe theta.json | ./kalman -o 10')
             tab = genfromtxt('hat_0.csv',delimiter=',',names=True)
-            self.assertAlmostEqual(tab['low95drifttest_parall'][9]/math.sqrt(10),-1.96,5)
+            self.assertAlmostEqual(tab['low95drifttest_parall'][10]/math.sqrt(10),-1.96/math.sqrt(7),5)
 
 class TestSMCSDEagainstKalman(unittest.TestCase):
       def setUp(self):
@@ -88,25 +88,26 @@ class TestSMCSDEagainstKalman(unittest.TestCase):
       def test_only_env_sto(self):
             os.system('plom pipe theta.json |  ./kalman --no_dem_sto --traj -o 2')
             tab0 = genfromtxt('hat_0.csv',delimiter=',',names=True)
-            nparts = 6000
+            nparts = 500
             os.system('plom pipe theta.json |  ./smc sde --no_dem_sto --traj -o 2 -J ' + str(nparts) + ' -i 1 -P 8 --DT 0.0001 --traj')
             tab1 = genfromtxt('hat_1.csv',delimiter=',',names=True)
 
-            meanSMC0a = tab1[0][2]
-            meanEKF0a = tab0[0][2]
-            q975SMC0a = tab1[0][3]
-            q975EKF0a = tab0[0][3]
-            meanSMC0b = tab1[0][8]
-            meanEKF0b = tab0[0][8]
-            q975SMC0b = tab1[0][9]
-            q975EKF0b = tab0[0][9]
-            meanSMC0r0 = math.log(tab1[0][20])
-            meanEKF0r0 = tab0[0][20]
-            q975SMC0r0 = math.log(tab1[0][21])
-            q975EKF0r0 = tab0[0][21]
+            meanSMC0a = tab1[1][2]
+            meanEKF0a = tab0[1][2]
+            q975SMC0a = tab1[1][3]
+            q975EKF0a = tab0[1][3]
+            meanSMC0b = tab1[1][8]
+            meanEKF0b = tab0[1][8]
+            q975SMC0b = tab1[1][9]
+            q975EKF0b = tab0[1][9]
+            meanSMC0r0 = math.log(tab1[1][20])
+            meanEKF0r0 = tab0[1][20]
+            q975SMC0r0 = math.log(tab1[1][21])
+            q975EKF0r0 = tab0[1][21]
 
             # Tests on 97.5% quantiles
             # based on on CLT for empirical quantile given in "Statistics and Data Analysis for Financial Engineering, Rupert 2011"
+            print(abs((q975SMC0r0-q975EKF0r0)/(math.sqrt(0.975*0.025)/(stats.norm.pdf(q975EKF0r0-meanEKF0r0,loc=0,scale=(q975EKF0r0-meanEKF0r0)/1.96)*math.sqrt(nparts)))))
             self.assertTrue(abs((q975SMC0r0-q975EKF0r0)/(math.sqrt(0.975*0.025)/(stats.norm.pdf(q975EKF0r0-meanEKF0r0,loc=0,scale=(q975EKF0r0-meanEKF0r0)/1.96)*math.sqrt(nparts))))<1.96)
             self.assertTrue(abs((q975SMC0a-q975EKF0a)/(math.sqrt(0.975*0.025)/(stats.norm.pdf(q975EKF0a-meanEKF0a,loc=0,scale=(q975EKF0a-meanEKF0a)/1.96)*math.sqrt(nparts))))<1.96)
             self.assertTrue(abs((q975SMC0b-q975EKF0b)/(math.sqrt(0.975*0.025)/(stats.norm.pdf(q975EKF0b-meanEKF0b,loc=0,scale=(q975EKF0b-meanEKF0b)/1.96)*math.sqrt(nparts))))<1.96)
@@ -133,9 +134,9 @@ def suite_SMCSDEagainstKalman():
 
 if __name__ == '__main__' :
 
-      run_LogTransfsAndPMCMC = 0
+      run_LogTransfsAndPMCMC = 1
       run_KalmanOnDiffusions = 0
-      run_SMCSDEagainstKalman = 1
+      run_SMCSDEagainstKalman = 0
       
 
       Root = os.getcwd()
@@ -161,7 +162,7 @@ if __name__ == '__main__' :
             p["diffusion"]=[]
             p["diffusion"].append({'parameter':'test_par','volatility':'test_vol','drift':0.0})
             t["parameter"]['test_par']={'min':1,'max':1,'guess':1,'sd_transf':0.0}
-            t["parameter"]['test_vol']={'min':1,'max':1,'guess':1,'sd_transf':0.0}
+            t["parameter"]['test_vol']={'min':1,'max':1,'guess':1,'sd_transf':0.0,'unit':'W'}
             json.dump(p,open('process.json','w'))
             json.dump(t,open('theta.json','w'))
             os.system('plom build -t theta.json --local')
