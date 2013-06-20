@@ -80,7 +80,7 @@ typedef enum {PLOM_SUCCESS=0, PLOM_ERR_LIKE=-1} plom_err_code;
 #define FLAG_DEBUG 0
 #define FLAG_VERBOSE 1
 #define FLAG_WARNING 0
-#define FLAG_JSON 0 /**< webApp */
+#define FLAG_JSON 1 /**< webApp */
 #define FLAG_OMP 0
 
 #if FLAG_OMP

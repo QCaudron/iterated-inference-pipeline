@@ -14,52 +14,52 @@ class TestLogTransfsAndPMCMC(unittest.TestCase):
 
             
       def test_prior_unif_transf_log(self):
-            os.system('plom pipe theta.json -S r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
-            os.system('plom pipe theta.json -B -C -S r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
+            os.system('plom pipe theta.json -S r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full &> /dev/null')
+            os.system('plom pipe theta.json -B -C -S r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full &> /dev/null')
             test = self.call_test_unif('r0.city1__all')
             self.assertEqual(test,'1')
 
       def test_prior_normal_transf_log(self):
-            os.system('plom pipe theta.json -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full')
-            os.system('plom pipe theta.json -B -C -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full')
+            os.system('plom pipe theta.json -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full &> /dev/null')
+            os.system('plom pipe theta.json -B -C -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full &> /dev/null')
             test = self.call_test_normal('r0.city1__all')
             self.assertEqual(test,'1')
 
       def test_prior_normal_and_unif_transf_log(self):
-            os.system('plom pipe theta.json -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96,r0:city2__all:prior:uniform,r0:city2__all:guess:10,r0:city2__all:min:9.5,r0:city2__all:max:10.5 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full')
-            os.system('plom pipe theta.json -B -C -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96,r0:city2__all:prior:uniform,r0:city2__all:guess:10,r0:city2__all:min:9.5,r0:city2__all:max:10.5 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full')
+            os.system('plom pipe theta.json -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96,r0:city2__all:prior:uniform,r0:city2__all:guess:10,r0:city2__all:min:9.5,r0:city2__all:max:10.5 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full &> /dev/null')
+            os.system('plom pipe theta.json -B -C -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96,r0:city2__all:prior:uniform,r0:city2__all:guess:10,r0:city2__all:min:9.5,r0:city2__all:max:10.5 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full &> /dev/null')
             test1 = self.call_test_normal('r0.city1__all')
             test2 = self.call_test_unif('r0.city2__all')
             self.assertEqual(int(test1)*int(test2),1)
 
       def test_prior_unif_transf_logit_ab(self):
-            os.system('plom pipe theta.json -S r0:transformation:logit_ab,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
-            os.system('plom pipe theta.json -B -C -S r0:transformation:logit_ab,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
+            os.system('plom pipe theta.json -S r0:transformation:logit_ab,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full &> /dev/null')
+            os.system('plom pipe theta.json -B -C -S r0:transformation:logit_ab,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full &> /dev/null')
             test = self.call_test_unif('r0.city1__all')
             self.assertEqual(test,'1')
 
       def test_prior_unif_transf_identity(self):
-            os.system('plom pipe theta.json -S r0:transformation:identity,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
-            os.system('plom pipe theta.json -B -C -S r0:transformation:identity,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
+            os.system('plom pipe theta.json -S r0:transformation:identity,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full &> /dev/null')
+            os.system('plom pipe theta.json -B -C -S r0:transformation:identity,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full &> /dev/null')
             test = self.call_test_unif('r0.city1__all')
             self.assertEqual(test,'1')
 
       def test_prior_normal_transf_identity(self):
-            os.system('plom pipe theta.json -S r0:transformation:identity,r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
-            os.system('plom pipe theta.json -B -C -S r0:transformation:identity,r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
+            os.system('plom pipe theta.json -S r0:transformation:identity,r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full &> /dev/null')
+            os.system('plom pipe theta.json -B -C -S r0:transformation:identity,r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full &> /dev/null')
             test = self.call_test_normal('r0.city1__all')
             self.assertEqual(test,'1')
 
       def call_test_unif(self,varname):
             shutil.copyfile(Root+'/TestsR/test_unif.r',Root+'/noise/model/test_R0_unif.r')
-            os.system('R --vanilla < test_R0_unif.r ' + varname)
+            os.system('R --vanilla < test_R0_unif.r ' + varname + ' &> /dev/null')
             f = open(Root+"/noise/model/outfile.txt","r")
             x = f.readlines()
             return x[0]
 
       def call_test_normal(self,varname):
             shutil.copyfile(Root+'/TestsR/test_normal.r',Root+'/noise/model/test_R0_normal.r')
-            os.system('R --vanilla < test_R0_normal.r ' + varname)
+            os.system('R --vanilla < test_R0_normal.r ' + varname + ' &> /dev/null')
             f = open(Root+"/noise/model/outfile.txt","r")
             x = f.readlines()
             return x[0]
@@ -71,12 +71,12 @@ class TestKalmanOnDiffusions(unittest.TestCase):
             os.chdir(Root+'/noise_test_diff/model')
 
       def test_1step(self):
-            os.system('plom pipe theta.json | ./kalman -o 2')
+            os.system('plom pipe theta.json | ./kalman -o 2 &> /dev/null')
             tab = genfromtxt('hat_0.csv',delimiter=',',names=True)
             self.assertAlmostEqual(tab['low95drifttest_parall'][1],-1.96/math.sqrt(7),5)
 
       def test_10step(self):
-            os.system('plom pipe theta.json | ./kalman -o 10')
+            os.system('plom pipe theta.json | ./kalman -o 10 &> /dev/null')
             tab = genfromtxt('hat_0.csv',delimiter=',',names=True)
             self.assertAlmostEqual(tab['low95drifttest_parall'][10]/math.sqrt(10),-1.96/math.sqrt(7),5)
 
@@ -86,10 +86,10 @@ class TestSMCSDEagainstKalman(unittest.TestCase):
             os.chdir(Root+'/linear/model')
 
       def test_only_env_sto(self):
-            os.system('plom pipe theta.json |  ./kalman --no_dem_sto --traj -o 2')
+            os.system('plom pipe theta.json |  ./kalman --no_dem_sto --traj -o 2 &> /dev/null')
             tab0 = genfromtxt('hat_0.csv',delimiter=',',names=True)
             nparts = 500
-            os.system('plom pipe theta.json |  ./smc sde --no_dem_sto --traj -o 2 -J ' + str(nparts) + ' -i 1 -P 8 --DT 0.0001 --traj')
+            os.system('plom pipe theta.json |  ./smc sde --no_dem_sto --traj -o 2 -J ' + str(nparts) + ' -i 1 -P 8 --DT 0.0001 --traj &> /dev/null')
             tab1 = genfromtxt('hat_1.csv',delimiter=',',names=True)
 
             meanSMC0a = tab1[1][2]
@@ -144,7 +144,7 @@ if __name__ == '__main__' :
             # copy noise from the examples and build it
             shutil.copytree(Root + '/../example/noise',Root + '/noise')     
             os.chdir(Root+'/noise')
-            os.system('plom build -t theta.json --local')
+            os.system('plom build -t theta.json --local &> /dev/null')
 
             unittest.TextTestRunner().run(suite_TestLogTransfsAndPMCMC())
 
@@ -164,7 +164,7 @@ if __name__ == '__main__' :
             t["parameter"]['test_vol']={'min':1,'max':1,'guess':1,'sd_transf':0.0,'unit':'W'}
             json.dump(p,open('process.json','w'))
             json.dump(t,open('theta.json','w'))
-            os.system('plom build -t theta.json --local')
+            os.system('plom build -t theta.json --local &> /dev/null')
 
             unittest.TextTestRunner().run(suite_TestKalmanOnDiffusions())
 
@@ -174,7 +174,7 @@ if __name__ == '__main__' :
             # copy noise from the examples, replace reactions by linear model, and build it
             shutil.copytree(Root + '/../example/linear',Root + '/linear')     
             os.chdir(Root+'/linear')
-            os.system('plom build -t theta.json --local')
+            os.system('plom build -t theta.json --local &> /dev/null')
 
             unittest.TextTestRunner().run(suite_SMCSDEagainstKalman())
 
