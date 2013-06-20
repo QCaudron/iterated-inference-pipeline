@@ -4,8 +4,8 @@
 
   "state": [
     {"id": "S", "comment": "Susceptible"},
-    {"id": "I", "comment": "Infectious", "tag": "infectious"},
-    {"id": "I2", "comment": "Infectious", "tag": "infectious"},
+    {"id": "I", "comment": "Infectious", "tag": ["infectious"]},
+    {"id": "I2", "comment": "Infectious", "tag": ["infectious"]},
     {"id": "E1", "comment": "Retired"},
     {"id": "E2", "comment": "Retired"}
   ],
