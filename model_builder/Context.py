@@ -78,7 +78,7 @@ class Context:
 
         self.N_DATA = len(self.data)
         
-        self.date_0 = datetime.datetime.strptime(context['data']['t0'], "%Y-%m-%d").date()
+        self.date_0 = datetime.datetime.strptime(context['data']['source'][self.ts_id[0]]['t0'], "%Y-%m-%d").date()
 
 
         ##TO DO:

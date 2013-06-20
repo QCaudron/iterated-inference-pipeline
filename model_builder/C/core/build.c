@@ -646,18 +646,17 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
         /*mandatory non fitted parameters and data*/
         p_data->data = fast_load_fill_json_2d(fast_get_json_array(json_data, "data"), "data");
 
+	p_data->nb_obs = plom_sanitize_nb_obs(nb_obs, N_DATA);
+
         /*data_ind*/
         struct s_data_ind **data_ind;
-        data_ind = malloc(N_DATA * sizeof(struct s_data_ind *));
+        data_ind = malloc(p_data->nb_obs * sizeof(struct s_data_ind *));
         if (data_ind==NULL) {
             char str[STR_BUFFSIZE];
             snprintf(str, STR_BUFFSIZE, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
             print_err(str);
             exit(EXIT_FAILURE);
         }
-
-
-	p_data->nb_obs = plom_sanitize_nb_obs(nb_obs, N_DATA);
         
         tmp_n_data_nonan=0; // get N_DATA_NONAN and indn_data_nonan
 
@@ -799,7 +798,7 @@ void clean_data(struct s_data *p_data)
         FREE(p_data->indn_data_nonan);
 
         /*data_ind*/
-        for(n=0; n<N_DATA; n++) {
+        for(n=0; n<p_data->nb_obs; n++) {
 	    if (p_data->data_ind[n]->n_nonan) {
 		FREE(p_data->data_ind[n]->ind_nonan);
 	    }

@@ -92,14 +92,16 @@ use the generated binaries.
 
 ##Contributing to the C library
 
+<!--
 First generate the documentation for the C code:
 A general introduction:
 In model_builder/doc/ run: ```docco smc.c``` and open docs/smc.html with
 a web browser. 
 In the same vain, ```docco kalman.c``` will detail our implementation
 of the extended Kalman Filter.
+-->
 
-in model_builder/doc/ run: ```doxygen Doxyfile``` and open model_builder/doc/html/index.html with
+On model_builder/doc/ run: ```doxygen Doxyfile``` and open model_builder/doc/html/index.html with
 a web browser.
 
 After having learned the basic structures involved in ```core```, we
