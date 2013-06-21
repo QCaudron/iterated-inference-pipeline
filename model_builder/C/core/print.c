@@ -19,7 +19,7 @@
 #include "plom.h"
 
 
-FILE *sfr_fopen(const char* path, const int general_id, const char* file_name, const char *mode, void (*header)(FILE*, struct s_data *), struct s_data *p_data)
+FILE *plom_fopen(const char* path, const int general_id, const char* file_name, const char *mode, void (*header)(FILE*, struct s_data *), struct s_data *p_data)
 {
 #if FLAG_JSON
     return NULL;
@@ -139,7 +139,7 @@ void header_hat(FILE *p_file, struct s_data *p_data)
 }
 
 
-void header_best(FILE *p_file, struct s_data *p_data)
+void header_trace(FILE *p_file, struct s_data *p_data)
 {
     int i, g;
     struct s_router **routers = p_data->routers;
@@ -160,7 +160,7 @@ void header_best(FILE *p_file, struct s_data *p_data)
 
 
 
-void sfr_fclose(FILE *p_file)
+void plom_fclose(FILE *p_file)
 {
 #if ! FLAG_JSON
     fclose(p_file);
@@ -349,7 +349,7 @@ void print_X(FILE *p_file_X, struct s_par **J_p_par, struct s_X **J_p_X, struct 
 
 
 
-void print_best(FILE *p_file_best, int m, struct s_best *p_best, struct s_data *p_data, double log_like)
+void print_trace(FILE *p_file_trace, int m, struct s_best *p_best, struct s_data *p_data, double log_like)
 {
     int i, k;
     int offset = 0;
@@ -363,7 +363,7 @@ void print_best(FILE *p_file_best, int m, struct s_best *p_best, struct s_data *
 #if FLAG_JSON
     json_array_append_new(json_print, json_integer(m));
 #else
-    fprintf(p_file_best, "%d,", m);
+    fprintf(p_file_trace, "%d,", m);
 #endif
 
     for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
@@ -372,7 +372,7 @@ void print_best(FILE *p_file_best, int m, struct s_best *p_best, struct s_data *
 #if FLAG_JSON
             json_array_append_new(json_print, json_real(x));
 #else
-            fprintf(p_file_best,"%g,", x);
+            fprintf(p_file_trace,"%g,", x);
 #endif
             offset++;
         }
@@ -381,7 +381,7 @@ void print_best(FILE *p_file_best, int m, struct s_best *p_best, struct s_data *
 #if FLAG_JSON
     json_array_append_new(json_print, isnan(log_like) ? json_null() : json_real(log_like));
 #else
-    fprintf(p_file_best,"%.6f\n", log_like);
+    fprintf(p_file_trace,"%.6f\n", log_like);
 #endif
 
 #if FLAG_JSON

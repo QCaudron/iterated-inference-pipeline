@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     int i, j;
 
     /* set default values for the options */
-    char sfr_help_string[] =
+    char plom_help_string[] =
         "PLOM Simulation\n"
         "usage:\n"
         "simul [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
             eps_rel = atof(optarg);
             break;
         case 'e':
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
 
         case 'f':
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
         } else if (!strcmp(argv[0], "psr")) {
             implementation = PLOM_PSR;
         } else {
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
         }
 
@@ -485,9 +485,9 @@ int main(int argc, char *argv[])
             if(OPTION_CONTINUE) {
                 struct s_hat *p_hat = build_hat(p_data);
 		compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 1, t_end, t_end);
-                FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
+                FILE *p_file_hat = plom_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
                 print_p_hat(p_file_hat, NULL, p_hat, p_data, 0);
-                sfr_fclose(p_file_hat);
+                plom_fclose(p_file_hat);
                 clean_hat(p_hat, p_data);
             }
         }

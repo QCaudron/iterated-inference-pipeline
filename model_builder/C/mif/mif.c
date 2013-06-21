@@ -75,16 +75,16 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 #endif
 
     
-    FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
+    FILE *p_file_trace = plom_fopen(SFR_PATH, GENERAL_ID, "trace", "w", header_trace, p_data);
 
     FILE *p_file_mif = NULL;
     if (OPTION_TRAJ) {
-        p_file_mif = sfr_fopen(SFR_PATH, GENERAL_ID, "mif", "w", header_mean_var_theoretical_mif, p_data);
+        p_file_mif = plom_fopen(SFR_PATH, GENERAL_ID, "mif", "w", header_mean_var_theoretical_mif, p_data);
     }
 
-    print_best(p_file_best, 0, p_best, p_data, NAN);
+    print_trace(p_file_trace, 0, p_best, p_data, NAN);
 #if ! FLAG_JSON
-    fflush(p_file_best);
+    fflush(p_file_trace);
 #endif
 
     gsl_matrix *var_fitted = NULL; 
@@ -216,9 +216,9 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
         print_log(str);
 #endif
 
-        print_best(p_file_best, m, p_best, p_data, p_like->Llike_best);
+        print_trace(p_file_trace, m, p_best, p_data, p_like->Llike_best);
 #if ! FLAG_JSON
-        fflush(p_file_best);
+        fflush(p_file_trace);
 #endif
 
     } /*end for on m*/
@@ -227,10 +227,10 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
         gsl_matrix_free(var_fitted);
     }
 
-    sfr_fclose(p_file_best);
+    plom_fclose(p_file_trace);
 
     if (OPTION_TRAJ) {
-        sfr_fclose(p_file_mif);
+        plom_fclose(p_file_mif);
     }
 
 #if !FLAG_OMP

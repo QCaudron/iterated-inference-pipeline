@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
 
     /* set default values for the options */
 
-    char sfr_help_string[] =
+    char plom_help_string[] =
         "PLOM Worker\n"
         "usage:\n"
         "worker [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
             break;
 
         case 'e':
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
 
         case 'i':
@@ -312,7 +312,7 @@ int main(int argc, char *argv[])
         } else if (!strcmp(argv[0], "psr")) {
             implementation = PLOM_PSR;
         } else {
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
         }
     }

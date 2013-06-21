@@ -28,7 +28,7 @@ void fourrier_power_spectrum(double *traj_obs_ts, int length_traj_obs_ts, int ts
 {
     char filename[255];
     sprintf(filename, "power_spectrum_%d", ts);
-    FILE *fpower = sfr_fopen(SFR_PATH, GENERAL_ID, filename, "w", NULL, NULL);
+    FILE *fpower = plom_fopen(SFR_PATH, GENERAL_ID, filename, "w", NULL, NULL);
 
     /*FFT of traj_obs_ts. Note that length_traj_obs_ts is power of 2
       gsl_fft_real_radix2_transform computes an in-place transform which means that raj_obs_ts is overwritten
@@ -63,7 +63,7 @@ void fourrier_power_spectrum(double *traj_obs_ts, int length_traj_obs_ts, int ts
 	fprintf(fpower, "%g,%g\n", ((double) k) /(((double) length_traj_obs_ts)), fft[k]);
     }
 
-    sfr_fclose(fpower);
+    plom_fclose(fpower);
 }
 
 
@@ -79,7 +79,7 @@ void period_dynamical_system(double *traj_obs_ts, int length_traj_obs_ts, int ts
 
     char filename[255];
     sprintf(filename,"period_%d", ts);
-    FILE *fperiod = sfr_fopen(SFR_PATH, GENERAL_ID, filename, "w", NULL, NULL);
+    FILE *fperiod = plom_fopen(SFR_PATH, GENERAL_ID, filename, "w", NULL, NULL);
 
     for(i=0; i<10; i++) {
         period_in_time_step = (int) round(ONE_YEAR*(i+1));
@@ -121,9 +121,9 @@ void max_min(double *traj_obs_ts, struct s_par *p_par, struct s_data *p_data, st
 
     char filename[255];
     sprintf(filename,"min_%d", ts);
-    FILE *fmin = sfr_fopen(SFR_PATH, GENERAL_ID, filename, "w", NULL, NULL);
+    FILE *fmin = plom_fopen(SFR_PATH, GENERAL_ID, filename, "w", NULL, NULL);
     sprintf(filename,"max_%d", ts);
-    FILE *fmax = sfr_fopen(SFR_PATH, GENERAL_ID, filename, "w", NULL, NULL);
+    FILE *fmax = plom_fopen(SFR_PATH, GENERAL_ID, filename, "w", NULL, NULL);
 
     int i, k;
     double traj_min, traj_max, t_min, t_max, t;
@@ -159,8 +159,8 @@ void max_min(double *traj_obs_ts, struct s_par *p_par, struct s_data *p_data, st
 	}
     }
 
-    sfr_fclose(fmin);
-    sfr_fclose(fmax);
+    plom_fclose(fmin);
+    plom_fclose(fmax);
 }
 
 

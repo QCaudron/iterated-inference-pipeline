@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     char str[STR_BUFFSIZE];
 
     /* set default values for the options */
-    char sfr_help_string[] =
+    char plom_help_string[] =
         "PLOM pMCMC\n"
         "usage:\n"
         "pmcmc [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
             alpha = atof(optarg);
             break;
         case 'e':
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
         case 'Z':
             OPTION_PIPELINE = 1;
@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
         } else if (!strcmp(argv[0], "psr")) {
             implementation = PLOM_PSR;
         } else {
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
         }
     }
@@ -283,14 +283,14 @@ int main(int argc, char *argv[])
 
 
     //TODO compute quantile online (https://github.com/plom-io/plom-sfi/issues/9)
-    //FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_pmcmc->p_data);
+    //FILE *p_file_hat = plom_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_pmcmc->p_data);
     //print_hat(p_file_hat, p_pmcmc->D_p_hat_best, p_pmcmc->p_data);
-    //sfr_fclose(p_file_hat);
+    //plom_fclose(p_file_hat);
 
     // print empirical covariance
-    FILE *p_file_cov = sfr_fopen(SFR_PATH, GENERAL_ID, "covariance", "w", NULL, NULL);
+    FILE *p_file_cov = plom_fopen(SFR_PATH, GENERAL_ID, "covariance", "w", NULL, NULL);
     print_covariance(p_file_cov, p_pmcmc->p_best->var_sampling);
-    sfr_fclose(p_file_cov);
+    plom_fclose(p_file_cov);
 
 #if FLAG_VERBOSE
     print_log("clean up...");

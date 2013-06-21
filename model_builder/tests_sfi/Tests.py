@@ -16,38 +16,38 @@ class TestLogTransfsAndPMCMC(unittest.TestCase):
             
       def test_prior_unif_transf_log(self):
             os.system('plom pipe theta.json -S r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
-            os.system('plom pipe theta.json -B -C -S r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
+            os.system('plom pipe theta.json -T -C -S r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
             test = self.call_test_unif('r0.city1__all')
             self.assertEqual(test,'1')
 
       def test_prior_normal_transf_log(self):
             os.system('plom pipe theta.json -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full')
-            os.system('plom pipe theta.json -B -C -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full')
+            os.system('plom pipe theta.json -T -C -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full')
             test = self.call_test_normal('r0.city1__all')
             self.assertEqual(test,'1')
 
       def test_prior_normal_and_unif_transf_log(self):
             os.system('plom pipe theta.json -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96,r0:city2__all:prior:uniform,r0:city2__all:guess:10,r0:city2__all:min:9.5,r0:city2__all:max:10.5 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full')
-            os.system('plom pipe theta.json -B -C -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96,r0:city2__all:prior:uniform,r0:city2__all:guess:10,r0:city2__all:min:9.5,r0:city2__all:max:10.5 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full')
+            os.system('plom pipe theta.json -T -C -S r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96,r0:city2__all:prior:uniform,r0:city2__all:guess:10,r0:city2__all:min:9.5,r0:city2__all:max:10.5 | ./pmcmc ode -M 10000 -S 10000 -E 10000 -o 0 --full')
             test1 = self.call_test_normal('r0.city1__all')
             test2 = self.call_test_unif('r0.city2__all')
             self.assertEqual(int(test1)*int(test2),1)
 
       def test_prior_unif_transf_logit_ab(self):
             os.system('plom pipe theta.json -S r0:transformation:logit_ab,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
-            os.system('plom pipe theta.json -B -C -S r0:transformation:logit_ab,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
+            os.system('plom pipe theta.json -T -C -S r0:transformation:logit_ab,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
             test = self.call_test_unif('r0.city1__all')
             self.assertEqual(test,'1')
 
       def test_prior_unif_transf_identity(self):
             os.system('plom pipe theta.json -S r0:transformation:identity,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
-            os.system('plom pipe theta.json -B -C -S r0:transformation:identity,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
+            os.system('plom pipe theta.json -T -C -S r0:transformation:identity,r0:city1__all:prior:uniform,r0:city1__all:guess:10,r0:city1__all:min:9.5,r0:city1__all:max:10.5 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
             test = self.call_test_unif('r0.city1__all')
             self.assertEqual(test,'1')
 
       def test_prior_normal_transf_identity(self):
             os.system('plom pipe theta.json -S r0:transformation:identity,r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
-            os.system('plom pipe theta.json -B -C -S r0:transformation:identity,r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
+            os.system('plom pipe theta.json -T -C -S r0:transformation:identity,r0:city1__all:prior:normal,r0:city1__all:guess:10,r0:city1__all:min:8.04,r0:city1__all:max:11.96 | ./pmcmc ode -M 10000 -S 1000 -E 1000 -o 0 --full')
             test = self.call_test_normal('r0.city1__all')
             self.assertEqual(test,'1')
 

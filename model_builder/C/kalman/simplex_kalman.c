@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     char ch;
     char str[STR_BUFFSIZE];
 
-    char sfr_help_string[] =
+    char plom_help_string[] =
         "PLOM ksimplex\n"
         "usage:\n"
         "ksimplex [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
             eps_rel = atof(optarg);
             break;
         case 'e':
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
         case 'b':
             option_no_trace = 1;
@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
         if (!strcmp(argv[0], "sde")) {
             implementation = PLOM_ODE;
         } else {
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
         }
     }

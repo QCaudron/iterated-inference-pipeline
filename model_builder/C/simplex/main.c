@@ -25,12 +25,13 @@ int main(int argc, char *argv[])
 
     /* set default values for the options */
 
-    char sfr_help_string[] =
+    char plom_help_string[] =
         "PLOM Simplex\n"
         "usage:\n"
         "simplex [implementation] [-p, --path <path>] [-i, --id <integer>] [-q, --least_square]\n"
         "                         [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                         [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>]  [-o, --nb_obs <integer>] [--prior]\n"
+	"                         [-b, --no_trace]\n"
         "                         [-g, --freeze_forcing <float>]\n"
         "                         [--help]\n"
         "where implementation is 'ode' (default)\n"
@@ -47,7 +48,7 @@ int main(int argc, char *argv[])
         "-l, --LIKE_MIN       likelihood smaller that LIKE_MIN are considered 0.0\n"
         "-M, --iter           maximum number of iterations\n"
         "-S, --size           simplex size used as a stopping criteria\n"
-	"-b, --no_best        do not write best_<id>.output file\n"
+	"-b, --no_trace       do not write trace_<id>.output file\n"
         "-o, --nb_obs         number of observations to be fitted (for tempering)"
         "--prior              add log(prior) to the estimated log likelihood\n"
         "--help               print the usage on stdout\n";
@@ -126,7 +127,7 @@ int main(int argc, char *argv[])
             eps_rel = atof(optarg);
             break;
         case 'e':
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
         case 'b':
             option_no_trace = 1;
@@ -174,7 +175,7 @@ int main(int argc, char *argv[])
             implementation = PLOM_ODE;
 	    noises_off = noises_off | PLOM_NO_DEM_STO| PLOM_NO_ENV_STO | PLOM_NO_DRIFT;
 	} else {
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
         }
     }
@@ -197,9 +198,9 @@ int main(int argc, char *argv[])
             p_simplex->p_best->to_be_estimated[k] = k;
         }
 
-        FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_simplex->p_data);
-        print_best(p_file_best, 0, p_simplex->p_best, p_simplex->p_data, f_simplex(p_simplex->p_best->mean, p_simplex));
-        sfr_fclose(p_file_best);
+        FILE *p_file_trace = plom_fopen(SFR_PATH, GENERAL_ID, "trace", "w", header_trace, p_simplex->p_data);
+        print_trace(p_file_trace, 0, p_simplex->p_best, p_simplex->p_data, f_simplex(p_simplex->p_best->mean, p_simplex));
+        plom_fclose(p_file_trace);
     } else {
         //run the simplex algo
         simplex(p_simplex->p_best, p_simplex->p_data, p_simplex, f_simplex, CONVERGENCE_STOP_SIMPLEX, M, option_no_trace);

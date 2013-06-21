@@ -46,16 +46,16 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
 #endif
 
     // open output files
-    FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
+    FILE *p_file_trace = plom_fopen(SFR_PATH, GENERAL_ID, "trace", "w", header_trace, p_data);
     FILE *p_file_X = NULL;
     int is_print_x = (print_opt & PLOM_PRINT_X);
     if (is_print_x) {
-        p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
+        p_file_X = plom_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
     }
 
     FILE *p_file_acc = NULL;
     if (print_opt & PLOM_PRINT_ACC){
-        p_file_acc = sfr_fopen(SFR_PATH, GENERAL_ID, "acc", "w", header_acceptance_rates, p_data);
+        p_file_acc = plom_fopen(SFR_PATH, GENERAL_ID, "acc", "w", header_acceptance_rates, p_data);
     }
 
     /////////////////////////
@@ -79,7 +79,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
     //store the accepted value in p_best->mean
     gsl_vector_memcpy(p_best->mean, p_best->proposed);
 
-    print_best(p_file_best, 0, p_best, p_data, p_like->Llike_best);
+    print_trace(p_file_trace, 0, p_best, p_data, p_like->Llike_best);
 
 #if FLAG_VERBOSE
     time_pmcmc_end = s_clock();
@@ -155,7 +155,7 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
 	    // evaluate empirical covariance
             eval_var_emp(p_best, (double) p_mcmc_calc_data->m_full_iteration);
 
-            print_best(p_file_best, p_mcmc_calc_data->m_full_iteration, p_best, p_data, p_like->Llike_prev);
+            print_trace(p_file_trace, p_mcmc_calc_data->m_full_iteration, p_best, p_data, p_like->Llike_prev);
 
 	    if (print_opt & PLOM_PRINT_ACC) {
 		print_acceptance_rates(p_file_acc, p_mcmc_calc_data, p_mcmc_calc_data->m_full_iteration);
@@ -172,13 +172,13 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
     // terminating //
     /////////////////
 
-    sfr_fclose(p_file_best);
+    plom_fclose(p_file_trace);
 
     if (is_print_x) {
-        sfr_fclose(p_file_X);
+        plom_fclose(p_file_X);
     }
     if (print_opt & PLOM_PRINT_ACC) {
-        sfr_fclose(p_file_acc);
+        plom_fclose(p_file_acc);
     }
 
 }

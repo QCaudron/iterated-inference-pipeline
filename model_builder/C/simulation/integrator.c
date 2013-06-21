@@ -100,7 +100,7 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
 
     FILE *p_file_X = NULL;
     if (OPTION_TRAJ) {
-        p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
+        p_file_X = plom_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
     }
 
     /* initialize with initial conditions and reset incidence */
@@ -129,7 +129,7 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
     }
 
     if (OPTION_TRAJ) {
-        sfr_fclose(p_file_X);
+        plom_fclose(p_file_X);
     }
 
     return traj_obs;
@@ -148,9 +148,9 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
 
     FILE *p_file_X = NULL;
     if (OPTION_TRAJ) {
-        p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
+        p_file_X = plom_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
     }
-    FILE *p_file_hat = sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
+    FILE *p_file_hat = plom_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
 
     struct s_hat *p_hat = build_hat(p_data);
 
@@ -221,7 +221,7 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
 
     clean_hat(p_hat, p_data);
     if (OPTION_TRAJ) {
-        sfr_fclose(p_file_X);
+        plom_fclose(p_file_X);
     }
-    sfr_fclose(p_file_hat);
+    plom_fclose(p_file_hat);
 }

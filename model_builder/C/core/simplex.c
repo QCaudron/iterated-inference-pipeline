@@ -41,9 +41,9 @@ void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simple
   char str[255];
 #endif
 
-  FILE *p_file_best = NULL;
+  FILE *p_file_trace = NULL;
   if(!option_no_trace) { //if option_no_trace we only open the file when the simplex is done (useful when chaining methods with walltime on clusters)
-      p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
+      p_file_trace = plom_fopen(SFR_PATH, GENERAL_ID, "trace", "w", header_trace, p_data);
   }
 
   double log_like = 0.0;
@@ -99,17 +99,17 @@ void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simple
       transfer_estimated(p_best, gsl_multimin_fminimizer_x(simp), p_data);
 
       if(!option_no_trace) {
-          print_best(p_file_best, iter-1, p_best, p_data, log_like);
+          print_trace(p_file_trace, iter-1, p_best, p_data, log_like);
       }
 
     } while (status == GSL_CONTINUE && iter < M);
 
   if(option_no_trace) {
-      p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
-      print_best(p_file_best, iter-1, p_best, p_data, log_like);
+      p_file_trace = plom_fopen(SFR_PATH, GENERAL_ID, "trace", "w", header_trace, p_data);
+      print_trace(p_file_trace, iter-1, p_best, p_data, log_like);
   }
 
-  sfr_fclose(p_file_best);
+  plom_fclose(p_file_trace);
 
   gsl_multimin_fminimizer_free(simp);
   gsl_vector_free(x);

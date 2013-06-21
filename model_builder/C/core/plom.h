@@ -671,14 +671,14 @@ void ask_update();
 void block();
 void update_walk_rates(struct s_best *p_best, struct s_data *p_data);
 /*print.c*/
-FILE *sfr_fopen(const char* path, const int general_id, const char* file_name, const char *mode, void (*header)(FILE*, struct s_data *), struct s_data *p_data);
-void sfr_fclose(FILE *p_file);
+FILE *plom_fopen(const char* path, const int general_id, const char* file_name, const char *mode, void (*header)(FILE*, struct s_data *), struct s_data *p_data);
+void plom_fclose(FILE *p_file);
 void print_warning(char *msg);
 void print_log(char *msg);
 void print_err(char *msg);
 
 void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, int j_or_m, const int n, const double t);
-void print_best(FILE *p_file_best, int m, struct s_best *p_best, struct s_data *p_data, double log_like);
+void print_trace(FILE *p_file_trace, int m, struct s_best *p_best, struct s_data *p_data, double log_like);
 void print_p_hat(FILE *p_file, json_t *json_print, struct s_hat *p_hat, struct s_data *p_data, const double t);
 
 void print_hat(FILE *p_file, struct s_hat **D_p_hat, struct s_data *p_data);
@@ -692,7 +692,7 @@ void print_X(FILE *p_file_X, struct s_par **J_p_par, struct s_X **J_p_X, struct 
 void header_X(FILE *p_file, struct s_data *p_data);
 void header_prediction_residuals(FILE *p_file, struct s_data *p_data);
 void header_hat(FILE *p_file, struct s_data *p_data);
-void header_best(FILE *p_file, struct s_data *p_data);
+void header_trace(FILE *p_file, struct s_data *p_data);
 
 /*prediction_util.c*/
 void reset_inc(struct s_X *p_X, struct s_data *p_data);

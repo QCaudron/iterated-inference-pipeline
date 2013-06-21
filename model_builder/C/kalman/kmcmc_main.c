@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     char str[STR_BUFFSIZE];
 
     /* set default values for the options */
-    char sfr_help_string[] =
+    char plom_help_string[] =
         "PLOM kmcmc\n"
         "usage:\n"
         "kmcmc [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
             alpha = atof(optarg);
             break;
         case 'e':
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
         case 'p':
             snprintf(SFR_PATH, STR_BUFFSIZE, "%s", optarg);
@@ -233,7 +233,7 @@ int main(int argc, char *argv[])
         if (!strcmp(argv[0], "sde")) {
             implementation = PLOM_ODE;
         } else {
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
         }
     }
@@ -265,9 +265,9 @@ int main(int argc, char *argv[])
 
     // print empirical covariance
     if (OPTION_FULL_UPDATE) {
-        FILE *p_file_cov = sfr_fopen(SFR_PATH, GENERAL_ID, "covariance", "w", NULL, NULL);
+        FILE *p_file_cov = plom_fopen(SFR_PATH, GENERAL_ID, "covariance", "w", NULL, NULL);
         print_covariance(p_file_cov, p_kalman->p_best->var_sampling);
-        sfr_fclose(p_file_cov);
+        plom_fclose(p_file_cov);
     }
 
 #if FLAG_VERBOSE

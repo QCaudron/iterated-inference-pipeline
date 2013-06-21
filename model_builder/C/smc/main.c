@@ -25,13 +25,13 @@ int main(int argc, char *argv[])
 
     /* set default values for the options */
 
-    char sfr_help_string[] =
+    char plom_help_string[] =
         "PLOM Sequential Monte Carlo\n"
         "usage:\n"
         "smc [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                     [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
         "                     [-g, --freeze_forcing <float>]\n"
-        "                     [-t, --no_filter] [-b, --no_best] [-h, --no_hat]\n"
+        "                     [-t, --no_filter] [-b, --no_trace] [-h, --no_hat]\n"
         "                     [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
         "                     [-l, --LIKE_MIN <float>] [-J <integer>] [--prior]\n"
         "                     [--help]\n"
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 	"\n"
         "--traj             print the trajectories\n"
         "-t, --no_filter    do not filter\n"
-        "-b, --no_best      do not write best_<id>.output file\n"
+        "-b, --no_trace     do not write trace_<id>.output file\n"
         "-h, --no_hat       do not write hat_<id>.output file\n"
         "-r, --no_pred_res  do not write pred_res_<general_id>.output file (prediction residuals)\n"
 	"\n"
@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
                 {"id",         required_argument, 0, 'i'},
                 {"N_THREAD",   required_argument, 0, 'P'},
                 {"no_filter",  no_argument,       0, 't'},
-                {"no_best",    no_argument,       0, 'b'},
+                {"no_trace",    no_argument,       0, 'b'},
                 {"no_hat",     no_argument,       0, 'h'},
                 {"no_pred_res",no_argument,       0, 'r'},
 
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
             break;
 
         case 'e':
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
 
         case 'p':
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
         } else if (!strcmp(argv[0], "psr")) {
             implementation = PLOM_PSR;
         } else {
-            print_log(sfr_help_string);
+            print_log(plom_help_string);
             return 1;
         }
     }
@@ -241,9 +241,9 @@ int main(int argc, char *argv[])
     struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, freeze_forcing, -1, p_data, settings);
     json_decref(settings);
 
-    FILE *p_file_X = (print_opt & PLOM_PRINT_X) ? sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
-    FILE *p_file_hat = (print_opt & PLOM_PRINT_HAT) ? sfr_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data): NULL;
-    FILE *p_file_pred_res = (print_opt & PLOM_PRINT_PRED_RES) ? sfr_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals, p_data): NULL;
+    FILE *p_file_X = (print_opt & PLOM_PRINT_X) ? plom_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data): NULL;
+    FILE *p_file_hat = (print_opt & PLOM_PRINT_HAT) ? plom_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data): NULL;
+    FILE *p_file_pred_res = (print_opt & PLOM_PRINT_PRED_RES) ? plom_fopen(SFR_PATH, GENERAL_ID, "pred_res", "w", header_prediction_residuals, p_data): NULL;
 
 #if FLAG_VERBOSE
     snprintf(str, STR_BUFFSIZE, "Starting Plom-smc with the following options: i = %d, J = %d, LIKE_MIN = %g, N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, n_threads);
@@ -347,21 +347,21 @@ int main(int argc, char *argv[])
 #endif
 
     if (print_opt & PLOM_PRINT_X) {
-        sfr_fclose(p_file_X);
+        plom_fclose(p_file_X);
     }
 
     if (print_opt & PLOM_PRINT_HAT) {
-        sfr_fclose(p_file_hat);
+        plom_fclose(p_file_hat);
     }
 
     if (print_opt & PLOM_PRINT_PRED_RES) {
-        sfr_fclose(p_file_pred_res);
+        plom_fclose(p_file_pred_res);
     }
 
     if (print_opt & PLOM_PRINT_BEST) {
-        FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
-        print_best(p_file_best, 0, p_best, p_data, p_like->Llike_best);
-        sfr_fclose(p_file_best);
+        FILE *p_file_trace = plom_fopen(SFR_PATH, GENERAL_ID, "trace", "w", header_trace, p_data);
+        print_trace(p_file_trace, 0, p_best, p_data, p_like->Llike_best);
+        plom_fclose(p_file_trace);
     }
 
 #if FLAG_VERBOSE

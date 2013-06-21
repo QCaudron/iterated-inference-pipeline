@@ -59,15 +59,15 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 #endif
 
     // open output files
-    FILE *p_file_best = sfr_fopen(SFR_PATH, GENERAL_ID, "best", "w", header_best, p_data);
+    FILE *p_file_trace = plom_fopen(SFR_PATH, GENERAL_ID, "trace", "w", header_trace, p_data);
     FILE *p_file_X = NULL;
     if (print_opt & PLOM_PRINT_X_SMOOTH) {
-        p_file_X = sfr_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
+        p_file_X = plom_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
     }
 
     FILE *p_file_acc = NULL;
     if (print_opt & PLOM_PRINT_ACC){
-        p_file_acc = sfr_fopen(SFR_PATH, GENERAL_ID, "acc", "w", header_acceptance_rates, p_data);
+        p_file_acc = plom_fopen(SFR_PATH, GENERAL_ID, "acc", "w", header_acceptance_rates, p_data);
     }
 
     void *context = NULL;
@@ -174,7 +174,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     //store the accepted value in p_best->mean
     gsl_vector_memcpy(p_best->mean, p_best->proposed);
 
-    print_best(p_file_best, 0, p_best, p_data, p_like->Llike_best);
+    print_trace(p_file_trace, 0, p_best, p_data, p_like->Llike_best);
 
     // print iteration info
 #if FLAG_VERBOSE
@@ -257,7 +257,7 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 		sample_traj_and_print(p_file_X, D_J_p_X, p_par, p_data, p_like, calc[0], p_mcmc_calc_data->m_full_iteration);
 	    }
 
-            print_best(p_file_best, p_mcmc_calc_data->m_full_iteration, p_best, p_data, p_like->Llike_prev);
+            print_trace(p_file_trace, p_mcmc_calc_data->m_full_iteration, p_best, p_data, p_like->Llike_prev);
 
 	    if (print_opt & PLOM_PRINT_ACC) {
 		print_acceptance_rates(p_file_acc, p_mcmc_calc_data, p_mcmc_calc_data->m_full_iteration);
@@ -275,13 +275,13 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     // terminating //
     /////////////////
 
-    sfr_fclose(p_file_best);
+    plom_fclose(p_file_trace);
 
     if (print_opt & PLOM_PRINT_X_SMOOTH) {
-        sfr_fclose(p_file_X);
+        plom_fclose(p_file_X);
     }
     if (print_opt & PLOM_PRINT_ACC) {
-        sfr_fclose(p_file_acc);
+        plom_fclose(p_file_acc);
     }
 
 
