@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
                 {"freeze_forcing", required_argument, 0, 'g'},
                 {"help", no_argument,  0, 'e'},
                 {"least_square", no_argument,  0, 'q'},
-                {"no_best", no_argument,  0, 'b'},
+                {"no_trace", no_argument,  0, 'b'},
                 {"prior", no_argument, &OPTION_PRIOR, 1},
                 {"path",    required_argument, 0, 'p'},
                 {"id",    required_argument, 0, 'i'},
