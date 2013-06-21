@@ -6,7 +6,7 @@ args <- commandArgs()
 varname = args[3]
 print(varname)
 
-d<-read.csv("best_0.csv",header=TRUE)
+d<-read.csv("trace_0.csv",header=TRUE)
 
 ess = round(effectiveSize(d$r0.city1__all))
 
