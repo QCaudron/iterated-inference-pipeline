@@ -1,1 +1,79 @@
-{"name":"oBinomial","description":"my comment","observed":[{"id":"prev","comment":"prevalence","definition":["I_0","I_1"],"time_series_id":["city1__CDC__prev"],"observation_id":"common"},{"id":"inc_out","comment":"incidence (including death) measured at recovery time","definition":[{"from":"I_1","to":"DU"},{"from":"I_0","to":"U"},{"from":"I_1","to":"U"}],"time_series_id":["all__CDC__inc","all__google__inc"],"observation_id":"common"},{"id":"inc_in","comment":"incidence measured at infection time","definition":[{"from":"S","to":"I_0"}],"time_series_id":["city2__CDC__inc"],"observation_id":"common"}],"observation":[{"id":"common","parameter":[{"id":"rep","comment":"reporting rate"},{"id":"phi","comment":"over-dispertion"}],"model":{"distribution":"discretized_normal","mean":"rep*prop*x","var":"rep*(1.0-rep)*prop*x + (rep*phi*prop*x)**2"}}]}
+{
+  "name": "oBinomial",
+  "description": "my comment",
+  "observed": [
+    {
+      "id": "prev",
+      "comment": "prevalence",
+      "definition": [
+        "I_0",
+        "I_1"
+      ],
+      "time_series_id": [
+        "city1__CDC__prev"
+      ],
+      "observation_id": "common"
+    },
+    {
+      "id": "inc_out",
+      "comment": "incidence (including death) measured at recovery time",
+      "definition": [
+        {
+          "from": "I_1",
+          "to": "R"
+        },
+        {
+          "from": "I_0",
+          "to": "U"
+        },
+        {
+          "from": "I_1",
+          "to": "U"
+        }
+      ],
+      "time_series_id": [
+        "all__CDC__inc",
+        "all__google__inc"
+      ],
+      "observation_id": "common"
+    },
+    {
+      "id": "inc_in",
+      "comment": "incidence measured at infection time",
+      "definition": [
+        {
+          "from": "S",
+          "to": "I_0"
+        }
+      ],
+      "time_series_id": [
+        "city2__CDC__inc"
+      ],
+      "observation_id": "common"
+    }
+  ],
+  "observation": [
+    {
+      "id": "common",
+      "parameter": [
+        {
+          "id": "rep",
+          "comment": "reporting rate"
+        },
+        {
+          "id": "phi",
+          "comment": "over-dispertion"
+        },
+        {
+          "id": "prop",
+          "comment": "proportion of the population under surveillance"
+        }
+      ],
+      "model": {
+        "distribution": "discretized_normal",
+        "mean": "rep*prop*x",
+        "var": "rep*(1.0-rep)*prop*x + (rep*phi*prop*x)**2"
+      }
+    }
+  ]
+}

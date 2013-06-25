@@ -14,6 +14,6 @@ var def = [
 //erlangify !    
 var erlang = new Erlang(def);
 
-fs.writeFileSync('process.json', JSON.stringify(erlang.ify(p)));
-fs.writeFileSync('link.json', JSON.stringify(erlang.ify(l)));
-fs.writeFileSync('theta.json', JSON.stringify(erlang.ify(t)));
+fs.writeFileSync('process.json', JSON.stringify(erlang.ify(p), null, 2));
+fs.writeFileSync('link.json', JSON.stringify(erlang.ify(l), null, 2));
+fs.writeFileSync('theta.json', JSON.stringify(erlang.ify(t), null, 2));
