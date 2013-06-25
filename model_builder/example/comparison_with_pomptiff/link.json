@@ -1,0 +1,32 @@
+{
+  "name": "my name",
+  "description": "my comment",
+
+  "observed": [
+    {
+      "id": "inc_in", "comment":"incidence measured at infection time",
+      "definition": [{"from":"I", "to":"R"}],
+      "time_series_id": ["city1__CDC__inc"],
+      "observation_id": "common"
+    }
+  ],
+
+  "observation": [
+    {
+      "id": "common", 
+      "parameter": [
+        {"id": "rep", "comment": "reporting rate"},
+        {"id": "phi",  "comment": "over-dispertion"},
+        {
+          "id": "prop",
+          "comment": "proportion of the population under surveillance"
+        }
+      ],
+      "model": {
+        "distribution": "discretized_normal",
+        "mean": "rep*prop*x",
+        "var": "rep*(1.0-rep)*prop*x + (rep*phi*prop*x)**2"
+      }
+    }
+  ]
+}
