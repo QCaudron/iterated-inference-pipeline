@@ -91,7 +91,8 @@ void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data)
 void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data, struct s_calc *p_calc, const double t)
 {
     struct s_iterator *p_it = p_data->p_it_only_drift;
-    int i, cac, sumsv;
+    int i, cac;
+    double sumsv;
 
     // sanitising first: recover negative state variables, and rescale if total population is reached
     for(i=0; i<N_PAR_SV*N_CAC; i++) {
@@ -105,7 +106,7 @@ void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data, struct s_calc 
 	    }
 	    if( (gsl_spline_eval(p_calc->spline[0][cac],t,p_calc->acc[0][cac]) - sumsv) < 0 ){
 		for(i=0; i<N_PAR_SV; i++) {
-		    gsl_vector_set(xk, i*N_CAC +cac, gsl_vector_get(xk, i*N_CAC +cac)/((float)sumsv) * gsl_spline_eval(p_calc->spline[0][cac],t,p_calc->acc[0][cac]));
+		    gsl_vector_set(xk, i*N_CAC +cac, gsl_vector_get(xk, i*N_CAC +cac)/sumsv * gsl_spline_eval(p_calc->spline[0][cac],t,p_calc->acc[0][cac]));
 		}
 	    }
 	}
