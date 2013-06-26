@@ -96,6 +96,7 @@ void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data)
     //proj (without drift)
     for(i=0; i<N_PAR_SV*N_CAC; i++) {
         p_X->proj[i] = (gsl_vector_get(xk, i) > 0.0) ? gsl_vector_get(xk, i) : 0.0 ;
+	gsl_vector_set(xk, i, (gsl_vector_get(xk, i) > 0.0) ? gsl_vector_get(xk, i) : 0.0) ;
     }
 
     //drift
