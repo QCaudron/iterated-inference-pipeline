@@ -88,10 +88,28 @@ void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data)
  * @param p_X the X vector to be constructed
  * @param xk the concatenated vector
  */
-void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data)
+void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data, struct s_calc *p_calc, const double t)
 {
     struct s_iterator *p_it = p_data->p_it_only_drift;
-    int i;
+    int i, cac, sumsv;
+
+    // sanitising first: recover negative state variables, and rescale if total population is reached
+    for(i=0; i<N_PAR_SV*N_CAC; i++) {
+	gsl_vector_set(xk, i, (gsl_vector_get(xk, i) > 0.0) ? gsl_vector_get(xk, i) : 0.0) ;
+    }
+    if(!POP_SIZE_EQ_SUM_SV){
+	for(cac=0; cac<N_CAC; cac++){
+	    sumsv = 0.0;
+	    for(i=0; i<N_PAR_SV; i++) {
+		sumsv += gsl_vector_get(xk, i*N_CAC +cac);
+	    }
+	    if( (gsl_spline_eval(p_calc->spline[0][cac],t,p_calc->acc[0][cac]) - sumsv) < 0 ){
+		for(i=0; i<N_PAR_SV; i++) {
+		    gsl_vector_set(xk, i*N_CAC +cac, gsl_vector_get(xk, i*N_CAC +cac)/((float)sumsv) * gsl_spline_eval(p_calc->spline[0][cac],t,p_calc->acc[0][cac]));
+		}
+	    }
+	}
+    }
 
     //proj (without drift)
     for(i=0; i<N_PAR_SV*N_CAC; i++) {
@@ -105,6 +123,34 @@ void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data)
     }
 }
 
+/**
+ * test wether a state variable (including remainder), has negative value
+ * @param a list beginning by the state variables (X->proj, xk...)
+ * @return a plom error code
+ */
+plom_err_code test_all_sv_pos(gsl_vector *xk, struct s_data *p_data, struct s_calc *p_calc, const double t)
+{
+    int is_err = 0;
+    int i, cac;
+    double sumsv;
+
+    for(i=0; i<N_PAR_SV*N_CAC; i++) {
+	if(gsl_vector_get(xk, i) < 0.0){
+	    is_err = 0;
+	};
+    }
+
+    for(cac=0; cac<N_CAC; cac++){
+	sumsv = 0.0;
+	for(i=0; i<N_PAR_SV; i++) {
+	    sumsv += gsl_vector_get(xk, i*N_CAC +cac);
+	}
+	if( (gsl_spline_eval(p_calc->spline[0][cac],t,p_calc->acc[0][cac]) - sumsv) < 0 ){
+	    is_err = 0;
+	}
+    }
+    return (is_err) ? PLOM_ERR_LIKE: PLOM_SUCCESS;
+}
 
 /**
  * get total population in SV
@@ -291,9 +337,16 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 	    }
 
 	    //echo back the change on xk to p_X->proj
-	    xk2X(p_X, p_kalman_update->xk, p_data);
-
-	    log_lik += log_lik_temp;
+	    xk2X(p_X, p_kalman_update->xk, p_data, calc[0], t1);
+	    
+	    
+	    plom_err_code rc = test_all_sv_pos(p_kalman_update->xk, p_data, calc[0], t1);
+	    if(rc != PLOM_SUCCESS){
+		print_err("error negative compartment sizes");
+		log_lik += LOG_LIKE_MIN;
+	    } else {
+		log_lik += log_lik_temp;
+	    }
 	}
 
 	if (print_opt & PLOM_PRINT_HAT) {
