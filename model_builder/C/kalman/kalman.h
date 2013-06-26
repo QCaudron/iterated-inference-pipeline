@@ -97,7 +97,6 @@ double drift_derivative(double jac_tpl, double jac_der, struct s_router *r, int 
 double f_simplex_kalman(const gsl_vector *x, void *params);
 void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data, struct s_calc *p_calc, const double t);
 void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data);
-plom_err_code test_all_sv_pos(gsl_vector *xk, struct s_data *p_data, struct s_calc *p_calc, const double t);
 double get_total_pop(double *X);
 double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **routers);
 void reset_inc_cov(gsl_matrix *Ct);

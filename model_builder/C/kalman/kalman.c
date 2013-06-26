@@ -123,34 +123,6 @@ void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data, struct s_calc 
     }
 }
 
-/**
- * test wether a state variable (including remainder), has negative value
- * @param a list beginning by the state variables (X->proj, xk...)
- * @return a plom error code
- */
-plom_err_code test_all_sv_pos(gsl_vector *xk, struct s_data *p_data, struct s_calc *p_calc, const double t)
-{
-    int is_err = 0;
-    int i, cac;
-    double sumsv;
-
-    for(i=0; i<N_PAR_SV*N_CAC; i++) {
-	if(gsl_vector_get(xk, i) < 0.0){
-	    is_err = 0;
-	};
-    }
-
-    for(cac=0; cac<N_CAC; cac++){
-	sumsv = 0.0;
-	for(i=0; i<N_PAR_SV; i++) {
-	    sumsv += gsl_vector_get(xk, i*N_CAC +cac);
-	}
-	if( (gsl_spline_eval(p_calc->spline[0][cac],t,p_calc->acc[0][cac]) - sumsv) < 0 ){
-	    is_err = 0;
-	}
-    }
-    return (is_err) ? PLOM_ERR_LIKE: PLOM_SUCCESS;
-}
 
 /**
  * get total population in SV
@@ -339,14 +311,8 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 	    //echo back the change on xk to p_X->proj
 	    xk2X(p_X, p_kalman_update->xk, p_data, calc[0], t1);
 	    
+	    log_lik += log_lik_temp;
 	    
-	    plom_err_code rc = test_all_sv_pos(p_kalman_update->xk, p_data, calc[0], t1);
-	    if(rc != PLOM_SUCCESS){
-		print_err("error negative compartment sizes");
-		log_lik += LOG_LIKE_MIN;
-	    } else {
-		log_lik += log_lik_temp;
-	    }
 	}
 
 	if (print_opt & PLOM_PRINT_HAT) {
