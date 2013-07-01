@@ -288,9 +288,10 @@ int main(int argc, char *argv[])
     //plom_fclose(p_file_hat);
 
     // print empirical covariance
-    FILE *p_file_cov = plom_fopen(SFR_PATH, GENERAL_ID, "covariance", "w", NULL, NULL);
+    FILE *p_file_cov = plom_fopen(SFR_PATH, GENERAL_ID, "covariance", "w", header_covariance, p_pmcmc->p_data);
     print_covariance(p_file_cov, p_pmcmc->p_best->var_sampling);
     plom_fclose(p_file_cov);
+   
 
 #if FLAG_VERBOSE
     print_log("clean up...");

@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
 
     // print empirical covariance
     if (OPTION_FULL_UPDATE) {
-        FILE *p_file_cov = plom_fopen(SFR_PATH, GENERAL_ID, "covariance", "w", NULL, NULL);
+        FILE *p_file_cov = plom_fopen(SFR_PATH, GENERAL_ID, "covariance", "w", header_covariance, p_kalman->p_data);
         print_covariance(p_file_cov, p_kalman->p_best->var_sampling);
         plom_fclose(p_file_cov);
     }

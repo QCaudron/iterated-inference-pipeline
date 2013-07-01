@@ -576,7 +576,7 @@ void load_covariance(gsl_matrix *covariance, json_t *array2d)
     char str[STR_BUFFSIZE];
     int i, k;
 
-    for (i=0; i< json_array_size(array2d); i++) {
+    for (i=1; i< json_array_size(array2d); i++) {//start at 1 to skip header
         json_t *array_i;
         array_i = json_array_get(array2d, i);
         if (!json_is_array(array_i)) {
@@ -591,7 +591,7 @@ void load_covariance(gsl_matrix *covariance, json_t *array2d)
             value_ik = json_array_get(array_i, k);
 
             if (json_is_number(value_ik)) {
-                gsl_matrix_set(covariance, i, k, json_number_value(value_ik));
+                gsl_matrix_set(covariance, i-1, k, json_number_value(value_ik)); //i-1 due to header
             } else {
                 sprintf(str, "error: covariance[%d][%d] is not a number\n", i, k);
                 print_err(str);

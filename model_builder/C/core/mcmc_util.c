@@ -269,6 +269,22 @@ void print_acceptance_rates(FILE *p_file, struct s_mcmc_calc_data *p, int m_full
 }
 
 
+
+void header_covariance(FILE *p_file, struct s_data *p_data)
+{
+    int i, g;
+    struct s_router **routers = p_data->routers;
+
+    for(i=0; i<p_data->p_it_all->length; i++) {
+        const char *name = routers[i]->name;
+        for(g=0; g<p_data->routers[i]->n_gp; g++) {
+            const char *group = routers[i]->group_name[g];
+            fprintf(p_file, "%s:%s%s", name, group, (i == (p_data->p_it_all->length-1) && (g == (p_data->routers[i]->n_gp-1)) )? "\n" : ",");
+        }
+    }
+}
+
+
 /**
  * print empirical matrix of variance covariance
  */
