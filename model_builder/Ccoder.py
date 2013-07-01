@@ -186,7 +186,11 @@ class Ccoder(Cmodel):
 
     def print_build_psr(self):
         Clist = []
-        for s in self.par_sv + ['U', self.remainder]:
+        univ = ['U']
+        if self.remainder:
+            univ += [self.remainder]
+
+        for s in self.par_sv + univ:
             nbreac = len([r for r in self.proc_model if r['from']==s]) +1 ##+1 to stay in the same compartment or to declare smtg in case of no reaction (not super clean but makes C code easier...)
             Clist.append({'state':s, 'nb_reaction': nbreac})
 
@@ -513,7 +517,11 @@ class Ccoder(Cmodel):
     def print_order(self):
         order_univ = []
         N_PAR_SV = len(self.par_sv)
-        for i, X in enumerate(['U', self.remainder]):
+        univ = ['U']
+        if self.remainder:
+            univ += [self.remainder]
+
+        for i, X in enumerate(univ):
             order_univ.append({'name': X, 'order': N_PAR_SV+i})
 
         return {'var': self.par_sv + self.par_proc + self.par_obs, 'drift': self.drift_var, 'data': self.par_fixed, 'universe': order_univ}

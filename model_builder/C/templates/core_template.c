@@ -36,7 +36,7 @@
  */
 void build_psr(struct s_calc *p)
 {
-    unsigned int tab[N_PAR_SV+2]; //+2 for U and DU of the universes
+    unsigned int tab[N_PAR_SV+{{ order.universe|length }}]; 
 
     /*automaticaly generated code: dimension of prob and inc*/
     {% for x in psr %}
