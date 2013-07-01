@@ -232,7 +232,6 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 	proj2obs(p_X, p_data);
 
 	if (print_opt & PLOM_PRINT_X) {
-	    printf("e\n");
 	    print_X(p_file_X, &p_par, &p_X, p_data, calc[0], 1, 1, m, -1, 0.0);
 	}
 
