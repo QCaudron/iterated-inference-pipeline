@@ -200,11 +200,11 @@ def suite_pMCMCsmoothing():
 
 if __name__ == '__main__' :
 
-      run_LogTransfsAndPMCMC = 1
+      run_LogTransfsAndPMCMC = 0
       run_KalmanOnDiffusions = 0
       run_SMCSDEagainstKalman = 0
       run_pMCMCsmoothing = 0
-      run_pMCMCsmoothingWithNaNs = 0
+      run_pMCMCsmoothingWithNaNs = 1
 
       Root = os.getcwd()
 

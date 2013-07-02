@@ -5,38 +5,12 @@
 
   "parameter": {
     "S": {
-      "partition_id": "variable_population",
+      "partition_id": "identical_population",
       "transformation": "logit",
-      "group": {
-        "city1__all": {
-          "min": {
-            "value": 0.2
-          },
-          "max": {
-            "value": 0.2
-          },
-          "guess": {
-            "value": 0.2
-          },
-          "sd_transf": {
-            "value": 0.0
-          }
-        },
-        "city2__all": {
-          "min": {
-            "value": 0.2
-          },
-          "max": {
-            "value": 0.2
-          },
-          "guess": {
-            "value": 0.2
-          },
-          "sd_transf": {
-            "value": 0.0
-          }
-        }           
-      }
+      "min": 0.2,
+      "max": 0.2,
+      "guess": 0.2,
+      "sd_transf": 0.0
     },
     
     "I": {
