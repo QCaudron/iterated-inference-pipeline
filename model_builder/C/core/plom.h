@@ -671,6 +671,8 @@ void ask_update();
 void block();
 void update_walk_rates(struct s_best *p_best, struct s_data *p_data);
 /*print.c*/
+int plom_unlink_done(const char* path, const int general_id);
+void plom_print_done(json_t *theta, struct s_data *p_data, struct s_best *p_best, const char* path, const int general_id, const enum plom_print print_opt);
 FILE *plom_fopen(const char* path, const int general_id, const char* file_name, const char *mode, void (*header)(FILE*, struct s_data *), struct s_data *p_data);
 void plom_fclose(FILE *p_file);
 void print_warning(char *msg);

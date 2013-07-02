@@ -19,6 +19,48 @@
 #include "plom.h"
 
 
+int plom_unlink_done(const char* path, const int general_id){
+#if FLAG_JSON
+    return 0;
+#else
+    char str[STR_BUFFSIZE];
+    snprintf(str, STR_BUFFSIZE, "%s.done_%d.json", path, general_id);
+    return unlink(str);
+#endif
+}
+
+
+void plom_print_done(json_t *theta, struct s_data *p_data, struct s_best *p_best, const char* path, const int general_id, const enum plom_print print_opt){
+#if !FLAG_JSON
+    char str[STR_BUFFSIZE];
+    snprintf(str, STR_BUFFSIZE, "%s.done_%d.json", path, general_id);
+
+    int i, g;
+    struct s_router **routers = p_data->routers;
+    
+    int offset = 0;
+    double x;
+
+    json_t *parameter = json_object_get(theta, "parameter");
+
+    for(i=0; i<p_data->p_it_all->length; i++) {
+        const char *name = routers[i]->name;
+	json_t *p = json_object_get(json_object_get(parameter, name), "group");
+        for(g=0; g<p_data->routers[i]->n_gp; g++) {
+            const char *group = routers[i]->group_name[g];
+	    json_t *guess = json_object_get(json_object_get(p, group), "guess");	    
+
+            x = (*(p_data->routers[i]->f_inv))(gsl_vector_get(p_best->mean, offset), p_data->routers[i]->min[g], p_data->routers[i]->max[g]);	    
+	    json_object_set_new(guess, "value", json_real(x));	    
+	    offset++;
+        }
+    }
+    
+    json_dump_file(theta, str, 0);
+#endif
+}
+
+
 FILE *plom_fopen(const char* path, const int general_id, const char* file_name, const char *mode, void (*header)(FILE*, struct s_data *), struct s_data *p_data)
 {
 #if FLAG_JSON
@@ -34,7 +76,6 @@ FILE *plom_fopen(const char* path, const int general_id, const char* file_name, 
     return my_file;
 
 #endif
-
 }
 
 
@@ -366,7 +407,7 @@ void print_trace(FILE *p_file_trace, int m, struct s_best *p_best, struct s_data
     fprintf(p_file_trace, "%d,", m);
 #endif
 
-    for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
+    for(i=0; i<p_data->p_it_all->length; i++) {
         for(k=0; k<p_data->routers[i]->n_gp; k++) {
             x = (*(p_data->routers[i]->f_inv))(gsl_vector_get(p_best->mean, offset), p_data->routers[i]->min[k], p_data->routers[i]->max[k]);
 #if FLAG_JSON

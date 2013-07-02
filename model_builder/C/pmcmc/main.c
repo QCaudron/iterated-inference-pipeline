@@ -257,6 +257,7 @@ int main(int argc, char *argv[])
         }
     }
 
+    plom_unlink_done(SFR_PATH, GENERAL_ID);
     json_t *settings = load_settings(PATH_SETTINGS);
 
     json_t *theta = load_json();
@@ -266,7 +267,6 @@ int main(int argc, char *argv[])
                                           a, m_switch, m_eps, epsilon_max, is_smooth, alpha,
                                           J, &n_threads, nb_obs);
     json_decref(settings);
-    json_decref(theta);
 
     transform_theta(p_pmcmc->p_best, p_pmcmc->p_data, !is_covariance);
     gsl_vector_memcpy(p_pmcmc->p_best->proposed, p_pmcmc->p_best->mean);
@@ -291,11 +291,13 @@ int main(int argc, char *argv[])
     FILE *p_file_cov = plom_fopen(SFR_PATH, GENERAL_ID, "covariance", "w", header_covariance, p_pmcmc->p_data);
     print_covariance(p_file_cov, p_pmcmc->p_best->var_sampling);
     plom_fclose(p_file_cov);
-   
+
+    plom_print_done(theta, p_pmcmc->p_data, p_pmcmc->p_best, SFR_PATH, GENERAL_ID, print_opt);   
 
 #if FLAG_VERBOSE
     print_log("clean up...");
 #endif
+    json_decref(theta);
 
     clean_pmcmc(p_pmcmc);
 

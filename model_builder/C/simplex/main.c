@@ -183,10 +183,10 @@ int main(int argc, char *argv[])
     sprintf(str, "Starting Plom-simplex with the following options: i = %d, LIKE_MIN = %g, M = %d, CONVERGENCE_STOP_SIMPLEX = %g", GENERAL_ID, LIKE_MIN, M, CONVERGENCE_STOP_SIMPLEX);
     print_log(str);
 
+    plom_unlink_done(SFR_PATH, GENERAL_ID);
     json_t *theta = load_json();
     struct s_simplex *p_simplex = build_simplex(theta, implementation, noises_off, GENERAL_ID, OPTION_PRIOR, dt, eps_abs, eps_rel, freeze_forcing, nb_obs);
     int is_covariance = (json_object_get(theta, "covariance") != NULL);
-    json_decref(theta);
     transform_theta(p_simplex->p_best, p_simplex->p_data, !is_covariance);
 
     if (M == 0) {
@@ -206,10 +206,12 @@ int main(int argc, char *argv[])
         simplex(p_simplex->p_best, p_simplex->p_data, p_simplex, f_simplex, CONVERGENCE_STOP_SIMPLEX, M, option_no_trace);
     }
 
+    plom_print_done(theta, p_simplex->p_data, p_simplex->p_best, SFR_PATH, GENERAL_ID, 0);
 
 #if FLAG_VERBOSE
     print_log("clean up...");
 #endif
+    json_decref(theta);
 
     clean_simplex(p_simplex);
 

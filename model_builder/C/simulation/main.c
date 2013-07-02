@@ -258,6 +258,8 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+
+    plom_unlink_done(SFR_PATH, GENERAL_ID);
     json_t *settings = load_settings(PATH_SETTINGS);
     json_t *thetas = load_json();
     int is_predict = json_is_array(thetas);
@@ -327,7 +329,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    json_decref(thetas);
 
     for (i=0; i<(N_PAR_SV*N_CAC); i++){
         y0[i] = J_p_X[0]->proj[i];
@@ -506,9 +507,16 @@ int main(int argc, char *argv[])
 
     } //end OPTION_BIF or OPTION_LYAP
 
+
+
+    plom_print_done(theta, p_data, p_best, SFR_PATH, GENERAL_ID, 0);
+    
+
 #if FLAG_VERBOSE
     print_log("clean up...");
 #endif
+
+    json_decref(thetas);
 
 #if !FLAG_OMP
     zmq_send (controller, "KILL", 5, 0);        

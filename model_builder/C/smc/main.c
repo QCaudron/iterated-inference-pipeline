@@ -222,6 +222,9 @@ int main(int argc, char *argv[])
         }
     }
 
+
+    plom_unlink_done(SFR_PATH, GENERAL_ID);
+
     json_t *settings = load_settings(PATH_SETTINGS);
 
     json_t *theta = load_json();
@@ -235,7 +238,6 @@ int main(int argc, char *argv[])
     struct s_X ***D_J_p_X = build_D_J_p_X(size_proj, N_TS, p_data, dt);
     struct s_X ***D_J_p_X_tmp = build_D_J_p_X(size_proj, N_TS, p_data, dt);
     struct s_best *p_best = build_best(p_data, theta);
-    json_decref(theta);
     struct s_likelihood *p_like = build_likelihood();
 
     struct s_calc **calc = build_calc(&n_threads, GENERAL_ID, eps_abs, eps_rel, J, size_proj, step_ode, freeze_forcing, -1, p_data, settings);
@@ -364,9 +366,13 @@ int main(int argc, char *argv[])
         plom_fclose(p_file_trace);
     }
 
+    plom_print_done(theta, p_data, p_best, SFR_PATH, GENERAL_ID, print_opt);   
+
 #if FLAG_VERBOSE
     print_log("clean up...");
 #endif
+
+    json_decref(theta);
 
     clean_calc(calc, p_data);
     clean_D_J_p_X(D_J_p_X);

@@ -238,12 +238,12 @@ int main(int argc, char *argv[])
         }
     }
 
+    plom_unlink_done(SFR_PATH, GENERAL_ID);
     json_t *settings = load_settings(PATH_SETTINGS);
     json_t *theta = load_json();
     int is_covariance = (json_object_get(theta, "covariance") != NULL);
     struct s_kalman *p_kalman = build_kalman(theta, settings, implementation,  noises_off, 1, dt, eps_abs, eps_rel, freeze_forcing, nb_obs);
     json_decref(settings);
-    json_decref(theta);
 
     transform_theta(p_kalman->p_best, p_kalman->p_data, !is_covariance);
     gsl_vector_memcpy(p_kalman->p_best->proposed, p_kalman->p_best->mean);
@@ -270,9 +270,12 @@ int main(int argc, char *argv[])
         plom_fclose(p_file_cov);
     }
 
+    plom_print_done(theta, p_kalman->p_data, p_kalman->p_best, SFR_PATH, GENERAL_ID, print_opt);
+
 #if FLAG_VERBOSE
     print_log("clean up...");
 #endif
+    json_decref(theta);
 
     clean_mcmc_calc_data(p_mcmc_calc_data);
     clean_likelihood(p_like);

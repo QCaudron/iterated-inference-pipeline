@@ -215,6 +215,7 @@ int main(int argc, char *argv[])
             return 1;
         }
     }
+    plom_unlink_done(SFR_PATH, GENERAL_ID);
     json_t *settings = load_settings(PATH_SETTINGS);
 
 #if FLAG_VERBOSE
@@ -226,15 +227,17 @@ int main(int argc, char *argv[])
     int is_covariance = (json_object_get(theta, "covariance") != NULL);
     struct s_kalman *p_kalman = build_kalman(theta, settings, implementation, noises_off, OPTION_PRIOR, dt, eps_abs, eps_rel, freeze_forcing, nb_obs);
     json_decref(settings);
-    json_decref(theta);
 
     transform_theta(p_kalman->p_best, p_kalman->p_data, !is_covariance);
 
     simplex(p_kalman->p_best, p_kalman->p_data, p_kalman, f_simplex_kalman, CONVERGENCE_STOP_SIMPLEX, M, option_no_trace);
 
+    plom_print_done(theta, p_kalman->p_data, p_kalman->p_best, SFR_PATH, GENERAL_ID, 0);
+
 #if FLAG_VERBOSE
     print_log("clean up...");
 #endif
+    json_decref(theta);
 
     clean_kalman(p_kalman);
 
