@@ -84,7 +84,6 @@ void X2xk(gsl_vector *xk, struct s_X *p_X, struct s_data *p_data)
 
 /**
  * reconstruct s_X from xk and set to 0.0 terms of proj that became negative due to Kalman.
- * Note that only N_PAR_SV*N_CAC of proj and drift are necessary. All the observed variable are useless here
  * @param p_X the X vector to be constructed
  * @param xk the concatenated vector
  */
@@ -116,6 +115,11 @@ void xk2X(struct s_X *p_X, gsl_vector *xk, struct s_data *p_data, struct s_calc 
     for(i=0; i<N_PAR_SV*N_CAC; i++) {
         p_X->proj[i] = (gsl_vector_get(xk, i) > 0.0) ? gsl_vector_get(xk, i) : 0.0 ;
 	gsl_vector_set(xk, i, (gsl_vector_get(xk, i) > 0.0) ? gsl_vector_get(xk, i) : 0.0) ;
+    }
+
+    //obs
+    for(i=0; i<N_TS; i++) {
+	p_X->obs[i] = gsl_vector_get(xk, N_PAR_SV*N_CAC + i);
     }
 
     //drift
@@ -272,9 +276,7 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 
 	proj2obs(p_X, p_data);
 
-	if (print_opt & PLOM_PRINT_X) {
-	    print_X(p_file_X, &p_par, &p_X, p_data, calc[0], 1, 1, m, n, t1);
-	}
+
 
 	if(p_data->data_ind[n]->n_nonan){
 	    X2xk(p_kalman_update->xk, p_X, p_data);
@@ -313,6 +315,10 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
 	    
 	    log_lik += log_lik_temp;
 	    
+	}
+
+	if (print_opt & PLOM_PRINT_X) {
+	    print_X(p_file_X, &p_par, &p_X, p_data, calc[0], 1, 1, m, n, t1);
 	}
 
 	if (print_opt & PLOM_PRINT_HAT) {
