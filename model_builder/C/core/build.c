@@ -18,9 +18,7 @@
 
 #include "plom.h"
 
-struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, struct s_drift **drift, char *it_type, const enum plom_noises_off noises_off)
-{
-    int i, k;
+struct s_iterator *plom_iterator_new(){
 
     struct s_iterator *p_it;
     p_it = malloc(sizeof(struct s_iterator));
@@ -31,141 +29,226 @@ struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, s
         exit(EXIT_FAILURE);
     }
 
-    int is_drift = ! (noises_off & PLOM_NO_DRIFT);
-
-    //length and ind
-    if (strcmp(it_type, "all") == 0) {
-
-        p_it->length = N_PAR_SV + N_PAR_PROC + N_PAR_OBS;
-
-        if (p_it->length) {
-            p_it->ind = init1u_set0(p_it->length);
-
-            for (i=0; i<p_it->length; i++) {
-                p_it->ind[i] = i;
-            }
-        }
-
-    } else if (strcmp(it_type, "only_drift") == 0) {
-	
-	p_it->length = (is_drift)? N_DRIFT: 0;
-
-        if (p_it->length) {
-            p_it->ind = init1u_set0(p_it->length);
-
-            for (i=0; i<p_it->length; i++) {
-                p_it->ind[i] = drift[i]->ind_par_Xdrift_applied;
-            }
-        }
-
-    } else if (strcmp(it_type, "par_sv") == 0) {
-
-        p_it->length = N_PAR_SV;
-
-        if (p_it->length) {
-            p_it->ind = init1u_set0(p_it->length);
-
-            for (i=0; i<p_it->length; i++) {
-                p_it->ind[i] = i;
-            }
-        }
+    return p_it;
+}
 
 
-    } else if (strcmp(it_type, "all_no_drift") == 0) {
+/**
+ * alloc and assign offset and assign nbtot
+ */
+void plom_add_offset_iterator(struct s_iterator *p_it, unsigned int *all_offset, struct s_router **routers){
+    int i;
 
-        p_it->length = N_PAR_SV + N_PAR_PROC + N_PAR_OBS;
-	if(is_drift){
-	    p_it->length -= N_DRIFT;
-	}
-	
-        if (p_it->length) {
-            p_it->ind = init1u_set0(p_it->length);
-
-            k = 0;
-            for (i=0; i < N_PAR_SV + N_PAR_PROC + N_PAR_OBS; i++) {
-                if(! is_drift) {
-                    p_it->ind[k] = i;
-		    k++;
-		} else {
-		    if(! in_drift(i, drift)) {
-			p_it->ind[k] = i;
-			k++;
-		    }
-		}
-            }
-
-        }
-
-    } else if (strcmp(it_type, "par_proc_par_obs_no_drift") == 0) {
-
-        p_it->length = N_PAR_PROC + N_PAR_OBS;
-	if(is_drift){
-	    p_it->length -= N_DRIFT;
-	}
-
-        if (p_it->length) {
-            p_it->ind = init1u_set0(p_it->length);
-            k = 0;
-            for (i=N_PAR_SV; i< N_PAR_SV + N_PAR_PROC + N_PAR_OBS; i++) {
-                if(! is_drift) {
-                    p_it->ind[k] = i;
-		    k++;
-		} else {
-		    if(! in_drift(i, drift)) {
-			p_it->ind[k] = i;
-			k++;
-		    }
-		}
-            }
-        }
-
-    } else if (strcmp(it_type, "par_sv_and_drift") == 0) {
-
-        p_it->length = N_PAR_SV;
-	if(is_drift){
-	    p_it->length += N_DRIFT;
-	}
-
-        if (p_it->length) {
-            p_it->ind = init1u_set0(p_it->length);
-
-            for (i=0; i< N_PAR_SV; i++) {
-                p_it->ind[i] = i;
-            }
-
-	    if(is_drift){
-		for (i=0; i< N_DRIFT; i++) {
-		    p_it->ind[N_PAR_SV+i] = drift[i]->ind_par_Xdrift_applied;
-		}
-	    }
-        }
-
-    } else if (strcmp(it_type, "noise") == 0) {
-
-        json_t *ind_noise_sd = fast_get_json_array(settings, "ind_noise_sd");
-        p_it->length = json_array_size(ind_noise_sd);
-        if (p_it->length) {
-            p_it->ind = fast_load_fill_json_1u(ind_noise_sd, "ind_noise_sd");
-        }
-    }
-
-    //alloc ind and offset and assign nbtot
-    p_it->nbtot = 0; // will be incremented later if p_it->length but need to be assigned systematically!
+    p_it->nbtot = 0;
 
     if (p_it->length) {
-        unsigned int *all_offset = init1u_set0(N_PAR_SV+N_PAR_PROC+N_PAR_OBS);
-        for(i=1; i< (N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
-            all_offset[i] = all_offset[i-1] + routers[ i-1 ]->n_gp; //cumsum
-        }
+	p_it->offset = init1u_set0(p_it->length);
+	for(i=0; i<p_it->length; i++) {
+	    p_it->offset[i] = all_offset[ p_it->ind[i] ];
+	    p_it->nbtot += routers[ p_it->ind[i] ]->n_gp;
+	}
+    }
+}
 
-        p_it->offset = init1u_set0(p_it->length);
-        for(i=0; i<p_it->length; i++) {
-            p_it->offset[i] = all_offset[ p_it->ind[i] ];
-            p_it->nbtot += routers[ p_it->ind[i] ]->n_gp;
-        }
-        FREE(all_offset);
+struct s_iterator *plom_iterator_all_new(unsigned int *all_offset, struct s_router **routers){
+
+    int i;
+    struct s_iterator *p_it = plom_iterator_new();
+
+    p_it->length = N_PAR_SV + N_PAR_PROC + N_PAR_OBS;
+
+    if (p_it->length) {
+	p_it->ind = init1u_set0(p_it->length);
+
+	for (i=0; i<p_it->length; i++) {
+	    p_it->ind[i] = i;
+	}
     }
 
+    plom_add_offset_iterator(p_it, all_offset, routers);
+    return p_it;
+}
+
+struct s_iterator *plom_iterator_all_no_theta_remainder_new(unsigned int *all_offset, struct s_router **routers, int ind_theta_remainder){
+
+    int i, j;
+    struct s_iterator *p_it = plom_iterator_new();
+    
+    int length_all = N_PAR_SV + N_PAR_PROC + N_PAR_OBS;
+
+    p_it->length = (ind_theta_remainder == -1) ? length_all: length_all - 1;
+
+    if (p_it->length) {
+	p_it->ind = init1u_set0(p_it->length);
+
+	j = 0;
+	for (i=0; i<length_all; i++) {
+	    if(i != ind_theta_remainder){
+		p_it->ind[j++] = i;
+	    }
+	}
+    }
+
+    plom_add_offset_iterator(p_it, all_offset, routers);
+    return p_it;
+}
+
+struct s_iterator *plom_iterator_theta_remainder_new(unsigned int *all_offset, struct s_router **routers, int ind_theta_remainder){
+
+    struct s_iterator *p_it = plom_iterator_new();
+    
+    p_it->length = (ind_theta_remainder == -1) ? 0 : 1;
+
+    if (p_it->length) {
+	p_it->ind = init1u_set0(p_it->length);
+	p_it->ind[0] = (unsigned int) ind_theta_remainder;
+    }
+
+    plom_add_offset_iterator(p_it, all_offset, routers);
+    return p_it;
+}
+
+struct s_iterator *plom_iterator_only_drift_new(unsigned int *all_offset, struct s_router **routers, struct s_drift **drift, const enum plom_noises_off noises_off){
+
+    int i;
+    struct s_iterator *p_it = plom_iterator_new();
+    int is_drift = ! (noises_off & PLOM_NO_DRIFT);
+
+    p_it->length = (is_drift)? N_DRIFT: 0;
+
+    if (p_it->length) {
+	p_it->ind = init1u_set0(p_it->length);
+
+	for (i=0; i<p_it->length; i++) {
+	    p_it->ind[i] = drift[i]->ind_par_Xdrift_applied;
+	}
+    }
+
+    plom_add_offset_iterator(p_it, all_offset, routers);
+    return p_it;
+}
+
+struct s_iterator *plom_iterator_par_sv_new(unsigned int *all_offset, struct s_router **routers){
+
+    int i;
+    struct s_iterator *p_it = plom_iterator_new();
+
+    p_it->length = N_PAR_SV;
+
+    if (p_it->length) {
+	p_it->ind = init1u_set0(p_it->length);
+
+	for (i=0; i<p_it->length; i++) {
+	    p_it->ind[i] = i;
+	}
+    }
+
+    plom_add_offset_iterator(p_it, all_offset, routers);
+    return p_it;
+}
+
+struct s_iterator *plom_iterator_all_no_drift_new(unsigned int *all_offset, struct s_router **routers, struct s_drift **drift, const enum plom_noises_off noises_off){
+
+    int i, k;
+    struct s_iterator *p_it = plom_iterator_new();
+    int is_drift = ! (noises_off & PLOM_NO_DRIFT);
+
+    p_it->length = N_PAR_SV + N_PAR_PROC + N_PAR_OBS;
+    if(is_drift){
+	p_it->length -= N_DRIFT;
+    }
+	
+    if (p_it->length) {
+	p_it->ind = init1u_set0(p_it->length);
+
+	k = 0;
+	for (i=0; i < N_PAR_SV + N_PAR_PROC + N_PAR_OBS; i++) {
+	    if(! is_drift) {
+		p_it->ind[k] = i;
+		k++;
+	    } else {
+		if(! in_drift(i, drift)) {
+		    p_it->ind[k] = i;
+		    k++;
+		}
+	    }
+	}
+    }
+
+    plom_add_offset_iterator(p_it, all_offset, routers);
+    return p_it;
+}
+
+struct s_iterator *plom_iterator_par_proc_par_obs_no_drift_new(unsigned int *all_offset, struct s_router **routers, struct s_drift **drift, const enum plom_noises_off noises_off){
+
+    int i, k;
+    struct s_iterator *p_it = plom_iterator_new();
+    int is_drift = ! (noises_off & PLOM_NO_DRIFT);
+    p_it->length = N_PAR_PROC + N_PAR_OBS;
+    if(is_drift){
+	p_it->length -= N_DRIFT;
+    }
+
+    if (p_it->length) {
+	p_it->ind = init1u_set0(p_it->length);
+	k = 0;
+	for (i=N_PAR_SV; i< N_PAR_SV + N_PAR_PROC + N_PAR_OBS; i++) {
+	    if(! is_drift) {
+		p_it->ind[k] = i;
+		k++;
+	    } else {
+		if(! in_drift(i, drift)) {
+		    p_it->ind[k] = i;
+		    k++;
+		}
+	    }
+	}
+    }
+
+    plom_add_offset_iterator(p_it, all_offset, routers);
+    return p_it;
+}
+
+struct s_iterator *plom_iterator_par_sv_and_drift_new(unsigned int *all_offset, struct s_router **routers, struct s_drift **drift, const enum plom_noises_off noises_off){
+
+    int i;
+    struct s_iterator *p_it = plom_iterator_new();
+    int is_drift = ! (noises_off & PLOM_NO_DRIFT);
+
+    p_it->length = N_PAR_SV;
+    if(is_drift){
+	p_it->length += N_DRIFT;
+    }
+
+    if (p_it->length) {
+	p_it->ind = init1u_set0(p_it->length);
+
+	for (i=0; i< N_PAR_SV; i++) {
+	    p_it->ind[i] = i;
+	}
+
+	if(is_drift){
+	    for (i=0; i< N_DRIFT; i++) {
+		p_it->ind[N_PAR_SV+i] = drift[i]->ind_par_Xdrift_applied;
+	    }
+	}
+    }
+
+    plom_add_offset_iterator(p_it, all_offset, routers);
+    return p_it;
+}
+
+struct s_iterator *plom_iterator_noise_new(unsigned int *all_offset, struct s_router **routers, json_t *settings){
+   
+    struct s_iterator *p_it = plom_iterator_new();
+
+    json_t *ind_noise_sd = fast_get_json_array(settings, "ind_noise_sd");
+    p_it->length = json_array_size(ind_noise_sd);
+    if (p_it->length) {
+	p_it->ind = fast_load_fill_json_1u(ind_noise_sd, "ind_noise_sd");
+    }
+
+    plom_add_offset_iterator(p_it, all_offset, routers);
     return p_it;
 }
 
@@ -314,7 +397,7 @@ void clean_router(struct s_router *p_router)
     FREE(p_router);
 }
 
-struct s_router **build_routers(json_t *settings, json_t *theta, const char *u_data, int is_bayesian)
+struct s_router **build_routers(int *ind_theta_remainder, json_t *settings, json_t *theta, const char *u_data, int is_bayesian)
 {
     int i, j, offset;
     json_t *parameters = fast_get_json_object(theta, "parameter");
@@ -343,31 +426,45 @@ struct s_router **build_routers(json_t *settings, json_t *theta, const char *u_d
             const char *par_key = fast_get_json_string_from_array(my_par_list, j, par_types[i]);
             json_t *par = fast_get_json_object(parameters, par_key);
 
-            //overwrite par if follower
-            if(json_object_get(par, "follow")){
-                const char *par_follow_key = fast_get_json_string_from_object(par, "follow");
+	    if(par){
+		//overwrite par if follower
+		if(json_object_get(par, "follow")){
+		    const char *par_follow_key = fast_get_json_string_from_object(par, "follow");
 
-                //check that parameter types of follower and follow are compatibles
-                int is_par = ((index_of_json_array(fast_get_json_array(orders, "par_sv"), par_follow_key) != -1) || (index_of_json_array(fast_get_json_array(orders, "par_proc"), par_follow_key) != -1));
-                int is_obs = (index_of_json_array(fast_get_json_array(orders, "par_obs"), par_follow_key) != -1);
+		    //check that parameter types of follower and follow are compatibles
+		    int is_par = ((index_of_json_array(fast_get_json_array(orders, "par_sv"), par_follow_key) != -1) || (index_of_json_array(fast_get_json_array(orders, "par_proc"), par_follow_key) != -1));
+		    int is_obs = (index_of_json_array(fast_get_json_array(orders, "par_obs"), par_follow_key) != -1);
 
-                if( (!is_par && !is_obs) || ((i==0) && is_obs) || ((i==1) && is_obs) || ((i==2) && is_par) ){
-                    char str[STR_BUFFSIZE];
-                    snprintf(str, STR_BUFFSIZE, "invalid parameter type between %s (follower) and %s (follow)", par_key, par_follow_key);
-                    print_err(str);
-                    exit(EXIT_FAILURE);
-                } else {
-                    par = fast_get_json_object(parameters, par_follow_key);
-                }
-            }
+		    if( (!is_par && !is_obs) || ((i==0) && is_obs) || ((i==1) && is_obs) || ((i==2) && is_par) ){
+			char str[STR_BUFFSIZE];
+			snprintf(str, STR_BUFFSIZE, "invalid parameter type between %s (follower) and %s (follow)", par_key, par_follow_key);
+			print_err(str);
+			exit(EXIT_FAILURE);
+		    } else {
+			par = fast_get_json_object(parameters, par_follow_key);
+		    }
+		}
 
-            const char *partition_key = fast_get_json_string_from_object(par, "partition_id");
-            routers[offset] = build_router(par, par_key,
-                                           fast_get_json_object(partitions, partition_key),
-                                           fast_get_json_array(orders, pop_ts_types[i]),
-                                           link_types[i],
-                                           u_data,
-                                           is_bayesian);
+		const char *partition_key = fast_get_json_string_from_object(par, "partition_id");
+		routers[offset] = build_router(par, par_key,
+					       fast_get_json_object(partitions, partition_key),
+					       fast_get_json_array(orders, pop_ts_types[i]),
+					       link_types[i],
+					       u_data,
+					       is_bayesian);
+
+	    } else { //a parameter is missing in theta and POP_SIZE_EQ_SUM_SV, it is the theta remainder
+		*ind_theta_remainder = j;
+		json_t *theta_remainder = plom_theta_remainder_new(theta);
+		build_router(theta_remainder, par_key,
+			     fast_get_json_object(partitions, "variable_population"),
+			     fast_get_json_array(orders, pop_ts_types[i]),
+			     link_types[i],
+			     u_data,
+			     is_bayesian);		
+		json_decref(theta_remainder);
+	    }
+
             offset++;
         }
     }
@@ -400,7 +497,7 @@ struct s_par *build_par(struct s_data *p_data)
         exit(EXIT_FAILURE);
     }
 
-    p_par->size_natural = N_PAR_SV+N_PAR_PROC+N_PAR_OBS;
+    p_par->size_natural = p_data->p_it_all->length;
 
     p_par->natural = malloc(p_par->size_natural* sizeof (double *));
     if (p_par->natural==NULL) {
@@ -562,7 +659,7 @@ void clean_drift(struct s_drift **drift)
 
 struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementations implementation, enum plom_noises_off noises_off, int is_bayesian, int nb_obs, const char *u_data)
 {
-    int n, ts, cac, k;
+    int i, n, ts, cac, k;
     int tmp_n_data_nonan, count_n_nan;
 
     json_t *json_data = fast_get_json_object(settings, "data");
@@ -586,7 +683,9 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
 
     //always present
     p_data->obs2ts = build_obs2ts(fast_get_json_array(json_data, "obs2ts"));
-    p_data->routers = build_routers(settings, theta, u_data, is_bayesian);
+
+    int ind_theta_remainder = -1;
+    p_data->routers = build_routers(&ind_theta_remainder, settings, theta, u_data, is_bayesian);
 
     //ts names
     json_t *ts_name = fast_get_json_array(fast_get_json_object(settings, "orders"), "ts_id");
@@ -631,13 +730,24 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
     p_data->drift = build_drift(fast_get_json_object(settings, "drift"), p_data->routers);
 
     /* iterators */
-    p_data->p_it_all = build_iterator(settings, p_data->routers, p_data->drift, "all", p_data->noises_off);
-    p_data->p_it_par_sv = build_iterator(settings, p_data->routers, p_data->drift, "par_sv", p_data->noises_off);
-    p_data->p_it_all_no_drift = build_iterator(settings, p_data->routers, p_data->drift, "all_no_drift", p_data->noises_off);
-    p_data->p_it_par_proc_par_obs_no_drift = build_iterator(settings, p_data->routers, p_data->drift, "par_proc_par_obs_no_drift", p_data->noises_off);
-    p_data->p_it_par_sv_and_drift = build_iterator(settings, p_data->routers, p_data->drift, "par_sv_and_drift", p_data->noises_off);
-    p_data->p_it_only_drift = build_iterator(settings, p_data->routers, p_data->drift, "only_drift", p_data->noises_off);
-    p_data->p_it_noise = build_iterator(settings, p_data->routers, p_data->drift, "noise", p_data->noises_off);
+    unsigned int *all_offset = init1u_set0(N_PAR_SV+N_PAR_PROC+N_PAR_OBS);
+    for(i=1; i< (N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {
+	all_offset[i] = all_offset[i-1] + p_data->routers[ i-1 ]->n_gp; //cumsum
+    }
+
+    p_data->p_it_all = plom_iterator_all_new(all_offset, p_data->routers);
+    p_data->p_it_only_drift = plom_iterator_only_drift_new(all_offset, p_data->routers, p_data->drift, p_data->noises_off);
+    p_data->p_it_par_sv = plom_iterator_par_sv_new(all_offset, p_data->routers);
+    p_data->p_it_all_no_drift = plom_iterator_all_no_drift_new(all_offset, p_data->routers, p_data->drift, p_data->noises_off);
+    p_data->p_it_par_proc_par_obs_no_drift = plom_iterator_par_proc_par_obs_no_drift_new(all_offset, p_data->routers, p_data->drift, p_data->noises_off);
+    p_data->p_it_par_sv_and_drift = plom_iterator_par_sv_and_drift_new(all_offset, p_data->routers, p_data->drift, p_data->noises_off);
+    p_data->p_it_noise = plom_iterator_noise_new(all_offset, p_data->routers, settings);
+
+    p_data->p_it_all_no_theta_remainder = plom_iterator_all_no_theta_remainder_new(all_offset, p_data->routers, ind_theta_remainder);
+    p_data->p_it_theta_remainder = plom_iterator_theta_remainder_new(all_offset, p_data->routers, ind_theta_remainder);
+
+    FREE(all_offset);
+
 
     //the following is optional (for instance it is non needed for simulation models)
     if (N_DATA) {
@@ -1433,7 +1543,7 @@ struct s_best *build_best(struct s_data *p_data, json_t *theta)
         const char *par_key = routers[i]->name;
         json_t *par = fast_get_json_object(fast_get_json_object(theta, "parameter"), par_key);
 
-        if(json_object_get(par, "follow")) {
+        if(par && json_object_get(par, "follow")) {
             const char *par_follow_key = fast_get_json_string_from_object(par, "follow");
 
             p_best->n_follow++;

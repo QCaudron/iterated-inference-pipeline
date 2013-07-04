@@ -289,7 +289,7 @@ int main(int argc, char *argv[])
 
     // print empirical covariance
     FILE *p_file_cov = plom_fopen(SFR_PATH, GENERAL_ID, "covariance", "w", header_covariance, p_pmcmc->p_data);
-    print_covariance(p_file_cov, p_pmcmc->p_best->var_sampling);
+    print_covariance(p_file_cov, p_pmcmc->p_best->var_sampling, p_pmcmc->p_data);
     plom_fclose(p_file_cov);
 
     plom_print_done(theta, p_pmcmc->p_data, p_pmcmc->p_best, SFR_PATH, GENERAL_ID, print_opt);   

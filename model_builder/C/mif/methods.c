@@ -194,7 +194,10 @@ void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gs
 
 void print_mean_var_theta_theoretical_mif(FILE *p_file, double *theta_bart_n, double *theta_Vt_n, struct s_likelihood *p_like, struct s_data *p_data, int m, int time)
 {
-    int k;
+    int i, k, offset;
+
+    struct s_iterator *p_it = p_data->p_it_all_no_theta_remainder;
+    struct s_router **routers = p_data->routers;
 
 #if FLAG_JSON
     json_t *root;
@@ -208,13 +211,16 @@ void print_mean_var_theta_theoretical_mif(FILE *p_file, double *theta_bart_n, do
     fprintf(p_file,"%d,%d,", m, time);
 #endif
 
-    for(k=0; k<p_data->p_it_all->nbtot; k++) {
+    for(i=0; i<p_it->length; i++) {
+        for(k=0; k < routers[i]->n_gp; k++) {
+	    offset = p_it->offset[i]+k;
 #if FLAG_JSON
-        json_array_append_new(json_print, json_real(theta_bart_n[k]));
-        json_array_append_new(json_print, json_real(theta_Vt_n[k]));
+	    json_array_append_new(json_print, json_real(theta_bart_n[offset]));
+	    json_array_append_new(json_print, json_real(theta_Vt_n[offset]));
 #else
-        fprintf(p_file, "%g,%g,", theta_bart_n[k], theta_Vt_n[k]);
+	    fprintf(p_file, "%g,%g,", theta_bart_n[offset], theta_Vt_n[offset]);
 #endif
+	}
     }
 
     /* ess */
@@ -237,7 +243,7 @@ void print_mean_var_theta_theoretical_mif(FILE *p_file, double *theta_bart_n, do
 void header_mean_var_theoretical_mif(FILE *p_file, struct s_data *p_data)
 {
     int i, g;
-    struct s_iterator *p_it = p_data->p_it_all;
+    struct s_iterator *p_it = p_data->p_it_all_no_theta_remainder;
     struct s_router **routers = p_data->routers;
 
     fprintf(p_file,"index,time,");

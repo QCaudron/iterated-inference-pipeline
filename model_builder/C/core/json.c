@@ -384,19 +384,6 @@ json_t *load_json(void)
 
 
 
-void print_json_on_stdout(json_t *root)
-{
-    /* for debugging purposes */
-
-    char *tmp;
-    tmp = malloc(BUFFER_SIZE* sizeof(char));
-    tmp = json_dumps(root, 0);
-    print_log(tmp);
-
-    free(tmp);
-}
-
-
 /**
  * return index of element in the json array of string array
  */
@@ -412,4 +399,26 @@ int index_of_json_array(const json_t *array, const char *element){
     }
 
     return k;
+}
+
+
+json_t *plom_theta_remainder_new(json_t* theta){
+    int g;
+    
+    //create group object
+    json_t *par_group = json_object();
+    json_t *partition = fast_get_json_object(fast_get_json_object(theta, "partition"), "variable_population");
+    json_t *group = fast_get_json_array(partition, "group");
+
+    int n_gp = json_array_size(group);
+
+    for (g=0; g < n_gp; g++) { //for each group
+        json_t *my_group = json_array_get(group, g); 
+        const char *my_group_id = fast_get_json_string_from_object(my_group, "id");
+
+	json_t *values = json_pack("{s:f, s:f, s:f, s:f, s:s}", "min", 0.0, "max", 1.0, "guess", 0.0, "sd_transf", 0.0, "prior", "unfiform");
+	json_object_set_new(par_group, my_group_id, values);
+    }
+
+    return json_pack("{s:s, s:s, s:o}", "partition_id", "variable_population", "transformation", "logit", "group", par_group);
 }

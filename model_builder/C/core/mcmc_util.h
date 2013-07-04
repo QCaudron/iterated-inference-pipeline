@@ -56,7 +56,7 @@ void print_acceptance_rates(FILE *p_file, struct s_mcmc_calc_data *p, int m_full
 void compute_acceptance_rates(struct s_best *p_best, struct s_mcmc_calc_data *p, double is_accepted, int m);
 
 void header_covariance(FILE *p_file, struct s_data *p_data);
-void print_covariance(FILE *p_file_cov, gsl_matrix *covariance);
+void print_covariance(FILE *p_file_cov, gsl_matrix *covariance, struct s_data *p_data);
 
 
 #endif

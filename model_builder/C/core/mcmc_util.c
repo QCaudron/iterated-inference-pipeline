@@ -269,17 +269,17 @@ void print_acceptance_rates(FILE *p_file, struct s_mcmc_calc_data *p, int m_full
 }
 
 
-
 void header_covariance(FILE *p_file, struct s_data *p_data)
 {
     int i, g;
+    struct s_iterator *p_it = p_data->p_it_all_no_theta_remainder;
     struct s_router **routers = p_data->routers;
 
-    for(i=0; i<p_data->p_it_all->length; i++) {
+    for(i=0; i < p_it->length; i++) {
         const char *name = routers[i]->name;
         for(g=0; g<p_data->routers[i]->n_gp; g++) {
             const char *group = routers[i]->group_name[g];
-            fprintf(p_file, "%s:%s%s", name, group, (i == (p_data->p_it_all->length-1) && (g == (p_data->routers[i]->n_gp-1)) )? "\n" : ",");
+            fprintf(p_file, "%s:%s%s", name, group, (i == (p_it->length-1) && (g == (p_data->routers[i]->n_gp-1)) )? "\n" : ",");
         }
     }
 }
@@ -288,10 +288,10 @@ void header_covariance(FILE *p_file, struct s_data *p_data)
 /**
  * print empirical matrix of variance covariance
  */
-void print_covariance(FILE *p_file_cov, gsl_matrix *covariance)
+void print_covariance(FILE *p_file_cov, gsl_matrix *covariance, struct s_data *p_data)
 {
 
-    int row, col;
+    int i, k, row, ii, kk, col;
     double x;
 #if FLAG_JSON
     json_t *root;
@@ -299,26 +299,38 @@ void print_covariance(FILE *p_file_cov, gsl_matrix *covariance)
     json_t *json_print_n;
 #endif
 
+    struct s_iterator *p_it = p_data->p_it_all_no_theta_remainder;
+    struct s_router **routers = p_data->routers;
 
-    for(row=0; row<covariance->size1; row++) {
+
+    for (i=0; i< p_it->length; i++) {
+	for(k=0; k< routers[ p_it->ind[i] ]->n_gp; k++) {
+	    row = p_it->offset[i]+k;
 
 #if FLAG_JSON
-        json_print_n = json_array();
+	    json_print_n = json_array();
 #endif
-        for(col=0; col<covariance->size2; col++) {
-            x = gsl_matrix_get(covariance, row, col);
+
+	    for (ii=0; ii< p_it->length; ii++) {
+		for(kk=0; kk< routers[ p_it->ind[ii] ]->n_gp; kk++) {
+		    col = p_it->offset[ii]+kk;
+
+		    x = gsl_matrix_get(covariance, row, col);
 #if FLAG_JSON
-            json_array_append_new(json_print_n, json_real(x));
+		    json_array_append_new(json_print_n, json_real(x));
 #else
-            fprintf(p_file_cov,"%g%s", x, (col < (covariance->size2-1)) ? ",": "");
+		    fprintf(p_file_cov,"%g%s", x, (col < (p_it->nbtot-1)) ? ",": "");
 #endif
-        }
+		}
+	    }
 
 #if FLAG_JSON
-        json_array_append_new(json_print, json_print_n);
+	    json_array_append_new(json_print, json_print_n);
 #else
-        fprintf(p_file_cov,"\n");
+	    fprintf(p_file_cov,"\n");
 #endif
+
+	}
     }
 
 
@@ -330,3 +342,5 @@ void print_covariance(FILE *p_file_cov, gsl_matrix *covariance)
 #endif
 
 }
+
+

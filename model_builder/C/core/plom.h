@@ -274,6 +274,8 @@ struct s_data{
     struct s_iterator *p_it_par_proc_par_obs_no_drift;   /**< to iterate on the parameter of the process and observation models *not* following a diffusion */
     struct s_iterator *p_it_par_sv_and_drift;            /**< to iterate on the initial conditions of the state variable *and* the parameters following a diffusion */
     struct s_iterator *p_it_noise;                       /**< to iterate on environmental stochasticity noises *only* */
+    struct s_iterator *p_it_all_no_theta_remainder;      /**< to iterate on every parameters but the theta remainder */
+    struct s_iterator *p_it_theta_remainder;             /**< to iterate on the theta remainder */
 
     int nb_obs; /**< length of the data to be used for inference */
     int nb_obs_nonan; /**< length of the data to be used for inference discarding lines where all ts are NaN */
@@ -616,21 +618,30 @@ void load1d(double *tab, char *filename);
 void load2u(unsigned int **tab, char *filename, int Np);
 void load2d(double **tab, char *filename, int Np);
 void load2d_nan(double **tab, char *filename, int Np);
-void load2u_var(unsigned int **tab, char *filename, unsigned int *Np);
-void load3d_var(double ***tab, int n, unsigned int *colbreaks1, unsigned int **colbreaks2, char *filename);
-void load3u_var(unsigned int ***tab, int n, unsigned int *colbreaks1, unsigned int **colbreaks2, char *filename);
-void load3u_varp1(unsigned int ***tab, int n, unsigned int *colbreaks1, unsigned int colbreaks2, char *filename);
 
 void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta, int update_guess);
-void load_covariance(gsl_matrix *covariance, json_t *array2d);
+void load_covariance(gsl_matrix *covariance, json_t *covjson, struct s_data *p_data);
 json_t *load_settings(const char *path);
 
 /* build.c */
-struct s_iterator *build_iterator(json_t *settings, struct s_router **routers, struct s_drift **drift, char *it_type, const enum plom_noises_off noises_off);
+
+struct s_iterator *plom_iterator_new();
+void plom_add_offset_iterator(struct s_iterator *p_it, unsigned int *all_offset, struct s_router **routers);
+
+struct s_iterator *plom_iterator_all_new(unsigned int *all_offset, struct s_router **routers);
+struct s_iterator *plom_iterator_all_no_theta_remainder_new(unsigned int *all_offset, struct s_router **routers, int ind_theta_remainder);
+struct s_iterator *plom_iterator_theta_remainder_new(unsigned int *all_offset, struct s_router **routers, int ind_theta_remainder);
+struct s_iterator *plom_iterator_only_drift_new(unsigned int *all_offset, struct s_router **routers, struct s_drift **drift, const enum plom_noises_off noises_off);
+struct s_iterator *plom_iterator_par_sv_new(unsigned int *all_offset, struct s_router **routers);
+struct s_iterator *plom_iterator_all_no_drift_new(unsigned int *all_offset, struct s_router **routers, struct s_drift **drift, const enum plom_noises_off noises_off);
+struct s_iterator *plom_iterator_par_proc_par_obs_no_drift_new(unsigned int *all_offset, struct s_router **routers, struct s_drift **drift, const enum plom_noises_off noises_off);
+struct s_iterator *plom_iterator_par_sv_and_drift_new(unsigned int *all_offset, struct s_router **routers, struct s_drift **drift, const enum plom_noises_off noises_off);
+struct s_iterator *plom_iterator_noise_new(unsigned int *all_offset, struct s_router **routers, json_t *settings);
+
 void clean_iterator(struct s_iterator *p_it);
 struct s_router *build_router(const json_t *par, const char *par_key, const json_t *partition, const json_t *order, const char *link_key, const char *u_data, int is_bayesian);
 void clean_router(struct s_router *p_router);
-struct s_router **build_routers(json_t *settings, json_t *theta, const char *u_data, int is_bayesian);
+struct s_router **build_routers(int *ind_theta_remainder, json_t *settings, json_t *theta, const char *u_data, int is_bayesian);
 void clean_routers(struct s_router **routers);
 int index_of_json_array(const json_t *array, const char *element);
 struct s_par *build_par(struct s_data *p_data);
@@ -851,7 +862,7 @@ double *fast_load_fill_json_1d(json_t *array, char *array_name);
 double **fast_load_fill_json_2d(json_t *array, char *array_name);
 double ***fast_load_fill_json_3d(json_t *array, char *array_name);
 json_t *load_json(void);
-void print_json_on_stdout(json_t *root);
+json_t *plom_theta_remainder_new(json_t* theta);
 
 /* drift.c */
 void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc);

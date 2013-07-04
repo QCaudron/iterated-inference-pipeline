@@ -183,13 +183,14 @@ void header_hat(FILE *p_file, struct s_data *p_data)
 void header_trace(FILE *p_file, struct s_data *p_data)
 {
     int i, g;
+    struct s_iterator *p_it = p_data->p_it_all_no_theta_remainder;
     struct s_router **routers = p_data->routers;
 
     fprintf(p_file, "index,");
 
-    for(i=0; i<p_data->p_it_all->length; i++) {
+    for(i=0; i < p_it->length; i++) {
         const char *name = routers[i]->name;
-        for(g=0; g<p_data->routers[i]->n_gp; g++) {
+        for(g=0; g < routers[i]->n_gp; g++) {
             const char *group = routers[i]->group_name[g];
             fprintf(p_file, "%s:%s,", name, group);
         }
@@ -386,15 +387,13 @@ void print_X(FILE *p_file_X, struct s_par **J_p_par, struct s_X **J_p_X, struct 
 }
 
 
-
-
-
-
 void print_trace(FILE *p_file_trace, int m, struct s_best *p_best, struct s_data *p_data, double log_like)
 {
-    int i, k;
-    int offset = 0;
+    int i, k, offset;
     double x;
+
+    struct s_iterator *p_it = p_data->p_it_all_no_theta_remainder;
+    struct s_router **routers = p_data->routers;
 
 #if FLAG_JSON
     json_t *root;
@@ -407,22 +406,22 @@ void print_trace(FILE *p_file_trace, int m, struct s_best *p_best, struct s_data
     fprintf(p_file_trace, "%d,", m);
 #endif
 
-    for(i=0; i<p_data->p_it_all->length; i++) {
-        for(k=0; k<p_data->routers[i]->n_gp; k++) {
-            x = (*(p_data->routers[i]->f_inv))(gsl_vector_get(p_best->mean, offset), p_data->routers[i]->min[k], p_data->routers[i]->max[k]);
+    for(i=0; i < p_it->length; i++) {
+        for(k=0; k < routers[i]->n_gp; k++) {
+	    offset = p_it->offset[i]+k;
+            x = (*(routers[i]->f_inv))(gsl_vector_get(p_best->mean, offset), routers[i]->min[k], routers[i]->max[k]);
 #if FLAG_JSON
             json_array_append_new(json_print, json_real(x));
 #else
             fprintf(p_file_trace,"%g,", x);
 #endif
-            offset++;
         }
     }
 
 #if FLAG_JSON
     json_array_append_new(json_print, isnan(log_like) ? json_null() : json_real(log_like));
 #else
-    fprintf(p_file_trace,"%.6f\n", log_like);
+    fprintf(p_file_trace,"%g\n", log_like);
 #endif
 
 #if FLAG_JSON
