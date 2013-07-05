@@ -94,9 +94,7 @@ void linearize_and_repeat(struct s_X *p_X, struct s_par *p_par, struct s_data *p
 }
 
 /**
- *   From proportion of initial conditons to population size.  If
- *   @c POP_SIZE_EQ_SUM_SV the last state is replaced by
- *   pop_size - sum_every_state_except_the_last.
+ *   From proportion of initial conditons to population size.
  */
 void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc)
 {
@@ -105,20 +103,15 @@ void prop2Xpop_size(struct s_X *p_X, struct s_data *p_data, struct s_calc *p_cal
     int i, cac;
     double *pop_size_t0 = p_calc->pop_size_t0;
 
-    for (i=0; i< N_PAR_SV ; i++) {
+    for (i=0; i< p_data->p_it_par_sv->length ; i++) {
         for (cac=0; cac<N_CAC; cac++) {
-            Xpop_size[i*N_CAC+cac] = Xpop_size[i*N_CAC+cac] * pop_size_t0[cac]; //pop_size_t0 is interpolated
+            Xpop_size[i*N_CAC+cac] = Xpop_size[i*N_CAC+cac] * pop_size_t0[cac];
             if(p_data->implementation == PLOM_PSR){ //rounding for exact methods
                 Xpop_size[i*N_CAC+cac] = round(Xpop_size[i*N_CAC+cac]);
             }
         }
     }
 
-    if (POP_SIZE_EQ_SUM_SV) {
-        for (cac=0; cac<N_CAC; cac++) {
-            Xpop_size[ (N_PAR_SV-1)*N_CAC + cac ] = pop_size_t0[cac] - (sum_SV(p_X->proj, cac)  - Xpop_size[ (N_PAR_SV-1)*N_CAC + cac ]);
-        }
-    }
 }
 
 

@@ -836,7 +836,7 @@ void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, gs
 
 void ran_proposal(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc);
 
-int check_IC(struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc);
+int plom_check_IC_assign_theta_remainder(theta_t *proposed, struct s_data *p_data);
 plom_err_code log_prob_proposal(double *log_like, struct s_best *p_best, theta_t *proposed, theta_t *mean, gsl_matrix *var, double sd_fac, struct s_data *p_data, int is_mvn);
 void apply_following_constraints(theta_t *proposed, struct s_best *p_best, struct s_data *p_data);
 

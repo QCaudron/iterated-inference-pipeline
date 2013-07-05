@@ -34,25 +34,25 @@ void apply_following_constraints(theta_t *proposed, struct s_best *p_best, struc
 }
 
 /**
-   generate a new value of theta that respects the constraints on
-   the initial conditions.
-*/
+ * generate a new value of theta that respects the constraints on
+ * the initial conditions.
+ */
 void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_par *p_par, struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc, void (*ran_proposal) (theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc))
 {
 
     do
-        {
+	{
             (*ran_proposal)(proposed, p_best, var, sd_fac, p_calc);
-
-            //take into account following constraints
-            apply_following_constraints(proposed, p_best, p_data);
-
-            //load_X0 (p_X->proj)
-            back_transform_theta2par(p_par, proposed, p_data->p_it_par_sv, p_data);
-            linearize_and_repeat(p_X, p_par, p_data, p_data->p_it_par_sv);
-            prop2Xpop_size(p_X, p_data, p_calc); //If POP_SIZE_EQ_SUM_SV the last state is replaced by pop_size-sum_every_state_except_the_last.
         }
-    while (check_IC(p_X, p_data, p_calc) > 0);
+    while (plom_check_IC_assign_theta_remainder(proposed, p_data) > 0);
+
+    //take into account following constraints
+    apply_following_constraints(proposed, p_best, p_data);
+
+    //load_X0 (p_X->proj)
+    back_transform_theta2par(p_par, proposed, p_data->p_it_par_sv, p_data);
+    linearize_and_repeat(p_X, p_par, p_data, p_data->p_it_par_sv);
+    prop2Xpop_size(p_X, p_data, p_calc);
 
     //reset dt to dt0
     p_X->dt = p_X->dt0;
@@ -61,40 +61,54 @@ void propose_safe_theta_and_load_X0(theta_t *proposed, struct s_best *p_best, gs
     theta_driftIC2Xdrift(p_X, proposed, p_data);
 }
 
-/**
- * generate a randam vector proposed. proposed is drawn from a MVN
- * law with mean "p_best->mean" and diagonal matrix var "var" 
- */
 
+
+/**
+ * generate a randam vector proposed. Proposed is drawn from a MVN law
+ * with mean "p_best->mean" and **diagonal** matrix var "var"
+ */
 void ran_proposal(theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc)
 {
     //here we assume a diagonal sigma_proposal so we draw iid gaussians. mvn case is a straight extension (see mvn.c)
-    int k;
+    int i, k;
 
-    for (k=0; k< proposed->size ; k++) {
-        gsl_vector_set(proposed, k, gsl_vector_get(p_best->mean, k) + gsl_ran_gaussian(p_calc->randgsl, sd_fac*sqrt(gsl_matrix_get(var, k, k))));
+    for (i=0; i< p_best->n_to_be_estimated ; i++) {
+	k = p_best->to_be_estimated[i];
+	gsl_vector_set(proposed, k, gsl_vector_get(p_best->mean, k) + gsl_ran_gaussian(p_calc->randgsl, sd_fac*sqrt(gsl_matrix_get(var, k, k))));
     }
 }
 
 
-int check_IC(struct s_X *p_X, struct s_data *p_data, struct s_calc *p_calc)
+/**
+ * return the number of errors (=number of cac where sum of IC in prop
+ * of it_all_no_theta_remainder > 1.0) and assign theta remainder (if
+ * it exists)
+ */
+int plom_check_IC_assign_theta_remainder(theta_t *proposed, struct s_data *p_data)
 {
-    /*return the number of errors (=number of cac where the intitial
-      population size is not respected)*/
-
-    int cac;
-    double pop_IC_cac = 0;
+    int i, cac;
     int cnt_error = 0;
 
-    double *pop_size_t0 = p_calc->pop_size_t0;
+    struct s_iterator *p_it = p_data->p_it_par_sv;
+    struct s_router **routers = p_data->routers;
 
-    for (cac=0; cac<N_CAC; cac++) {
-        pop_IC_cac = sum_SV(p_X->proj, cac);
+    int ind_theta_remainder = (p_data->p_it_theta_remainder->length) ? p_data->p_it_theta_remainder->ind[0]: -1;
 
-        if(pop_IC_cac > pop_size_t0[cac]) {
-            cnt_error++;
+    for (cac=0; cac < N_CAC; cac++) {
+	double prop_cac = 0.0;
+	for (i=0; i< p_it->length ; i++) {
+	    if(i != ind_theta_remainder){
+		prop_cac += gsl_vector_get(proposed, p_it->offset[i] + routers[i]->map[cac]);
+	    }
         }
+
+        if(prop_cac > 1.0) {
+            cnt_error++;
+        } else if(ind_theta_remainder != -1) {
+	    gsl_vector_set(proposed, p_data->p_it_theta_remainder->offset[ind_theta_remainder] +cac, 1.0-prop_cac); //theta_remainder has a grouping of variable_population
+	}
     }
+
     return cnt_error;
 }
 

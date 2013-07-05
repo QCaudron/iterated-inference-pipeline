@@ -34,21 +34,32 @@ double f_simplex(const gsl_vector *x, void *params)
 
     transfer_estimated(p_best, x, p_data);
 
-    back_transform_theta2par(p_par, p_best->mean, p_data->p_it_all, p_data);
-    linearize_and_repeat(p_X, p_par, p_data, p_data->p_it_par_sv);
-    prop2Xpop_size(p_X, p_data, calc[0]);
-    theta_driftIC2Xdrift(p_X, p_best->mean, p_data);
-
-    //reset dt
-    p_X->dt = p_X->dt0;
-
     /* if the initial conditions do not respect the constraint we set
        the log likelihood to the smallest possible value:
        smallest_log_like */
+    if(plom_check_IC_assign_theta_remainder(p_best->mean, p_data)){
 
-    fitness=0.0;
+#if FLAG_VERBOSE
+        print_err("IC constraint has not been respected: pop_IC>pop_size at t=0 minimal likelihood value has been assigned");
+#endif
+	//	sanitize_IC(p_X->proj, p_data->pop_size_t0);
+        if(OPTION_LEAST_SQUARE) {
+            fitness = BIG_NUMBER*p_data->nb_obs;
+        } else {
+            fitness = p_params_simplex->smallest_log_like;
+        }
+    
+    } else {
 
-    if (check_IC(p_X, p_data, calc[0]) == 0) {
+	back_transform_theta2par(p_par, p_best->mean, p_data->p_it_all, p_data);
+	linearize_and_repeat(p_X, p_par, p_data, p_data->p_it_par_sv);
+	prop2Xpop_size(p_X, p_data, calc[0]);
+	theta_driftIC2Xdrift(p_X, p_best->mean, p_data);
+
+	//reset dt
+	p_X->dt = p_X->dt0;
+	fitness=0.0;
+
         for(n=0; n< p_data->nb_obs; n++) {
 
             t0=p_data->times[n];
@@ -80,19 +91,7 @@ double f_simplex(const gsl_vector *x, void *params)
 	    fitness += log_prob_prior_value;
 	}
 
-
-    } else { //new IC do not respect the constraint:
-#if FLAG_VERBOSE
-        print_err("IC constraint has not been respected: pop_IC>pop_size at t=0 minimal likelihood value has been assigned");
-#endif
-//	sanitize_IC(p_X->proj, p_data->pop_size_t0);
-        if(OPTION_LEAST_SQUARE) {
-            fitness = BIG_NUMBER*p_data->nb_obs;
-        } else {
-            fitness = p_params_simplex->smallest_log_like;
-        }
     }
-
 
     if(!OPTION_LEAST_SQUARE) {
         fitness = -fitness; //GSL simplex algo minimizes so we multiply by -1 in case of log likelihood

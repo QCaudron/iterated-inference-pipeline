@@ -21,25 +21,25 @@
 double f_simplex_kalman(const gsl_vector *x, void *params)
 {
     struct s_kalman *p = (struct s_kalman *) params;
+    double log_like;
 
     transfer_estimated(p->p_best, x, p->p_data);
 
-    back_transform_theta2par(p->p_par, p->p_best->mean, p->p_data->p_it_all, p->p_data);
-    linearize_and_repeat(p->p_X, p->p_par, p->p_data, p->p_data->p_it_par_sv);
-    prop2Xpop_size(p->p_X, p->p_data, p->calc[0]);
-    theta_driftIC2Xdrift(p->p_X, p->p_best->mean, p->p_data);
-
-    //reset dt
-    p->p_X->dt = p->p_X->dt0;
-
-    double log_like;
-    if (check_IC(p->p_X, p->p_data, p->calc[0]) == 0) {
-	log_like = run_kalman(p->p_X, p->p_best, p->p_par, p->p_kalman_update, p->p_data, p->calc, f_prediction_ode,  0, NULL, NULL, NULL, 0);
-    } else { //new IC do not respect the constraint:
+    if(plom_check_IC_assign_theta_remainder(p->p_best->mean, p->p_data)){
 #if FLAG_VERBOSE
         print_err("IC constraint has not been respected: pop_IC>pop_size at t=0 minimal likelihood value has been assigned");
 #endif
 	log_like = p->smallest_log_like;
+    } else {
+	back_transform_theta2par(p->p_par, p->p_best->mean, p->p_data->p_it_all, p->p_data);
+	linearize_and_repeat(p->p_X, p->p_par, p->p_data, p->p_data->p_it_par_sv);
+	prop2Xpop_size(p->p_X, p->p_data, p->calc[0]);
+	theta_driftIC2Xdrift(p->p_X, p->p_best->mean, p->p_data);
+
+	//reset dt
+	p->p_X->dt = p->p_X->dt0;
+
+	log_like = run_kalman(p->p_X, p->p_best, p->p_par, p->p_kalman_update, p->p_data, p->calc, f_prediction_ode,  0, NULL, NULL, NULL, 0);    
     }
 
     // "-": simplex minimizes hence the "-"
