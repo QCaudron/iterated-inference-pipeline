@@ -1232,9 +1232,8 @@ void clean_p_calc(struct s_calc *p_calc, struct s_data *p_data)
 	FREE(p_calc->y_pred);
 
     } else if (p_data->implementation == PLOM_PSR){
-
-        clean2d(p_calc->prob, N_PAR_SV+2); //+2 for U and DU of the universes
-        clean3u(p_calc->inc, N_PAR_SV+2, N_CAC); //+2 for U and DU of the universes
+        clean2d(p_calc->prob, N_PAR_SV+1); //+1 for U
+        clean3u(p_calc->inc, N_PAR_SV+1, N_CAC); //+1 for U
     }
 
     FREE(p_calc->to_be_sorted);

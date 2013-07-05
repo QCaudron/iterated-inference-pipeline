@@ -36,14 +36,14 @@
  */
 void build_psr(struct s_calc *p)
 {
-    unsigned int tab[N_PAR_SV+{{ order.universe|length }}]; 
+    unsigned int tab[{{ psr|length }}]; 
 
     /*automaticaly generated code: dimension of prob and inc*/
     {% for x in psr %}
     tab[ORDER_{{x.state|safe}}] = {{x.nb_reaction|safe}};{% endfor %}
 
-    p->prob = init2d_var_set0(N_PAR_SV+2, tab);
-    p->inc = init3u_varp2_set0(N_PAR_SV+2, N_CAC, tab);
+    p->prob = init2d_var_set0({{ psr|length }}, tab);
+    p->inc = init3u_varp2_set0({{ psr|length }}, N_CAC, tab);
 
     //  p->gravity = init1d_set0(N_C);
 }
