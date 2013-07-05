@@ -481,8 +481,7 @@ double back_transform_x(double x, int g, struct s_router *r)
 
 /**
    Transform parameters entered by the user in an intuitive scale in
-   the transformed scale (converting time unit to the unit of the
-   data). 
+   the transformed scale. 
 
    @param square_diag_sd boolean, squared the term on the diagonal of p_best->var
 

@@ -90,22 +90,23 @@ int plom_check_IC_assign_theta_remainder(theta_t *proposed, struct s_data *p_dat
     int cnt_error = 0;
 
     struct s_iterator *p_it = p_data->p_it_par_sv;
-    struct s_router **routers = p_data->routers;
-
+    
     int ind_theta_remainder = (p_data->p_it_theta_remainder->length) ? p_data->p_it_theta_remainder->ind[0]: -1;
-
+   
     for (cac=0; cac < N_CAC; cac++) {
 	double prop_cac = 0.0;
 	for (i=0; i< p_it->length ; i++) {
+	    struct s_router *p_r = p_data->routers[p_it->ind[i]];
 	    if(i != ind_theta_remainder){
-		prop_cac += gsl_vector_get(proposed, p_it->offset[i] + routers[p_it->ind[i]]->map[cac]);
+		prop_cac += back_transform_x(gsl_vector_get(proposed, p_it->offset[i] + p_r->map[cac]), p_r->map[cac], p_r);
 	    }
         }
 
         if(prop_cac > 1.0) {
             cnt_error++;
         } else if(ind_theta_remainder != -1) {
-	    gsl_vector_set(proposed, p_data->p_it_theta_remainder->offset[0] +cac, 1.0-prop_cac); //theta_remainder has a grouping of variable_population
+	    struct s_router *p_r = p_data->routers[ind_theta_remainder];
+	    gsl_vector_set(proposed, p_data->p_it_theta_remainder->offset[0] +cac, (*(p_r->f))(1.0-prop_cac, p_r->min[cac], p_r->max[cac] )); //theta_remainder has a grouping of variable_population
 	}
     }
 
