@@ -489,7 +489,7 @@ double back_transform_x(double x, int g, struct s_router *r)
    will be transformed
 */
 
-void transform_theta(struct s_best *p_best, struct s_data *p_data, int square_diag_sd)
+void transform_theta(struct s_best *p_best, struct s_data *p_data, int opt_square_diag_sd)
 {
     int i, k;
 
@@ -504,7 +504,7 @@ void transform_theta(struct s_best *p_best, struct s_data *p_data, int square_di
             int offset = p_it->offset[i]+k;
 	    gsl_vector_set(x, offset, (*(r->f))( gsl_vector_get(x, offset), r->min[k], r->max[k] ));
 
-	    if(square_diag_sd && (gsl_matrix_get(var, offset, offset) > 0.0) ) {
+	    if(opt_square_diag_sd && (gsl_matrix_get(var, offset, offset) > 0.0) ) {
 		gsl_matrix_set(var, offset, offset, pow(gsl_matrix_get(var, offset, offset), 2));
 	    }
 	}

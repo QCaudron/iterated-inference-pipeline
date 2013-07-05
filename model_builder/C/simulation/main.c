@@ -310,14 +310,12 @@ int main(int argc, char *argv[])
     if(is_predict){
         for(j=0; j<J; j++) {
             load_best(p_best, p_data, json_array_get(thetas, j), 1);
-            transform_theta(p_best, p_data, 1);
             back_transform_theta2par(J_p_par[j], p_best->mean, p_data->p_it_all, p_data);
             linearize_and_repeat(J_p_X[j], J_p_par[j], p_data, p_data->p_it_par_sv);
             prop2Xpop_size(J_p_X[j], p_data, calc[0]);
             theta_driftIC2Xdrift(J_p_X[j], p_best->mean, p_data);
         }
     } else{
-        transform_theta(p_best, p_data, 1);
         back_transform_theta2par(J_p_par[0], p_best->mean, p_data->p_it_all, p_data);
         linearize_and_repeat(J_p_X[0], J_p_par[0], p_data, p_data->p_it_par_sv);
         prop2Xpop_size(J_p_X[0], p_data, calc[0]);

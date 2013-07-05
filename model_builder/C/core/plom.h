@@ -794,7 +794,7 @@ void assign_f_transfo(double (**f_transfo) (double x, double mul, double a, doub
 void assign_f_derivative(double (**f_derivative) (double x, double mul, double a, double b), const char *f_transfo_name);
 void back_transform_theta2par(struct s_par *p_par, const theta_t *theta, const struct s_iterator *p_it, struct s_data *p_data);
 double back_transform_x(double x, int g, struct s_router *r);
-void transform_theta(struct s_best *p_best, struct s_data *p_data, int square_diag_sd);
+void transform_theta(struct s_best *p_best, struct s_data *p_data, int opt_square_diag_sd);
 void square_diag_sd(struct s_best *p_best, struct s_data *p_data);
 
 /* likelihood.c */

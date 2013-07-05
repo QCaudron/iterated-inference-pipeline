@@ -241,18 +241,15 @@ int main(int argc, char *argv[])
     plom_unlink_done(SFR_PATH, GENERAL_ID);
     json_t *settings = load_settings(PATH_SETTINGS);
     json_t *theta = load_json();
-    int is_covariance = (json_object_get(theta, "covariance") != NULL);
     struct s_kalman *p_kalman = build_kalman(theta, settings, implementation,  noises_off, 1, dt, eps_abs, eps_rel, freeze_forcing, nb_obs);
     json_decref(settings);
 
-    transform_theta(p_kalman->p_best, p_kalman->p_data, !is_covariance);
     gsl_vector_memcpy(p_kalman->p_best->proposed, p_kalman->p_best->mean);
 
     struct s_likelihood *p_like = build_likelihood();
     struct s_mcmc_calc_data *p_mcmc_calc_data = build_mcmc_calc_data(p_kalman->p_best, a, m_switch, m_eps, epsilon_max, is_smooth, alpha);
 
     p_kalman->calc[0]->method_specific_shared_data = p_mcmc_calc_data; //needed to use ran_proposal_sequential in pmcmc
-
 
     n_traj = GSL_MIN(M, n_traj);
     int thin_traj = (int) ( (double) M / (double) n_traj); //the thinning interval

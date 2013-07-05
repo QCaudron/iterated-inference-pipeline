@@ -261,16 +261,13 @@ int main(int argc, char *argv[])
     json_t *settings = load_settings(PATH_SETTINGS);
 
     json_t *theta = load_json();
-    int is_covariance = (json_object_get(theta, "covariance") != NULL);
     struct s_pmcmc *p_pmcmc = build_pmcmc(theta, implementation, noises_off, settings,
                                           dt, eps_abs, eps_rel, freeze_forcing,
                                           a, m_switch, m_eps, epsilon_max, is_smooth, alpha,
                                           J, &n_threads, nb_obs);
     json_decref(settings);
 
-    transform_theta(p_pmcmc->p_best, p_pmcmc->p_data, !is_covariance);
     gsl_vector_memcpy(p_pmcmc->p_best->proposed, p_pmcmc->p_best->mean);
-
 
     n_traj = GSL_MIN(M, n_traj);
     int thin_traj = (int) ( (double) M / (double) n_traj); //the thinning interval

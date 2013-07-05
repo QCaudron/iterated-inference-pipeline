@@ -186,8 +186,6 @@ int main(int argc, char *argv[])
     plom_unlink_done(SFR_PATH, GENERAL_ID);
     json_t *theta = load_json();
     struct s_simplex *p_simplex = build_simplex(theta, implementation, noises_off, GENERAL_ID, OPTION_PRIOR, dt, eps_abs, eps_rel, freeze_forcing, nb_obs);
-    int is_covariance = (json_object_get(theta, "covariance") != NULL);
-    transform_theta(p_simplex->p_best, p_simplex->p_data, !is_covariance);
 
     if (M == 0) {
         //simply return the sum of square or the log likelihood (can be used to do slices especially with least square where smc can't be used'...)

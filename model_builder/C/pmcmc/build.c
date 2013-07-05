@@ -35,7 +35,7 @@ struct s_pmcmc *build_pmcmc(json_t *theta, enum plom_implementations implementat
     }
 
     struct s_pmcmc *p;
-    p = malloc(sizeof(struct s_pmcmc));
+    p = malloc(sizeof (struct s_pmcmc));
     if(p==NULL) {
         sprintf(str, "Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
         print_err(str);

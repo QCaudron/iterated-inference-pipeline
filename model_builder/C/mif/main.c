@@ -238,16 +238,16 @@ int main(int argc, char *argv[])
 
     json_t *theta = load_json();
     struct s_mif *p_mif = build_mif(theta, implementation, noises_off, dt, eps_abs, eps_rel, freeze_forcing, prop_L_option, J,  &n_threads);
-    int is_covariance = (json_object_get(theta, "covariance") != NULL);
 
 #if FLAG_VERBOSE
     snprintf(str, STR_BUFFSIZE, "Starting PLOM-MIF with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, a = %g, b = %g, L = %g, SWITCH = %d, N_THREADS = %d", GENERAL_ID, J, LIKE_MIN, M, MIF_a, MIF_b, prop_L_option, SWITCH, n_threads);
     print_log(str);
 #endif
 
-    transform_theta(p_mif->p_best, p_mif->p_data, !is_covariance);
+
     rescale_covariance_mif(p_mif->p_best, p_mif->p_data);
 
+    int is_covariance = (json_object_get(theta, "covariance") != NULL);
     mif(p_mif->calc, p_mif->p_data, p_mif->p_best, &(p_mif->J_p_X), &(p_mif->J_p_X_tmp), p_mif->J_p_par, p_mif->p_like, p_mif->J_theta, p_mif->J_theta_tmp, p_mif->D_theta_bart, p_mif->D_theta_Vt, get_f_pred(implementation, noises_off), is_covariance);
 
     plom_print_done(theta, p_mif->p_data, p_mif->p_best, SFR_PATH, GENERAL_ID, 0);

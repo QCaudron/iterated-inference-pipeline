@@ -365,14 +365,18 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int
 	}
     }
 
+
+    int is_covariance = (json_object_get(theta, "covariance") != NULL);
+
     if (update_guess) {
+	transform_theta(p_best, p_data, !is_covariance);
 	if(plom_check_IC_assign_theta_remainder(p_best->mean, p_data)){
 	    print_err("sum of the initial conditions without remainder is greater than 1.0");
 	    exit(EXIT_FAILURE);
 	};
     }
-
-    if (json_object_get(theta, "covariance")) {
+        
+    if (is_covariance) {
         load_covariance(p_best->var, fast_get_json_array(theta, "covariance"), p_data);
     }
 

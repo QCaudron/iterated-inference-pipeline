@@ -56,11 +56,7 @@ void update_walk_rates(struct s_best *p_best, struct s_data *p_data)
 //	print_json_on_stdout(root);
 
     if(json_object_size(theta)) { 
-
         load_best(p_best, p_data, theta, 0);
-
-	square_diag_sd(p_best, p_data);    
-
         print_err("data integrated");
     }
 

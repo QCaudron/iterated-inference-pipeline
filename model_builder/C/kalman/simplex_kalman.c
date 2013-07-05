@@ -224,11 +224,8 @@ int main(int argc, char *argv[])
 #endif
 
     json_t *theta = load_json();
-    int is_covariance = (json_object_get(theta, "covariance") != NULL);
     struct s_kalman *p_kalman = build_kalman(theta, settings, implementation, noises_off, OPTION_PRIOR, dt, eps_abs, eps_rel, freeze_forcing, nb_obs);
     json_decref(settings);
-
-    transform_theta(p_kalman->p_best, p_kalman->p_data, !is_covariance);
 
     simplex(p_kalman->p_best, p_kalman->p_data, p_kalman, f_simplex_kalman, CONVERGENCE_STOP_SIMPLEX, M, option_no_trace);
 
