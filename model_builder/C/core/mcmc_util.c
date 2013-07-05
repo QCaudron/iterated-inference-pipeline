@@ -273,15 +273,16 @@ void header_covariance(FILE *p_file, struct s_data *p_data)
 {
     int i, g;
     struct s_iterator *p_it = p_data->p_it_all_no_theta_remainder;
-    struct s_router **routers = p_data->routers;
 
     for(i=0; i < p_it->length; i++) {
-        const char *name = routers[i]->name;
-        for(g=0; g<p_data->routers[i]->n_gp; g++) {
-            const char *group = routers[i]->group_name[g];
-            fprintf(p_file, "%s:%s%s", name, group, (i == (p_it->length-1) && (g == (p_data->routers[i]->n_gp-1)) )? "\n" : ",");
+	struct s_router *p_router = p_data->routers[p_it->ind[i]];
+        const char *name = p_router->name;
+        for(g=0; g < p_router->n_gp; g++) {
+            const char *group = p_router->group_name[g];
+            fprintf(p_file, "%s:%s%s", name, group, (i == (p_it->length-1) && (g == (p_router->n_gp-1)) )? "\n" : ",");
         }
     }
+
 }
 
 
@@ -291,7 +292,7 @@ void header_covariance(FILE *p_file, struct s_data *p_data)
 void print_covariance(FILE *p_file_cov, gsl_matrix *covariance, struct s_data *p_data)
 {
 
-    int i, k, row, ii, kk, col;
+    int i, k, row, ii, kk, col, col_csv;
     double x;
 #if FLAG_JSON
     json_t *root;
@@ -310,7 +311,7 @@ void print_covariance(FILE *p_file_cov, gsl_matrix *covariance, struct s_data *p
 #if FLAG_JSON
 	    json_print_n = json_array();
 #endif
-
+	    col_csv = 0;
 	    for (ii=0; ii< p_it->length; ii++) {
 		for(kk=0; kk< routers[ p_it->ind[ii] ]->n_gp; kk++) {
 		    col = p_it->offset[ii]+kk;
@@ -319,8 +320,9 @@ void print_covariance(FILE *p_file_cov, gsl_matrix *covariance, struct s_data *p
 #if FLAG_JSON
 		    json_array_append_new(json_print_n, json_real(x));
 #else
-		    fprintf(p_file_cov,"%g%s", x, (col < (p_it->nbtot-1)) ? ",": "");
+		    fprintf(p_file_cov,"%g%s", x, (col_csv < (p_it->nbtot-1)) ? ",": "");
 #endif
+		    col_csv++;
 		}
 	    }
 

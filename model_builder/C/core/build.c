@@ -417,6 +417,7 @@ struct s_router **build_routers(int *ind_theta_remainder, json_t *settings, json
         exit(EXIT_FAILURE);
     }
 
+
     offset = 0;
     for(i=0; i<3; i++) {
         json_t *my_par_list = fast_get_json_array(orders, par_types[i]);
@@ -424,8 +425,7 @@ struct s_router **build_routers(int *ind_theta_remainder, json_t *settings, json
         for(j=0; j< json_array_size(my_par_list); j++) {
 
             const char *par_key = fast_get_json_string_from_array(my_par_list, j, par_types[i]);
-            json_t *par = fast_get_json_object(parameters, par_key);
-
+            json_t *par = json_object_get(parameters, par_key);
 	    if(par){
 		//overwrite par if follower
 		if(json_object_get(par, "follow")){
@@ -456,12 +456,14 @@ struct s_router **build_routers(int *ind_theta_remainder, json_t *settings, json
 	    } else { //a parameter is missing in theta and POP_SIZE_EQ_SUM_SV, it is the theta remainder
 		*ind_theta_remainder = j;
 		json_t *theta_remainder = plom_theta_remainder_new(theta);
-		build_router(theta_remainder, par_key,
-			     fast_get_json_object(partitions, "variable_population"),
-			     fast_get_json_array(orders, pop_ts_types[i]),
-			     link_types[i],
-			     u_data,
-			     is_bayesian);		
+		
+		routers[offset] = build_router(theta_remainder, par_key,
+					       fast_get_json_object(partitions, "variable_population"),
+					       fast_get_json_array(orders, pop_ts_types[i]),
+					       link_types[i],
+					       u_data,
+					       is_bayesian);
+		
 		json_decref(theta_remainder);
 	    }
 
@@ -687,6 +689,7 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
     int ind_theta_remainder = -1;
     p_data->routers = build_routers(&ind_theta_remainder, settings, theta, u_data, is_bayesian);
 
+
     //ts names
     json_t *ts_name = fast_get_json_array(fast_get_json_object(settings, "orders"), "ts_id");
     p_data->ts_name = malloc(N_TS * sizeof(char *));
@@ -747,7 +750,6 @@ struct s_data *build_data(json_t *settings, json_t *theta, enum plom_implementat
     p_data->p_it_theta_remainder = plom_iterator_theta_remainder_new(all_offset, p_data->routers, ind_theta_remainder);
 
     FREE(all_offset);
-
 
     //the following is optional (for instance it is non needed for simulation models)
     if (N_DATA) {
@@ -1541,7 +1543,7 @@ struct s_best *build_best(struct s_data *p_data, json_t *theta)
     p_best->n_follow = 0;
     for(i=0; i<p_data->p_it_all->length; i++) {
         const char *par_key = routers[i]->name;
-        json_t *par = fast_get_json_object(fast_get_json_object(theta, "parameter"), par_key);
+        json_t *par = json_object_get(fast_get_json_object(theta, "parameter"), par_key);
 
         if(par && json_object_get(par, "follow")) {
             const char *par_follow_key = fast_get_json_string_from_object(par, "follow");

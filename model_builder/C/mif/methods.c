@@ -212,7 +212,7 @@ void print_mean_var_theta_theoretical_mif(FILE *p_file, double *theta_bart_n, do
 #endif
 
     for(i=0; i<p_it->length; i++) {
-        for(k=0; k < routers[i]->n_gp; k++) {
+        for(k=0; k < routers[p_it->ind[i]]->n_gp; k++) {
 	    offset = p_it->offset[i]+k;
 #if FLAG_JSON
 	    json_array_append_new(json_print, json_real(theta_bart_n[offset]));

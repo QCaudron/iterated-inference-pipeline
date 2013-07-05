@@ -314,9 +314,9 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int
     struct s_iterator *p_it_all = p_data->p_it_all;
 
     for(i=0; i<p_it_all->length; i++) {
-        const char *par_key = routers[i]->name;
+        const char *par_key = routers[p_it_all->ind[i]]->name;
 
-        json_t *par = fast_get_json_object(parameters, par_key);
+        json_t *par = json_object_get(parameters, par_key);
 
 	if(par){
 	    json_t *follow = json_object_get(par, "follow");
@@ -326,8 +326,8 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int
 	    }
 	    json_t *groups = fast_get_json_object(par, "group");
 
-	    for (g=0; g < routers[i]->n_gp; g++) {
-		const char *group_key = routers[i]->group_name[g];
+	    for (g=0; g < routers[p_it_all->ind[i]]->n_gp; g++) {
+		const char *group_key = routers[p_it_all->ind[i]]->group_name[g];
 		json_t *group = fast_get_json_object(groups, group_key);
 		offset = p_it_all->offset[i]+g;
 
@@ -352,7 +352,7 @@ void load_best(struct s_best *p_best, struct s_data *p_data, json_t *theta,  int
 	    }
 	} else { //theta remainder
 	    
-	    for (g=0; g < routers[i]->n_gp; g++) {
+	    for (g=0; g < routers[p_it_all->ind[i]]->n_gp; g++) {
 		offset = p_it_all->offset[i]+g;
 		p_best->prior[offset] = &gsl_ran_flat_pdf;
 		if (update_guess) {

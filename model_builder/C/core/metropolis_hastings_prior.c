@@ -31,7 +31,6 @@ int metropolis_hastings(struct s_best *p_best, struct s_likelihood *p_like, doub
     plom_err_code rc_prior_new = log_prob_prior(&Lprior_new, p_best, p_best->proposed, var, p_data); /* p{theta*} */
     plom_err_code rc_prior_prev = log_prob_prior(&Lprior_prev, p_best, p_best->mean, var, p_data);  /* p{theta(i-1)} */
 
-
     if( (rc_proposal_new == PLOM_SUCCESS) && (rc_proposal_prev == PLOM_SUCCESS) && (rc_prior_new == PLOM_SUCCESS) && (rc_prior_prev == PLOM_SUCCESS) ) {
 
         // ( p{theta*}(y)  p{theta*} ) / ( p{theta(i-1)}(y) p{theta(i-1)} )  *  q{ theta(i-1) | theta* } / q{ theta* | theta(i-1) }
@@ -59,7 +58,7 @@ int metropolis_hastings(struct s_best *p_best, struct s_likelihood *p_like, doub
  */
 plom_err_code log_prob_prior(double *log_like, struct s_best *p_best, gsl_vector *mean, gsl_matrix *var, struct s_data *p_data)
 {
-    int i, k;
+    int i, k, offset;
 
     int is_err = 0;
 
@@ -67,13 +66,12 @@ plom_err_code log_prob_prior(double *log_like, struct s_best *p_best, gsl_vector
     p_tmp=0.0, Lp=0.0;
     double back_transformed; //prior are on the natural scale, so we transform the parameter
 
-    struct s_router **routers = p_data->routers;
-    int offset = 0;
-
     for(i=0; i<p_data->p_it_all->length; i++) {
-        for(k=0; k<routers[i]->n_gp; k++) {
+	struct s_router *p_router = p_data->routers[p_data->p_it_all->ind[i]];
+        for(k=0; k<p_router->n_gp; k++) {
+	    offset = p_data->p_it_all->offset[i] + k;
 	    if(p_best->is_estimated[offset]) {
-                back_transformed = (*(routers[i]->f_inv[k]))(gsl_vector_get(mean, offset), routers[i]->min[k], routers[i]->max[k]);
+                back_transformed = (*(p_router->f_inv[k]))(gsl_vector_get(mean, offset), p_router->min[k], p_router->max[k]);
                 p_tmp = (*(p_best->prior[offset]))(back_transformed, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);
 
                 //check for numerical issues
@@ -86,7 +84,6 @@ plom_err_code log_prob_prior(double *log_like, struct s_best *p_best, gsl_vector
 
                 Lp += log(p_tmp); 
             }
-            offset++;
         }
     }
 

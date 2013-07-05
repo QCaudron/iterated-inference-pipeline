@@ -35,24 +35,25 @@ void plom_print_done(json_t *theta, struct s_data *p_data, struct s_best *p_best
     char str[STR_BUFFSIZE];
     snprintf(str, STR_BUFFSIZE, "%s.done_%d.json", path, general_id);
 
-    int i, g;
-    struct s_router **routers = p_data->routers;
-    
-    int offset = 0;
+    int i, g, offset;  
     double x;
 
+    struct s_iterator *p_it = p_data->p_it_all_no_theta_remainder;
     json_t *parameter = json_object_get(theta, "parameter");
 
-    for(i=0; i<p_data->p_it_all->length; i++) {
-        const char *name = routers[i]->name;
+    for(i=0; i<p_it->length; i++) {
+	struct s_router *p_router = p_data->routers[p_it->ind[i]];
+
+        const char *name = p_router->name;
 	json_t *p = json_object_get(json_object_get(parameter, name), "group");
-        for(g=0; g<p_data->routers[i]->n_gp; g++) {
-            const char *group = routers[i]->group_name[g];
+        for(g=0; g<p_router->n_gp; g++) {
+	    offset = p_it->offset[i]+g;
+
+            const char *group = p_router->group_name[g];
 	    json_t *guess = json_object_get(json_object_get(p, group), "guess");	    
 
-            x = (*(p_data->routers[i]->f_inv))(gsl_vector_get(p_best->mean, offset), p_data->routers[i]->min[g], p_data->routers[i]->max[g]);	    
+            x = (*(p_router->f_inv))(gsl_vector_get(p_best->mean, offset), p_router->min[g], p_router->max[g]);	    
 	    json_object_set_new(guess, "value", json_real(x));	    
-	    offset++;
         }
     }
     
@@ -87,8 +88,8 @@ void header_X(FILE *p_file, struct s_data *p_data)
     struct s_router **routers = p_data->routers;
 
     fprintf(p_file, "index,time,");
-    for(i=0; i<N_PAR_SV; i++) {
-        const char *name = routers[i]->name;
+    for(i=0; i<p_data->p_it_par_sv->length; i++) {
+        const char *name = routers[p_data->p_it_par_sv->ind[i]]->name;
         for(cac=0; cac < N_CAC; cac++) {
             const char *cac_name = p_data->cac_name[cac];
             fprintf(p_file,"%s:%s,", name, cac_name);
@@ -146,8 +147,8 @@ void header_hat(FILE *p_file, struct s_data *p_data)
     fprintf(p_file, "time,");
 
     /* par_sv */
-    for(i=0; i<N_PAR_SV; i++) {
-        const char *name = routers[i]->name;
+    for(i=0; i<p_data->p_it_par_sv->length; i++) {
+        const char *name = routers[p_data->p_it_par_sv->ind[i]]->name;       
         for(cac=0; cac < N_CAC; cac++) {
             const char *cac_name = p_data->cac_name[cac];
             fprintf(p_file, "low95:%s:%s,%s:%s,high95:%s:%s,", name, cac_name, name, cac_name, name, cac_name);
@@ -184,14 +185,15 @@ void header_trace(FILE *p_file, struct s_data *p_data)
 {
     int i, g;
     struct s_iterator *p_it = p_data->p_it_all_no_theta_remainder;
-    struct s_router **routers = p_data->routers;
 
     fprintf(p_file, "index,");
 
     for(i=0; i < p_it->length; i++) {
-        const char *name = routers[i]->name;
-        for(g=0; g < routers[i]->n_gp; g++) {
-            const char *group = routers[i]->group_name[g];
+	struct s_router *p_router = p_data->routers[p_it->ind[i]];
+        const char *name = p_router->name;
+
+        for(g=0; g < p_router->n_gp; g++) {
+            const char *group = p_router->group_name[g];
             fprintf(p_file, "%s:%s,", name, group);
         }
     }
@@ -280,6 +282,7 @@ void print_p_X(FILE *p_file, json_t *json_print, struct s_X *p_X, struct s_par *
 #else
     fprintf(p_file,"%d,%g,", j_or_m, t);
 #endif
+
 
     for(i=0; i<(N_PAR_SV*N_CAC); i++) {
         x = p_X->proj[i];
@@ -393,7 +396,6 @@ void print_trace(FILE *p_file_trace, int m, struct s_best *p_best, struct s_data
     double x;
 
     struct s_iterator *p_it = p_data->p_it_all_no_theta_remainder;
-    struct s_router **routers = p_data->routers;
 
 #if FLAG_JSON
     json_t *root;
@@ -407,9 +409,10 @@ void print_trace(FILE *p_file_trace, int m, struct s_best *p_best, struct s_data
 #endif
 
     for(i=0; i < p_it->length; i++) {
-        for(k=0; k < routers[i]->n_gp; k++) {
+	struct s_router *p_router = p_data->routers[p_it->ind[i]];
+        for(k=0; k < p_router->n_gp; k++) {
 	    offset = p_it->offset[i]+k;
-            x = (*(routers[i]->f_inv))(gsl_vector_get(p_best->mean, offset), routers[i]->min[k], routers[i]->max[k]);
+            x = (*(p_router->f_inv))(gsl_vector_get(p_best->mean, offset), p_router->min[k], p_router->max[k]);
 #if FLAG_JSON
             json_array_append_new(json_print, json_real(x));
 #else
@@ -603,7 +606,6 @@ void print_hat(FILE *p_file, struct s_hat **D_p_hat, struct s_data *p_data)
 void print_par(struct s_par *p_par, struct s_data *p_data)
 {
     /* for debugging purposes */
-
     int i, k;
 
     for(i=0; i<(N_PAR_SV+N_PAR_PROC+N_PAR_OBS); i++) {

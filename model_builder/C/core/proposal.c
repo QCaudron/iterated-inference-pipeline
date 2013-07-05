@@ -98,14 +98,14 @@ int plom_check_IC_assign_theta_remainder(theta_t *proposed, struct s_data *p_dat
 	double prop_cac = 0.0;
 	for (i=0; i< p_it->length ; i++) {
 	    if(i != ind_theta_remainder){
-		prop_cac += gsl_vector_get(proposed, p_it->offset[i] + routers[i]->map[cac]);
+		prop_cac += gsl_vector_get(proposed, p_it->offset[i] + routers[p_it->ind[i]]->map[cac]);
 	    }
         }
 
         if(prop_cac > 1.0) {
             cnt_error++;
         } else if(ind_theta_remainder != -1) {
-	    gsl_vector_set(proposed, p_data->p_it_theta_remainder->offset[ind_theta_remainder] +cac, 1.0-prop_cac); //theta_remainder has a grouping of variable_population
+	    gsl_vector_set(proposed, p_data->p_it_theta_remainder->offset[0] +cac, 1.0-prop_cac); //theta_remainder has a grouping of variable_population
 	}
     }
 
@@ -119,9 +119,8 @@ int plom_check_IC_assign_theta_remainder(theta_t *proposed, struct s_data *p_dat
 
 plom_err_code log_prob_proposal(double *log_like, struct s_best *p_best, theta_t *proposed, theta_t *mean, gsl_matrix *var, double sd_fac, struct s_data *p_data, int is_mvn)
 {
-    struct s_router **routers = p_data->routers;
 
-    int i, k;
+    int i, k, offset;
 
     double p_tmp, Lp;
     p_tmp=0.0, Lp=0.0;
@@ -130,13 +129,12 @@ plom_err_code log_prob_proposal(double *log_like, struct s_best *p_best, theta_t
         p_tmp = plom_dmvnorm(p_best, proposed, mean, var, sd_fac);
     }
 
-    int offset = 0;
-
     for(i=0; i<p_data->p_it_all->length; i++) {
-        for(k=0; k<routers[i]->n_gp; k++) {
+	struct s_router *p_router = p_data->routers[p_data->p_it_all->ind[i]];
+        for(k=0; k<p_router->n_gp; k++) {
+	    offset = p_data->p_it_all->offset[i]+k;
 
 	    if(p_best->is_estimated[offset]) {
-
                 if (!is_mvn) {
                     p_tmp = gsl_ran_gaussian_pdf((gsl_vector_get(proposed, offset)-gsl_vector_get(mean, offset)), sd_fac*sqrt(gsl_matrix_get(var, offset, offset)));
                 }
@@ -159,7 +157,7 @@ plom_err_code log_prob_proposal(double *log_like, struct s_best *p_best, theta_t
                   diagonal terms so everything generalizes nicely
                 */
 
-                p_tmp /= (*(routers[i]->f_inv_derivative))(gsl_vector_get(proposed, offset), routers[i]->min[k], routers[i]->max[k]);
+                p_tmp /= (*(p_router->f_inv_derivative))(gsl_vector_get(proposed, offset), p_router->min[k], p_router->max[k]);
 
                 //check for numerical issues
                 if( (isnan(p_tmp)==1) || (isinf(p_tmp)==1) || (p_tmp<0.0) ) {
@@ -170,8 +168,6 @@ plom_err_code log_prob_proposal(double *log_like, struct s_best *p_best, theta_t
 		    Lp += log(p_tmp);
 		}
             }
-
-            offset++;
         }
     }
 

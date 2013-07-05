@@ -416,7 +416,7 @@ json_t *plom_theta_remainder_new(json_t* theta){
         json_t *my_group = json_array_get(group, g); 
         const char *my_group_id = fast_get_json_string_from_object(my_group, "id");
 
-	json_t *values = json_pack("{s:f, s:f, s:f, s:f, s:s}", "min", 0.0, "max", 1.0, "guess", 0.0, "sd_transf", 0.0, "prior", "unfiform");
+	json_t *values = json_pack("{s:{s:f}, s:{s:f}, s:{s:f}, s:{s:f}, s:{s:s}}", "min", "value", 0.0, "max", "value", 1.0, "guess", "value", 0.0, "sd_transf", "value", 0.0, "prior", "value", "uniform");
 	json_object_set_new(par_group, my_group_id, values);
     }
 
