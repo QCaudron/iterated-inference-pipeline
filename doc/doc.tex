@@ -42,7 +42,9 @@ Compartmental models are a general framework used to represent the state of a co
 
 Each compartment can correspond to very diverse characterisations, depending on the context. They can be used to track the status of an individual with regards to a given disease in a human or animal population (susceptible or infected, for example), their age or their geographical location. Additionnally, compartments can be used to track the number of specimens of different animal species in an ecosystem, as in the Lotka-Volterra predator-prey model. They can also be used in physics and chemistry to determine molecule types, their electronic charge or radioactive state, for example. Less classical illustrations of the use of compartmental models include tracking the spread of rumors among a population,  or the propagation of economic difficulties among countries following a financial crisis.
 
-We note $C^{(i)}_t$ the size of compartment $i$ ($1\leq i \leq n$) at time $t$, and $z_t=[C_t^{(1)},..,C_t^{(n)}]$. A model is defined by a (finite) number $m$ of transformations of the system called reactions (the ensemble of all indexes is noted $\mathcal{R})$. These reactions correspond to one or several individuals passing from one compartment to another, or arriving or leaving the total population. In any case, each reaction $k$ is characterised by its effect on the structure of the population corresponding to a vector $l^{(k)}\in\mathbb{Z}^n$, and its intensity of occurrence $r^{(k)}_t$. We allow for these rates to depend on time, to reflect  the influence of potential forcing of external factors on the system, and to depend on a finite set of constant quantities gathered in a parameter vector $\theta$. In addition, we consider transition rates to be density-dependent, i.e. that they can be written as $r_t(z_t,\theta)=N\dot{r}(z_t/N,\theta)=N\dot{r}(\dot{z}_t/N,\theta)$ when $N$ is the total size of the population. In the remaining of this document, we will define compartmental models using the following formalism:
+We note $z^{(i)}_t$ the size of compartment $i$ ($1\leq i \leq c$) at time $t$, and $z_t=[z_t^{(1)},..,z_t^{(c)}]$. A model is defined by a (finite) number $m$ of transformations of the system called reactions (the ensemble of all indexes is noted $\mathcal{R})$. These reactions correspond to one or several individuals passing from one compartment to another, or arriving or leaving the total population. In any case, each reaction $k$ is characterised by its effect on the structure of the population corresponding to a vector $l^{(k)}\in\mathbb{Z}^c$, and its intensity of occurrence. In the remainder of this document, we will make the classic assumption that the probability of occurrence of each reaction is proportional to the number of individuals in a given compartment. The latter can be specified through a mapping $\chi:\mathcal{R}\rightarrow [1;c]$ such that the transition rate of reaction $k$ can be written $r^{(k)}_t(z_t,\theta) z^{\chi(k)}_t$. This assumption implies the density dependance of transition rates, i.e. the transition rates of the model where the state variable has been normalised ($\dot{z}_t=z_t/N$) can be simply written as $r^{(k)}_t(z_t,\theta) \dot{z}^{\chi(k)}_t$.
+
+We allow for these rates to depend on time, in order to reflect  the influence of potential forcing of external factors on the system, and to depend on a finite set of constant quantities gathered in a parameter vector $\theta$. In the remaining of this document, we will define compartmental models using the following formalism:
 
 \begin{center}
 \begin{tabular}{ccc}
@@ -67,8 +69,8 @@ in the following way:
 \underline{Markovian jump process compartmental model}
 \begin{IEEEeqnarray}{rCl}
 \label{eq:ReferenceJump}
-P(z_{t+\delta}=z_t+l^{(k)}|z_t) &=&r_t^{(k)}(z_t,\theta)\delta + o(\delta) \;\;\;\;\;\ \text{for any } k\in \mathcal{R}\\
-P(z_{t+\delta}=z_t|z_t) &=& \big(1-\sum_{ k\in \mathcal{R}} r_t^{(k)}(z_t,\theta)\delta\big) + o(\delta)\nonumber
+P(z_{t+dt}=z_t+l^{(k)}|z_t) &=&r_t^{(k)}(z_t,\theta) z^{\chi(k)}_t dt + o(dt) \;\;\;\;\;\ \text{for any } k\in \mathcal{R}\\
+P(z_{t+dt}=z_t|z_t) &=& \big(1-\sum_{ k\in \mathcal{R}} r_t^{(k)}(z_t,\theta) z^{\chi(k)}_tdt\big) + o(dt)\nonumber
 \end{IEEEeqnarray}
 \end{center}
 
@@ -103,14 +105,258 @@ Note that some constraints as positivity or boundedness generally need to be pre
 \subsection{Tractable approximations of compartmental models}
 \subsubsection{Ordinary differential equations}
 
-The simplest and most stringent approximation of compartmental models are ordinary differential equations. Under this formalism, the number of individuals in each compartment takes continues values, and varies continuously (and in a differentiable manner) over time. More specifically, all kind of demographic or environmental stochasticity are neglected, leading  the state of the system to evolve deterministically. From a practical perspective, the use of ordinary differential equations drastically simplifies the process of Bayesian inference, mainly due to the deterministic one-to-one mapping between trajectories $z_{0:T}$ and parameters $\theta$.
+The simplest and most stringent approximation of compartmental models are ordinary differential equations (ode's):
 
-This formalism can be legitimately used for large populations and when all significant environmental factors have been explicitly incorporated in the deterministic skeleton of the model. However, in alternative cases results should be treated with caution, and the use of alternative formalisms accounting for  sources of stochasticity may be required.
+\begin{align}
+	\frac{dz_t}{dt}&=  \sum_{k \in \mathcal{R}} l^{(k)}  r^{(k)} (z_t,\theta) z^{\chi(k)}_t
+\end{align}
+
+
+Under this formalism, the number of individuals in each compartment takes continues values, and varies continuously (and in a differentiable manner) over time. More specifically, all kind of demographic or environmental stochasticity are neglected, leading  the state of the system to evolve deterministically. From a practical perspective, the use of ordinary differential equations drastically simplifies the process of Bayesian inference, mainly due to the deterministic one-to-one mapping between trajectories $z_{0:T}$ and parameters $\theta$.
+
+This formalism can be legitimately used for large populations and when all significant environmental factors have been explicitly incorporated in the deterministic skeleton of the model. However, in alternative cases results should be treated with caution, and the use of alternative formalisms accounting for  demographic or environmental stochasticity may be required.
 
 
 
 \subsubsection{Stochastic differential equations}
+
+Stochastic differential equations (sde's) are a natural extension of ode's, wherein state variables still take continuous values over time, and evolve continuously over time, but trajectories of the system are no longer deterministic and differentiable due to the introduction of a driving Brownian motion reflecting the stochasticity of the system. To introduce this formalism, we rely on the notations used by the author of \cite{Sarkka2006} that will be helpfull to handle and represent different and independent sources of stochasticity:
+
+
+\begin{IEEEeqnarray}{rCl}
+\label{eq:sde}
+dx_t = \mu_t(x_t,\theta)dt + LdB_t^{Q_t}
+\end{IEEEeqnarray}
+
+
+In this equation, $\mu_t$ is referred to as the drift, $L$ as the dispersion matrix, and $Q_t$ as the diffusion matrix of the driving Browian motion. In particular, in our models the state variable $x_t$ is built from the concatenation of $z_t$ and $x^{\theta_t}_t$ respectively corresponding to the variables describing the structure of the population and to the variables monitoring the evolution of diffusing parameters over time. We can reformulate \ref{eq:sde}, utilising the notations that have been introduced earlier in this document:
+
+\begin{IEEEeqnarray}{rCl}
+dz_t &=& \sum_{k \in \mathcal{R}} l^{(k)}  r^{(k)} (z_t,\theta) z^{\chi(k)}_t dt + LdB_t^{Q_t}\nonumber\\
+dx^{\theta_t}_t &=& \mu^{\theta_t}(x^{\theta_t}_t,\theta)dt + L^{\theta_t}dB_t^{Q^{\theta_t}}\nonumber
+\end{IEEEeqnarray}
+
+
+Note that the deterministic skeleton of the population variables' dynamic correspond to the ode model introduced in the previous section. The dispersion matrix $Q_t$ is a square matrix of size $n_{Q_t}\times n_{Q_t}$, and $L$ is a rectangular matrix of size $c\times n_{Q_t}$. Let us illustrate the use of these objects by introducing how demographic stochasticity can be incorporated in the model, based on the diffusion approximation, and further how the white noise environmental stochasticity  can be incorporated.
+
+
+\paragraph{Diffusion approximation of the demographic stochasticity}\mbox{}\\
+
+In order to provide an SDE approximation of the demographic stochasticity, we rely on theoretical results on state-dependent Markov jump processes  presented in \cite{Ethier1986}. The adaptation of these results on compartmental epidemic models models has been illustrated in \cite{Fuchs2013}. Extensions of these results in non-homogeneous settings are provided in \cite{Guy2013}. 
+
+
+The diffusion approximation builds up on the definition of jump process models through their master equation:
+\begin{IEEEeqnarray}{rCl}
+\frac{\partial}{\partial t}P(z_t)=\sum_{k\in\mathcal{R}} r^{(k)} \tilde{z}_{k,t}^{\chi(k)}P(z_t-l^{(k)}) - \sum_{k \in\mathcal{R}} r^{(k)}(z_t,\theta) z^{\chi(k)}_t P(z_t) 
+\end{IEEEeqnarray}
+
+
+Where $\tilde{z}_{k,t}=z_t-l^{(k)}$.
+The first term corresponds to the probability for the state vector of evolving into $z_t$, and the second corresponds to the probability of leaving the state $z_t$. In a SIR model setting, the master equation becomes:
+\begin{IEEEeqnarray}{rCl}
+\frac{\partial}{\partial t}P(S_t,I_t,R_t)&=& \beta \frac{(S_t+1)}{N}(I_t-1)P(S_t+1,I_t-1,R_t)  \nonumber \\
+ & &  +\; \gamma (I_t+1)P(S_t,I_t+1,R_t-1)\\
+ & &  - \; \beta \frac{S_t}{N}I_tP(S_t,I_t,R_t) \nonumber \\
+ & &  - \; \gamma I_tP(S_t,I_t,R_t)\nonumber
+\end{IEEEeqnarray}
+
+This equation can be written in terms of normalised quantities, with $\varepsilon=1/N$:
+\begin{IEEEeqnarray}{rCl}
+\frac{\partial}{\partial t}P(s_t,i_t,r_t)&=& \frac{1}{\varepsilon} \beta (s_t+\varepsilon)(i_t-\varepsilon)P(s_t+\varepsilon,i_t-\varepsilon,,r_t)  \nonumber \\
+ & &  +\;   \frac{1}{\varepsilon} \gamma (i_t+\varepsilon)P(s_t,i_t+\varepsilon,r_t-\varepsilon)\\
+ & &  -\;   \frac{1}{\varepsilon} \beta s_t i_tP(s_t,i_t,r_t)  \nonumber\\
+ & &  -\;   \frac{1}{\varepsilon} \gamma i_tP(s_t,i_t,r_t) \nonumber
+\end{IEEEeqnarray}
+
+The diffusion approximation relies on the limit of this expression when $\varepsilon \rightarrow 0$ while $N$ is kept constant. The author of \cite{Fuchs2013} shows that in this case, the former master equation converges to the following partial differential equation:
+\begin{IEEEeqnarray}{rCl}
+\frac{\partial}{\partial t}P(s_t,i_t,r_t)&=& \frac{\partial}{\partial s} \beta s_t i_t P(s_t,i_t,r_t)  -  \frac{\partial}{\partial i} (\beta s_t i_t -\gamma i_t)P(s_t,i_t,r_t)  \nonumber \\
+ & &  +\;  \frac{1}{2} \frac{\partial^2}{\partial s^2} \frac{1}{N} \beta s_t i_t P(s_t,i_t,r_t)  \\
+ & &  -\;  \frac{1}{2} \frac{\partial^2}{\partial i^2} \frac{1}{N} (\beta s_t i_t -\gamma i_t) P(s_t,i_t,r_t)   \nonumber\\
+ & &  -\;   \frac{\partial^2}{\partial s \partial i} \frac{1}{N} \beta s_t i_t P(s_t,i_t,r_t)\nonumber,\label{eq:Ch2_pde}
+\end{IEEEeqnarray}
+
+which is equivalent to
+\begin{IEEEeqnarray}{rCl}
+\frac{\partial}{\partial t}P(s_t,i_t,r_t)&=& -\frac{\partial}{\partial x}[\dot{A}(s_t,i_t,r_t)P(s_t,i_t,r_t)] +  \frac{1}{2} \frac{\partial}{\partial x} \frac{\partial}{\partial x} [\dot{\Sigma}(s_t,i_t,r_t)P(s_t,i_t,r_t)]\label{eq:Ch2_pdegen}
+\end{IEEEeqnarray}
+
+\vskip0.5cm
+
+Where
+\begin{IEEEeqnarray}{rCl}
+\;\;\dot{A}(s_t,i_t,r_t) = \left(\begin{array}{c} -\beta s_t i_t \\ \beta s_t i_t - \gamma i_t \\   \gamma i_t \end{array}\right)\end{IEEEeqnarray}
+
+and
+
+\begin{IEEEeqnarray}{rCl}
+\dot{\Sigma}(s_t,i_t,r_t) = \frac{1}{N} \left(\begin{array}{ccc} \beta s_t i_t & -\beta s_t i_t & 0 \\ - \beta s_t i_t& \beta s_t i_t + \gamma i_t & - \gamma i_t   \\ 0 &  - \gamma i_t &  \gamma i_t  \end{array}\right)
+\end{IEEEeqnarray}
+
+
+\vskip0.5cm
+Following  \cite{Kloeden1999},  \ref{eq:Ch2_pdegen}  is a Fokker-Planck equation corresponding to a diffusion process that is a solution of
+\begin{IEEEeqnarray}{rCl}
+d\dot{z}_t = \dot{A}(\dot{z}_t)dt + LdB_t^{\dot{Q}_t^{d}} \label{eq:Ch2_sdenorm} 
+\end{IEEEeqnarray}
+
+Here, we follow the formalism of \cite{Sarkka2006}  where   $dB_t^{\dot{Q}_t^{d}}$ is a Brownian motion   with  diffusion matrix $\dot{Q}_t^{d}$ and $L$ is a stoichiometric dispersion matrix such that $L\dot{Q}_t^{d} L=\dot{\Sigma}$:  
+\begin{IEEEeqnarray}{rCl}
+\dot{Q}^d(s_t,i_t) = \frac{1}{N} \left(\begin{array}{cc} \beta s_t i_t & 0\\  0 & \gamma i_t  \end{array}\right)\;\;\;\; and \;\;\;\; L =  \left(\begin{array}{cc} -1  & \;\;\;0\\  \;\;\;1 & - 1 \\ \;\;\;0 & \;\;\;1 \end{array}\right)
+\end{IEEEeqnarray}
+
+
+Equation  \ref{eq:Ch2_sdenorm}  can be transposed in the natural scale of $z_t=[S_t,I_t,R_t]^T$, with $A=N\dot{A}$ and $Q^d = N^2\dot{Q^d} $:
+\begin{IEEEeqnarray}{rCl}
+dz_t = A(z_t)dt + LdB_t^{Q^d}
+\label{eq:Ch2_SDE}
+\end{IEEEeqnarray}
+
+
+This result can be generalised based on the density-dependance property of rates $(r^{(k)}z_t^{\chi(k)})_{1\leq k \leq n}$. Formal proofs for  the general case of density-dependent jump processes can be found in \cite{Ethier1986}. The authors demonstrate that the dynamic of a density-dependent Markov jump process can be approximated with equation  \ref{eq:Ch2_SDE} with $dB$t being a multivariate Brownian motion with diffusion matrix $Q^d = diag\{ r^{(k)}z_t^{\chi(k)},$ $k\in \mathcal{R}\}$, and L being the rectangular stoichiometric matrix which columns are the stoichiometric vectors $l^{(k)}$ with $k\in \mathcal{R}$.  Additionally, the drift component $A(t)$ is determined by:
+\begin{IEEEeqnarray}{rCl}
+A(z_t) = \sum_{k\in \mathcal{R}} l^{(k)}  r^{(k)}(z_t,\theta)z_t^{\chi(k)}
+\end{IEEEeqnarray}
+
+Lastly, the resulting  expression for $\Sigma$ is the following:
+\begin{IEEEeqnarray}{rCl}
+\Sigma(z_t) = LQ^d L'=\sum_{k\in \mathcal{R}} l^{(k)}  r^{(k)}(z_t,\theta)z_t^{\chi(k)} l^{(k)\prime}
+\end{IEEEeqnarray}
+
+
+
+\paragraph{Diffusion approximation of the environmental stochasticty}\mbox{}\\
+
+
+This section focuses on environmental stochasticity. In this perspective, we consider an infinite population leading to a deterministic behaviour in the absence of environmental stochasticity or time-varying parameters following a diffusion:
+\begin{IEEEeqnarray}{rCl}
+d z_t =   \sum_{k \in \mathcal{R}} l^{(k)}  r^{(k)} (z_t,\theta)z_t^{\chi(k)}dt
+\end{IEEEeqnarray}
+
+In the case of the SIR model:
+\begin{equation}
+\left\{
+\begin{IEEEeqnarraybox}[
+\IEEEeqnarraystrutmode
+\IEEEeqnarraystrutsizeadd{6pt}
+{2pt}
+][c]{rCl}
+dS_t &= &-\beta S_t \frac{I_t}{N} dt \\
+dI_t &=& (\beta S_t \frac{I_t}{N}-\gamma I_t) dt\\
+dR_t &=& \gamma I_t dt
+\end{IEEEeqnarraybox}
+\right.
+\end{equation}
+%\vskip0.5cm
+
+The framework proposed in \cite{Breto2009} introduces environmental stochasticity by replacing deterministic time increments $dt$ by stationnary and nonnegative increments $d\Gamma_t$ with mean $dt$ and variance $\sigma^2 dt$. Here, if environmental noise is put over the infection reaction:
+\begin{equation}
+\left\{
+\begin{IEEEeqnarraybox}[
+\IEEEeqnarraystrutmode
+\IEEEeqnarraystrutsizeadd{6pt}
+{2pt}
+][c]{rCl}
+dS_t &= &-\beta S_t  \frac{I_t}{N} d\Gamma_t \\
+dI_t &=& \beta S_t \frac{I_t}{N} d\Gamma_t -\gamma I_t dt \\
+dR_t &=& \gamma I_t dt 
+\end{IEEEeqnarraybox}
+\right.
+\end{equation}
+%\vskip0.5cm
+
+We propose to derive a Gaussian formulation of epidemic models with environmental stochasticity by approximating $d\Gamma_t$ as $dt + \sigma dB_t$, i.e. the Gamma-distributed increments are replaced with a deterministic drift and a Brownian motion term with corresponding mean and variance. Thus, the model can be written as a stochastic differential equation:
+\begin{equation}
+\left\{
+\begin{IEEEeqnarraybox}[
+\IEEEeqnarraystrutmode
+\IEEEeqnarraystrutsizeadd{6pt}
+{2pt}
+][c]{rCl}
+dS_t &= &-\beta S_t \frac{I_t}{N} dt  - \sigma \beta S_t \frac{I_t}{N} dB^{(1)}_t \\
+dI_t &=& (\beta S_t \frac{I_t}{N} d\Gamma_t -\gamma I_t)dt  + \sigma \beta S_t \frac{I_t}{N} dB^{(1)}_t\\
+dR_t &=& \gamma I_t dt 
+\end{IEEEeqnarraybox}
+\right.
+\end{equation}
+\vskip0.5cm
+
+
+In the general case, independent environmental noise can be enforced upon any subset $\mathcal{R}^e\in \mathcal{R}$ of all reactions:
+\begin{IEEEeqnarray}{rCl}
+dz_t =   \sum_{k \in \mathcal{R}} l^{(k)}  r^{(k)} (z_t,\theta)z_t^{\chi(k)}dt + L^edB_t^{Q^e}
+\end{IEEEeqnarray}
+
+$L^e$ is the $c\times Card(\mathcal{R}^e)$ stoichiometric matrix which columns are the stoichiometric vectors $l^{(k)}$ with $k\in \mathcal{R}^e$. In addition,  if all white noises are independent $dB_t^{Q^e}$ is a Brownian motion with diffusion matrix $Q^e= diag\big\{ \big(\sigma^{(k)}r^{(k)}(z_t,\theta)z_t^{\chi(k)}\big)^2,k\in \mathcal{R}^e\big\}$   containing the variance of the different environmental noises imposed upon the system. 
+
+
+In addition, it may be useful to enforce correlation between white noises affecting different reactions. In a multi-strain epidemic model, for example, if white noise is meant to capture climatic variability its impact may be the same on all transmission reactions. The latter can be achieved by the introduction of a second level of hierarchy accounting for grouping among noisy reactions. The latter can be determined through a mapping function $\varphi:\mathcal{R}^e\rightarrow[1:n_g]$  so that $\varphi^{-1}(p)$ corresponds to the indexes of  a group of correlated reactions for each $p\in [1:n_g]$. More details can be found in the following paragraph.
+
+
+\paragraph{Diffusion approximation of compartmental models in the general case}\mbox{}\\
+
+
+
+From the previous results, a diffusion approximation of compartmental models in the general case is provided by the following SDE:
+\begin{equation}
+\left\{
+\begin{IEEEeqnarraybox}[
+\IEEEeqnarraystrutmode
+\IEEEeqnarraystrutsizeadd{6pt}
+{2pt}
+][c]{rCl}
+dz_t &=&  \sum_{k \in \mathcal{R}} l^{(k)}  r^{(k)}(z_t,\theta)z_t^{\chi(k)}dt + LdB^{Q}_t\\
+dx^{\theta_t}_t &=& \mu^{\theta_t}(x^{\theta_t}_t,\theta)dt + L^{\theta_t} dB^{Q^{\theta_t}}_t
+\end{IEEEeqnarraybox}
+\right.
+\end{equation}
+%\vskip0.5cm
+
+The matrices $L$ and $Q$ are constructed by concatenating the dispersion and diffusion matrices of the different sources of independent noises:
+\begin{IEEEeqnarray}{rCl}
+L = \left(\begin{array}{ccc}  L^d & L^e \end{array}\right) \;\;\;\; and \;\;\;\;  Q = \left(\begin{array}{ccc}  Q^d & 0 \\ 0 & Q^e \end{array}\right)
+\end{IEEEeqnarray}
+
+With $Q^d = diag\{ r^{(k)}(z_t,\theta)z_t^{\chi(k)},$ $k\in \mathcal{R}\}$ and $L^d = [l^{(1)},..,l^{(c)}]$ accounting for the demographic stochasticity on one hand. White noise environmental counterparts are defined in the following way $L^e=[l^{(k)}]_{k\in\mathcal{R}^e}$ is the concatenation of the stoichiometic vectors for noisy reactions. $\varphi$ is the mapping function defined over $\mathcal{R}^e$ that attributes an equal index in $[1;n_g]$ to reactions upon which correlated environmental noise is enforced. From this function, a rectangular $card(\mathcal{R}^e)\times n_g$ dispersion matrix $L^g$ can be constructed in which the column of group $p$ is filled with $r(z_t,\theta)z_t^{\chi(k)}$ on rows corresponding to reactions such that $\varphi(k)=p$, and zero's everywhere else. With $Q^g=diag\big\{ \big(\sigma^{(p)})^2,p\in [1:n_g]\big\}$, $Q^e$ can be computed as $Q^e=L^g Q^g L^{g\prime}$. Naturally, this method for constructing correlated noise terms hold for uncorrelated noises.
+
+
+
 \subsubsection{Poisson process with stochastic rates}
+
+
+The continuous approximation of the number of individuals contained in each compartment, and its evolution, may be questionable when populations as stake are not large enough and more specifically when the size of at least one compartment becomes small. Such situations typically correspond to the extinction of diseases or species in epidemic or ecological models. The Markovian jump process introduced earlier accounts for the discrete nature of the size of each compartment, and the discontinuities induced by the occurrence of each reaction. Nevertheless, due to the density-dependence of transformation rates the frequency of reactions increases infinitely as $N\rightarrow\infty$. Hence, the reference Markov jump process formalism quickly becomes intractable for other than small populations. The authors of \cite{Breto2009} have proposed an approximation of the Markov jump process based on a multinomial approximation of the number of reactions occurring over a short period of time $dt$. Here, we reformulate the solution proposed in \cite{Breto2009} and extend it to the general framework for compartmental models proposed in PLOM. 
+
+
+The Poisson process model determines the probability that each reaction $k$ ($k\in\mathcal{R}$) respectively occurred $n_k$ times over a given period $dt$. If all sources of environmental stochasticity are neglected:
+
+\begin{IEEEeqnarray}{rCl}
+p(n_1,\dots,n_m|z_t,\theta) = \prod_{i=1}^c\left\{  M_{i}  \left( 1-\sum_{\chi(k)=i} p_{k} \right) ^{\overline{n}_{i}}  \prod_{\chi(k)=i} \left(  p_{k} \right)^{n_{k}}   \right\} + o(dt)\nonumber
+\end{IEEEeqnarray}
+
+Using the following notations: 
+\begin{IEEEeqnarray}{rCl}
+&&p_{k}=p_{k}  \left(  r^{(k)}(z_t,\theta)z^{\chi(k)}_t dt\right) = \left( 1-\exp \left\{-\sum_{\chi(k')=i}r^{(k')}(z_t,\theta)z^{\chi(k')}_t dt \right\} \right)\frac{r^{(k)}(z_t,\theta)}{\sum_{\chi(k')=i} r^{(k')}(z_t,\theta)}\nonumber\\
+&&\overline{n}_{i}=z_t^{(i)} - \sum_{\chi(k)=i} n_{k}\nonumber\\
+&&M_{i} = \left( \begin{array}{c} z_t^{(i)} \\ \{n_{k}\}_{\chi(k)=i} \; \overline{n}_i  \end{array}  \right) \;\;\;\;\;\text{
+(multinomial coefficient)}\nonumber
+\end{IEEEeqnarray} 
+
+
+In addition, white noise can be introduced on reaction $k$ ($k\in\mathcal{R}^e$) by replacing time increments $dt$ by random increments $d\Gamma_k$ with Gamma distribution, mean $dt$ and standard deviation $\sigma^{(k)}\sqrt{dt}$:
+
+\begin{IEEEeqnarray}{rCl}
+&&p_{k}=p_{k}  \left(  r^{(k)}z^{\chi(k)}_t d\Gamma_k \right) = \left( 1-\exp \left\{-\sum_{\chi(k')=i}r^{(k')}(z_t,\theta)z^{\chi(k')}_t d\Gamma_{k'} \right\} \right)\frac{r^{(k)}d\Gamma_k}{\sum_{\chi(k')=i} r^{(k')}d\Gamma_{k'}}\nonumber
+\end{IEEEeqnarray} 
+
+Lastly, time-varying parameters can be introduced in a similar manner as under previous formalisms:
+
+
+\begin{IEEEeqnarray}{rCl}
+dx^{\theta_t}_t = \mu^{\theta_t}(x^{\theta_t}_t,\theta)dt + L^{\theta_t}dB_t^{Q^{\theta_t}}\nonumber
+\end{IEEEeqnarray}
+
+
+
 \section{Plug-and-play Bayesian inference}
 \subsection{The Bayes rule, and quantities of interest}
 \subsection{Conditional state exploration}
