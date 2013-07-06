@@ -1,0 +1,138 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[latin1]{inputenc}
+ \usepackage[T1]{fontenc}
+ \usepackage[normalem]{ulem}
+ \usepackage[english]{babel}
+ \usepackage{verbatim}
+ \usepackage{graphicx}
+\usepackage{algorithmic} 
+\usepackage{algorithm} 
+\usepackage{amsthm, amsmath, amssymb, amsfonts}
+\usepackage[modulo,mathlines]{lineno}
+\usepackage{array} 
+%\bibliographystyle{ieeetr}
+
+
+\usepackage{chngpage}
+\usepackage[round]{natbib}
+\usepackage{amssymb,amsmath,amsthm,amscd}
+\usepackage{mathrsfs,IEEEtrantools}
+\usepackage[left=1.5in, right=1.0in, top=2.0in, bottom=1.0in]{geometry}
+% Adjust margins for aesthetics
+\addtolength{\voffset}{-0.5in}
+\addtolength{\hoffset}{-0.3in}
+\addtolength{\textheight}{1cm}
+
+
+\newcommand{\argmax}{\operatornamewithlimits{argmax}} 
+
+\begin{document}
+
+\title{Plug-and-play Bayesian inference for compartmental models in PLOM}
+\author{Joseph Dureau, S\'ebastien Ballesteros}
+
+\maketitle
+
+\section{Introduction}
+\section{Compartmental models}
+\subsection{Definition}
+
+Compartmental models are a general framework used to represent the state of a countable population (of humans, animals, molecules, etc) and its evolution. At a given time $t$, the population is described by the number of individuals in each of $n$ possible states: the ensemble of individuals in a same state defines what is termed as a compartment. Each individual belongs to one and only one compartment. Individuals within a same compartment are considered indistinguishable. We will consider in this document that $n$ is known, fixed, and finite. 
+
+Each compartment can correspond to very diverse characterisations, depending on the context. They can be used to track the status of an individual with regards to a given disease in a human or animal population (susceptible or infected, for example), their age or their geographical location. Additionnally, compartments can be used to track the number of specimens of different animal species in an ecosystem, as in the Lotka-Volterra predator-prey model. They can also be used in physics and chemistry to determine molecule types, their electronic charge or radioactive state, for example. Less classical illustrations of the use of compartmental models include tracking the spread of rumors among a population,  or the propagation of economic difficulties among countries following a financial crisis.
+
+We note $C^{(i)}_t$ the size of compartment $i$ ($1\leq i \leq n$) at time $t$, and $z_t=[C_t^{(1)},..,C_t^{(n)}]$. A model is defined by a (finite) number $m$ of transformations of the system called reactions (the ensemble of all indexes is noted $\mathcal{R})$. These reactions correspond to one or several individuals passing from one compartment to another, or arriving or leaving the total population. In any case, each reaction $k$ is characterised by its effect on the structure of the population corresponding to a vector $l^{(k)}\in\mathbb{Z}^n$, and its intensity of occurrence $r^{(k)}_t$. We allow for these rates to depend on time, to reflect  the influence of potential forcing of external factors on the system, and to depend on a finite set of constant quantities gathered in a parameter vector $\theta$. In addition, we consider transition rates to be density-dependent, i.e. that they can be written as $r_t(z_t,\theta)=N\dot{r}(z_t/N,\theta)=N\dot{r}(\dot{z}_t/N,\theta)$ when $N$ is the total size of the population. In the remaining of this document, we will define compartmental models using the following formalism:
+
+\begin{center}
+\begin{tabular}{ccc}
+%\hline
+\textbf{Reaction} & \textbf{Effect}   & \textbf{Rate}   \tabularnewline
+\hline
+reaction $1$ & $z_t\rightarrow z_t + l^{(1)}$ & $r^{(1)}(z_t,\theta)$  \tabularnewline
+... 		& ... & ...  \tabularnewline
+reaction $k$  & $z_t\rightarrow z_t + l^{(k)}$ & $r^{(k)}(z_t,\theta)$  \tabularnewline
+... 		& ... & ...  \tabularnewline
+reaction  $m$ & $z_t\rightarrow z_t + l^{(m)}$ & $r^{(m)}(z_t,\theta)$  \tabularnewline
+%\hline
+\end{tabular}
+%\end{table}
+\end{center}
+
+
+Formally, this framework leads to the definition of a Markovian jump process, which dynamic can be expressed 
+in the following way:
+
+\begin{center}
+\underline{Markovian jump process compartmental model}
+\begin{IEEEeqnarray}{rCl}
+\label{eq:ReferenceJump}
+P(z_{t+\delta}=z_t+l^{(k)}|z_t) &=&r_t^{(k)}(z_t,\theta)\delta + o(\delta) \;\;\;\;\;\ \text{for any } k\in \mathcal{R}\\
+P(z_{t+\delta}=z_t|z_t) &=& \big(1-\sum_{ k\in \mathcal{R}} r_t^{(k)}(z_t,\theta)\delta\big) + o(\delta)\nonumber
+\end{IEEEeqnarray}
+\end{center}
+
+
+Under some regularity conditions detailed in \cite{Ethier1986}, \cite{Fuchs2013} or \cite{Guy2013}, and due to the density-dependance of transition rates, the dynamic of the system converges to a deterministic behaviour as the population size tends to infinity. For finite populations, the additional stochastic behaviour is termed \emph{demographic} stochasticity. 
+
+
+
+\subsection{Environmental stochasticity}
+
+Extensions of the compartmental modeling framework introduced in the previous section have been proposed by the authors of \cite{Breto2009}, to account for additional sources of uncertainty related to fluctuations in extrinsic determinants of the epidemic. This uncertainty is reflected through additional sources of stochasticity, termed \emph{environmental} stochasticity. The approach suggested in \cite{Breto2009} is to consider stochastic transition rates $\tilde{r}^{(k)}_t$ for a subset $\mathcal{R}^e$, under the following constraints for all $t$:
+
+
+\begin{center}
+\begin{IEEEeqnarray}{rCl}
+\mathbb{E}\big(\tilde{r}^{(k)}_t\big) &\sim& r^{(k)}_t\nonumber\\
+\tilde{r}^{(k)}_t &\geq& 0\nonumber
+\end{IEEEeqnarray}
+\end{center}
+
+However, uncertain variations of extrinsic factors cannot always be modeled through high-frequency independent fluctuations. The evolution of climate, for example, has been shown to exhibit complex seasonal and inter-annual variations that influence epidemic dynamics \cite{Viboud2004}. Following the work of \cite{Cazelles1997} and \cite{Cori2009}, the authors of \cite{Dureau2013a} have proposed a general inferential framework for time-varying parameters, that is extended in the present document. Under this approach, parameters are modeled through stochastic differential equations or extensions thereof. The state vector is extended with additional components $x^{\theta_t}_t$ which dynamic is determined by the following equation: 
+ 
+\begin{IEEEeqnarray}{rCl}
+dx^{\theta_t}_t = \mu^{\theta_t}(x^{\theta_t}_t,\theta)dt + L^{\theta_t}dB_t^{Q^{\theta_t}}
+\end{IEEEeqnarray}
+
+
+Note that some constraints as positivity or boundedness generally need to be preserved when allowing parameters to vary over time, which is achieved by defining $x^{\theta_t}$ as the respectively the log or logit transformation of the quantity of interest. 
+
+
+\subsection{Examples}
+\subsection{Tractable approximations of compartmental models}
+\subsubsection{Ordinary differential equations}
+
+The simplest and most stringent approximation of compartmental models are ordinary differential equations. Under this formalism, the number of individuals in each compartment takes continues values, and varies continuously (and in a differentiable manner) over time. More specifically, all kind of demographic or environmental stochasticity are neglected, leading  the state of the system to evolve deterministically. From a practical perspective, the use of ordinary differential equations drastically simplifies the process of Bayesian inference, mainly due to the deterministic one-to-one mapping between trajectories $z_{0:T}$ and parameters $\theta$.
+
+This formalism can be legitimately used for large populations and when all significant environmental factors have been explicitly incorporated in the deterministic skeleton of the model. However, in alternative cases results should be treated with caution, and the use of alternative formalisms accounting for  sources of stochasticity may be required.
+
+
+
+\subsubsection{Stochastic differential equations}
+\subsubsection{Poisson process with stochastic rates}
+\section{Plug-and-play Bayesian inference}
+\subsection{The Bayes rule, and quantities of interest}
+\subsection{Conditional state exploration}
+\subsection{Full inference of paths and parameters}
+\subsubsection{Particle Marginal Metropolis Hastings algorithm}
+\subsubsection{Efficiently starting the PMMH close to the global mode}
+\subsubsection{Efficient calibration of the PMMH sampling covariance matrix}
+\section{Examples}
+\section{Perspectives: call for contributions}
+
+
+
+
+
+
+
+
+
+
+\bibliographystyle{apalike} % numeric style
+
+\bibliography{Biblio}
+
+
+ \end{document}
