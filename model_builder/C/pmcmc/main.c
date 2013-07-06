@@ -30,14 +30,17 @@ int main(int argc, char *argv[])
         "pmcmc [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                [-s, --DT <float || 0.25 day>] [--eps_abs <float || 1e-6>] [--eps_rel <float || 1e-3>]\n"
         "                [-g, --freeze_forcing <float>]\n"
-        "                [--full] [-n, --n_traj <int || 1000>] [--acc] [-p, --path <path>] [-i, --id <integer || 0>] [-P, --N_THREAD <integer || N_CPUs>]\n"
+        "                [--full] [-n, --n_traj <int || 1000>] [--acc] [-p, --path <path>] [-i, --id <integer || 0>] [-N, --n_thread <integer || 1>]\n"
         "                [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
         "                [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >] "
         "                [-E --epsilon <int || 50>] [--epsilon_max <float || 50.0>] [--smooth] [--alpha <float || 0.02>]"
         "                [-Z, --zmq] [-c, --chunk <integer>]\n"
-        "                [--help]\n"
+	"                [-q, --quiet] [-P, --pipe]"
+        "                [-h, --help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
+        "-q, --quiet        no verbosity\n"
+        "-P, --pipe         pipe mode (echo theta.json on stdout)\n"
         "\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_white_noise       turn off environmental stochasticity (if any)\n"
@@ -60,7 +63,7 @@ int main(int argc, char *argv[])
         "--acc              print the acceptance rate\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
-        "-P, --N_THREAD     number of threads to be used (default to the number of cores)\n"
+        "-N, --n_thread     number of threads to be used\n"
         "-s, --DT           integration time step\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-J                 number of particles\n"
@@ -68,7 +71,7 @@ int main(int argc, char *argv[])
         "-Z, --zmq          dispatch particles across machines using a zeromq pipeline\n"
         "-c, --chunk        number of particles send to each machine\n"
 	"-o, --nb_obs       number of observations to be fitted (for tempering)"
-        "--help             print the usage on stdout\n";
+        "-h, --help         print the usage on stdout\n";
 
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
     int m_switch = -1;
@@ -125,10 +128,10 @@ int main(int argc, char *argv[])
                 {"epsilon_max", required_argument, 0, 'f'},
                 {"alpha",    required_argument, 0, 'G'},
 
-                {"help", no_argument,  0, 'e'},
+                {"help", no_argument,  0, 'h'},
                 {"path",    required_argument, 0, 'p'},
                 {"id",    required_argument, 0, 'i'},
-                {"N_THREAD",  required_argument,       0, 'P'},
+                {"n_thread",  required_argument,       0, 'N'},
 
                 {"LIKE_MIN",     required_argument,   0, 'l'},
                 {"iter",     required_argument,   0, 'M'},
@@ -136,12 +139,15 @@ int main(int argc, char *argv[])
                 {"chunk",     required_argument,   0, 'c'},
 		{"nb_obs", required_argument,  0, 'o'},
 
+                {"quiet",  no_argument,       0, 'q'},
+                {"pipe",  no_argument,       0, 'P'},
+
                 {0, 0, 0, 0}
             };
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "rxyzs:v:w:i:J:l:M:p:c:P:ZS:E:a:f:G:n:o:g:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "qPhrxyzs:v:w:i:J:l:M:p:c:N:ZS:E:a:f:G:n:o:g:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -194,7 +200,7 @@ int main(int argc, char *argv[])
         case 'G':
             alpha = atof(optarg);
             break;
-        case 'e':
+        case 'h':
             print_log(plom_help_string);
             return 1;
         case 'Z':
@@ -203,7 +209,7 @@ int main(int argc, char *argv[])
         case 'p':
             snprintf(SFR_PATH, STR_BUFFSIZE, "%s", optarg);
             break;
-        case 'P':
+        case 'N':
             n_threads = atoi(optarg);
             break;
         case 'i':
@@ -228,6 +234,14 @@ int main(int argc, char *argv[])
         case 'n':
             n_traj = atoi(optarg);
             break;
+
+        case 'q':
+	    print_opt |= PLOM_QUIET;
+            break;
+        case 'P':
+	    print_opt |= PLOM_PIPE | PLOM_QUIET;
+            break;
+
         case '?':
             /* getopt_long already printed an error message. */
             return 1;
@@ -275,6 +289,14 @@ int main(int argc, char *argv[])
     if(n_traj>0){       
 	print_opt |= PLOM_PRINT_X_SMOOTH;
     }
+    
+    int64_t time_begin, time_end;
+    if (!(print_opt & PLOM_QUIET)) {
+	sprintf(str, "Starting plom-pmcmc with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, n_threads = %d", GENERAL_ID, J, LIKE_MIN, M, n_threads);
+	print_log(str);
+	
+	time_begin = s_clock();
+    }
 
     pmcmc(p_pmcmc->p_best, p_pmcmc->D_J_p_X, p_pmcmc->D_J_p_X_tmp, p_pmcmc->p_par, &(p_pmcmc->D_p_hat_prev), &(p_pmcmc->D_p_hat_new), p_pmcmc->D_p_hat_best, p_pmcmc->p_like, p_pmcmc->p_data, p_pmcmc->calc, get_f_pred(implementation, noises_off), print_opt, thin_traj);
 
@@ -289,11 +311,20 @@ int main(int argc, char *argv[])
     print_covariance(p_file_cov, p_pmcmc->p_best->var_sampling, p_pmcmc->p_data);
     plom_fclose(p_file_cov);
 
-    plom_print_done(theta, p_pmcmc->p_data, p_pmcmc->p_best, SFR_PATH, GENERAL_ID, print_opt);   
+    plom_print_done(theta, p_pmcmc->p_data, p_pmcmc->p_best, SFR_PATH, GENERAL_ID, print_opt);
 
-#if FLAG_VERBOSE
-    print_log("clean up...");
-#endif
+    if (!(print_opt & PLOM_QUIET)) {
+	time_end = s_clock();
+	struct s_duration t_exec = time_exec(time_begin, time_end);
+	snprintf(str, STR_BUFFSIZE, "Done in:= %dd %dh %dm %gs", t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+	print_log(str);
+    }
+
+
+    if (!(print_opt & PLOM_QUIET)) {
+	print_log("clean up...");
+    }
+
     json_decref(theta);
 
     clean_pmcmc(p_pmcmc);

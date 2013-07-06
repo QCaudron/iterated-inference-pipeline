@@ -56,8 +56,13 @@ void plom_print_done(json_t *theta, struct s_data *p_data, struct s_best *p_best
 	    json_object_set_new(guess, "value", json_real(x));	    
         }
     }
-    
-    json_dump_file(theta, str, 0);
+
+    if (print_opt & PLOM_PIPE) {
+	json_dumpf(theta, stdout, 0);
+    } else {
+	json_dump_file(theta, str, 0);
+    }
+
 #endif
 }
 
@@ -230,15 +235,13 @@ void print_log(char *msg)
 void print_warning(char *msg)
 {
 #if FLAG_JSON
-
     json_t *root;
     root = json_pack("{s,s,s,s}", "flag", "log", "msg", msg);
     json_dumpf(root, stdout, 0); printf("\n");
     fflush(stdout);
     json_decref(root);
-
 #else
-    printf("\033[93mWARNING\033[0m: %s\n", msg);
+    fprintf(stderr, "\033[93mWARNING\033[0m: %s\n", msg);
 #endif
 }
 

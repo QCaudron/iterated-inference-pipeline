@@ -18,15 +18,13 @@
 
 #include "mif.h"
 
-void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_par **J_p_par, struct s_likelihood *p_like, gsl_vector **J_theta, gsl_vector **J_theta_tmp, double **D_theta_bart, double **D_theta_Vt, plom_f_pred_t f_pred, int is_mvn)
+void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, struct s_X ***J_p_X, struct s_X ***J_p_X_tmp, struct s_par **J_p_par, struct s_likelihood *p_like, gsl_vector **J_theta, gsl_vector **J_theta_tmp, double **D_theta_bart, double **D_theta_Vt, plom_f_pred_t f_pred, int is_mvn, const enum plom_print print_opt)
 {
     int i, j, k;
     int m, n, np1, t0, t1, delta_t; 
     char str[STR_BUFFSIZE];
 
-#if FLAG_VERBOSE
     int64_t time_mif_begin, time_mif_end; /* to calculate the computational time of the MIF iteration */
-#endif
 
 #if FLAG_OMP
 
@@ -61,16 +59,11 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 	p_thread_mif[nt].p_like = p_like;
 	p_thread_mif[nt].context = context;
 	pthread_create (&worker[nt], NULL, worker_routine_mif_inproc, (void*) &p_thread_mif[nt]);
-
-	snprintf(str, STR_BUFFSIZE, "worker %d started", nt);
-	print_log(str);	
     }
 
     //wait that all worker are connected
     for (nt = 0; nt < calc[0]->n_threads; nt++) {
 	zmq_recv(receiver, &id, sizeof (int), 0);
-	snprintf(str, STR_BUFFSIZE, "worker %d connected", id);
-	print_log(str);
     }
 #endif
 
@@ -78,7 +71,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
     FILE *p_file_trace = plom_fopen(SFR_PATH, GENERAL_ID, "trace", "w", header_trace, p_data);
 
     FILE *p_file_mif = NULL;
-    if (OPTION_TRAJ) {
+    if (print_opt & PLOM_PRINT_PRED_RES) {
         p_file_mif = plom_fopen(SFR_PATH, GENERAL_ID, "mif", "w", header_mean_var_theoretical_mif, p_data);
     }
 
@@ -100,9 +93,9 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
     void (*my_ran_proposal) (theta_t *proposed, struct s_best *p_best, gsl_matrix *var, double sd_fac, struct s_calc *p_calc);
 
     for(m=1; m<=M; m++) {
-#if FLAG_VERBOSE
-        time_mif_begin = s_clock();
-#endif
+	if (!(print_opt & PLOM_QUIET)) {
+	    time_mif_begin = s_clock();
+	}
 
         fill_theta_bart_and_Vt_mif(D_theta_bart, D_theta_Vt, p_best, p_data, m);
 
@@ -184,9 +177,9 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 
 		int success = weight(p_like, n);
 
-		mean_var_theta_theoretical_mif(D_theta_bart[n+1], D_theta_Vt[n+1], J_theta, p_like, p_data, p_best, m, ((double) delta_t)*pow(FREEZE, 2), OPTION_TRAJ); //var_fac: ((double) delta_t)*pow(FREEZE, 2)
+		mean_var_theta_theoretical_mif(D_theta_bart[n+1], D_theta_Vt[n+1], J_theta, p_like, p_data, p_best, m, ((double) delta_t)*pow(FREEZE, 2), print_opt); //var_fac: ((double) delta_t)*pow(FREEZE, 2)
 
-		if (OPTION_TRAJ) {
+		if (print_opt & PLOM_PRINT_PRED_RES) {
 		    print_mean_var_theta_theoretical_mif(p_file_mif, D_theta_bart[n+1], D_theta_Vt[n+1], p_like, p_data, m, t1);
 		}
 
@@ -209,14 +202,16 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
         /* update theta_best */
 	(m<=SWITCH) ? update_theta_best_stable_mif(p_best, D_theta_bart, p_data) : update_theta_best_king_mif(p_best, D_theta_bart, D_theta_Vt, p_data, m);
 
-#if FLAG_VERBOSE
-        time_mif_end = s_clock();
-        struct s_duration t_exec = time_exec(time_mif_begin, time_mif_end);
-        sprintf(str, "iteration number:%d\t logV: %g\t n_all_fail: %d\t computed in:= %dd %dh %dm %gs", m, p_like->Llike_best, p_like->n_all_fail, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
-        print_log(str);
-#endif
+	if (!(print_opt & PLOM_QUIET)) {
+	    time_mif_end = s_clock();
+	    struct s_duration t_exec = time_exec(time_mif_begin, time_mif_end);
+	    sprintf(str, "iteration number:%d\t logV: %g\t n_all_fail: %d\t computed in:= %dd %dh %dm %gs", m, p_like->Llike_best, p_like->n_all_fail, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+	    print_log(str);
+	}
 
         print_trace(p_file_trace, m, p_best, p_data, p_like->Llike_best);
+
+
 #if ! FLAG_JSON
         fflush(p_file_trace);
 #endif
@@ -229,7 +224,7 @@ void mif(struct s_calc **calc, struct s_data *p_data, struct s_best *p_best, str
 
     plom_fclose(p_file_trace);
 
-    if (OPTION_TRAJ) {
+    if (print_opt & PLOM_PRINT_PRED_RES) {
         plom_fclose(p_file_mif);
     }
 

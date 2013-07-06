@@ -34,9 +34,13 @@ int main(int argc, char *argv[])
         "                       [-l, --LIKE_MIN <float || 1e-17>] [-J <integer || 1>] [-M, --iter <integer || 10>]\n"
         "                       [-a --cooling <float || 0.999>] [-S --switch <int || 5*n_par_fitted^2 >]"
         "                       [-E --epsilon <int || 50>] [--epsilon_max <float || 50.0>] [--smooth] [--alpha <float || 0.02>]"
-        "                       [--help]\n"
+	"                       [-q, --quiet] [-P, --pipe]"
+        "                       [-h, --help]\n"
         "where implementation is 'sde' (default)\n"
         "options:\n"
+	"\n"
+        "-q, --quiet        no verbosity\n"
+        "-P, --pipe         pipe mode (echo theta.json on stdout)\n"
         "\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_white_noise   turn off environmental stochasticity (if any)\n"
@@ -62,7 +66,7 @@ int main(int argc, char *argv[])
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-M, --iter         number of pMCMC iterations\n"
 	"-o, --nb_obs       number of observations to be fitted (for tempering)"
-        "--help             print the usage on stdout\n";
+        "-h, --help         print the usage on stdout\n";
 
     int m_switch = -1;
     int m_eps = 50;
@@ -130,12 +134,15 @@ int main(int argc, char *argv[])
                 {"iter",        required_argument,   0, 'M'},
 		{"nb_obs", required_argument,  0, 'o'},
 
+		{"quiet",  no_argument,       0, 'q'},
+		{"pipe",  no_argument,       0, 'P'},
+
                 {0, 0, 0, 0}
             };
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "n:rxyzs:v:w:i:l:M:p:S:E:a:f:G:o:g:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "qPhn:rxyzs:v:w:i:l:M:p:S:E:a:f:G:o:g:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -190,7 +197,7 @@ int main(int argc, char *argv[])
         case 'G':
             alpha = atof(optarg);
             break;
-        case 'e':
+        case 'h':
             print_log(plom_help_string);
             return 1;
         case 'p':
@@ -211,6 +218,13 @@ int main(int argc, char *argv[])
             break;
         case 'r':
 	    print_opt |= PLOM_PRINT_ACC;
+            break;
+
+        case 'q':
+	    print_opt |= PLOM_QUIET;
+            break;
+        case 'P':
+	    print_opt |= PLOM_PIPE | PLOM_QUIET;
             break;
 
         case '?':
@@ -258,6 +272,14 @@ int main(int argc, char *argv[])
 	print_opt |= PLOM_PRINT_X;
     }
 
+
+    int64_t time_begin, time_end;
+    if (!(print_opt & PLOM_QUIET)) {
+	snprintf(str, STR_BUFFSIZE, "Starting plom-kmcmc with the following options: i = %d, LIKE_MIN = %g", GENERAL_ID, LIKE_MIN);
+	print_log(str);
+	time_begin = s_clock();
+    }
+
     kmcmc(p_kalman, p_like, p_mcmc_calc_data, f_prediction_ode,  print_opt, thin_traj);
 
     // print empirical covariance
@@ -267,11 +289,19 @@ int main(int argc, char *argv[])
         plom_fclose(p_file_cov);
     }
 
+    if (!(print_opt & PLOM_QUIET)) {
+	time_end = s_clock();
+	struct s_duration t_exec = time_exec(time_begin, time_end);
+	snprintf(str, STR_BUFFSIZE, "Done in:= %dd %dh %dm %gs", t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+	print_log(str);
+    }
+
     plom_print_done(theta, p_kalman->p_data, p_kalman->p_best, SFR_PATH, GENERAL_ID, print_opt);
 
-#if FLAG_VERBOSE
-    print_log("clean up...");
-#endif
+    if (!(print_opt & PLOM_QUIET)) {
+	print_log("clean up...");
+    }
+
     json_decref(theta);
 
     clean_mcmc_calc_data(p_mcmc_calc_data);

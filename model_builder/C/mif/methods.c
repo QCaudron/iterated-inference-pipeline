@@ -130,12 +130,12 @@ void fill_theta_bart_and_Vt_mif(double **D_theta_bart, double **D_theta_Vt, stru
  * stable online algo for the variance.
  */
 
-void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gsl_vector **J_theta, struct s_likelihood *p_like, struct s_data *p_data, struct s_best *p_best, int m, double var_fac, int is_printed)
+void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gsl_vector **J_theta, struct s_likelihood *p_like, struct s_data *p_data, struct s_best *p_best, int m, double var_fac, const enum plom_print print_opt)
 {
     int i, j, k;
 
     struct s_iterator *p_it;
-    if (is_printed){
+    if (print_opt & PLOM_PRINT_PRED_RES){
         p_it= p_data->p_it_all;
     } else {
         p_it= p_data->p_it_par_proc_par_obs_no_drift; //only this one is truely needed
@@ -174,8 +174,8 @@ void mean_var_theta_theoretical_mif(double *theta_bart_n, double *theta_Vt_n, gs
 
                 if( (theta_Vt_n[offset]<0.0) || (isinf(theta_Vt_n[offset])==1) || (isnan(theta_Vt_n[offset])==1)) {
                     theta_Vt_n[offset]=0.0;
-#if FLAG_VERBOSE
-                    print_err("error in variance computation");
+#if FLAG_WARNING
+                    print_warning("error in variance computation");
 #endif
                 }
 

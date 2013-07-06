@@ -93,13 +93,13 @@ int integrate(struct s_X *p_X, double *y0, double t0, double t_end, struct s_par
 /**
  * Used for bifurcation analysis ONLY.
  */
-double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, plom_f_pred_t f_pred)
+double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, double t_transiant, struct s_par *p_par, struct s_data *p_data, struct s_calc *p_calc, plom_f_pred_t f_pred, const enum plom_print print_opt)
 {
     int i, ts, k;
     double **traj_obs = init2d_set0(N_TS, (int) (t_end-t0));
 
     FILE *p_file_X = NULL;
-    if (OPTION_TRAJ) {
+    if (print_opt & PLOM_PRINT_X) {
         p_file_X = plom_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
     }
 
@@ -108,7 +108,7 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
         p_X->proj[i]=y0[i];
     }
 
-    if (OPTION_TRAJ) {
+    if (print_opt & PLOM_PRINT_X) {
 	reset_inc(p_X, p_data);
 	proj2obs(p_X, p_data);
 	print_X(p_file_X, &p_par, &p_X, p_data, p_calc, 1, 0, 0, (int) t0-1, t0);
@@ -123,12 +123,12 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
             traj_obs[ts][k- ((int) t0)] = p_X->obs[ts];
         }
 
-        if (OPTION_TRAJ) {
+        if (print_opt & PLOM_PRINT_X) {
             print_X(p_file_X, &p_par, &p_X, p_data, p_calc, 1, 0, 0, k, k+1);
         }
     }
 
-    if (OPTION_TRAJ) {
+    if (print_opt & PLOM_PRINT_X) {
         plom_fclose(p_file_X);
     }
 
@@ -137,7 +137,7 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
 
 
 
-void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, void *sender, void *receiver, void *controller)
+void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, void *sender, void *receiver, void *controller, const enum plom_print print_opt)
 {
     int k, j;
 #if FLAG_OMP
@@ -147,7 +147,7 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
 #endif
 
     FILE *p_file_X = NULL;
-    if (OPTION_TRAJ) {
+    if (print_opt & PLOM_PRINT_X) {
         p_file_X = plom_fopen(SFR_PATH, GENERAL_ID, "X", "w", header_X, p_data);
     }
     FILE *p_file_hat = plom_fopen(SFR_PATH, GENERAL_ID, "hat", "w", header_hat, p_data);
@@ -170,7 +170,7 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
     compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 0, (int) t0-1, t0);
     print_p_hat(p_file_hat, NULL, p_hat, p_data, t0);
 
-    if (OPTION_TRAJ && FLAG_JSON==0) {
+    if ((print_opt & PLOM_PRINT_X) && FLAG_JSON==0) {
 	print_X(p_file_X, J_p_par, J_p_X, p_data, calc[0], 0, 0, 0, (int) t0-1, t0);
     }
 
@@ -178,7 +178,7 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
     for (k= (int) t0 ; k< (int) t_end ; k++) {
 
 #if FLAG_JSON //for the webApp, we block at every iterations to prevent the client to be saturated with msg
-        if (OPTION_TRAJ) {
+        if (print_opt & PLOM_PRINT_X) {
             if(k % 10 == 0){
                 block();
             }
@@ -214,13 +214,13 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
         compute_hat_nn(J_p_X, J_p_par, p_data, calc, p_hat, 0, k, k+1);
         print_p_hat(p_file_hat, NULL, p_hat, p_data, k+1);
 
-        if (OPTION_TRAJ && FLAG_JSON==0) {
+        if ((print_opt & PLOM_PRINT_X) && FLAG_JSON==0) {
             print_X(p_file_X, J_p_par, J_p_X, p_data, calc[0], 0, 0, 0, k, k+1);
         }
     }
 
     clean_hat(p_hat, p_data);
-    if (OPTION_TRAJ) {
+    if (print_opt & PLOM_PRINT_X) {
         plom_fclose(p_file_X);
     }
     plom_fclose(p_file_hat);

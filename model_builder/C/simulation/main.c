@@ -30,15 +30,18 @@ int main(int argc, char *argv[])
         "usage:\n"
         "simul [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                       [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
-        "                       [--traj] [-p, --path <path>] [-i, --id <integer>] [-P, --N_THREAD <integer>]\n"
+        "                       [-r, --traj] [-p, --path <path>] [-i, --id <integer>] [-N, --n_thread <integer>]\n"
         "                       [-f, --freq <char>]\n"
 	"                       [-g, --freeze_forcing <float>]\n"
         "                       [-o, --t0 <integer>] [-D, --tend <integer>] [-T --transiant <integer>]\n"
         "                       [-b, --bif] [--continue] [-l, --lyap] [-u, --fft]\n"
         "                       [-B, --block <integer>] [-x, --precision <float>] [-J <integer>]\n"
+	"                       [-q, --quiet] [-P, --pipe]"
         "                       [--help]\n"
         "where implementation is 'ode' (default), 'sde' or 'psr'\n"
         "options:\n"
+        "-q, --quiet        no verbosity\n"
+        "-P, --pipe         pipe mode (echo theta.json on stdout)\n"
         "\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_white_noise   turn off environmental stochasticity (if any)\n"
@@ -50,9 +53,9 @@ int main(int argc, char *argv[])
         "\n"
         "-p, --path         path where the outputs will be stored\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
-        "-P, --N_THREAD     number of threads to be used (default to the number of cores)\n"
+        "-N, --n_thread     number of threads to be used\n"
 	"\n"
-        "--traj             print the trajectories\n"
+        "-r, --traj         print the trajectories\n"
         "-J                 number of realisations\n"
         "-f, --freq         print the outputs (and reset incidences to 0 if any) every day (D) (default), week (W), bi-week (B), month (M) (taken to be 12.0/365.0 days) or year (Y) \n"
         "-o, --t0           time step when the simulation starts (in unit of frequency (see --freq))\n"
@@ -67,17 +70,18 @@ int main(int argc, char *argv[])
         "-B, --block        tuning parameter for max and min detection (has to be an odd number)\n"
         "-x, --precision    smallest significant difference to detect variation for min and max detections\n"
         "--continue         print the final states in a bifurcation analysis to allow continuation\n"
-        "--help             print the usage on stdout\n";
+        "-h, --help         print the usage on stdout\n";
 
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
 
+    enum plom_print print_opt = PLOM_PRINT_HAT;
+
     double t0 = 0.0, t_end = 0.0, t_transiant = 0.0;
     
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
 
-    OPTION_TRAJ = 0;
     int OPTION_LYAP = 0;
     int OPTION_BIF = 0;
     static int OPTION_CONTINUE = 0;
@@ -98,7 +102,6 @@ int main(int argc, char *argv[])
         static struct option long_options[] =
             {
                 /* These options set a flag. */
-                {"traj", no_argument,       &OPTION_TRAJ, 1},
                 {"continue", no_argument,   &OPTION_CONTINUE, 1},
                 /* These options don't set a flag We distinguish them by their indices (that are also the short option names). */
                 {"no_dem_sto", no_argument,       0, 'x'},
@@ -109,10 +112,10 @@ int main(int argc, char *argv[])
                 {"eps_abs",    required_argument, 0, 'v'},
                 {"eps_rel",    required_argument, 0, 'w'},
 
-                {"help",       no_argument,       0, 'e'},
+                {"help",       no_argument,       0, 'h'},
                 {"path",       required_argument, 0, 'p'},
                 {"id",         required_argument, 0, 'i'},
-                {"N_THREAD",   required_argument, 0, 'P'},
+                {"n_thread",   required_argument, 0, 'N'},
 
                 {"freq", required_argument,   0, 'f'},
                 {"freeze_forcing", required_argument, 0, 'g'},
@@ -126,14 +129,19 @@ int main(int argc, char *argv[])
                 {"tend",    required_argument, 0, 'D'},
                 {"transiant",    required_argument, 0, 'T'},
                 {"block",    required_argument, 0, 'B'},
-                {"precision",    required_argument, 0, 'r'},
+                {"precision",    required_argument, 0, 'k'},
+
+                {"traj", no_argument,       0, 'r'},
+                {"quiet",  no_argument,       0, 'q'},
+                {"pipe",  no_argument,       0, 'P'},
+
 
                 {0, 0, 0, 0}
             };
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:B:r:i:J:s:D:T:bldup:o:P:f:g:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "qPrhxyzs:v:w:B:k:i:J:s:D:T:bldup:o:N:f:g:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -166,7 +174,7 @@ int main(int argc, char *argv[])
         case 'w':
             eps_rel = atof(optarg);
             break;
-        case 'e':
+        case 'h':
             print_log(plom_help_string);
             return 1;
 
@@ -189,7 +197,7 @@ int main(int argc, char *argv[])
         case 'D':
             t_end = ceil(atof(optarg));
             break;
-        case 'r':
+        case 'k':
             PRECISION = atof(optarg);
             break;
         case 'T':
@@ -213,9 +221,22 @@ int main(int argc, char *argv[])
         case 'J':
             J = atoi(optarg);
             break;
-        case 'P':
+        case 'N':
             n_threads = atoi(optarg);
             break;
+
+        case 'r':
+	    print_opt |= PLOM_PRINT_X;
+            break;
+
+        case 'q':
+	    print_opt |= PLOM_QUIET;
+            break;
+        case 'P':
+	    print_opt |= PLOM_PIPE | PLOM_QUIET;
+            break;
+
+
 
         case '?':
             /* getopt_long already printed an error message. */
@@ -290,15 +311,17 @@ int main(int argc, char *argv[])
     double *y0 = init1d_set0(N_PAR_SV*N_CAC + N_TS_INC_UNIQUE);
     double abs_tol = eps_abs, rel_tol = eps_rel;
 
+    int64_t time_begin, time_end;
+    if (!(print_opt & PLOM_QUIET)) {
+	snprintf(str, STR_BUFFSIZE, "Starting plom-simul with the following options: i = %d, t0 = %g, t_end = %g, t_transiant = %g, N_BLOC = %d, PRECISION = %g, N_THREADS = %d, J = %d", GENERAL_ID, t0, t_end, t_transiant, N_BLOC, PRECISION, n_threads, J);
+	print_log(str);
 
-#if FLAG_VERBOSE
-    snprintf(str, STR_BUFFSIZE, "Starting Plom with the following options: i = %d, t0 = %g, t_end = %g, t_transiant = %g, N_BLOC = %d, PRECISION = %g, N_THREADS = %d, J = %d", GENERAL_ID, t0, t_end, t_transiant, N_BLOC, PRECISION, n_threads, J);
-    print_log(str);
-#endif
+	time_begin = s_clock();
+    }
 
 
     if (OPTION_FFT) {
-#if FLAG_VERBOSE
+#if FLAG_WARNING
         print_warning("FFT requested, to compute FFT we change the trajectory length to its nearest upper power of 2 number...");
 #endif
         snprintf(str, STR_BUFFSIZE, "t_end-t0: %g -> %g, the number of stored value being %g", t_end-t0, nextpow2((t_end-t0)),  nextpow2((t_end-t0)));
@@ -366,16 +389,11 @@ int main(int argc, char *argv[])
 	p_thread_predict[nt].p_calc = calc[nt];    
 	p_thread_predict[nt].context = context;
 	pthread_create (&worker[nt], NULL, worker_routine_predict_inproc, (void*) &p_thread_predict[nt]);
-
-	snprintf(str, STR_BUFFSIZE, "worker %d started", nt);
-	print_log(str);
     }
 
     //wait that all worker are connected
     for (nt = 0; nt < n_threads; nt++) {
 	zmq_recv(receiver, &id, sizeof (int), 0);
-	snprintf(str, STR_BUFFSIZE, "worker %d connected", id);
-	print_log(str);
     }
 #endif
 
@@ -386,10 +404,10 @@ int main(int argc, char *argv[])
     /**************************************************/
     if ( (!is_predict) && (t_transiant > 0.0) ) {
 	t_transiant = floor(t_transiant/ONE_YEAR)*ONE_YEAR + t0;
-#if FLAG_VERBOSE
-	snprintf(str, STR_BUFFSIZE,  "skipping transiant... (Note that t_transiant has been ajusted to %g to respect seasonality and t0)", t_transiant );
-	print_warning(str);
-#endif
+	if (!(print_opt & PLOM_QUIET)) {
+	    snprintf(str, STR_BUFFSIZE,  "skipping transiant... (Note that t_transiant has been ajusted to %g to respect seasonality and t0)", t_transiant );
+	    print_warning(str);
+	}
 
 	if (implementation == PLOM_ODE) {
 	    //only the first particle is used to skip transiant
@@ -435,11 +453,11 @@ int main(int argc, char *argv[])
         //we need to integrate for at least 1 time step so that
         //incidence is reset to 0 after transiant (transiant did not
         //reset incidences every week in case of PLOM_ODE)
-        traj(J_p_X, t0, t0+1, t_transiant, J_p_par, p_data, calc, f_pred, sender, receiver, controller);
+        traj(J_p_X, t0, t0+1, t_transiant, J_p_par, p_data, calc, f_pred, sender, receiver, controller, print_opt);
 
-    } else if(!(OPTION_BIF || OPTION_LYAP) && OPTION_TRAJ && (t_end>t0)) { //ONLY TRAJ
+    } else if(!(OPTION_BIF || OPTION_LYAP) && (print_opt & PLOM_PRINT_X) && (t_end>t0)) { //ONLY TRAJ
 
-        traj(J_p_X, t0, t_end, t_transiant, J_p_par, p_data, calc, f_pred, sender, receiver, controller);
+        traj(J_p_X, t0, t_end, t_transiant, J_p_par, p_data, calc, f_pred, sender, receiver, controller, print_opt);
 
     } else if ( (!is_predict) && (OPTION_BIF || OPTION_LYAP) ) {
 
@@ -456,11 +474,11 @@ int main(int argc, char *argv[])
         if (OPTION_BIF || OPTION_PERIOD_DYNAMICAL_SYTEM || OPTION_FFT) {
             int ts;
 
-#if FLAG_VERBOSE
-            print_log("bifurcation analysis");
-#endif
+	    if (!(print_opt & PLOM_QUIET)) {
+		print_log("bifurcation analysis");
+	    }
 
-            double **traj_obs = get_traj_obs(J_p_X[0], y0, t0, t_end, t_transiant, J_p_par[0], p_data, calc[0], f_pred); //[N_TS][(t_end-t0)]
+            double **traj_obs = get_traj_obs(J_p_X[0], y0, t0, t_end, t_transiant, J_p_par[0], p_data, calc[0], f_pred, print_opt); //[N_TS][(t_end-t0)]
 
             for (ts=0; ts< N_TS; ts++) {
 
@@ -497,22 +515,26 @@ int main(int argc, char *argv[])
 
         if (OPTION_LYAP) {
 
-#if FLAG_VERBOSE
-            print_log("Lyapunov exponents computation...");
-#endif            
+	    if (!(print_opt & PLOM_QUIET)) {
+		print_log("Lyapunov exponents computation...");
+	    }
             lyapunov(calc[0], J_p_par[0], y0, t0, t_end, abs_tol, rel_tol, J_p_X[0]->dt);
         }
 
     } //end OPTION_BIF or OPTION_LYAP
 
-
-
-    plom_print_done(theta, p_data, p_best, SFR_PATH, GENERAL_ID, 0);
+    plom_print_done(theta, p_data, p_best, SFR_PATH, GENERAL_ID, print_opt);
     
+    if (!(print_opt & PLOM_QUIET)) {
+	time_end = s_clock();
+	struct s_duration t_exec = time_exec(time_begin, time_end);
+	snprintf(str, STR_BUFFSIZE, "Done in:= %dd %dh %dm %gs", t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+	print_log(str);
+    }
 
-#if FLAG_VERBOSE
-    print_log("clean up...");
-#endif
+    if (!(print_opt & PLOM_QUIET)) {
+	print_log("clean up...");
+    }
 
     json_decref(thetas);
 

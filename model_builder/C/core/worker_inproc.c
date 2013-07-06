@@ -22,7 +22,6 @@ void *worker_routine_smc_inproc(void *params)
 {
     int j, n, np1, t0, t1;
     int id;
-    char str[STR_BUFFSIZE];
 
     struct s_thread_smc *p = (struct s_thread_smc *) params;
 
@@ -89,9 +88,6 @@ void *worker_routine_smc_inproc(void *params)
 	    char buf [256];
 	    zmq_recv(controller, buf, 256, 0);
 
-	    snprintf(str, STR_BUFFSIZE, "worker %d: controller sent: %s", p->thread_id, buf);
-	    print_log(str);
-
             if(strcmp(buf, "KILL") == 0) {
                 break;  //  Exit loop
             }
@@ -102,9 +98,6 @@ void *worker_routine_smc_inproc(void *params)
     zmq_close (sender);
     zmq_close (controller);
 
-    snprintf(str, STR_BUFFSIZE, "thread %d done", p->thread_id);
-    print_log(str);
-
     return NULL;
 }
 
@@ -113,7 +106,6 @@ void *worker_routine_mif_inproc(void *params)
 {
     int j, n, np1, t0, t1;
     int id;
-    char str[STR_BUFFSIZE];
 
     struct s_thread_mif *p = (struct s_thread_mif *) params;
 
@@ -179,9 +171,6 @@ void *worker_routine_mif_inproc(void *params)
 	    char buf [256];
 	    zmq_recv(controller, buf, 256, 0);           
 
-	    snprintf(str, STR_BUFFSIZE, "worker %d: controller sent: %s", p->thread_id, buf);
-	    print_log(str);
-
             if(strcmp(buf, "KILL") == 0) {
                 break;  //  Exit loop
             }
@@ -192,9 +181,6 @@ void *worker_routine_mif_inproc(void *params)
     zmq_close (sender);
     zmq_close (controller);
 
-    snprintf(str, STR_BUFFSIZE, "thread %d done", p->thread_id);
-    print_log(str);
-
     return NULL;
 }
 
@@ -203,7 +189,6 @@ void *worker_routine_predict_inproc(void *params)
 {
     int j;
     int k, kp1, id;
-    char str[STR_BUFFSIZE];
 
     struct s_thread_predict *p = (struct s_thread_predict *) params;
 
@@ -258,9 +243,6 @@ void *worker_routine_predict_inproc(void *params)
 	    char buf [256];
 	    zmq_recv(controller, buf, 256, 0);           	    
 
-	    snprintf(str, STR_BUFFSIZE, "worker %d: controller sent: %s", p->thread_id, buf);
-	    print_log(str);
-
             if(strcmp(buf, "KILL") == 0) {
                 break;  //  Exit loop
             }
@@ -270,9 +252,6 @@ void *worker_routine_predict_inproc(void *params)
     zmq_close (receiver);
     zmq_close (sender);
     zmq_close (controller);
-
-    snprintf(str, STR_BUFFSIZE, "thread %d done", p->thread_id);
-    print_log(str);
 
     return NULL;
 }

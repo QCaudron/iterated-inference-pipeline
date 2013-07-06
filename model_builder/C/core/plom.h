@@ -65,7 +65,7 @@
 enum plom_implementations {PLOM_ODE, PLOM_SDE, PLOM_PSR};
 enum plom_noises_off {PLOM_NO_DEM_STO = 1 << 0, PLOM_NO_ENV_STO = 1 << 1, PLOM_NO_DRIFT = 1 << 2 }; //several noises can be turned off
 
-enum plom_print {PLOM_PRINT_BEST = 1 << 0, PLOM_PRINT_X = 1 << 1, PLOM_PRINT_HAT = 1 << 2, PLOM_PRINT_PRED_RES = 1 << 3, PLOM_PRINT_X_SMOOTH = 1 << 4, PLOM_PRINT_ACC = 1 << 5 };
+enum plom_print {PLOM_PRINT_BEST = 1 << 0, PLOM_PRINT_X = 1 << 1, PLOM_PRINT_HAT = 1 << 2, PLOM_PRINT_PRED_RES = 1 << 3, PLOM_PRINT_X_SMOOTH = 1 << 4, PLOM_PRINT_ACC = 1 << 5, PLOM_PIPE = 1 << 6, PLOM_QUIET = 1 << 7 };
 
 typedef enum {PLOM_SUCCESS=0, PLOM_ERR_LIKE=-1} plom_err_code;
 
@@ -129,7 +129,6 @@ char SFR_PATH[STR_BUFFSIZE]; /**< path where the output files will be written */
 int GENERAL_ID;              /**< general identifiant to make the output files unique */
 
 /* option and commands */
-int OPTION_TRAJ;   /**< print the trajectories */
 int OPTION_PRIOR;   /**< print add the logprior to the loglik outputs */
 
 
@@ -874,7 +873,7 @@ void clean_groups_compo(struct s_group **compo, int n_gp);
 
 /* simplex.c */
 void transfer_estimated(struct s_best *p_best, const gsl_vector *x, struct s_data *p_data);
-void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simplex, double (*f_simplex)(const gsl_vector *, void *), double CONVERGENCE_STOP_SIMPLEX, int M, const int option_no_trace);
+void simplex(struct s_best *p_best, struct s_data *p_data, void *p_params_simplex, double (*f_simplex)(const gsl_vector *, void *), double CONVERGENCE_STOP_SIMPLEX, int M, enum plom_print print_opt);
 
 /* zhelpers.c */
 void send_par(void *socket, const struct s_par *p_par, struct s_data *p_data, int zmq_options);

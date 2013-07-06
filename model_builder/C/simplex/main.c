@@ -33,9 +33,13 @@ int main(int argc, char *argv[])
         "                         [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>]  [-o, --nb_obs <integer>] [--prior]\n"
 	"                         [-b, --no_trace]\n"
         "                         [-g, --freeze_forcing <float>]\n"
-        "                         [--help]\n"
+	"                         [-q, --quiet] [-P, --pipe]"
+        "                         [-h, --help]\n"
         "where implementation is 'ode' (default)\n"
         "options:\n"
+	"\n"
+        "-q, --quiet          no verbosity\n"
+        "-P, --pipe           pipe mode (echo theta.json on stdout)\n"
 	"\n"
         "-s, --DT             Initial integration time step\n"
 	"--eps_abs            Absolute error for adaptive step-size contro\n"
@@ -51,14 +55,16 @@ int main(int argc, char *argv[])
 	"-b, --no_trace       do not write trace_<id>.output file\n"
         "-o, --nb_obs         number of observations to be fitted (for tempering)"
         "--prior              add log(prior) to the estimated log likelihood\n"
-        "--help               print the usage on stdout\n";
+        "h, --help            print the usage on stdout\n";
 
 
     int M = 10;
     double CONVERGENCE_STOP_SIMPLEX = 1e-6;
 
     enum plom_implementations implementation;
-    enum plom_noises_off noises_off = (PLOM_NO_DEM_STO | PLOM_NO_ENV_STO | PLOM_NO_DRIFT);
+    enum plom_noises_off noises_off = PLOM_NO_DEM_STO | PLOM_NO_ENV_STO | PLOM_NO_DRIFT;
+
+    enum plom_print print_opt = PLOM_PRINT_BEST;
 
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
 
@@ -69,7 +75,6 @@ int main(int argc, char *argv[])
     LOG_LIKE_MIN = log(1e-17);
     OPTION_LEAST_SQUARE = 0;
     OPTION_PRIOR = 0;
-    int option_no_trace = 0;
     int nb_obs = -1;
     double freeze_forcing = -1.0;
 
@@ -83,8 +88,8 @@ int main(int argc, char *argv[])
 		{"eps_rel",    required_argument, 0, 'w'},
 
                 {"freeze_forcing", required_argument, 0, 'g'},
-                {"help", no_argument,  0, 'e'},
-                {"least_square", no_argument,  0, 'q'},
+                {"help", no_argument,  0, 'h'},
+                {"least_square", no_argument,  0, 'Q'},
                 {"no_trace", no_argument,  0, 'b'},
                 {"prior", no_argument, &OPTION_PRIOR, 1},
                 {"path",    required_argument, 0, 'p'},
@@ -94,12 +99,15 @@ int main(int argc, char *argv[])
                 {"size",     required_argument,   0, 'S'},
 		{"nb_obs", required_argument,  0, 'o'},
 
+                {"quiet",  no_argument,       0, 'q'},
+                {"pipe",  no_argument,       0, 'P'},
+
                 {0, 0, 0, 0}
             };
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "s:v:w:qi:l:M:S:p:o:bg:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "qPhs:v:w:Qi:l:M:S:p:o:bg:", long_options, &option_index);
 	
         /* Detect the end of the options. */
         if (ch == -1)
@@ -126,16 +134,16 @@ int main(int argc, char *argv[])
         case 'w':
             eps_rel = atof(optarg);
             break;
-        case 'e':
+        case 'h':
             print_log(plom_help_string);
             return 1;
         case 'b':
-            option_no_trace = 1;
+            print_opt &= ~PLOM_PRINT_BEST;
             break;
 	case 'o':
 	    nb_obs = atoi(optarg);
             break;
-        case 'q':
+        case 'Q':
 	    OPTION_LEAST_SQUARE = 1;
             break;
         case 'p':
@@ -154,6 +162,14 @@ int main(int argc, char *argv[])
         case 'S':
             CONVERGENCE_STOP_SIMPLEX = atof(optarg);
             break;
+
+        case 'q':
+	    print_opt |= PLOM_QUIET;
+            break;
+        case 'P':
+	    print_opt |= PLOM_PIPE | PLOM_QUIET;
+            break;
+
         case '?':
             /* getopt_long already printed an error message. */
             break;
@@ -180,8 +196,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    sprintf(str, "Starting Plom-simplex with the following options: i = %d, LIKE_MIN = %g, M = %d, CONVERGENCE_STOP_SIMPLEX = %g", GENERAL_ID, LIKE_MIN, M, CONVERGENCE_STOP_SIMPLEX);
-    print_log(str);
+    int64_t time_begin, time_end;
+    if (!(print_opt & PLOM_QUIET)) {
+	sprintf(str, "Starting plom-simplex with the following options: i = %d, LIKE_MIN = %g, M = %d, CONVERGENCE_STOP_SIMPLEX = %g", GENERAL_ID, LIKE_MIN, M, CONVERGENCE_STOP_SIMPLEX);
+	print_log(str);
+	time_begin = s_clock();
+    }
 
     plom_unlink_done(SFR_PATH, GENERAL_ID);
     json_t *theta = load_json();
@@ -201,14 +221,22 @@ int main(int argc, char *argv[])
         plom_fclose(p_file_trace);
     } else {
         //run the simplex algo
-        simplex(p_simplex->p_best, p_simplex->p_data, p_simplex, f_simplex, CONVERGENCE_STOP_SIMPLEX, M, option_no_trace);
+        simplex(p_simplex->p_best, p_simplex->p_data, p_simplex, f_simplex, CONVERGENCE_STOP_SIMPLEX, M, print_opt);
     }
 
-    plom_print_done(theta, p_simplex->p_data, p_simplex->p_best, SFR_PATH, GENERAL_ID, 0);
+    if (!(print_opt & PLOM_QUIET)) {
+	time_end = s_clock();
+	struct s_duration t_exec = time_exec(time_begin, time_end);
+	snprintf(str, STR_BUFFSIZE, "Done in:= %dd %dh %dm %gs", t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+	print_log(str);
+    }
 
-#if FLAG_VERBOSE
-    print_log("clean up...");
-#endif
+    plom_print_done(theta, p_simplex->p_data, p_simplex->p_best, SFR_PATH, GENERAL_ID, print_opt);
+
+    if (!(print_opt & PLOM_QUIET)) {
+	print_log("clean up...");
+    }
+
     json_decref(theta);
 
     clean_simplex(p_simplex);

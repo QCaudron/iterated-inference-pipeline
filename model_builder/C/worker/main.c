@@ -107,9 +107,6 @@ void *worker_routine (void *params) {
 	    char buf [256];
 	    zmq_recv(server_controller, buf, 256, 0);           
 
-	    snprintf(str, STR_BUFFSIZE, "worker %d: controller sent: %s", p->thread_id, buf);
-	    print_log(str);
-
             if(strcmp(buf, "KILL") == 0) {
                 break;  //  Exit loop
             }
@@ -123,9 +120,6 @@ void *worker_routine (void *params) {
     clean_par(p_par);
     clean_X(p_X);
     clean_p_calc(p_calc, p_data);
-
-    snprintf(str, STR_BUFFSIZE, "thread %d done", p->thread_id);
-    print_log(str);
 
     return NULL;
 }
@@ -144,12 +138,15 @@ int main(int argc, char *argv[])
         "usage:\n"
         "worker [implementation] [--no_dem_sto] [--no_white_noise] [--no_diff]\n"
         "                        [-s, --DT <float>] [--eps_abs <float>] [--eps_rel <float>]\n"
-        "                        [-i, --id <integer>] [-h, --host <hostname>] [-P, --N_THREAD <integer>]\n"
+        "                        [-i, --id <integer>] [-h, --host <hostname>] [-N, --n_thread <integer>]\n"
 	"                        [-g, --freeze_forcing <float>]\n"
         "                        [-l, --LIKE_MIN <float>] [-J <integer>]\n"
-        "                        [--help]\n"
+	"                        [-q, --quiet]"
+        "                        [-h, --help]\n"
         "where implementation is 'ode', 'sde' or 'psr' (default)\n"
         "options:\n"
+	"\n"
+        "-q, --quiet        no verbosity\n"
 	"\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_white_noise   turn off environmental stochasticity (if any)\n"
@@ -162,7 +159,7 @@ int main(int argc, char *argv[])
 	"\n"
         "-i, --id           general id (unique integer identifier that will be appended to the output files)\n"
         "-h, --host         domain name or IP address of the particule server (defaults to 127.0.0.1)\n"
-        "-P, --N_THREAD     number of threads to be used (defaults to the number of cores)\n"
+        "-N, --n_thread     number of threads to be used (defaults to the number of cores)\n"
         "-l, --LIKE_MIN     particles with likelihood smaller that LIKE_MIN are considered lost\n"
         "-c  -Jchunk        size of the chunk of particles\n"
 	"-o, --nb_obs       number of observations to be fitted (for tempering)"
@@ -172,6 +169,8 @@ int main(int argc, char *argv[])
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
     GENERAL_ID =0;
     J = 1; //here J is actualy Jchunk!
+
+    enum plom_print print_opt = 0;
     
 #if FLAG_OMP
     int n_threads = omp_get_max_threads();       
@@ -181,7 +180,6 @@ int main(int argc, char *argv[])
 
     LIKE_MIN = 1e-17;
     LOG_LIKE_MIN = log(1e-17);
-    OPTION_TRAJ = 0;
     int nb_obs = -1;
     double freeze_forcing = -1.0;
 
@@ -191,7 +189,7 @@ int main(int argc, char *argv[])
     while (1) {
         static struct option long_options[] =
             {
-                {"help",       no_argument,       0, 'e'},
+                {"help",       no_argument,       0, 'h'},
 
                 {"no_dem_sto", no_argument,       0, 'x'},
                 {"no_white_noise", no_argument,       0, 'y'},
@@ -211,12 +209,14 @@ int main(int argc, char *argv[])
 
                 {"LIKE_MIN",   required_argument, 0, 'l'},
 
+                {"quiet",  no_argument,       0, 'q'},
+
                 {0, 0, 0, 0}
             };
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        ch = getopt_long (argc, argv, "xyzs:v:w:i:P:c:h:l:o:g:", long_options, &option_index);
+        ch = getopt_long (argc, argv, "hqxyzs:v:w:i:N:c:h:l:o:g:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (ch == -1)
@@ -281,9 +281,12 @@ int main(int argc, char *argv[])
             freeze_forcing = atof(optarg);
             break;
 
-
 	case 'o':
 	    nb_obs = atoi(optarg);
+            break;
+
+        case 'q':
+	    print_opt |= PLOM_QUIET;
             break;
 
         case '?':
@@ -323,22 +326,23 @@ int main(int argc, char *argv[])
     n_threads = sanitize_n_threads(n_threads, J);
     n_threads = 1;
 
-#if FLAG_VERBOSE
-    snprintf(str, STR_BUFFSIZE, "Starting Plom-worker with the following options: i = %d, LIKE_MIN = %g, N_THREADS = %d", GENERAL_ID, LIKE_MIN, n_threads);
-    print_log(str);
-#endif
+    if (!(print_opt & PLOM_QUIET)) {
+	snprintf(str, STR_BUFFSIZE, "Starting plom-worker with the following options: i = %d, LIKE_MIN = %g, N_THREADS = %d", GENERAL_ID, LIKE_MIN, n_threads);
+	print_log(str);
+    }
+
     struct s_data *p_data = build_data(settings, theta, implementation, noises_off, 1, nb_obs, "D");
     json_decref(theta);
 
-#if FLAG_VERBOSE
-    print_log("setting up zmq context...");
-#endif
+    if (!(print_opt & PLOM_QUIET)) {
+	print_log("setting up zmq context...");
+    }
 
     void *context = zmq_ctx_new();
 
-#if FLAG_VERBOSE
-    print_log("starting the threads...");
-#endif
+    if (!(print_opt & PLOM_QUIET)) {
+	print_log("starting the threads...");
+    }
 
     int size_proj = N_PAR_SV*N_CAC + p_data->p_it_only_drift->nbtot + N_TS_INC_UNIQUE;
 
@@ -353,8 +357,6 @@ int main(int argc, char *argv[])
         p_thread_params[nt].p_data = p_data;
         p_thread_params[nt].context = context;
         pthread_create (&worker[nt], NULL, worker_routine, (void*) &p_thread_params[nt]);
-	snprintf(str, STR_BUFFSIZE, "worker %d started", nt);
-	print_log(str);        
     }
 
     json_decref(settings);
@@ -363,17 +365,18 @@ int main(int argc, char *argv[])
         pthread_join(worker[nt], NULL);
     }
 
-#if FLAG_VERBOSE
-    print_log("clean up...");
-#endif
+    if (!(print_opt & PLOM_QUIET)) {
+	print_log("clean up...");
+    }
+
     free(worker);
     free(p_thread_params);
 
     clean_data(p_data);
 
-#if FLAG_VERBOSE
-    print_log("closing zmq sockets...");
-#endif
+    if (!(print_opt & PLOM_QUIET)) {
+	print_log("closing zmq sockets...");
+    }
 
     zmq_ctx_destroy(context);
 

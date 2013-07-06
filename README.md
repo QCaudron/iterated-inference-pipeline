@@ -1,12 +1,13 @@
-plom-sfi
-========
+plom-sfi (PLOM.IO plug-and-play pipes)
+======================================
 
-**Plug-and-play** inference methods in plain C for http://www.plom.io/
-and the Princeton University project "Simforence" (Simulation,
-Forecasting, Inference).
+_Pipable_ **Plug-and-play** inference methods in plain C for
+http://www.plom.io/ and the Princeton University project "Simforence"
+(Simulation, Forecasting, Inference).
 
-usage
-=====
+
+    cat theta.json | ./simul -T 10000 -P | ./simplex -M 10000 -P | ./ksimplex -M 10000 -P | ./kmcmc -M 100000 --full -P | ./pmcmc -M 500000 --full > res.json
+
 
 This README provided information for developers or users wanting to
 build plom-sfi on their local machine.
@@ -16,8 +17,7 @@ http://www.plom.io/cli
 
 You do not need to install plom-sfi or its dependencies to use
 it. plom.io provide a compilation service that generate standalone
-binaries that you can run on your machine so go to
-http://www.plom.io/cli
+binaries that you can run on your machine. See http://www.plom.io/cli
 
 introduction
 ============
@@ -86,8 +86,8 @@ in path_model_coded_in_C/C/templates:
     
 All the inference methods binaries are now available in path_model_coded_in_C
 
-See http://www.plom.io/cli for documentation on how to
-use the generated binaries.
+See http://www.plom.io/cli for documentation on how to use the
+generated binaries.
 
 
 ##Contributing to the C library

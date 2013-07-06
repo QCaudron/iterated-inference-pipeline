@@ -26,8 +26,8 @@ double f_simplex_kalman(const gsl_vector *x, void *params)
     transfer_estimated(p->p_best, x, p->p_data);
 
     if(plom_check_IC_assign_theta_remainder(p->p_best->mean, p->p_data)){
-#if FLAG_VERBOSE
-        print_err("IC constraint has not been respected: pop_IC>pop_size at t=0 minimal likelihood value has been assigned");
+#if FLAG_WARNING
+        print_warning("IC constraint has not been respected: pop_IC>pop_size at t=0 minimal likelihood value has been assigned");
 #endif
 	log_like = p->smallest_log_like;
     } else {
@@ -61,9 +61,13 @@ int main(int argc, char *argv[])
         "                          [-g, --freeze_forcing <float>]\n"
         "                          [--prior] [--transf]\n"
         "                          [-l, --LIKE_MIN <float>] [-S, --size <float>] [-M, --iter <integer>]\n"
-        "                          [--help]\n"
+	"                          [-q, --quiet] [-P, --pipe]"
+        "                          [-h, --help]\n"
         "where implementation is 'sde' (default)\n"
         "options:\n"
+	"\n"
+        "-q, --quiet          no verbosity\n"
+        "-P, --pipe           pipe mode (echo theta.json on stdout)\n"
 	"\n"
         "--no_dem_sto       turn off demographic stochasticity (if possible)\n"
         "--no_white_noise       turn off environmental stochasticity (if any)\n"
@@ -99,20 +103,19 @@ int main(int argc, char *argv[])
     double freeze_forcing = -1.0;
 
     // options
-    OPTION_TRAJ = 0;
     OPTION_PRIOR = 0;
     OPTION_TRANSF = 0;
 
     double dt = 0.0, eps_abs = PLOM_EPS_ABS, eps_rel = PLOM_EPS_REL;
 
-    int option_no_trace = 0;
+    enum plom_print print_opt = PLOM_PRINT_BEST;
 
     enum plom_implementations implementation;
     enum plom_noises_off noises_off = 0;
 
 
     static struct option long_options[] = {
-        {"help",       no_argument,       0, 'e'},
+        {"help",       no_argument,       0, 'h'},
         {"no_trace",   no_argument,  0, 'b'},
 
 	{"no_dem_sto", no_argument,       0, 'x'},
@@ -137,11 +140,14 @@ int main(int argc, char *argv[])
         {"size",     required_argument,   0, 'S'},
 	{"nb_obs", required_argument,  0, 'o'},
 
+	{"quiet",  no_argument,       0, 'q'},
+	{"pipe",  no_argument,       0, 'P'},
+
         {0, 0, 0, 0}
     };
 
     int option_index = 0;
-    while ((ch = getopt_long (argc, argv, "xyzs:v:w:i:l:p:S:M:o:bg:", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long (argc, argv, "qPhxyzs:v:w:i:l:p:S:M:o:bg:", long_options, &option_index)) != -1) {
         switch (ch) {
         case 0:
             break;
@@ -164,11 +170,11 @@ int main(int argc, char *argv[])
         case 'w':
             eps_rel = atof(optarg);
             break;
-        case 'e':
+        case 'h':
             print_log(plom_help_string);
             return 1;
         case 'b':
-            option_no_trace = 1;
+            print_opt &= ~PLOM_PRINT_BEST;
             break;
         case 'p':
             snprintf(SFR_PATH, STR_BUFFSIZE, "%s", optarg);
@@ -192,6 +198,14 @@ int main(int argc, char *argv[])
         case 'S':
             CONVERGENCE_STOP_SIMPLEX = atof(optarg);
             break;
+
+        case 'q':
+	    print_opt |= PLOM_QUIET;
+            break;
+        case 'P':
+	    print_opt |= PLOM_PIPE | PLOM_QUIET;
+            break;
+
         case '?':
             /* getopt_long already printed an error message. */
             return 1;
@@ -218,22 +232,32 @@ int main(int argc, char *argv[])
     plom_unlink_done(SFR_PATH, GENERAL_ID);
     json_t *settings = load_settings(PATH_SETTINGS);
 
-#if FLAG_VERBOSE
-    snprintf(str, STR_BUFFSIZE, "Starting PloM ksimplex with the following options: i = %d, LIKE_MIN = %g", GENERAL_ID, LIKE_MIN);
-    print_log(str);
-#endif
+    int64_t time_begin, time_end;
+    if (!(print_opt & PLOM_QUIET)) {
+	snprintf(str, STR_BUFFSIZE, "Starting plom-ksimplex with the following options: i = %d, LIKE_MIN = %g", GENERAL_ID, LIKE_MIN);
+	print_log(str);
+	time_begin = s_clock();
+    }
 
     json_t *theta = load_json();
     struct s_kalman *p_kalman = build_kalman(theta, settings, implementation, noises_off, OPTION_PRIOR, dt, eps_abs, eps_rel, freeze_forcing, nb_obs);
     json_decref(settings);
 
-    simplex(p_kalman->p_best, p_kalman->p_data, p_kalman, f_simplex_kalman, CONVERGENCE_STOP_SIMPLEX, M, option_no_trace);
+    simplex(p_kalman->p_best, p_kalman->p_data, p_kalman, f_simplex_kalman, CONVERGENCE_STOP_SIMPLEX, M, print_opt);
 
-    plom_print_done(theta, p_kalman->p_data, p_kalman->p_best, SFR_PATH, GENERAL_ID, 0);
+    if (!(print_opt & PLOM_QUIET)) {
+	time_end = s_clock();
+	struct s_duration t_exec = time_exec(time_begin, time_end);
+	snprintf(str, STR_BUFFSIZE, "Done in:= %dd %dh %dm %gs", t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+	print_log(str);
+    }
 
-#if FLAG_VERBOSE
-    print_log("clean up...");
-#endif
+    plom_print_done(theta, p_kalman->p_data, p_kalman->p_best, SFR_PATH, GENERAL_ID, print_opt);
+
+    if (!(print_opt & PLOM_QUIET)) {
+	print_log("clean up...");
+    }
+
     json_decref(theta);
 
     clean_kalman(p_kalman);

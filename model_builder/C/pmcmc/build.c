@@ -65,9 +65,6 @@ struct s_pmcmc *build_pmcmc(json_t *theta, enum plom_implementations implementat
         p->calc[nt]->method_specific_shared_data = p_mcmc_calc_data;
     }
 
-    sprintf(str, "Starting plom-pmcmc with the following options: i = %d, J = %d, LIKE_MIN = %g, M = %d, N_THREADS = %d SWITCH = %d a = %g", GENERAL_ID, J, LIKE_MIN, M, *n_threads, p_mcmc_calc_data->m_switch, p_mcmc_calc_data->a);
-    print_log(str);
-
     return p;
 }
 

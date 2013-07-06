@@ -53,10 +53,11 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     char str[STR_BUFFSIZE];
 
     // initialize time to calculate the computational time of a pMCMC iteration
-#if FLAG_VERBOSE
+
     int64_t time_pmcmc_begin, time_pmcmc_end; /* to calculate the computational time of a pMCMC iteration */
-    time_pmcmc_begin = s_clock();
-#endif
+    if (!(print_opt & PLOM_QUIET)) {
+	time_pmcmc_begin = s_clock();
+    }
 
     // open output files
     FILE *p_file_trace = plom_fopen(SFR_PATH, GENERAL_ID, "trace", "w", header_trace, p_data);
@@ -83,9 +84,6 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 
     if (OPTION_PIPELINE) {
 
-#if FLAG_VERBOSE
-        print_log("setting up zmq sockets...");
-#endif
         context = zmq_ctx_new ();
 
         //  Socket to send messages on
@@ -130,15 +128,11 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 	    p_thread_smc[nt].p_like = p_like;
 	    p_thread_smc[nt].context = context;
 	    pthread_create (&worker[nt], NULL, worker_routine_smc_inproc, (void*) &p_thread_smc[nt]);
-	    snprintf(str, STR_BUFFSIZE, "worker %d started", nt);
-	    print_log(str);
 	}
 
 	//wait that all worker are connected
 	for (nt = 0; nt < calc[0]->n_threads; nt++) {
 	    zmq_recv(receiver, &id, sizeof (int), 0);
-	    snprintf(str, STR_BUFFSIZE, "worker %d connected", id);
-	    print_log(str);
 	}
 	       
 #endif
@@ -177,12 +171,12 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     print_trace(p_file_trace, 0, p_best, p_data, p_like->Llike_best);
 
     // print iteration info
-#if FLAG_VERBOSE
-    time_pmcmc_end = s_clock();
-    struct s_duration t_exec = time_exec(time_pmcmc_begin, time_pmcmc_end);
-    sprintf(str, "iteration number:%d\t logV: %g\t accepted:%d computed in:= %dd %dh %dm %gs", m, p_like->Llike_best, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
-    print_log(str);
-#endif
+    if (!(print_opt & PLOM_QUIET)) {
+	time_pmcmc_end = s_clock();
+	struct s_duration t_exec = time_exec(time_pmcmc_begin, time_pmcmc_end);
+	sprintf(str, "iteration number:%d\t logV: %g\t accepted:%d computed in:= %dd %dh %dm %gs", m, p_like->Llike_best, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+	print_log(str);
+    }
 
 
     ////////////////
@@ -190,9 +184,9 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
     ////////////////
 
     for(m=1; m<M; m++) {
-#if FLAG_VERBOSE
-        time_pmcmc_begin = s_clock();
-#endif
+	if (!(print_opt & PLOM_QUIET)) {
+	    time_pmcmc_begin = s_clock();
+	}
 
         increment_iteration_counters(p_mcmc_calc_data, p_best, OPTION_FULL_UPDATE);
 
@@ -241,12 +235,12 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
         compute_acceptance_rates(p_best, p_mcmc_calc_data, (double) is_accepted, m);
 
 
-#if FLAG_VERBOSE
-        time_pmcmc_end = s_clock();
-        struct s_duration t_exec = time_exec(time_pmcmc_begin, time_pmcmc_end);
-	snprintf(str, STR_BUFFSIZE, "iteration number: %d (%d / %d)\t logV: %g (previous was %g) accepted: %d computed in:= %dd %dh %dm %gs", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->cycle_id, p_best->n_to_be_estimated, p_like->Llike_best, p_like->Llike_prev, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
-	print_log(str);
-#endif
+	if (!(print_opt & PLOM_QUIET)) {
+	    time_pmcmc_end = s_clock();
+	    struct s_duration t_exec = time_exec(time_pmcmc_begin, time_pmcmc_end);
+	    snprintf(str, STR_BUFFSIZE, "iteration number: %d (%d / %d)\t logV: %g (previous was %g) accepted: %d computed in:= %dd %dh %dm %gs", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->cycle_id, p_best->n_to_be_estimated, p_like->Llike_best, p_like->Llike_prev, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+	    print_log(str);
+	}
 
 
         if (p_mcmc_calc_data->cycle_id >= (p_best->n_to_be_estimated -1)) { // >= instead of  == because due to the webApp all jump size can be 0.0...
@@ -263,10 +257,10 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 		print_acceptance_rates(p_file_acc, p_mcmc_calc_data, p_mcmc_calc_data->m_full_iteration);
 	    }
 
-#if FLAG_VERBOSE
-	    snprintf(str, STR_BUFFSIZE, "acceptance rate(s) at iteration %d: %g (smoothed: %g)", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->global_acceptance_rate, p_mcmc_calc_data->smoothed_global_acceptance_rate);
-	    print_log(str);
-#endif
+	    if (!(print_opt & PLOM_QUIET)) {
+		snprintf(str, STR_BUFFSIZE, "acceptance rate(s) at iteration %d: %g (smoothed: %g)", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->global_acceptance_rate, p_mcmc_calc_data->smoothed_global_acceptance_rate);
+		print_log(str);
+	    }
         }
 
     }
@@ -286,15 +280,8 @@ void pmcmc(struct s_best *p_best, struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_t
 
 
     if (OPTION_PIPELINE){
-
-#if FLAG_VERBOSE
-        print_log("killing the workers...");
-#endif
 	zmq_send (controller, "KILL", 5, 0);        
 
-#if FLAG_VERBOSE
-        print_log("closing zmq sockets...");
-#endif
         zmq_close (sender);
         zmq_close (receiver);
         zmq_close (controller);

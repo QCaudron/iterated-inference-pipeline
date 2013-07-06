@@ -270,10 +270,6 @@ json_t *load_settings(const char *path)
         exit(EXIT_FAILURE);
     }
 
-#if FLAG_VERBOSE
-    print_log("load plom settings...");
-#endif
-
     POP_SIZE_EQ_SUM_SV = fast_get_json_boolean(settings, "POP_SIZE_EQ_SUM_SV");
 
     json_t *cst = fast_get_json_object(settings, "cst");

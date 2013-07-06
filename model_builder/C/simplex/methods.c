@@ -39,8 +39,8 @@ double f_simplex(const gsl_vector *x, void *params)
        smallest_log_like */
     if(plom_check_IC_assign_theta_remainder(p_best->mean, p_data)){
 
-#if FLAG_VERBOSE
-        print_err("IC constraint has not been respected: pop_IC>pop_size at t=0 minimal likelihood value has been assigned");
+#if FLAG_WARNING
+        print_warning("IC constraint has not been respected: pop_IC>pop_size at t=0 minimal likelihood value has been assigned");
 #endif
 	//	sanitize_IC(p_X->proj, p_data->pop_size_t0);
         if(OPTION_LEAST_SQUARE) {
@@ -82,11 +82,13 @@ double f_simplex(const gsl_vector *x, void *params)
 	if (OPTION_PRIOR) {
 	    double log_prob_prior_value;
 	    plom_err_code rc = log_prob_prior(&log_prob_prior_value, p_best, p_best->mean, p_best->var, p_data);
-#if FLAG_VERBOSE
+
 	    if(rc != PLOM_SUCCESS){
-		print_err("error log_prob_prior computation");
-	    }
+#if FLAG_WARNING
+		print_warning("error log_prob_prior computation");
 #endif
+	    }
+
 
 	    fitness += log_prob_prior_value;
 	}

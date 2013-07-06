@@ -970,9 +970,6 @@ struct s_calc **build_calc(int *n_threads, int general_id, double eps_abs, doubl
 #endif
     seed += general_id; /*we ensure uniqueness of seed in case of parrallel runs*/
 
-    snprintf(str, STR_BUFFSIZE, "seed=%ld", seed);
-    print_log(str);
-
     /* we create as many rng as parallel threads *but* note that for the operations not prarallelized, we always use cacl[0].randgsl */
     for (nt=0; nt< *n_threads; nt++) {
         calc[nt] = build_p_calc(*n_threads, nt, seed, eps_abs, eps_rel, dim_ode, func_step_ode, freeze_forcing, t_max, p_data, settings);

@@ -39,11 +39,12 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
     struct s_best *p_best = p_kalman->p_best;
 
     // initialize time to calculate the computational time of a pMCMC iteration
-#if FLAG_VERBOSE
+
     char str[255];
-    int64_t time_pmcmc_begin, time_pmcmc_end; /* to calculate the computational time of a pMCMC iteration */
-    time_pmcmc_begin = s_clock();
-#endif
+    int64_t time_kmcmc_begin, time_kmcmc_end; /* to calculate the computational time of a pMCMC iteration */
+    if (!(print_opt & PLOM_QUIET)) {
+	time_kmcmc_begin = s_clock();
+    }
 
     // open output files
     FILE *p_file_trace = plom_fopen(SFR_PATH, GENERAL_ID, "trace", "w", header_trace, p_data);
@@ -81,21 +82,21 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
 
     print_trace(p_file_trace, 0, p_best, p_data, p_like->Llike_best);
 
-#if FLAG_VERBOSE
-    time_pmcmc_end = s_clock();
-    struct s_duration t_exec = time_exec(time_pmcmc_begin, time_pmcmc_end);
-    sprintf(str, "iteration number:%d\t logV: %g\t accepted:%d computed in:= %dd %dh %dm %gs", m, p_like->Llike_best, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
-    print_log(str);
-#endif
+    if (!(print_opt & PLOM_QUIET)) {
+	time_kmcmc_end = s_clock();
+	struct s_duration t_exec = time_exec(time_kmcmc_begin, time_kmcmc_end);
+	sprintf(str, "iteration number:%d\t logV: %g\t accepted:%d computed in:= %dd %dh %dm %gs", m, p_like->Llike_best, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+	print_log(str);
+    }
 
     ////////////////
     // iterations //
     ////////////////
 
     for(m=1; m<M; m++) {
-#if FLAG_VERBOSE
-        time_pmcmc_begin = s_clock();
-#endif
+	if (!(print_opt & PLOM_QUIET)) {
+	    time_kmcmc_begin = s_clock();
+	}
 
         increment_iteration_counters(p_mcmc_calc_data, p_best, OPTION_FULL_UPDATE);
 
@@ -142,12 +143,12 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
 
         compute_acceptance_rates(p_best, p_mcmc_calc_data, (double) is_accepted, m);
 
-#if FLAG_VERBOSE
-        time_pmcmc_end = s_clock();
-        struct s_duration t_exec = time_exec(time_pmcmc_begin, time_pmcmc_end);
-        sprintf(str, "iteration number: %d (%d / %d)\t logV: %g (previous was %g) accepted: %d computed in:= %dd %dh %dm %gs", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->cycle_id, p_best->n_to_be_estimated, p_like->Llike_best, p_like->Llike_prev, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
-        print_log(str);
-#endif
+	if (!(print_opt & PLOM_QUIET)) {
+	    time_kmcmc_end = s_clock();
+	    struct s_duration t_exec = time_exec(time_kmcmc_begin, time_kmcmc_end);
+	    sprintf(str, "iteration number: %d (%d / %d)\t logV: %g (previous was %g) accepted: %d computed in:= %dd %dh %dm %gs", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->cycle_id, p_best->n_to_be_estimated, p_like->Llike_best, p_like->Llike_prev, accept, t_exec.d, t_exec.h, t_exec.m, t_exec.s);
+	    print_log(str);
+	}
 
         // append output files
         if (p_mcmc_calc_data->cycle_id >= (p_best->n_to_be_estimated -1)) { // >= instead of  == because due to the webApp all jump size can be 0.0...
@@ -161,10 +162,10 @@ void kmcmc(struct s_kalman *p_kalman, struct s_likelihood *p_like, struct s_mcmc
 		print_acceptance_rates(p_file_acc, p_mcmc_calc_data, p_mcmc_calc_data->m_full_iteration);
 	    }
 
-#if FLAG_VERBOSE
-	    snprintf(str, STR_BUFFSIZE, "acceptance rate(s) at iteration %d: %g (smoothed: %g)", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->global_acceptance_rate, p_mcmc_calc_data->smoothed_global_acceptance_rate);
-	    print_log(str);
-#endif
+	    if (!(print_opt & PLOM_QUIET)) {
+		snprintf(str, STR_BUFFSIZE, "acceptance rate(s) at iteration %d: %g (smoothed: %g)", p_mcmc_calc_data->m_full_iteration, p_mcmc_calc_data->global_acceptance_rate, p_mcmc_calc_data->smoothed_global_acceptance_rate);
+		print_log(str);
+	    }
         }
     }
 

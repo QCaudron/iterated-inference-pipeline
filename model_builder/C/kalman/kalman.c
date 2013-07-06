@@ -147,7 +147,9 @@ double get_total_pop(double *X)
 
 double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **routers)
 {
+#if FLAG_WARNING
     char str[STR_BUFFSIZE];
+#endif
     int i, k;
 
     double p_tmp, Lp;
@@ -163,9 +165,9 @@ double log_transf_correc(gsl_vector *mean, gsl_matrix *var, struct s_router **ro
 
                 //check for numerical issues
                 if((isinf(p_tmp)==1) || (isnan(p_tmp)==1)) {
-#if FLAG_VERBOSE
+#if FLAG_WARNING
                     snprintf(str, STR_BUFFSIZE, "error prob_prior computation, p=%g\n", p_tmp);
-                    print_err(str);
+                    print_warning(str);
 #endif
                     p_tmp=LIKE_MIN;
                 } else if(p_tmp <= LIKE_MIN) {
@@ -331,11 +333,12 @@ double run_kalman(struct s_X *p_X, struct s_best *p_best, struct s_par *p_par, s
     if (OPTION_PRIOR) {
 	double log_prob_prior_value;
 	plom_err_code rc = log_prob_prior(&log_prob_prior_value, p_best, p_best->mean, p_best->var, p_data);
-#if FLAG_VERBOSE
 	if(rc != PLOM_SUCCESS){
-	    print_err("error log_prob_prior computation");
-	}
+#if FLAG_WARNING
+	    print_warning("error log_prob_prior computation");
 #endif
+	}
+
         log_lik += log_prob_prior_value;
     }
 
