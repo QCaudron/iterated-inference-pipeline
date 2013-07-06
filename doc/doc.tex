@@ -25,6 +25,17 @@
 \addtolength{\textheight}{1cm}
 
 
+\theoremstyle{plain} % style plain
+\newtheorem{theo}{Theorem}
+\newtheorem{cor}[theo]{Corollaire}
+\newtheorem{prop}[theo]{Proposition}
+\newtheorem{lem}[theo]{Lemme}
+\newtheorem{conj}[theo]{Conjecture}
+\newtheorem*{theoetoile}{Théorème} % théorème non numéroté
+\newtheorem*{conjetoile}{Conjecture} % conjecture non numérotée
+
+
+
 \newcommand{\argmax}{\operatornamewithlimits{argmax}} 
 
 \begin{document}
@@ -358,25 +369,27 @@ dx^{\theta_t}_t = \mu^{\theta_t}(x^{\theta_t}_t,\theta)dt + L^{\theta_t}dB_t^{Q^
 
 
 \section{Library of inference methods}
-\subsection{Objectives of the inference process}
 
-Dynamic models can be seen as a hypothesised probabilistic relation between the trajectories of a system ($x_t$ for $t\in[t_0;t_n]$, noted $x_{0:n}$), and constant quantities grouped in a parameter vector $\theta$. They induce the definition of a joint probability density $p(x_{0:n},\theta)$. From a Bayesian perspective, the knowledge or the uncertainty over the components of $\theta$ are enforced through the \emph{a priori} density $p(\theta)$. For a given parameter vector $\theta$, the likely trajectories of the system are reflected by the density $p(x_{0:n}|\theta)$. The likelihood of the discrete dataset $y_{1:n}$ under a given scenario is given by an observation model defining $p(y_{1:n}|\theta,x_{0:n})$.
+In this section we will consider the slightly more general class of state space models evolving in continuous time, with discrete observations. The state of the system at time $t$ is note $x_t$. We will abusively note $x_i$ the value of $x_t$ at time $t_i$, hence $x_{0:n}$ denotes a trajectory of the system between $t_0$ and $t_n$. The prediction density $p(x_{i+1}|x_i,\theta)$ is generally untractable, which means that the probability of a path cannot be computed. However, we consider that it is possible to simulate trajectories from this prediction density.
+In addition, an observation model $p(y_i|x_i,\theta)=f(h(x_i);y_{i},\theta)$ needs to be defined, to determine what is the probability of observing $y_i$ conditionnally on the set of parameters $\theta$ and its proxy $h(x_i)$ built from the state of the system $x_i$.
 
-As suggested by the now classic motto "all models are wrong, but some are useful" \citep{Box1987}, models will only ever be a rough approximation of a complex reality. Yet, the latter does not prevent from following a scientific inductive approach to derive conclusions from the confrontations of models to data. Experience suggests that this process is likely to revise our understanding of infectious diseases \citep{King2008}.  By exploring the joint posterior density $p(x_{0:n},\theta|y_{1:n})$, information can be deducted respectively on the partially observed stochastic processes $x_{0:n}$ and on the parameter vector $\theta$. 
+\subsection{Inference for state space models}
 
+State space models can be seen as a hypothesised probabilistic relation between the trajectories $x_{0:n}$ of a system and constant related  quantities grouped in a parameter vector $\theta$. This relation determines a joint probability density $p(x_{0:n},\theta)$. From a Bayesian perspective, the knowledge or the uncertainty over the components of $\theta$ are enforced through the \emph{a priori} density $p(\theta)$. For a given parameter vector $\theta$, the likely trajectories of the system are reflected by the density $p(x_{0:n}|\theta)$. The primary objective of inference with state space models is the estimation of the posterior density $p(\theta|y_{1:n})$, and of the marginal density $p(x_{0:n}|y_{1:n})$. Additionally, model choice indicators can play a key role in disentangling between different hypothesised state space models \citep{Spiegelhalter2002}.
 
-In any classical act of inference, the validity of this information shall be critically examined at least from a three-fold perspective. First, the uncertainties associated with the data collection should be reflected in the observation model. Then, the limitations of the model itself should be acknowledged and questioned, while considering the practical feasibility of  proposing extensions to palliate the imperfections of the model. A minimal condition requires the output of the model to be able to fit the available observations of mechanisms they are meant to reproduce \citep{Gelman2012}. At last, the information derived regarding $x_{0:n}$  and  $\theta$, reflected by the discrepancies between their marginal prior and posterior densities, should not be considered as hard truth but rather as plausible and testable hypothesis  \citep{Popper2002}. 
-
-
-An additional dimension requiring attention when exploring the high-dimensional density $p(x_{0:n},\theta|y_{1:n})$. Although this quantity can  be computed pointwise  up to a multiplicative constant (for a given trajectory $x_{0:n}$ and parameter $\theta$), through the Bayes rule, there is generally no direct way of deriving tractable formulas for the quantities of interest (i.e. $p(\theta|y_{1:n})$, $p(x_t|y_{1:n})$, etc). For sufficiently small-dimensional problems, efficient solutions for routine inference are offered by Gibbs MCMC samplers as the ones implemented in the Bugs library \citep{Lunn2000}. In its current version, the library of inference methods implemented in PLOM is constructed around the particle Marginal Metropolis Hastings algorithm (pMMH), which is one of the two versions of the particle Markov Chain Monte Carlo algorithm (pMCMC) \citep{Andrieu2010}. Along with this algorithm, PLOM provides with a series of tools to ensure and facilitate  the convergence and efficient  performance of the pMCMC algorithm. It further provides with automatic diagnostic tools based on the CODA package \citep{Plummer2006}, and encourages peer validation for  results published on PLOM.IO. We will introduce the different inference tools in the remainder of this section, and motivate and illustrate their combination in the next one.
+As suggested by the now classic motto "all models are wrong, but some are useful" \citep{Box1987}, models will only ever be a rough approximation of a complex reality. Yet, the latter does not prevent from following a scientific inductive approach to derive conclusions from the confrontations of models to data. By reconstructing the trajectory $x_{0:n}$ of the partially observed system or learning about uncertain components of $\theta$, experience suggests that this process is likely to revise our understanding of infectious diseases \citep{King2008}.  As in any other context, the validity of inference results shall be critically examined at least from a three-fold perspective. First, the uncertainties associated with the data collection should be reflected in the observation model. Then, the limitations of the model itself should be acknowledged and questioned, while considering the practical feasibility of  proposing extensions to palliate the imperfections of the model. A minimal condition requires the output of the model to be able to fit the available observations of mechanisms they are meant to reproduce \citep{Gelman2012}. At last, the information derived regarding $x_{0:n}$  and  $\theta$, reflected by the discrepancies between their marginal prior and posterior densities, should not be considered as hard truth but rather as plausible and testable hypothesis  \citep{Popper2002}. 
 
 
-\subsection{Conditional state exploration: $p(x_i|y_{1:i},\theta)$ and  $p(x_{0:n}|y_{1:n},\theta)$}
-
-Distributions $p(x_i|y_{1:i},\theta)$ and  $p(x_{0:n}|y_{1:n},\theta)$ are respectively termed \emph{filtering} and \emph{smoothing} conditional densities. They indicate what  can be said about the state of the system at a given time $t_i$ given all past observation, or what has been the trajectory of the system given all the available observations. An additional objective of the exploration of the filtered density is the estimation of the marginal likelihood $p(y_{1:n}|\theta)$. Particle filtering methods provide an efficient solution to this problem.
+An additional dimension arises when working with state space models, that requires specific attention. Although the joint posterior density $p(x_{0:n},\theta|y_{1:n})$ can  be computed pointwise  up to a multiplicative constant hrough the Bayes rule (for a given trajectory $x_{0:n}$ and parameter $\theta$), there is generally no direct way of deriving tractable formulas for the quantities of interest, i.e. $p(\theta|y_{1:n})$ and $p(x_{0:n}|y_{1:n})$. For sufficiently small-dimensional problems, efficient solutions for routine inference are offered by Gibbs MCMC samplers as the ones implemented in the Bugs library \citep{Lunn2000}. In its current version, the library of inference methods implemented in PLOM is constructed around the particle Marginal Metropolis Hastings algorithm (pMMH), which is one of the two versions of the particle Markov Chain Monte Carlo algorithm (pMCMC) \citep{Andrieu2010}. Along with this algorithm, PLOM provides with a series of tools to ensure and facilitate  the convergence and efficient  performance of the pMCMC algorithm. It further provides with automatic diagnostic tools based on the CODA package \citep{Plummer2006}, and encourages peer validation for  results published on PLOM.IO. We will introduce the different inference tools in the remainder of this section, and motivate and illustrate their combination in the following one.
 
 
-A smoothing version of the most classic particle filter, referred to as Systematic Importance Resampling algorithm, is presented in Algorithm \ref{alg:SMC} \citep{Doucet2009}. This algorithm can provide  a sample $\tilde{x}_{0:n}$ from $\hat{p}_{pf}(x_{0:n}|y_{1:n })$, and an unbiased estimator $\hat{p}_{pf}(y_{1:n}|\theta)$ of $p(y_{1:n}|\theta)$. Under mild assumptions, the authors of \cite{Moral2004} and \cite{Andrieu2010} have proved the following properties:
+\subsection{Conditional state exploration: $p(x_{0:n}|y_{1:n},\theta)$ and $p(y_{1:n}|\theta)$}
+
+\paragraph{Sequential Monte Carlo}\mbox{}\\
+Sequential Monte Carlo (SMC) methods, also known as particle filters in this setting, provide an efficient solution to explore the space of trajectories of the system conditioned on a given parameter $\theta$ and available observations $y_{1:n}$. They are targeted to problems where the target density is sequentially structured, and  can be decomposed as a product of terms. These terms are aggregated progressively in order to  achieve a smooth transfer from a simple initial density corresponding to a single term of the product, up to the full target density. For example, for state space models the algorithm starts by approximating the prior density of initial conditions $p(x_0|\theta)$ with a swarm of samples called particles. At each iteration of the algorithm, an additional observation is accounted for, progressively increasing the dimension of the explored state. Particles are weighted according to how well they fit the new datapoint, and a resampling step is made to ensure that the exploration focuses on informative regions of the target space. 
+
+
+A classic version of the SMC algorithm, referred to as Systematic Importance Resampling algorithm, is presented in Algorithm \ref{alg:SMC} \citep{Doucet2009}. If $J$ is the number of particles,  this algorithm can provide  a sample $\tilde{x}_{0:n}$ from $\hat{p}^J_{pf}(x_{0:n}|y_{1:n })$, and an unbiased estimator $\hat{p}^J_{pf}(y_{1:n}|\theta)$ of $p(y_{1:n}|\theta)$. Under mild assumptions, the authors of \cite{Moral2004} and \cite{Andrieu2010} have proved the following properties:
 \begin{IEEEeqnarray}{rCl}
 	%\mathbb{E}[\hat{p}^J_{pf}(y_{1:n}|\theta)] &=& p(y_{1:n}|\theta)\nonumber\\
 	\Vert \hat{p}^J_{pf}(x_{0:n}|y_{1:n }) - p(x_{0:n}|y_{1:n }) \Vert &\leq& \frac{C_n}{J}\\
@@ -386,52 +399,143 @@ A smoothing version of the most classic particle filter, referred to as Systemat
 
 Where $C_n$ and $D_n$ are constants depending on the model and on the number of observations $n$. The distance $\Vert p_2-p_1 \Vert$  is defined as the total variation distance between the two distributions. Consequently, the particle filter is a solution to achieve asymptotically exact estimation of
 %exploration of the density $p(x_{0:n}|y_{1:n},\theta)$ with the precision of 
-the  marginal likelihood with precisions increasing as $O(J^{1/2})$, where $J$ is the number of particles. 
+the  marginal likelihood with precisions increasing as $O(J^{1/2})$. 
 \begin{algorithm}
-\caption{Particle Smoothing algorithm for indirectly observed stochastic processes}
+\caption{Sequential Monte Carlo algorithm}
 \label{alg:SMC}
 \begin{algorithmic}
-\STATE Set $L=1$, $W_{0}^{(j)}=\frac{1}{J}$, sample $(x_{0}^{(j)})_{j=1,...,J}$ from $p(x_0|\theta)$ and calculate $(z_{0}^{(j)})_{j=1,...,J}$
+\STATE Set $L=1$, $W_{0}^{(j)}=\frac{1}{J}$, sample $(x_{0}^{(j)})_{j=1,...,J}$ from $p(x_0|\theta)$ 
 \FOR {$k=0$ to $n-1$}
 	\FOR {$j=1$ to $J$}
-		\STATE Sample $(x_{k:k+1}^{(j)})$ from $p(x^{dis}_{k:k+1}|x_k,\theta)$  and calculate ($z_{k:k+1}^{(j)}$)
-		\STATE Set $\alpha^{(j)}= h(y_{k+1},z^{(j)}_{k+1},\theta)$
+		\STATE Sample $(x_{k:k+1}^{(j)})$ from $p(x_{k:k+1}|x_k,\theta)$  
+		\STATE Set $\alpha^{(j)}= h(y_{k+1},x^{(j)}_{k+1},\theta)$
 	\ENDFOR
 	\STATE Set $W_{k+1}^{(j)}=\frac{\alpha^{(j)}}{\sum_{l=1}^{J}\alpha^{l}}$, and $L=L\times \frac{1}{J} \sum_j \alpha^{(j)}$
-	\STATE Resample $(z_{0:k+1}^{(j)},x_{0:k+1}^{(j)})_{j=1,\dots,J}$ according to $(W_{k+1}^{(j)})$,
+	\STATE Resample $(x_{0:k+1}^{(j)})_{j=1,\dots,J}$ according to $(W_{k+1}^{(j)})$,
 \ENDFOR		
 \end{algorithmic}
 \end{algorithm}
+
+
+
+
+\paragraph{Extended Kalman Filter}\mbox{}\\
+An approximate solution to the filtering problem for state space models is provided by the Extended Kalman Filter (EKF) algorithm \citep{Jazwinski1970,Sarkka2006}. We consider its continuous-discrete version tailored  to dynamic models formulated as stochastic differential equations, with $\mu$  corresponding to the drift component of the model (which Jacobian is noted $\nabla\mu$), and diffusion and dispersion matrices being respectively noted $Q$ and $L$. $R_k$ is the variance of the observation process at time $k$. The EKF, described in Algorithm \ref{alg:EKF},  is based on a gaussian approximation of the observation process $h$ (which Jacobian is noted $\nabla h$), resulting in a multivariate normal density for $p(x_t|y_{0:n})$ characterised by its mean $m_t$ and covariance $C_t$. It provides with a deterministic and biased estimate $p^{EKF}(y_{1:n}|\theta)$ of the marginal likelihood.
+
+
+Note that in Algorithm \ref{alg:EKF},  only one observations is integrated at each time step. In the case of simultaneous observations, the same steps can be followed several time to update iteratively the mean and covariance of the state vector, observation per observation.
+
 
 \begin{algorithm}
 \caption{Continuous-discrete Extended Kalman Filter algorithm}
 \label{alg:EKF}
 \begin{algorithmic}
 \STATE Set $L=1$ and initialise the mean state $m_t$ and covariance $C_t$
-\FOR {$k=0$ to $n-1$}
-	\FOR {$j=1$ to $J$}
-		\STATE Integrate between $t_k$ and $t_{k+1}$:\\
-			$\;\;\;\;\;\;\frac{dm_t}{dt}=\mu(m_t,\theta)$\\
-			$\;\;\;\;\;\;\frac{dC_t}{dt}=\nabla\mu(m_t,\theta)C_t + C_t \nabla\mu(m_t,\theta)^T+LQL^T$
-		\STATE Compute the prediction error $err = y_k- \psi(m_t,\theta)$, and the following quantities:\\
-			$\;\;\;\;\;\;S=\nabla\psi(m_t,\theta)C_k \nabla\psi(m_t,\theta)^T+R_k$	\\
-			$\;\;\;\;\;\;K=C_t\nabla\psi^T(m_t,\theta)S^{-1}$\\
-		\STATE Update the mean state and Covariance:\\
-			$\;\;\;\;\;\;m_t = m_t + K err$\\
-			$\;\;\;\;\;\;C_t = C_t - KSK^T$	
-		\STATE Update the likelihood $L(\theta) = L(\theta)\times\mathcal{N}(err;0,S)$
-	\ENDFOR
+\FOR {$k=1$ to $n$}
+	\STATE Integrate between $t_{k-1}$ and $t_{k}$:\\
+		$\;\;\;\;\;\;\frac{dm_t}{dt}=\mu(m_t,\theta)$\\
+		$\;\;\;\;\;\;\frac{dC_t}{dt}=\nabla\mu(m_t,\theta)C_t + C_t \nabla\mu(m_t,\theta)^T+LQL'$
+	\STATE Compute the prediction error $e = y_{k}- h(m_{t_{k}},\theta)$, and the following quantities:\\
+		$\;\;\;\;\;\;S=\nabla h(m_{t_{k}},\theta) C_{t_k} \nabla h(m_{t_{k}},\theta)'+R_{t_k}$	\\
+		$\;\;\;\;\;\;K=C_{t_k}\nabla h'(m_t,\theta)S^{-1}$\\
+	\STATE Update the mean state and Covariance:\\
+		$\;\;\;\;\;\;m_t = m_t + K e$\\
+		$\;\;\;\;\;\;C_t = C_t - KSK'$	
+	\STATE Update the likelihood $L(\theta) = L(\theta)\times\mathcal{N}(e;0,S)$
 \ENDFOR		
 \end{algorithmic}
 \end{algorithm}
 
-An approximate solution to the filtering problem for nonlinear and stochastic dynamic models is provided by the Extended Kalman Filter (EKF) algorithm \citep{Jazwinski1970,Sarkka2006}. We consider its continuous-discrete version tailored  to dynamic models formulated as stochastic differential equations, with $\mu$  corresponding to the drift component of the model (which Jacobian is noted $\nabla\mu$), and diffusion and dispersion matrices being respectively noted $Q$ and $L$. The EKF, described in Algorithm \ref{alg:EKF},  is based on a gaussian approximation of the observation process $\psi$ (which Jacobian is noted $\nabla\psi$), resulting in a multivariate normal density for $p(x_t|y_{0:n})$ characterised by its mean $m_t$ and covariance $C_t$. It provides with a deterministic and biased estimate $p^{EKF}(y_{1:n}|\theta)$ of the marginal likelihood, for any discretisation of time with step $\delta$.  
-
-
 \subsection{Full inference of paths and parameters}
+
+\subsubsection{Introduction to the Monte Carlo Markov Chain machinery}
+
+Monte Carlo Markov Chain (MCMC) methods are used to estimate properties of probability densities in cases where analytic formulas cannot be directly derived, and samples cannot be directly generated. If we note $x$ ($x\in\mathbb{R}^d$) the  random variable of a target density  $\pi(.)$, MCMC algorithms only require the ability to compute $\pi(x)$ for any $x$, up to a multiplicative factor. Their founding mechanism is the construction of a Markov chain that randomly explores $\mathbb{R}^d$ taking values $(x^{(1)},x^{(2)},..,x^{(N)})$ which will asymptotically mimic samples drawn from the target distribution. The chain is defined through a transition kernel $K$ that determines the transition probability $p(.|x^{(i-1)})$. The chain converges to an invariant distribution if K is irreducible (from any state there is a positive probability to visit any other state) and aperiodic. The detailed balance condition is a sufficient but not necessary condition to ensure that the invariant distribution of the chain is the target density $\pi$:
+\begin{align}
+	\pi(x^i)K(x^{(i-1)}|x^{(i)}) = \pi(x^{(i-1)})K(x^{(i)}|x^{(i-1)})
+\end{align}
+
+
+A critical dimension of MCMC algorithms is their efficiency in $mixing$, i.e. in generating samples that are  as independent as possible. Unless $K(.|x^{(i)})$ is equal to  $\pi(.)$, $N$ samples of the MCMC trajectory will not provide the same amount of information as $N$ independent and identically distributed (i.i.d.) samples from the target density $\pi$. This can be quantified by the \emph{Effective Sample Size} (ESS), for example, that estimates how many truly i.i.d. samples the MCMC  output is equivalent to \citep{Geyer1992, Brooks1998}: 
+\begin{align}
+	ESS(\{x^{(1)},x^{(2)},..,x^{(N)}\}) = \frac{N}{1+2\sum_{k=1}^{k^{max}}Correl(\{x^{(1)},..,x^{(N-k)}\},\{x^{(k)},..,x^{(N)}\})}
+\end{align}
+
+This indicator will be used in this thesis to assess the efficiency of MCMC algorithms utilised to explore the complex and high-dimensional target density $p(x_{0:n},\theta|y_{0:n})$. Before diving into the presentation of basic and more advanced MCMC algorithms, we introduce the most classic way to define transition kernels that respect the detailed balance condition: the Metropolis-Hastings step \citep{Metropolis1953,Hastings1970}. At each iteration of the chain, a proposed value $x^*$ is sampled from an importance distribution $q(.|x^{(i)})$, and accepted with probability:
+\begin{align}
+	1\wedge \frac{\pi(x^*)q(x^{(i)}|x^*)}{\pi(x^{(i)})q(x^*|x^{(i)})}
+\end{align}
+Otherwise, $x^{i+1}$ is set equal to $x^{i}$. The proportion of proposed samples that have been accepted determine the acceptance rate.  The Metropolis Hastings step allows the use of any importance distribution $q$ respecting the irreducibility and aperiodicity conditions, although other choices are also possible. It is generally observed that increasing the dimension of $x$ decrease the acceptance probability. The Gibbs algorithm offers a first solution to this problem: at each iteration of the chain each component (or group of components) of $x$ is updated independently, conditionally on the values of the others. This strategy can be useful when the marginal conditional density of the components being updated is tractable or easy to be sampled from. It can nevertheless induce poor mixing if the components being updated are strongly correlated to the ones they are being conditioned on.
+
+
+
+\begin{algorithm}[h]
+\caption{random walk Metropolis algorithm}
+\label{alg:Intro_MH}
+\begin{algorithmic}
+\STATE Initialise $x^{(0)}$
+\FOR {$i=0$ to $N$}
+	\STATE Sample $x^*\sim \mathcal{N}(x^{(i)}, \Sigma^q)$
+	\STATE Accept $x^*$ with probability $1\wedge\frac{\pi(x^*)}{\pi(x^{(i)})}$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+The random walk Metropolis is  based on Metropolis-Hastings steps using a multivariate normal importance sampling distribution: $q(.|x^{(i)})=\mathcal{N}(x^{(i)},\Sigma^q)$ (see Algoritm \ref{alg:Intro_MH}). The efficiency of this algorithm on a given problem depends on the calibration of the covariance matrix $\Sigma^q$.
+Theoretical results have been demonstrated in the situation where the target  distribution $\pi$  is  a multivariate normal density:
+
+\begin{prop}
+	When $\pi$ is  a multivariate normal density, the acceptance rate that maximises the mixing efficiency of the random walk Metropolis algorithm is $23.4\%$ \citep{Roberts1997}
+\end{prop}
+
+\begin{prop}
+	When $\pi$ is  a multivariate normal density, optimal results are achieved by using $\Sigma^q = \frac{2.38^2}{d}\times Cov(\pi)$ \citep{Roberts1997}.
+\end{prop}
+
+When the target distribution is not a multivariate normal density, these results are extrapolated and followed as rules of conduct. They were used to derive adaptive versions of the random walk Metropolis algorithm, based on a decomposition of $\Sigma^q$ into $\lambda\Sigma$. A first adaptive algorithm exploits the monotonicity of the acceptance rate as a function of $\lambda$. The Metropolis-Hastings ratio of a random walk Metrpopolis algorithm is $\frac{\pi(x^*)}{\pi(x)}$. Hence, if the mass of the target density is concentrated in a certain region and $x$ is in this region (which is the case with high probability if the chain has converged), increasing the value of $\lambda$ increases the risk for $x^*$ to escape that region, leading to low values of $\pi(x^*)$ and rejection of $x^*$. On the contrary, excessively small values of $\lambda$ will induce values of $\frac{\pi(x^*)}{\pi(x)}$ close to one and high acceptance rates. Therefore, the targeted acceptance rate can be approached by iteratively adapting $\lambda$ with a cooling rate $a\in[0;1[$:
+\begin{align}
+	\lambda_{i+1} = \lambda_{i}\times a^i(AccRate_i-0.234)
+\end{align}
+
+A second adaptive algorithm relies on the fact that, as the chain progresses, the generated samples are meant to mimick i.i.d. samples generated from the target distribution $\pi$. Consequently, the empirical covariance matrix obtained from these samples can be used as a proxy for the optimal covariance matrix $\frac{2.38^2}{d}\times Cov(\pi)$. The resulting adaptive algorithm proposed in \cite{Roberts2009} is based on the following importance sampling distribution:
+\begin{align}
+q(.|x^{(i)})=\alpha \mathcal{N}\left(x^{(i)},\lambda\frac{2.38^2}{d}\Sigma^{(0)}\right) +(1-\alpha)\mathcal{N}\left(x^{(i)},\lambda\frac{2.38^2}{d}\Sigma^{(i)}\right)
+\end{align}
+
+With $\Sigma_i$ being the empirical  covariance matrix obtained from the $i$ samples generated by the chain. The use of a mixture of normal distributions ($\alpha$ is generally set to 0.05) is meant to avoid convergence to local modes.
+
+
+
+
 \subsubsection{Particle Marginal Metropolis Hastings algorithm}
-\subsubsection{Efficiently starting the PMMH close to the global mode}
-\subsubsection{Efficient calibration of the PMMH sampling covariance matrix}
+Filtering techniques are a natural choice to explore $p(x_{0:n}|y_{1:n},\theta)$. In order to  account for  uncertainties regarding the parameter vector $\theta$, we are aiming for the exploration of the joint posterior density $p(x_{0:n},\theta|y_{1:n})$. As previously mentioned,  classic MCMC methods fail to be efficient and robust solutions because of the high dimension of the target density. The particle MCMC algorithm  offers a solution relying on the efficiency of particle filters \citep{Andrieu2010}. Algorithm \ref{alg:PMCMC} illustrates the principles of its particle marginal Metropolis Hastings version: the high-dimensional density exploration problem is reduced to the design of an MCMC algorithm over $\theta$, based on the likelihood $\hat{p}_{pf}(y_{1:n}|\theta)$ estimated by a particle filter conditioned on $\theta$. The authors of \cite{Andrieu2010} have shown that the algorithm was asymptotically exact for a given discretisation of time, as under classic assumptions when the number of iterations $N^{\theta}$ tends to infinity:
+\begin{align}
+	\Vert \hat{p}^J_{pf}(x^{(i)}_{0:n},\theta^{(i)}|y_{1:n}) -  p(x_{0:n},\theta|y_{1:n}) \Vert \rightarrow 0 \;\;\;\;\; as \; i\rightarrow \; \infty
+\end{align}
+
+Every iteration of the MCMC algorithm implies running a particle filter to explore the range of likely paths of the system under the current value of $\theta$. Consequently, the pMCMC is a computationally demanding algorithm; its complexity if of the order of $O(n J  N^{\theta})$. The mixing efficiency of the MCMC scheme critically determines the applicability of the algorithm. In the absence of suitable techniques to efficiently estimate the marginal score $\nabla_{\theta} \log p(\theta|y_{1:n})$, random walk Metropolis algorithms are generally used. Even in its adaptive form, the parameterisation of its initial covariance matrix $\Sigma^q_0$ is a central issue: we will explore in Chapter 2 a mean to automatise this process, rendering the pMCMC algorithm plug-and-play. 
+
+
+\begin{algorithm}[h]
+\caption{Particle MCMC algorithm (particle marginal Metropolis Hastings version)}
+\label{alg:PMCMC}
+\begin{algorithmic}
+\STATE Initialise $\theta^{(0)}$.
+\STATE Use Particle Smoother to compute  $\hat{p}(y_{1:n}|\theta^{(0)})$ and sample $x^{(0)}_{0:n}$ from $p(x^{dis}_{0:n}|y_{1:n},\tilde{\theta})$
+\FOR {$i=1$ to $N^{\theta}$}
+	\STATE Sample $\theta^{*}$ from $q(.|\theta^{(i)})$
+	\STATE Use PS to compute $L(\theta^*)$ and sample $x_{0:n}^{*}$ from $\hat{p}(x^{dis}_{0:n}|y_{1:n},\theta^*) $
+	\STATE Accept $\theta^{*}$ (and  $x_{0:n}^{*}$) with probability $1\wedge\frac{L(\theta^{*})q(\theta^{(i)}|\theta^{*})}{L(\theta^{(i)})q(\theta^{*}|\theta^{(i)})}$
+	\STATE Record $\theta^{(i+1)}$ and $x^{(i+1)}_{1:n}$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+
+An alternative solution is the $SMC^2$ algorithm presented in \cite{Chopin2012}. It explores both the probability density of $x_{0:n}$ and $\theta$ with an SMC algorithm, starting from the initial target $p(x_0,\theta)$ and progressively incorporating  the available observations. The global complexity of this algorithm is similar to the PMCMC, but its ability to automatically adapt the number particles being utilised and to progressively learn from previous samples what could be seen as the equivalent of the covariance matrix $\Sigma^q$ are promising features. At last, an asymptotically exact and plug-and-play  solution to the frequentist problem of  maximising the marginal likelihood $p(y|\theta)$ has been proposed in \cite{Ionides2006} and later in  \cite{Ionides2011}. This approach has been used for several applications in epidemiology, and it can be used to efficiently initialise the Markov chain of the PMCMC by incorporating the prior density into the maximised function of $\theta$.
+
+
+\subsubsection{Efficiently initialisation and calibration of the PMMH algorithm}
 \section{Iterated inference pipeline: illustrations}
 \section{Perspectives: call for contributions}
 
