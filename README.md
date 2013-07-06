@@ -3,7 +3,8 @@ Iterated inference pipeline
 
 _Pipable_ plug-and-play inference methods for time series analysis with state space models.
 
-    cat theta.json | ./simplex -M 10000 -P | ./ksimplex -M 10000 -P | ./kmcmc -M 100000 --full -P | ./pmcmc -J 1000 -M 500000 --full > res.json
+    cat theta.json | ./simplex -M 10000 -P | ./ksimplex -M 10000 -P > mle.json
+    cat mle.json | ./kmcmc -M 100000 --full -P | ./pmcmc -J 1000 -M 500000 --full
 
 
 This README provided information for developers or users wanting to
