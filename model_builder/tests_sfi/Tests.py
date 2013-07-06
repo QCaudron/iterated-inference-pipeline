@@ -203,8 +203,8 @@ if __name__ == '__main__' :
       run_LogTransfsAndPMCMC = 0
       run_KalmanOnDiffusions = 0
       run_SMCSDEagainstKalman = 0
-      run_pMCMCsmoothing = 0
-      run_pMCMCsmoothingWithNaNs = 1
+      run_pMCMCsmoothing = 1
+      run_pMCMCsmoothingWithNaNs = 0
 
       Root = os.getcwd()
 

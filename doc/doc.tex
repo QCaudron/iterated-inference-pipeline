@@ -357,14 +357,82 @@ dx^{\theta_t}_t = \mu^{\theta_t}(x^{\theta_t}_t,\theta)dt + L^{\theta_t}dB_t^{Q^
 
 
 
-\section{Plug-and-play Bayesian inference}
-\subsection{The Bayes rule, and quantities of interest}
-\subsection{Conditional state exploration}
+\section{Library of inference methods}
+\subsection{Objectives of the inference process}
+
+Dynamic models can be seen as a hypothesised probabilistic relation between the trajectories of a system ($x_t$ for $t\in[t_0;t_n]$, noted $x_{0:n}$), and constant quantities grouped in a parameter vector $\theta$. They induce the definition of a joint probability density $p(x_{0:n},\theta)$. From a Bayesian perspective, the knowledge or the uncertainty over the components of $\theta$ are enforced through the \emph{a priori} density $p(\theta)$. For a given parameter vector $\theta$, the likely trajectories of the system are reflected by the density $p(x_{0:n}|\theta)$. The likelihood of the discrete dataset $y_{1:n}$ under a given scenario is given by an observation model defining $p(y_{1:n}|\theta,x_{0:n})$.
+
+As suggested by the now classic motto "all models are wrong, but some are useful" \citep{Box1987}, models will only ever be a rough approximation of a complex reality. Yet, the latter does not prevent from following a scientific inductive approach to derive conclusions from the confrontations of models to data. Experience suggests that this process is likely to revise our understanding of infectious diseases \citep{King2008}.  By exploring the joint posterior density $p(x_{0:n},\theta|y_{1:n})$, information can be deducted respectively on the partially observed stochastic processes $x_{0:n}$ and on the parameter vector $\theta$. 
+
+
+In any classical act of inference, the validity of this information shall be critically examined at least from a three-fold perspective. First, the uncertainties associated with the data collection should be reflected in the observation model. Then, the limitations of the model itself should be acknowledged and questioned, while considering the practical feasibility of  proposing extensions to palliate the imperfections of the model. A minimal condition requires the output of the model to be able to fit the available observations of mechanisms they are meant to reproduce \citep{Gelman2012}. At last, the information derived regarding $x_{0:n}$  and  $\theta$, reflected by the discrepancies between their marginal prior and posterior densities, should not be considered as hard truth but rather as plausible and testable hypothesis  \citep{Popper2002}. 
+
+
+An additional dimension requiring attention when exploring the high-dimensional density $p(x_{0:n},\theta|y_{1:n})$. Although this quantity can  be computed pointwise  up to a multiplicative constant (for a given trajectory $x_{0:n}$ and parameter $\theta$), through the Bayes rule, there is generally no direct way of deriving tractable formulas for the quantities of interest (i.e. $p(\theta|y_{1:n})$, $p(x_t|y_{1:n})$, etc). For sufficiently small-dimensional problems, efficient solutions for routine inference are offered by Gibbs MCMC samplers as the ones implemented in the Bugs library \citep{Lunn2000}. In its current version, the library of inference methods implemented in PLOM is constructed around the particle Marginal Metropolis Hastings algorithm (pMMH), which is one of the two versions of the particle Markov Chain Monte Carlo algorithm (pMCMC) \citep{Andrieu2010}. Along with this algorithm, PLOM provides with a series of tools to ensure and facilitate  the convergence and efficient  performance of the pMCMC algorithm. It further provides with automatic diagnostic tools based on the CODA package \citep{Plummer2006}, and encourages peer validation for  results published on PLOM.IO. We will introduce the different inference tools in the remainder of this section, and motivate and illustrate their combination in the next one.
+
+
+\subsection{Conditional state exploration: $p(x_i|y_{1:i},\theta)$ and  $p(x_{0:n}|y_{1:n},\theta)$}
+
+Distributions $p(x_i|y_{1:i},\theta)$ and  $p(x_{0:n}|y_{1:n},\theta)$ are respectively termed \emph{filtering} and \emph{smoothing} conditional densities. They indicate what  can be said about the state of the system at a given time $t_i$ given all past observation, or what has been the trajectory of the system given all the available observations. An additional objective of the exploration of the filtered density is the estimation of the marginal likelihood $p(y_{1:n}|\theta)$. Particle filtering methods provide an efficient solution to this problem.
+
+
+A smoothing version of the most classic particle filter, referred to as Systematic Importance Resampling algorithm, is presented in Algorithm \ref{alg:SMC} \citep{Doucet2009}. This algorithm can provide  a sample $\tilde{x}_{0:n}$ from $\hat{p}_{pf}(x_{0:n}|y_{1:n })$, and an unbiased estimator $\hat{p}_{pf}(y_{1:n}|\theta)$ of $p(y_{1:n}|\theta)$. Under mild assumptions, the authors of \cite{Moral2004} and \cite{Andrieu2010} have proved the following properties:
+\begin{IEEEeqnarray}{rCl}
+	%\mathbb{E}[\hat{p}^J_{pf}(y_{1:n}|\theta)] &=& p(y_{1:n}|\theta)\nonumber\\
+	\Vert \hat{p}^J_{pf}(x_{0:n}|y_{1:n }) - p(x_{0:n}|y_{1:n }) \Vert &\leq& \frac{C_n}{J}\\
+	Var(\frac{\hat{p}^J_{pf}(y_{1:n}|\theta)}{p(y_{1:n}|\theta)}) &\leq&  \frac{D_n}{J}\nonumber
+\end{IEEEeqnarray} 
+
+
+Where $C_n$ and $D_n$ are constants depending on the model and on the number of observations $n$. The distance $\Vert p_2-p_1 \Vert$  is defined as the total variation distance between the two distributions. Consequently, the particle filter is a solution to achieve asymptotically exact estimation of
+%exploration of the density $p(x_{0:n}|y_{1:n},\theta)$ with the precision of 
+the  marginal likelihood with precisions increasing as $O(J^{1/2})$, where $J$ is the number of particles. 
+\begin{algorithm}
+\caption{Particle Smoothing algorithm for indirectly observed stochastic processes}
+\label{alg:SMC}
+\begin{algorithmic}
+\STATE Set $L=1$, $W_{0}^{(j)}=\frac{1}{J}$, sample $(x_{0}^{(j)})_{j=1,...,J}$ from $p(x_0|\theta)$ and calculate $(z_{0}^{(j)})_{j=1,...,J}$
+\FOR {$k=0$ to $n-1$}
+	\FOR {$j=1$ to $J$}
+		\STATE Sample $(x_{k:k+1}^{(j)})$ from $p(x^{dis}_{k:k+1}|x_k,\theta)$  and calculate ($z_{k:k+1}^{(j)}$)
+		\STATE Set $\alpha^{(j)}= h(y_{k+1},z^{(j)}_{k+1},\theta)$
+	\ENDFOR
+	\STATE Set $W_{k+1}^{(j)}=\frac{\alpha^{(j)}}{\sum_{l=1}^{J}\alpha^{l}}$, and $L=L\times \frac{1}{J} \sum_j \alpha^{(j)}$
+	\STATE Resample $(z_{0:k+1}^{(j)},x_{0:k+1}^{(j)})_{j=1,\dots,J}$ according to $(W_{k+1}^{(j)})$,
+\ENDFOR		
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{Continuous-discrete Extended Kalman Filter algorithm}
+\label{alg:EKF}
+\begin{algorithmic}
+\STATE Set $L=1$ and initialise the mean state $m_t$ and covariance $C_t$
+\FOR {$k=0$ to $n-1$}
+	\FOR {$j=1$ to $J$}
+		\STATE Integrate between $t_k$ and $t_{k+1}$:\\
+			$\;\;\;\;\;\;\frac{dm_t}{dt}=\mu(m_t,\theta)$\\
+			$\;\;\;\;\;\;\frac{dC_t}{dt}=\nabla\mu(m_t,\theta)C_t + C_t \nabla\mu(m_t,\theta)^T+LQL^T$
+		\STATE Compute the prediction error $err = y_k- \psi(m_t,\theta)$, and the following quantities:\\
+			$\;\;\;\;\;\;S=\nabla\psi(m_t,\theta)C_k \nabla\psi(m_t,\theta)^T+R_k$	\\
+			$\;\;\;\;\;\;K=C_t\nabla\psi^T(m_t,\theta)S^{-1}$\\
+		\STATE Update the mean state and Covariance:\\
+			$\;\;\;\;\;\;m_t = m_t + K err$\\
+			$\;\;\;\;\;\;C_t = C_t - KSK^T$	
+		\STATE Update the likelihood $L(\theta) = L(\theta)\times\mathcal{N}(err;0,S)$
+	\ENDFOR
+\ENDFOR		
+\end{algorithmic}
+\end{algorithm}
+
+An approximate solution to the filtering problem for nonlinear and stochastic dynamic models is provided by the Extended Kalman Filter (EKF) algorithm \citep{Jazwinski1970,Sarkka2006}. We consider its continuous-discrete version tailored  to dynamic models formulated as stochastic differential equations, with $\mu$  corresponding to the drift component of the model (which Jacobian is noted $\nabla\mu$), and diffusion and dispersion matrices being respectively noted $Q$ and $L$. The EKF, described in Algorithm \ref{alg:EKF},  is based on a gaussian approximation of the observation process $\psi$ (which Jacobian is noted $\nabla\psi$), resulting in a multivariate normal density for $p(x_t|y_{0:n})$ characterised by its mean $m_t$ and covariance $C_t$. It provides with a deterministic and biased estimate $p^{EKF}(y_{1:n}|\theta)$ of the marginal likelihood, for any discretisation of time with step $\delta$.  
+
+
 \subsection{Full inference of paths and parameters}
 \subsubsection{Particle Marginal Metropolis Hastings algorithm}
 \subsubsection{Efficiently starting the PMMH close to the global mode}
 \subsubsection{Efficient calibration of the PMMH sampling covariance matrix}
-\section{Examples}
+\section{Iterated inference pipeline: illustrations}
 \section{Perspectives: call for contributions}
 
 
