@@ -1,30 +1,27 @@
-plom-sfi (PLOM.IO plug-and-play pipes)
-======================================
+Iterated inference pipeline
+===========================
 
-_Pipable_ **Plug-and-play** inference methods in plain C for
-http://www.plom.io/ and the Princeton University project "Simforence"
-(Simulation, Forecasting, Inference).
+_Pipable_ plug-and-play inference methods for time series analysis with state space models.
 
-
-    cat theta.json | ./simul -T 10000 -P | ./simplex -M 10000 -P | ./ksimplex -M 10000 -P | ./kmcmc -M 100000 --full -P | ./pmcmc -M 500000 --full > res.json
+    cat theta.json | ./simplex -M 10000 -P | ./ksimplex -M 10000 -P | ./kmcmc -M 100000 --full -P | ./pmcmc -J 1000 -M 500000 --full > res.json
 
 
 This README provided information for developers or users wanting to
-build plom-sfi on their local machine.
+build pipable inference methods on their local machine. If you want
+to **use** those methods, see [plom.io](http://plom.io/cli)
 
-If you want to use the method provided by plom-sfi see
-http://www.plom.io/cli
+[plom.io](http://plom.io/cli) provides a compilation service that
+generate standalone binaries that you can run on your machine.
 
-You do not need to install plom-sfi or its dependencies to use
-it. plom.io provide a compilation service that generate standalone
-binaries that you can run on your machine. See http://www.plom.io/cli
+Overview
+========
 
-introduction
+All the methods are implemented in plain C.  The C code contain
+generic part (working with any models) and model specific part.  The
+specific parts are templated using Python.
+
+Installation
 ============
-
-The C code contain generic part and model specific part. The C code of
-the specific parts are templated using the plom python package.
-
 
 ##Dependencies
 
@@ -49,14 +46,17 @@ in model_builder/C:
 
 At the root of the repo run:
 
-    ./install.sh
+    python setup.py sdist
 
-(see source for details)
+in the package directory:
+
+    python setup.py install
 
 
-##Usage
+Usage
+=====
 
-###Generating the model-specific code:
+##Generating the model-specific code:
 
 From the command line, run:
 
@@ -77,20 +77,19 @@ In your script you can use:
     model.write_settings()
     model.render()
 
-###Building the inference methods
+##Building the inference methods
 
 in path_model_coded_in_C/C/templates:
 
     make
     make install
     
-All the inference methods binaries are now available in path_model_coded_in_C
-
-See http://www.plom.io/cli for documentation on how to use the
-generated binaries.
+All the inference methods binaries are now available in
+path_model_coded_in_C
 
 
-##Contributing to the C library
+Contributing
+============
 
 <!--
 First generate the documentation for the C code:
@@ -101,14 +100,15 @@ In the same vain, ```docco kalman.c``` will detail our implementation
 of the extended Kalman Filter.
 -->
 
-On model_builder/doc/ run: ```doxygen Doxyfile``` and open model_builder/doc/html/index.html with
-a web browser.
+On model_builder/doc/ run: ```doxygen Doxyfile``` and open
+model_builder/doc/html/index.html with a web browser.
 
 After having learned the basic structures involved in ```core```, we
 recommend to use call and caller graphs as an entry point to the
 sources.
 
-##Tests
+Tests
+=====
 
 In model_builder:
 
@@ -132,6 +132,6 @@ We want to thank:
 - Professor
   [Bernard Cazelles](http://www.biologie.ens.fr/~cazelles/bernard/Welcome.html).
 
-- Princeton University for letting us release the code of plom-sfi
-  under the GPLv3 license.
+- Princeton University and the "simforence" project for letting us
+  release the sources under the GPLv3 license.
   
