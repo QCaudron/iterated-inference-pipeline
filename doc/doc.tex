@@ -114,7 +114,7 @@ Note that some constraints as positivity or boundedness generally need to be pre
 
 \subsection{Examples}
 \subsection{Tractable approximations of compartmental models}
-\subsubsection{Ordinary differential equations}
+\subsubsection{\label{subsub:ode}Ordinary differential equations}
 
 The simplest and most stringent approximation of compartmental models are ordinary differential equations (ode's):
 
@@ -129,7 +129,7 @@ This formalism can be legitimately used for large populations and when all signi
 
 
 
-\subsubsection{Stochastic differential equations}
+\subsubsection{\label{subsub:sde}Stochastic differential equations}
 
 Stochastic differential equations (sde's) are a natural extension of ode's, wherein state variables still take continuous values over time, and evolve continuously over time, but trajectories of the system are no longer deterministic and differentiable due to the introduction of a driving Brownian motion reflecting the stochasticity of the system. To introduce this formalism, we rely on the notations used by the author of \cite{Sarkka2006} that will be helpfull to handle and represent different and independent sources of stochasticity:
 
@@ -332,7 +332,7 @@ With $Q^d = diag\{ r^{(k)}(z_t,\theta)z_t^{\chi(k)},$ $k\in \mathcal{R}\}$ and $
 
 
 
-\subsubsection{Poisson process with stochastic rates}
+\subsubsection{\label{subsub:psr}Poisson process with stochastic rates}
 
 
 The continuous approximation of the number of individuals contained in each compartment, and its evolution, may be questionable when populations as stake are not large enough and more specifically when the size of at least one compartment becomes small. Such situations typically correspond to the extinction of diseases or species in epidemic or ecological models. The Markovian jump process introduced earlier accounts for the discrete nature of the size of each compartment, and the discontinuities induced by the occurrence of each reaction. Nevertheless, due to the density-dependence of transformation rates the frequency of reactions increases infinitely as $N\rightarrow\infty$. Hence, the reference Markov jump process formalism quickly becomes intractable for other than small populations. The authors of \cite{Breto2009} have proposed an approximation of the Markov jump process based on a multinomial approximation of the number of reactions occurring over a short period of time $dt$. Here, we reformulate the solution proposed in \cite{Breto2009} and extend it to the general framework for compartmental models proposed in PLOM. 
@@ -403,6 +403,7 @@ the  marginal likelihood with precisions increasing as $O(J^{1/2})$.
 \begin{algorithm}
 \caption{Sequential Monte Carlo algorithm}
 \label{alg:SMC}
+{\fontsize{12}{20}\selectfont
 \begin{algorithmic}
 \STATE Set $L=1$, $W_{0}^{(j)}=\frac{1}{J}$, sample $(x_{0}^{(j)})_{j=1,...,J}$ from $p(x_0|\theta)$ 
 \FOR {$k=0$ to $n-1$}
@@ -414,6 +415,7 @@ the  marginal likelihood with precisions increasing as $O(J^{1/2})$.
 	\STATE Resample $(x_{0:k+1}^{(j)})_{j=1,\dots,J}$ according to $(W_{k+1}^{(j)})$,
 \ENDFOR		
 \end{algorithmic}
+}
 \end{algorithm}
 
 
@@ -429,6 +431,7 @@ Note that in Algorithm \ref{alg:EKF},  only one observations is integrated at ea
 \begin{algorithm}
 \caption{Continuous-discrete Extended Kalman Filter algorithm}
 \label{alg:EKF}
+{\fontsize{12}{20}\selectfont
 \begin{algorithmic}
 \STATE Set $L=1$ and initialise the mean state $m_t$ and covariance $C_t$
 \FOR {$k=1$ to $n$}
@@ -444,13 +447,16 @@ Note that in Algorithm \ref{alg:EKF},  only one observations is integrated at ea
 	\STATE Update the likelihood $L(\theta) = L(\theta)\times\mathcal{N}(e;0,S)$
 \ENDFOR		
 \end{algorithmic}
+}
 \end{algorithm}
 
 \subsection{Full inference of paths and parameters}
 
+The central methodology utilised in PLOM to estimate the paths and parameters of compartmental models is the pMMH version of the pMCMC. For the sake of completeness, and for readers that may not be familiar with this methodology, we start by a brief introduction of the Monte Carlo Markov Chain machinery.
+
 \subsubsection{Introduction to the Monte Carlo Markov Chain machinery}
 
-Monte Carlo Markov Chain (MCMC) methods are used to estimate properties of probability densities in cases where analytic formulas cannot be directly derived, and samples cannot be directly generated. If we note $x$ ($x\in\mathbb{R}^d$) the  random variable of a target density  $\pi(.)$, MCMC algorithms only require the ability to compute $\pi(x)$ for any $x$, up to a multiplicative factor. Their founding mechanism is the construction of a Markov chain that randomly explores $\mathbb{R}^d$ taking values $(x^{(1)},x^{(2)},..,x^{(N)})$ which will asymptotically mimic samples drawn from the target distribution. The chain is defined through a transition kernel $K$ that determines the transition probability $p(.|x^{(i-1)})$. The chain converges to an invariant distribution if K is irreducible (from any state there is a positive probability to visit any other state) and aperiodic. The detailed balance condition is a sufficient but not necessary condition to ensure that the invariant distribution of the chain is the target density $\pi$:
+Monte Carlo Markov Chain (MCMC) methods are used to estimate properties of probability densities in cases where analytic formulas cannot be directly derived, and samples cannot be directly generated. If we note $x$ ($x\in\mathbb{R}^d$) the  random variable of a target density  $\pi(.)$, MCMC algorithms only require the ability to compute $\pi(x)$ for any $x$, up to a multiplicative factor. Their founding mechanism is the construction of a Markov chain that randomly explores $\mathbb{R}^d$ taking values $(x^{(1)},x^{(2)},..,x^{(N)})$ which will asymptotically ($N\rightarrow\infty$) mimic samples drawn from the target distribution. The chain is defined through a transition kernel $K$ that determines the transition probability $p(.|x^{(i-1)})$. The chain converges to an invariant distribution if K is irreducible (from any state there is a positive probability to visit any other state) and aperiodic. The detailed balance condition is a sufficient but not necessary condition to ensure that the invariant distribution of the chain is the target density $\pi$:
 \begin{align}
 	\pi(x^i)K(x^{(i-1)}|x^{(i)}) = \pi(x^{(i-1)})K(x^{(i)}|x^{(i-1)})
 \end{align}
@@ -461,17 +467,17 @@ A critical dimension of MCMC algorithms is their efficiency in $mixing$, i.e. in
 	ESS(\{x^{(1)},x^{(2)},..,x^{(N)}\}) = \frac{N}{1+2\sum_{k=1}^{k^{max}}Correl(\{x^{(1)},..,x^{(N-k)}\},\{x^{(k)},..,x^{(N)}\})}
 \end{align}
 
-This indicator will be used in this thesis to assess the efficiency of MCMC algorithms utilised to explore the complex and high-dimensional target density $p(x_{0:n},\theta|y_{0:n})$. Before diving into the presentation of basic and more advanced MCMC algorithms, we introduce the most classic way to define transition kernels that respect the detailed balance condition: the Metropolis-Hastings step \citep{Metropolis1953,Hastings1970}. At each iteration of the chain, a proposed value $x^*$ is sampled from an importance distribution $q(.|x^{(i)})$, and accepted with probability:
+This indicator, along with other diagnostic tools proposed in the CODA package \citep{Plummer2006}, play a central role on PLOM.IO to assess the validity of results obtained through MCMC exploration of the complex and high-dimensional target density $p(x_{0:n},\theta|y_{0:n})$. Before diving into the presentation of basic and more advanced MCMC algorithms, we introduce the most classic way to define transition kernels that respect the detailed balance condition: the Metropolis-Hastings step \citep{Metropolis1953,Hastings1970}. At each iteration of the chain, a proposed value $x^*$ is sampled from an importance distribution $q(.|x^{(i)})$, and accepted with probability:
 \begin{align}
 	1\wedge \frac{\pi(x^*)q(x^{(i)}|x^*)}{\pi(x^{(i)})q(x^*|x^{(i)})}
 \end{align}
-Otherwise, $x^{i+1}$ is set equal to $x^{i}$. The proportion of proposed samples that have been accepted determine the acceptance rate.  The Metropolis Hastings step allows the use of any importance distribution $q$ respecting the irreducibility and aperiodicity conditions, although other choices are also possible. It is generally observed that increasing the dimension of $x$ decrease the acceptance probability. The Gibbs algorithm offers a first solution to this problem: at each iteration of the chain each component (or group of components) of $x$ is updated independently, conditionally on the values of the others. This strategy can be useful when the marginal conditional density of the components being updated is tractable or easy to be sampled from. It can nevertheless induce poor mixing if the components being updated are strongly correlated to the ones they are being conditioned on.
-
+Otherwise, $x^{i+1}$ is set equal to $x^{i}$. The proportion of proposed samples that have been accepted determine the acceptance rate.  The Metropolis Hastings step allows the use of any importance distribution $q$ respecting the irreducibility and aperiodicity conditions, although other choices are also possible. It is generally observed that increasing the dimension of $x$ decreases the acceptance probability. 
 
 
 \begin{algorithm}[h]
 \caption{random walk Metropolis algorithm}
 \label{alg:Intro_MH}
+{\fontsize{12}{20}\selectfont
 \begin{algorithmic}
 \STATE Initialise $x^{(0)}$
 \FOR {$i=0$ to $N$}
@@ -479,9 +485,10 @@ Otherwise, $x^{i+1}$ is set equal to $x^{i}$. The proportion of proposed samples
 	\STATE Accept $x^*$ with probability $1\wedge\frac{\pi(x^*)}{\pi(x^{(i)})}$
 \ENDFOR
 \end{algorithmic}
+}
 \end{algorithm}
 
-The random walk Metropolis is  based on Metropolis-Hastings steps using a multivariate normal importance sampling distribution: $q(.|x^{(i)})=\mathcal{N}(x^{(i)},\Sigma^q)$ (see Algoritm \ref{alg:Intro_MH}). The efficiency of this algorithm on a given problem depends on the calibration of the covariance matrix $\Sigma^q$.
+The random walk Metropolis is  based on a Metropolis-Hastings steps using a multivariate normal importance sampling distribution: $q(.|x^{(i)})=\mathcal{N}(x^{(i)},\Sigma^q)$ (see Algoritm \ref{alg:Intro_MH}). The efficiency of this algorithm on a given problem depends on the calibration of the covariance matrix $\Sigma^q$.
 Theoretical results have been demonstrated in the situation where the target  distribution $\pi$  is  a multivariate normal density:
 
 \begin{prop}
@@ -508,37 +515,137 @@ With $\Sigma_i$ being the empirical  covariance matrix obtained from the $i$ sam
 
 
 \subsubsection{Particle Marginal Metropolis Hastings algorithm}
-Filtering techniques are a natural choice to explore $p(x_{0:n}|y_{1:n},\theta)$. In order to  account for  uncertainties regarding the parameter vector $\theta$, we are aiming for the exploration of the joint posterior density $p(x_{0:n},\theta|y_{1:n})$. As previously mentioned,  classic MCMC methods fail to be efficient and robust solutions because of the high dimension of the target density. The particle MCMC algorithm  offers a solution relying on the efficiency of particle filters \citep{Andrieu2010}. Algorithm \ref{alg:PMCMC} illustrates the principles of its particle marginal Metropolis Hastings version: the high-dimensional density exploration problem is reduced to the design of an MCMC algorithm over $\theta$, based on the likelihood $\hat{p}_{pf}(y_{1:n}|\theta)$ estimated by a particle filter conditioned on $\theta$. The authors of \cite{Andrieu2010} have shown that the algorithm was asymptotically exact for a given discretisation of time, as under classic assumptions when the number of iterations $N^{\theta}$ tends to infinity:
+Sequential Monte Carlo techniques are a natural choice to explore $p(x_{0:n}|y_{1:n},\theta)$. In order to  account for  uncertainties regarding the parameter vector $\theta$, we are aiming for the exploration of the joint posterior density $p(x_{0:n},\theta|y_{1:n})$. As previously mentioned,  classic MCMC methods fail to be efficient and robust solutions because of the high dimension of the target density. The particle MCMC algorithm  offers a solution relying on the efficiency of particle filters \citep{Andrieu2010}. Algorithm \ref{alg:PMCMC} illustrates the principles of its particle marginal Metropolis Hastings version: the high-dimensional density exploration problem is reduced to the design of an MCMC algorithm over $\theta$, based on the likelihood $\hat{p}_{pf}(y_{1:n}|\theta)$ estimated by a particle filter conditioned on $\theta$. The authors of \cite{Andrieu2010} have shown that the algorithm was asymptotically exact for a given discretisation of time, as under classic assumptions when the number of iterations $N^{\theta}$ tends to infinity:
 \begin{align}
 	\Vert \hat{p}^J_{pf}(x^{(i)}_{0:n},\theta^{(i)}|y_{1:n}) -  p(x_{0:n},\theta|y_{1:n}) \Vert \rightarrow 0 \;\;\;\;\; as \; i\rightarrow \; \infty
 \end{align}
 
-Every iteration of the MCMC algorithm implies running a particle filter to explore the range of likely paths of the system under the current value of $\theta$. Consequently, the pMCMC is a computationally demanding algorithm; its complexity if of the order of $O(n J  N^{\theta})$. The mixing efficiency of the MCMC scheme critically determines the applicability of the algorithm. In the absence of suitable techniques to efficiently estimate the marginal score $\nabla_{\theta} \log p(\theta|y_{1:n})$, random walk Metropolis algorithms are generally used. Even in its adaptive form, the parameterisation of its initial covariance matrix $\Sigma^q_0$ is a central issue: we will explore in Chapter 2 a mean to automatise this process, rendering the pMCMC algorithm plug-and-play. 
+Every iteration of the MCMC algorithm implies running a particle filter to explore the range of likely paths of the system under the current value of $\theta$ and observed data $y_{1:n}$. Consequently, the pMCMC is a computationally demanding algorithm; its complexity if of the order of $O(n J  N^{\theta})$. The mixing efficiency of the MCMC scheme critically determines the applicability of the algorithm. In the absence of suitable techniques to efficiently estimate the marginal score $\nabla_{\theta} \log p(\theta|y_{1:n})$, random walk Metropolis algorithms are generally used. Even in its adaptive form, the parameterisation of its initial covariance matrix $\Sigma^q_0$ is a central issue: we will explore in the next subsection a mean to automatise this process, rendering the pMCMC algorithm plug-and-play. 
 
 
 \begin{algorithm}[h]
 \caption{Particle MCMC algorithm (particle marginal Metropolis Hastings version)}
 \label{alg:PMCMC}
+{\fontsize{12}{20}\selectfont
 \begin{algorithmic}
 \STATE Initialise $\theta^{(0)}$.
-\STATE Use Particle Smoother to compute  $\hat{p}(y_{1:n}|\theta^{(0)})$ and sample $x^{(0)}_{0:n}$ from $p(x^{dis}_{0:n}|y_{1:n},\tilde{\theta})$
+\STATE Use the SMC algorithm to compute  $\hat{p}^J_{pf}(y_{1:n}|\theta^{(0)})$ and sample $x^{(0)}_{0:n}$ from $\hat{p}_{pf}^J(x_{0:n}|y_{1:n},\theta^{(0)})$
 \FOR {$i=1$ to $N^{\theta}$}
 	\STATE Sample $\theta^{*}$ from $q(.|\theta^{(i)})$
-	\STATE Use PS to compute $L(\theta^*)$ and sample $x_{0:n}^{*}$ from $\hat{p}(x^{dis}_{0:n}|y_{1:n},\theta^*) $
+	\STATE Use the SMC to compute $L(\theta^*)=\hat{p}^J_{pf}(y_{1:n}|\theta^*)$ and sample $x_{0:n}^{*}$ from $\hat{p}_{pf}^J(x_{0:n}|y_{1:n},\theta^*) $
 	\STATE Accept $\theta^{*}$ (and  $x_{0:n}^{*}$) with probability $1\wedge\frac{L(\theta^{*})q(\theta^{(i)}|\theta^{*})}{L(\theta^{(i)})q(\theta^{*}|\theta^{(i)})}$
 	\STATE Record $\theta^{(i+1)}$ and $x^{(i+1)}_{1:n}$
 \ENDFOR
 \end{algorithmic}
+}
 \end{algorithm}
 
 
-An alternative solution is the $SMC^2$ algorithm presented in \cite{Chopin2012}. It explores both the probability density of $x_{0:n}$ and $\theta$ with an SMC algorithm, starting from the initial target $p(x_0,\theta)$ and progressively incorporating  the available observations. The global complexity of this algorithm is similar to the PMCMC, but its ability to automatically adapt the number particles being utilised and to progressively learn from previous samples what could be seen as the equivalent of the covariance matrix $\Sigma^q$ are promising features. At last, an asymptotically exact and plug-and-play  solution to the frequentist problem of  maximising the marginal likelihood $p(y|\theta)$ has been proposed in \cite{Ionides2006} and later in  \cite{Ionides2011}. This approach has been used for several applications in epidemiology, and it can be used to efficiently initialise the Markov chain of the PMCMC by incorporating the prior density into the maximised function of $\theta$.
+An alternative solution is the $SMC^2$ algorithm presented in \cite{Chopin2012}. It explores both the probability density of $x_{0:n}$ and $\theta$ with an SMC algorithm, starting from the initial target $p(x_0,\theta)$ and progressively incorporating  the available observations. The global complexity of this algorithm is similar to the pMCMC, but its ability to automatically adapt the number particles being utilised and to progressively learn from previous samples what could be seen as the equivalent of the covariance matrix $\Sigma^q$ are promising features. 
 
 
 \subsubsection{Efficiently initialisation and calibration of the PMMH algorithm}
+
+As we just mentioned, each iteration of the pMCMC algorithm is computationally demanding. For this reason, we want to reduce the calibration period of the pMCMC itself (also known as \emph{burn-in} period), which can be done by preliminary pre-explorations of the target density $p(\theta|y_{1:n})$. A first classical caveat, when MCMC chains are initialised from an arbitrary position, is that likelihood follows an increasing trend  before it stabilises, indicating that the chain has converged to a mode. Naturally, such non-stationarity in the generated samples induces a strong autocorrelation and provides non-exploitable information. It is then natural to rely on optimisation algorithms to accelerate this transient phase and directly launch the pMCMC chain close from a mode of the posterior density. In addition, complex target densities generally exhibit local modes in which MCMC or optimisation algorithms can be trapped, again leading to false and misleading results. The search for a global mode is a challenging problem in itself and should be done with suitable tools, that will now present. In addition, the pMCMC implementation proposed in PLOM allows for the adaptation of the sampling covariance $\Sigma^q$. This adaptation phase can be long and costly, due to a "chicken and egg" situation: adaptation of $\Sigma^q$ is most needed when mixing is poor, which is also the situation where learning is the slowest. This issue will also be covered in this Section.
+
+\paragraph{Searching for the global mode with the simplex, ksimplex and mif algorithms}\mbox{}\\
+
+
+One of the most classic algorithms to optimise a function of continuous variables in an unconstrained space is the simplex algorithm, also known as the  Nelder-Mead algorithm (see Algorithm \ref{alg:simplex}). To avoid the complications that arise when introducing constraints (positivity or boundedness, for example), the components of $\theta$ are transformed through log or logit functions (or extensions thereof, to allow for boundaries different than 0 and 1), before being handed to the simplex algorithm. The latter operates by constructing  polygon with $d+1$ vertices, with $d=dim(\theta)$, and optimising the value of the target function at each of its vertices (in our case, $p(\theta^{(d+1)}|y)$) through reflection, expansion, contraction or reduction transformations of the polygon. The use of this algorithm in PLOM directly relies on its implementation in the GNU Scientific Library \cite{Galassi2006}. The complexity of this algorithm increases linearly with d. In addition, it is a local exploration algorithm, and although it does not strictly follow the gradient of the target density, it can easily be trapped in local modes. At last, the simplex algorithm requires the target function $p(\theta^{(d+1)}|y)$ to be computed deterministically: it cannot be directly plugged to the particle filter where the estimation of the likelihood is noisy. As a consequence, the \texttt{simplex} algorithm can only be used in PLOM on ode approximations of the system (see \ref{subsub:ode}). In order to account for demographic or environmental sources of stochasticity, it is possible to estimate the likelihood with the Extended Kalman Filter from an sde approximation of the model (see \ref{subsub:sde}). As this estimate can be obtained deterministically, it can be plugged into the simplex algorithm: this is the \texttt{ksimplex} function available in  PLOM.
+
+\begin{algorithm}[h]
+\caption{Simplex algorithm (a.k.a. Nelder-Mead algorithm)}
+\label{alg:simplex}
+{\fontsize{12}{20}\selectfont
+\begin{algorithmic}
+\STATE Initialise $(\theta^{(1)},\dots,\theta^{(d+1)})$, with $d=dim(\theta)$.
+\STATE Set $N=0$.
+\STATE Unless stated otherwise, set $\alpha = 1,\gamma=2,\rho = -1/2$, and $\sigma=1/2$
+\WHILE {convergence is not achieved and $N<N_{max}$}
+	\STATE N = N+1
+	\STATE Order according to the values at the vertices $p(\theta^{(d+1)}|y)\leq\dots\leq p(\theta^{(0)}|y)$
+	\STATE Calculate $\theta^{(0)}$, the center of gravity of all points but $\theta^{(d+1)}$
+	\STATE \textbf{Reflection}\\
+	$\;\;\;\;\;\;$ Compute reflected point $\theta^{(r)}=\theta^{(0)}+\alpha(\theta^{(0)}-\theta^{(d+1)})$\\
+	$\;\;\;\;\;\;$ If $p(\theta^{(d)}|y)\leq p(\theta^{(r)}|y)$ and $p(\theta^{(r)}|y)< p(\theta^{(0)}|y)$:\\
+	$\;\;\;\;\;\;$$\;\;\;\;\;\;$ replace $\theta^{(d+1)}$ by $\theta^{(r)}$ and end iteration.
+	\STATE \textbf{Expansion}\\
+	$\;\;\;\;\;\;$ If $p(\theta^{(1)}|y)\leq p(\theta^{(r)}|y)$:\\
+	$\;\;\;\;\;\;$$\;\;\;\;\;\;$ If $p(\theta^{(r)}|y)\leq p(\theta^{(e)}|y)$:\\
+	$\;\;\;\;\;\;$$\;\;\;\;\;\;$$\;\;\;\;\;\;$ Compute the expanded point $\theta^{(e)}=\theta^{(0)}+\alpha(\theta^{(0)}-\theta^{(d+1)})$,\\
+	$\;\;\;\;\;\;$$\;\;\;\;\;\;$$\;\;\;\;\;\;$ and replace $\theta^{(d+1)}$ by $\theta^{(e)}$, and end iteration.\\
+	$\;\;\;\;\;\;$$\;\;\;\;\;\;$ Else:\\
+	$\;\;\;\;\;\;$$\;\;\;\;\;\;$$\;\;\;\;\;\;$ Replace $\theta^{(d+1)}$ by $\theta^{(r)}$, and end iteration.
+	\STATE \textbf{Contraction}\\
+	$\;\;\;\;\;\;$ We know that $p(\theta^{(r)}|y)\leq p(\theta^{(d)}|y)$.\\
+	$\;\;\;\;\;\;$ Compute the contracted point $\theta^{(c)}=\theta^{(0)}+\rho(\theta^{(0)}-\theta^{(d+1)})$,\\
+	$\;\;\;\;\;\;$$\;\;\;\;\;\;$ If $p(\theta^{(d+1)}|y)\leq p(\theta^{(c)}|y)$:\\
+	$\;\;\;\;\;\;$$\;\;\;\;\;\;$$\;\;\;\;\;\;$ Replace $\theta^{(d+1)}$ by $\theta^{(c)}$, and end iteration.
+	\STATE \textbf{Reduction}\\
+	$\;\;\;\;\;\;$ For all points but $\theta^{(1)}$, replace $\theta^{(i)}$ by $\theta^{(1)}+\sigma(\theta^{(i)}-\theta^{(1)})$
+\ENDWHILE
+\end{algorithmic}
+}
+\end{algorithm}
+
+
+The optimisation routines based on algorithm \ref{alg:simplex} require the use of ode or sde approximations of the system. These may lead to biased estimated of the optimal set of parameters, with regards to what could be found using a psr formalism (see \ref{subsub:psr}). However, they are only used to initialise the Markov Chain that subsequently explores the posterior density. As a consequence, potential discrepancies between the likelihoods induced under the different formalisms will only have serious consequences in some critical cases. In such situations, it is possible to rely on an asymptotically exact and plug-and-play  solution to the frequentist problem of  maximising the marginal likelihood $p(y|\theta)$ \citep{Ionides2006,Breto2009,Ionides2011}. This approach has been used for several applications in epidemiology. Although it has been developed and utilised as a purely Frequentist algorithm,  the mif  can also it can  be used to efficiently initialise the Markov chain of the PMCMC by incorporating the prior density into the maximised function of $\theta$ as illustrated in Algorithm \ref{alg:mif}.  Under the current implementation, corresponding to the algorithm described in \cite{Breto2009}, careful parameterisation of the algorithm is required to achieve convergence to the mode. Further investigation is being carried out to increase the efficiency and stability of the iterated filtering algorithm \citep{Ionides2012,Lindstrom2013}, which could allow to directly optimise the posterior distribution under the optimal psr formalism, exploiting the interesting \emph{tempering} feature of this approach. In the meantime, serialised \texttt{simplex} or \texttt{ksimplex} algorithms shall be preferred for routine maximisation of the posterior density.
+
+\begin{algorithm}[h]
+\caption{Posterior density Maximization by Iterated Filtering}
+\label{alg:mif}
+{\fontsize{12}{20}\selectfont
+\begin{algorithmic}
+\STATE Initialise $x^{(1)}_I$ and $\theta^{(1)}$.
+\STATE Unless stated otherwise, set $a = 0.975,b=2,\rho = -1/2$, and $L=round(0.75\times n)$
+\FOR {$m=1$ to M}
+	\STATE Sample initial conditions,  $\tilde{x}_I^{(j)}(t_0)\sim\mathcal{N}\big(x^{(m)}_I,a^{m-1}\Sigma_I\big),\;\;\;\;\;\;j=1,\dots,J$ 
+	\STATE Initialise filtered states, $\tilde{x}_F^{(j)}(t_0)=\tilde{x}_I^{(j)}(t_0)$ 
+	\STATE Rejuvenate parameters, $\tilde{\theta}^{(j)}(t_0)\sim\mathcal{N}\big(\theta^{(m)},ba^{m-1}\Sigma_{\theta}\big)$
+	\STATE Set $\bar{\theta}(t_0)=\theta^{(m)}$
+	\FOR {$i=1$ to n}
+		\STATE Propagate samples, $\tilde{x}_P^{(j)}(t_i)\sim p\big(x(t_i)|\tilde{x}_F^{(j)}(t_{i-1}),\tilde{\theta}^{(j)}(t_{i-1})\big)$ 
+		\STATE Compute weights, $w^{(j)}_i=p\big(y_i|\tilde{x}_P^{(j)}(t_i),\tilde{\theta}^{(j)}(t_{i-1})\big)\times p\big(\tilde{\theta}^{(j)}(t_{i-1})\big)^{\frac{1}{n}}$ 
+		\STATE Draw $k_1,\dots,k_J$ such that $p(k_j=i)=w^{(i)}_i/\sum_l w_i^{(l)}$;
+		\STATE and filter the predicted states $\tilde{x}_F^{(j)}(t_i)=\tilde{x}_P^{(k_j)}(t_i)$ 
+		\STATE Filter the initial conditions $\tilde{x}_I^{(j)}(t_i)=\tilde{x}_I^{(k_j)}(t_{i-1})$
+		\STATE Filter and rejuvenate parameters, $\tilde{\theta}^{(j)}(t_i)\sim\mathcal{N}\big(\tilde{\theta}^{(k_j)}(t_{i-1}),a^{m-1}(t_i-t_{i-1})\Sigma_{\theta}\big)$
+		\STATE Set $\bar{\theta}(t_i)$ to be the sample mean of $\{\tilde{\theta}^{(k_j)}(t_{i-1})\}_{1\leq j \leq J}$
+		\STATE Set $V(t_i)$ to be the sample mean of $\{\tilde{\theta}^{(j)}(t_{i})\}_{1\leq j \leq J}$
+	\ENDFOR
+	\STATE Set $\theta^{(m+1)}=\theta^{(m)}+V(t_1)\sum_{i=1}^n V^{-1}(t_i)(\bar{\theta}(t_i)-\bar{\theta}(t_{i-1}))$
+	\STATE Set $x_I^{(m+1)}$ to be the sample mean of $\{\tilde{x}_I^{(j)}(t_{L})\}_{1\leq j \leq J}$
+\ENDFOR
+\end{algorithmic}
+}
+\end{algorithm}
+
+\paragraph{Fast exploration of a proxy posterior density: the kMCMC algorithm}\mbox{}\\
+
+Even when the Markov Chain is initialised close from the global model of the posterior density, the adaptation of the sampling covariance matrix $\Sigma^q$ of the pMCMC algorithm can be lengthy. We know that in the multivariate normal case, the optimal choice for $\Sigma^q$ is proportional to the covariance of the target density $p(\theta|y_{1:n})$. As the Extended Kalman Filter provides an efficient way to deterministically obtain an estimate of the likelihood $p(y_{1:n}|\theta)$ under the sde formalism, it is natural to construct an algorithm analogous to the pMCMC, based on $\hat{p}_{EKF}(y_{1:n}|\theta)$, that will efficienctly provide an estimate of the covariance of the proxy posterior density (see Algorithm \ref{alg:kMCMC}). In addition the one or two order of magnitudes gained by estimating the likelihood with the EKF instead of an SMC algorithm, the complete absence of noise on this estimate also significantly facilitates the automatic calibration of the kmcmc algorithm.
+
+
 \section{Iterated inference pipeline: illustrations}
 \section{Perspectives: call for contributions}
 
+
+
+\begin{algorithm}[h]
+\caption{Kalman MCMC algorithm}
+\label{alg:kMCMC}
+{\fontsize{12}{20}\selectfont
+\begin{algorithmic}
+\STATE Initialise $\theta^{(0)}$.
+\STATE Use the EKF algorithm to compute  $\hat{p}_{EKF}(y_{1:n}|\theta^{(0)})$
+\FOR {$i=1$ to $N^{\theta}$}
+	\STATE Sample $\theta^{*}$ from $q(.|\theta^{(i)})$
+	\STATE Use the EKF to compute $L(\theta^*)=\hat{p}_{EKF}(y_{1:n}|\theta^*)$ 
+	\STATE Accept $\theta^{*}$ with probability $1\wedge\frac{L(\theta^{*})q(\theta^{(i)}|\theta^{*})}{L(\theta^{(i)})q(\theta^{*}|\theta^{(i)})}$
+	\STATE Record $\theta^{(i+1)}$ 
+\ENDFOR
+\end{algorithmic}
+}
+\end{algorithm}
 
 
 
