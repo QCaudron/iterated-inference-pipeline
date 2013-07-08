@@ -453,11 +453,11 @@ int main(int argc, char *argv[])
         //we need to integrate for at least 1 time step so that
         //incidence is reset to 0 after transiant (transiant did not
         //reset incidences every week in case of PLOM_ODE)
-        traj(J_p_X, t0, t0+1, t_transiant, J_p_par, p_data, calc, f_pred, sender, receiver, controller, print_opt);
+        traj(J_p_X, p_best, t0, t0+1, t_transiant, J_p_par, p_data, calc, f_pred, sender, receiver, controller, print_opt);
 
     } else if(!(OPTION_BIF || OPTION_LYAP) && (print_opt & PLOM_PRINT_X) && (t_end>t0)) { //ONLY TRAJ
 
-        traj(J_p_X, t0, t_end, t_transiant, J_p_par, p_data, calc, f_pred, sender, receiver, controller, print_opt);
+        traj(J_p_X, p_best, t0, t_end, t_transiant, J_p_par, p_data, calc, f_pred, sender, receiver, controller, print_opt);
 
     } else if ( (!is_predict) && (OPTION_BIF || OPTION_LYAP) ) {
 

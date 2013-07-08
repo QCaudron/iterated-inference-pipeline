@@ -153,7 +153,7 @@ void header_hat(FILE *p_file, struct s_data *p_data)
 
     /* par_sv */
     for(i=0; i<p_data->p_it_par_sv->length; i++) {
-        const char *name = routers[p_data->p_it_par_sv->ind[i]]->name;       
+        const char *name = routers[p_data->p_it_par_sv->ind[i]]->name;
         for(cac=0; cac < N_CAC; cac++) {
             const char *cac_name = p_data->cac_name[cac];
             fprintf(p_file, "low95:%s:%s,%s:%s,high95:%s:%s,", name, cac_name, name, cac_name, name, cac_name);

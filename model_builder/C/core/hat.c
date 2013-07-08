@@ -304,3 +304,60 @@ void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p
         offset += routers[ ind_par_Xdrift_applied ]->n_gp;
     } /* end for on i */
 }
+
+
+
+
+/**
+ * Plug hat into best->mean (initial conditions and drift)
+ */
+void plom_plug_hat(struct s_best *p_best, struct s_hat *p_hat, struct s_data *p_data){
+    int i, ii,  g, p, offset;
+    double nb_pop_in_group;
+    double pop_size;
+    double x;
+
+    struct s_iterator *p_it_sv = p_data->p_it_par_sv;
+
+    for(i=0; i<p_it_sv->length; i++){
+	struct s_router *p_router = p_data->routers[p_it_sv->ind[i]];
+	for(g=0; g< p_router->n_gp; g++){
+	    if(p_best->is_estimated[p_it_sv->offset[i]+g]){
+		nb_pop_in_group = 0.0;
+		x = 0.0;	    	    
+		for(p=0; p< p_router->p; p++){ //for all the population		
+		    if(p_router->map[p] == g){ //k is in an element of the goup g
+			//get pop size
+			pop_size = 0.0;
+			for(ii=0; ii<p_it_sv->length; ii++){		
+			    pop_size += p_hat->state[ii*N_CAC + p];
+			}
+			if(!POP_SIZE_EQ_SUM_SV){
+			    pop_size += p_hat->remainder[p];
+			}
+
+			x += (p_hat->state[i*N_CAC + p] / pop_size);
+			nb_pop_in_group += 1.0;
+		    }
+		}
+		x /= nb_pop_in_group;
+		printf("%s %s %g %d\n", p_router->name, p_router->group_name[g], x, p_it_sv->offset[i]+g);
+		//set the value in p_best
+		gsl_vector_set(p_best->mean, p_it_sv->offset[i]+g, (*(p_router->f))(x, p_router->min[g], p_router->max[g]) );
+	    }
+	}
+    }
+
+    //drift
+    struct s_iterator *p_it_drift = p_data->p_it_only_drift;
+    offset = 0;
+    for(i=0; i<p_it_drift->length; i++){
+	struct s_router *p_router = p_data->routers[p_it_drift->ind[i]];
+	for(g=0; g< p_router->n_gp; g++){
+	    if(p_best->is_estimated[p_it_drift->offset[i]+g]){
+		gsl_vector_set(p_best->mean, p_it_drift->offset[i]+g, (*(p_router->f))(p_hat->drift[offset], p_router->min[g], p_router->max[g]));
+	    }
+	    offset++;
+	}
+    }
+}

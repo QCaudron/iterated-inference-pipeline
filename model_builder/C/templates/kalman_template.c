@@ -283,7 +283,7 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
 	d = 0;
 	{% for jac_ii in jac_i %}
 	for(g=0; g< routers[ drift[{{ forloop.counter0 }}]->ind_par_Xdrift_applied ]->n_gp; g++) {
-	    for(n_cac=0; n_cac< compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->size; n_cac++) {
+	    for(n_cac=0; n_cac< compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->length; n_cac++) {
 		cac = compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->elements[n_cac];
 		get_c_ac(cac, &c, &ac);
 		gsl_matrix_set(Ft,
@@ -308,7 +308,7 @@ void eval_jac(gsl_matrix *Ft, const double *X, struct s_par *p_par, struct s_dat
 		{% for jac_ii in jac_i %}
 		for(g=0; g< routers[ drift[{{ forloop.counter0 }}]->ind_par_Xdrift_applied ]->n_gp; g++) {
 		    double sum_tmp = 0.0;
-		    for(n_cac=0; n_cac< compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->size; n_cac++) {
+		    for(n_cac=0; n_cac< compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->length; n_cac++) {
 			cac = compo_groups_drift_par_proc[{{ forloop.counter0 }}][g]->elements[n_cac];
 			if(cac_drift_in_cac_ts(cac, {{ forloop.parentloop.counter0 }}, ts_unique, obs2ts)) {
 			    get_c_ac(cac, &c, &ac);

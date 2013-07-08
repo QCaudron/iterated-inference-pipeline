@@ -551,7 +551,7 @@ struct s_likelihood
  */
 struct s_group
 {
-    int size; /**< nb of element of the group */
+    int length; /**< nb of element of the group */
     unsigned int *elements; /**< element id */
 };
 
@@ -843,6 +843,8 @@ void apply_following_constraints(theta_t *proposed, struct s_best *p_best, struc
 void get_CI95(double *hat_95, const double *to_be_sorted, size_t *index_sorted, double *weights);
 void compute_hat(struct s_X **J_p_X, struct s_par *p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, double *weights, const int n, const double t);
 void compute_hat_nn(struct s_X **J_p_X, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, struct s_hat *p_hat, int is_p_par_cst, const int n, const double t);
+void plom_plug_hat(struct s_best *p_best, struct s_hat *p_hat, struct s_data *p_data);
+
 
 /* json.c */
 json_t *fast_get_json_object(const json_t *container, const char *obj_name);
@@ -870,6 +872,7 @@ void compute_drift(struct s_X *p_X, struct s_par *p_par, struct s_data *p_data, 
 void get_c_ac(int cac, int *c, int *ac);
 struct s_group **get_groups_compo(struct s_router *p_router);
 void clean_groups_compo(struct s_group **compo, int n_gp);
+
 
 /* simplex.c */
 void transfer_estimated(struct s_best *p_best, const gsl_vector *x, struct s_data *p_data);

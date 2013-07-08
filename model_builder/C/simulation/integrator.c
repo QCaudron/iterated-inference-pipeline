@@ -137,7 +137,7 @@ double **get_traj_obs(struct s_X *p_X, double *y0, double t0, double t_end, doub
 
 
 
-void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, void *sender, void *receiver, void *controller, const enum plom_print print_opt)
+void traj(struct s_X **J_p_X, struct s_best *p_best, double t0, double t_end, double t_transiant, struct s_par **J_p_par, struct s_data *p_data, struct s_calc **calc, plom_f_pred_t f_pred, void *sender, void *receiver, void *controller, const enum plom_print print_opt)
 {
     int k, j;
 #if FLAG_OMP
@@ -218,6 +218,10 @@ void traj(struct s_X **J_p_X, double t0, double t_end, double t_transiant, struc
             print_X(p_file_X, J_p_par, J_p_X, p_data, calc[0], 0, 0, 0, k, k+1);
         }
     }
+
+    
+    plom_plug_hat(p_best, p_hat, p_data);
+
 
     clean_hat(p_hat, p_data);
     if (print_opt & PLOM_PRINT_X) {

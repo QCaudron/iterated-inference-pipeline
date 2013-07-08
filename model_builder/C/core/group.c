@@ -36,51 +36,42 @@ void get_c_ac(int cac, int *c, int *ac)
  */
 struct s_group **get_groups_compo(struct s_router *p_router)
 {
-
   int g; //group
   int k; //element id
 
   struct s_group **compo = malloc(p_router->n_gp * sizeof (struct s_group *));
-  if(compo==NULL)
-    {
+  if(compo==NULL) {
       fprintf(stderr,"Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
       exit(EXIT_FAILURE);
-    }
+  }
 
-  for(g=0; g< p_router->n_gp; g++)
-    {
+  for(g=0; g< p_router->n_gp; g++) {
       compo[g] = malloc(sizeof (struct s_group));
-      if(compo[g]==NULL)
-        {
+      if(compo[g]==NULL) {
           fprintf(stderr,"Allocation impossible in file :%s line : %d",__FILE__,__LINE__);
           exit(EXIT_FAILURE);
-        }
+      }
 
-      compo[g]->size = 0;
-      for(k=0; k< p_router->p; k++) //p is the max number of element of a group
-        {
-          if(p_router->map[k] == g) //k is in an element of the goup g
-            {
-              compo[g]->size += 1;
-              if(compo[g]->size == 1)
-                compo[g]->elements = init1u_set0(1);
-              else
-                {
+      compo[g]->length = 0;
+      for(k=0; k< p_router->p; k++){ //p is the max number of element of a group
+	  if(p_router->map[k] == g) { //k is in an element of the goup g
+              compo[g]->length += 1;
+              if(compo[g]->length == 1) {
+		  compo[g]->elements = init1u_set0(1);
+	      }else {
                   unsigned int *tmp;
-                  tmp = realloc(compo[g]->elements, compo[g]->size * sizeof(unsigned int) );
-                  if ( tmp == NULL )
-                    {
+                  tmp = realloc(compo[g]->elements, compo[g]->length * sizeof(unsigned int) );
+                  if ( tmp == NULL ) {
                       fprintf(stderr,"Reallocation impossible");
                       FREE(compo[g]->elements);
                       exit(EXIT_FAILURE);
-                    }
-                  else
-                    compo[g]->elements = tmp;
-                }
-              compo[g]->elements[compo[g]->size-1] = k;
-            }
-        }
-    }
+		  } else
+		      compo[g]->elements = tmp;
+	      }
+              compo[g]->elements[compo[g]->length-1] = k;
+	  }
+      }
+  }
 
   return compo;
 }
@@ -95,4 +86,3 @@ void clean_groups_compo(struct s_group **compo, int n_gp)
     }
   FREE(compo);
 }
-
