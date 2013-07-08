@@ -178,7 +178,7 @@ void header_hat(FILE *p_file, struct s_data *p_data)
         const char *name = routers[ind_par_Xdrift_applied]->name;
         for(g=0; g< routers[ ind_par_Xdrift_applied ]->n_gp; g++) {
             const char *group = routers[ind_par_Xdrift_applied]->group_name[g];
-            fprintf(p_file, ",low95:drift:%s:%s,drift:%s:%s,high95:drift:%s:%s", name, group, name, group, name, group);
+            fprintf(p_file, ",low95:diff:%s:%s,diff:%s:%s,high95:diff:%s:%s", name, group, name, group, name, group);
         }
     }
 

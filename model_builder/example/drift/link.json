@@ -7,19 +7,19 @@
       "id": "prev", "comment":"prevalence",
       "definition": ["I"],
       "time_series_id": ["city1__CDC__prev"],
-      "model_id": "common"
+      "observation_id": "common"
     },
     {
       "id": "inc_out", "comment":"incidence (including death) measured at recovery time",
       "definition": [{"from":"I", "to":"R"}, {"from":"I", "to":"U"}],
       "time_series_id": ["all__CDC__inc", "all__google__inc"],
-      "model_id": "common"
+      "observation_id": "common"
     },
     {
       "id": "inc_in", "comment":"incidence measured at infection time",
       "definition": [{"from":"S", "to":"I"}],
       "time_series_id": ["city2__CDC__inc"],
-      "model_id": "common"
+      "observation_id": "common"
     }
   ],
 

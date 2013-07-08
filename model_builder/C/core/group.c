@@ -95,3 +95,4 @@ void clean_groups_compo(struct s_group **compo, int n_gp)
     }
   FREE(compo);
 }
+
