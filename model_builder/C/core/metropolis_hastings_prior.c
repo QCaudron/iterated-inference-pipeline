@@ -73,6 +73,7 @@ plom_err_code log_prob_prior(double *log_like, struct s_best *p_best, gsl_vector
 	    if(p_best->is_estimated[offset]) {
                 back_transformed = (*(p_router->f_inv[k]))(gsl_vector_get(mean, offset), p_router->min[k], p_router->max[k]);
                 p_tmp = (*(p_best->prior[offset]))(back_transformed, p_best->par_prior[offset][0], p_best->par_prior[offset][1]);
+		printf("par %f   logprior %f\n",back_transformed,log(p_tmp));
 
                 //check for numerical issues
                 if( (isnan(p_tmp)==1) || (isinf(p_tmp)==1) || (p_tmp<0.0) ) {

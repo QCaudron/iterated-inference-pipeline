@@ -444,7 +444,7 @@ void run_SMC_zmq_inproc(struct s_X ***D_J_p_X, struct s_X ***D_J_p_X_tmp, struct
 		compute_hat(D_J_p_X[np1], p_par, p_data, calc, D_p_hat[np1], p_like->weights, n, t1);
 	    }
 
-            resample_X(p_like->select[n], &(D_J_p_X[np1]), &(D_J_p_X_tmp[np1]), p_data);
+	    resample_X(p_like->select[n], &(D_J_p_X[np1]), &(D_J_p_X_tmp[np1]), p_data);
 
             if (print_opt & PLOM_PRINT_PRED_RES) {
                 print_prediction_residuals(p_file_pred_res, &p_par, p_data, calc[0], D_J_p_X[np1], p_like->Llike_best_n, p_like->ess_n, 1, n, t1);
