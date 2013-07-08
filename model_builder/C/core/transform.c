@@ -325,6 +325,8 @@ int is_duration(const json_t *par)
 /**
  * Set the transformation function of the router p_router
  * corresponding to the parameter par
+ * for Bayesian algorithms (kmcmc, pmcmc, or smc/kalman with --prior), parameters with uniform prior are transformed 
+ * with logit_ab to avoid discontinuities in the target density. 
  */
 
 void set_f_trans(struct s_router *p_router, const char *transf, const char *prior_type, const char *u_data, int g, int is_bayesian)
