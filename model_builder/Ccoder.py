@@ -87,10 +87,6 @@ class Ccoder(Cmodel):
                 ##add extra terms (no whitespace)
                 if myf == 'terms_forcing':
                     Cterm += ',t,p_data,cac'
-                elif myf == 'step':
-                    Cterm += ',t'
-                elif myf == 'step_lin':
-                    Cterm += ',t'
                 elif myf == 'correct_rate' and not no_correct_rate:
                     Cterm += ',dt'
 

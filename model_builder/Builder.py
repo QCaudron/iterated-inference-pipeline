@@ -185,7 +185,7 @@ class PlomModelBuilder(Context, Ccoder):
         ##data/data (be sure to have sorted the context before this part)
         settings['data']['data'] = self.data
         settings['data']['par_fixed_values'] = copy.deepcopy(self.par_fixed_values)
-
+    
         #convert dates into days since first data points
         for k, v in settings['data']['par_fixed_values'].iteritems():
             values = []

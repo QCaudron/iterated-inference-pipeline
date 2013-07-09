@@ -98,11 +98,14 @@ class TestCcoder(unittest.TestCase):
             {'x': 'terms_forcing(v)', 
              'c': 'terms_forcing(par[ORDER_v][routers[ORDER_v]->map[cac]],t,p_data,cac)'}, 
 
-            {'x': 'step(v, r0)', 
-             'c': 'step(par[ORDER_v][routers[ORDER_v]->map[cac]],drifted[ORDER_drift__par_proc__r0][cac],t)'}, 
+            {'x': 'heaviside(t-v)', 
+             'c': 'heaviside(t-par[ORDER_v][routers[ORDER_v]->map[cac]])'}, 
 
-            {'x': 'step_lin(v, r0)', 
-             'c': 'step_lin(par[ORDER_v][routers[ORDER_v]->map[cac]],drifted[ORDER_drift__par_proc__r0][cac],t)'}, 
+            {'x': 'heaviside((t-v))', 
+             'c': 'heaviside(t-par[ORDER_v][routers[ORDER_v]->map[cac]])'}, 
+
+            {'x': 'ramp(t-v)', 
+             'c': 'ramp(t-par[ORDER_v][routers[ORDER_v]->map[cac]])'}, 
 
             {'x': 'correct_rate(v)', 
              'c': 'correct_rate(par[ORDER_v][routers[ORDER_v]->map[cac]],dt)'}, 

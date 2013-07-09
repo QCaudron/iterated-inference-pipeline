@@ -743,8 +743,8 @@ double foi(double *X_c, double *waifw_ac);
 
 /* special_functions.c */
 double terms_forcing(double amplitude, double time, struct s_data *p_data, int cac);
-double step(double mul, double t_intervention, double time);
-double step_lin(double mul, double t_intervention, double time);
+double heaviside(double x);
+double ramp(double x);
 
 
 /* func.c */

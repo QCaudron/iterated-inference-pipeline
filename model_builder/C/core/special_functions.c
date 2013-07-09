@@ -45,29 +45,19 @@ double terms_forcing(double amplitude, double time, struct s_data *p_data, int c
   return s_t;
 }
 
-
-double step(double mul, double t_intervention, double time)
-{
-  /*time is in the same unit as data!*/
-  return (time < t_intervention) ? 1.0 : mul;
+/**
+ * The Heaviside step function or unit step function
+ * x is typicaly t-t_intervention
+ */
+double heaviside(double x)
+{    
+    return (x < 0.0) ? 0.0 : 1.0;
 }
 
-
-double step_lin(double mul, double t_intervention, double time)
+/**
+ * The ramp function 
+ */
+double ramp(double x)
 {
-  /*time is in the same unit as data!*/
-
-  double res_step;
-
-  if(time < t_intervention)
-    {
-      res_step = 1.0;
-    }
-  else
-    {
-      res_step = 1.0 + mul*(time-t_intervention) ;
-      res_step = (res_step > 0.0) ? res_step : 0.0 ;
-    }
-
-  return res_step;
+    return (x >= 0) ? x : 0.0;
 }
