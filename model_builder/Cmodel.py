@@ -32,7 +32,7 @@ class Cmodel:
 
         self.op = set(['+', '-', '*', '/', ',', '(', ')']) ##!!!CAN'T contain square bracket '[' ']'
         self.reserved = set(['N', 'x', 'U'])
-        self.special_functions = set(['terms_forcing', 'heaviside', 'ramp', 'sin', 'cos', 'correct_rate'])
+        self.special_functions = set(['terms_forcing', 'heaviside', 'ramp', 'slowstep', 'sin', 'cos', 'correct_rate'])
 
         ###########################################################################
         self.context = copy.deepcopy(context)

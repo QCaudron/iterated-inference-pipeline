@@ -47,7 +47,7 @@ double terms_forcing(double amplitude, double time, struct s_data *p_data, int c
 
 /**
  * The Heaviside step function or unit step function
- * x is typicaly t-t_intervention
+ * x is typically t-t_intervention
  */
 double heaviside(double x)
 {    
@@ -60,4 +60,16 @@ double heaviside(double x)
 double ramp(double x)
 {
     return (x >= 0) ? x : 0.0;
+}
+
+/**
+ * Slowstep function : piecewise linear function equivalent to
+ * integral of a rectangular function. Of the form
+ slowstep(x, d) = {   0     if x < 0
+                      d     if x >= d
+                      x     otherwise   }
+ */
+double slowstep(double x, double d)
+{
+    return ( x >= 0.0 ? ( x >= d ? d : t ) : 0.0 );
 }

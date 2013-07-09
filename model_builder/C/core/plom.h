@@ -745,6 +745,7 @@ double foi(double *X_c, double *waifw_ac);
 double terms_forcing(double amplitude, double time, struct s_data *p_data, int cac);
 double heaviside(double x);
 double ramp(double x);
+double slowstep(double x, double d);
 
 
 /* func.c */
