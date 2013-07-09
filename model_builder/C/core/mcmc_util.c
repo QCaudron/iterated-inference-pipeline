@@ -26,8 +26,8 @@ struct s_mcmc_calc_data *build_mcmc_calc_data(struct s_best *p_best, const doubl
         p->smoothed_acceptance_rates[k] = 1.0;
     }
 
-    p->global_acceptance_rate = 1.0;
-    p->smoothed_global_acceptance_rate = 1.0;
+    p->global_acceptance_rate = 0.0;
+    p->smoothed_global_acceptance_rate = 0.0;
 
     p->has_cycled = 1;
     p->m_full_iteration = 0;
