@@ -211,7 +211,6 @@ class PlomModelBuilder(Context, Ccoder):
                 values.append(obj)
 
             settings['data']['par_fixed_values'][k] = values
-            print settings['data']['par_fixed_values']
 
 
         settings['data']['dates'] = self.dates
