@@ -194,9 +194,10 @@ class PlomModelBuilder(Context, Ccoder):
                 x = []
                 y = []
                 for d in v['source'][ts]['value']:
-                    delta =  datetime.datetime.strptime(d[0], "%Y-%m-%d").date() - self.date_0
-                    x.append(delta.days)
-                    y.append(d[1])
+                    if d[1] != None:
+                        delta =  datetime.datetime.strptime(d[0], "%Y-%m-%d").date() - self.date_0
+                        x.append(delta.days)
+                        y.append(d[1])
 
 
                 obj = {'id': ts, 'x': x, 'y': y, 'size': len(y)}
@@ -210,6 +211,7 @@ class PlomModelBuilder(Context, Ccoder):
                 values.append(obj)
 
             settings['data']['par_fixed_values'][k] = values
+            print settings['data']['par_fixed_values']
 
 
         settings['data']['dates'] = self.dates
